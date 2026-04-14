@@ -200,6 +200,31 @@ async def get_balance(db: AsyncSession = Depends(get_db)):
     return {"balance": balance, "source": "live"}
 
 
+class MnemonicRequest(BaseModel):
+    mnemonic: str
+
+@router.post("/wallet/save-mnemonic")
+async def save_mnemonic(payload: MnemonicRequest):
+    """Store mnemonic in .env for use when bittensor lib is available."""
+    words = payload.mnemonic.strip().split()
+    if len(words) != 12:
+        raise HTTPException(status_code=400, detail="Mnemonic must be exactly 12 words")
+    # Write to .env file (append or update)
+    import os, re
+    env_path = os.path.join(os.path.dirname(__file__), '../../.env')
+    env_path = os.path.abspath(env_path)
+    # Read existing
+    lines = []
+    if os.path.exists(env_path):
+        with open(env_path) as f:
+            lines = f.readlines()
+    # Remove existing mnemonic lines
+    lines = [l for l in lines if not l.startswith('BT_MNEMONIC=')]
+    lines.append(f'BT_MNEMONIC={payload.mnemonic}\n')
+    with open(env_path, 'w') as f:
+        f.writelines(lines)
+    return {"success": True, "message": "Mnemonic saved to .env — will be loaded when Bittensor is available"}
+
 @router.get("/network/info")
 async def get_network_info(db: AsyncSession = Depends(get_db)):
     config = await get_or_create_config(db)
