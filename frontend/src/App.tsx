@@ -9,6 +9,7 @@ import Settings from './pages/Settings'
 import MissionControl from './pages/MissionControl'
 import AgentFleet from './pages/AgentFleet'
 import RiskConfig from './pages/RiskConfig'
+import Analytics from './pages/Analytics'
 
 export default function App() {
   return (
@@ -31,6 +32,7 @@ export default function App() {
           <Route path="/mission-control" element={<MissionControl />} />
           <Route path="/fleet"           element={<AgentFleet />}     />
           <Route path="/risk"            element={<RiskConfig />}     />
+          <Route path="/analytics"       element={<Analytics />}      />
           <Route path="/trades"          element={<Trades />}         />
           <Route path="/strategies"      element={<Strategies />}     />
           <Route path="/wallet"          element={<WalletPage />}     />

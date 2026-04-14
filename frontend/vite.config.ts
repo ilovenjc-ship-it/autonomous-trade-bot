@@ -12,6 +12,7 @@ export default defineConfig({
   server: {
     port: 3002,
     host: true,
+    allowedHosts: ['all', '.e2b.app', 'localhost'],
     proxy: {
       '/api': {
         target: 'http://localhost:8001',
