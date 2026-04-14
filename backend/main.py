@@ -64,10 +64,17 @@ async def seed_strategies():
                         description=s["description"],
                         parameters=s["parameters"],
                         is_active=s.get("is_active", False),
+                        mode=s.get("mode", "PAPER_ONLY"),
+                        win_trades=s.get("win_trades", 0),
+                        loss_trades=s.get("loss_trades", 0),
+                        total_trades=s.get("total_trades", 0),
+                        win_rate=s.get("win_rate", 0.0),
+                        total_pnl=s.get("total_pnl", 0.0),
+                        cycles_completed=s.get("cycles_completed", 0),
                     )
                 )
         await db.commit()
-    logger.info("Strategies seeded")
+    logger.info("Strategies seeded — 12 strategies initialised")
 
 
 # ── App ─────────────────────────────────────────────────────────────────────
