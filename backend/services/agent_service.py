@@ -229,6 +229,7 @@ class IIAgentService:
         self._analysis_count    = 0
         self._last_regime       = REGIME_UNKNOWN
         self._last_analysis_at: Optional[str] = None
+        self._alerted_keys:     set = set()   # dedup HOT/STRUGGLING alerts
 
         # Live state (updated each cycle)
         self.current_regime:   str            = REGIME_UNKNOWN
@@ -240,29 +241,46 @@ class IIAgentService:
     # ── Regime detection ──────────────────────────────────────────────────────
 
     def _detect_regime(self, rsi: Optional[float], macd_hist: Optional[float], price_history: List[float]) -> str:
-        if rsi is None:
-            return REGIME_UNKNOWN
-
-        # Price trend over last few ticks
+        # Price trend is always available — use it as fast-path
         trend_up = False
         trend_dn = False
+        trend_strong = False
+
         if len(price_history) >= 3:
-            recent = price_history[-3:]
-            trend_up = recent[-1] > recent[0]
-            trend_dn = recent[-1] < recent[0]
+            recent   = price_history[-min(6, len(price_history)):]
+            first, last = recent[0], recent[-1]
+            pct_change = ((last - first) / first * 100) if first else 0
+            trend_up     = last > first
+            trend_dn     = last < first
+            trend_strong = abs(pct_change) > 0.3   # >0.3% move is meaningful
 
         macd_bull = macd_hist is not None and macd_hist > 0
         macd_bear = macd_hist is not None and macd_hist < 0
 
-        # Volatile: RSI swings hard either way
-        if rsi > 68 or rsi < 32:
-            return REGIME_VOLATILE
+        # ── Full RSI-based detection (15+ data points) ──
+        if rsi is not None:
+            if rsi > 68 or rsi < 32:
+                return REGIME_VOLATILE
+            if rsi >= BULL_RSI_MIN and (macd_bull or trend_up):
+                return REGIME_BULL
+            if rsi <= BEAR_RSI_MAX and (macd_bear or trend_dn):
+                return REGIME_BEAR
+            return REGIME_SIDEWAYS
 
-        if rsi >= BULL_RSI_MIN and (macd_bull or trend_up):
-            return REGIME_BULL
-        if rsi <= BEAR_RSI_MAX and (macd_bear or trend_dn):
-            return REGIME_BEAR
-        return REGIME_SIDEWAYS
+        # ── Fast-path regime (RSI warming up, use price trend + MACD) ──
+        if len(price_history) >= 2:
+            if trend_strong and trend_up and (macd_bull or macd_hist is None):
+                return REGIME_BULL
+            if trend_strong and trend_dn and (macd_bear or macd_hist is None):
+                return REGIME_BEAR
+            if macd_bull and trend_up:
+                return REGIME_BULL
+            if macd_bear and trend_dn:
+                return REGIME_BEAR
+            # Tiny movement → sideways
+            return REGIME_SIDEWAYS
+
+        return REGIME_UNKNOWN
 
     # ── Core analysis ─────────────────────────────────────────────────────────
 
@@ -284,7 +302,7 @@ class IIAgentService:
         macd       = indicators.get("macd")
         macd_sig   = indicators.get("macd_signal")
         macd_hist  = (macd - macd_sig) if (macd and macd_sig) else None
-        px_history = getattr(price_service, '_prices', [])[-10:]
+        px_history = price_service.get_price_history_list()[-15:]
 
         # ── Regime ──
         regime       = self._detect_regime(rsi, macd_hist, px_history)
@@ -328,21 +346,24 @@ class IIAgentService:
 
                 if health == HEALTH_HOT:
                     hot_bots.append(s.name)
-                    # Alert only first time this strategy is seen as HOT this session
+                    # Alert only once per session when first classified HOT
                     _hot_key = f"hot_{s.name}"
-                    if _hot_key not in self.__dict__.get("_alerted_keys", set()):
-                        if not hasattr(self, "_alerted_keys"):
-                            self._alerted_keys = set()
+                    if _hot_key not in self._alerted_keys:
                         self._alerted_keys.add(_hot_key)
-                        alert_service.strategy_hot(s.name, DISPLAY_NAMES.get(s.name, s.name), s.win_rate or 0, s.total_pnl or 0)
+                        alert_service.strategy_hot(
+                            s.name, DISPLAY_NAMES.get(s.name, s.name),
+                            s.win_rate or 0, s.total_pnl or 0,
+                        )
                 elif health == HEALTH_STRUGGLING:
                     struggling_bots.append(s.name)
+                    # Alert once per session when first flagged
                     _str_key = f"struggling_{s.name}"
-                    if _str_key not in self.__dict__.get("_alerted_keys", set()):
-                        if not hasattr(self, "_alerted_keys"):
-                            self._alerted_keys = set()
+                    if _str_key not in self._alerted_keys:
                         self._alerted_keys.add(_str_key)
-                        alert_service.strategy_struggling(s.name, DISPLAY_NAMES.get(s.name, s.name), s.win_rate or 0, s.total_pnl or 0)
+                        alert_service.strategy_struggling(
+                            s.name, DISPLAY_NAMES.get(s.name, s.name),
+                            s.win_rate or 0, s.total_pnl or 0,
+                        )
 
                 # Promotable = PAPER_ONLY but all gates would pass
                 if s.mode == "PAPER_ONLY":

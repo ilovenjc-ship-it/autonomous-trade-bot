@@ -1,13 +1,25 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   Wallet as WalletIcon, Copy, ExternalLink, ShieldCheck,
-  KeyRound, AlertTriangle, CheckCircle2, RefreshCw, Eye, EyeOff, Zap
+  KeyRound, AlertTriangle, CheckCircle2, RefreshCw, Eye, EyeOff, Zap,
+  Link, Database, Activity,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
 
 const TARGET_ADDRESS = '5GgRojEFh5aCFNLKuSWb6WtrM5nBDB6GrRpqaqreBLcg4e7L'
+
+interface ChainInfo {
+  address:     string
+  balance_tao: number | null
+  block:       number | null
+  network:     string
+  connected:   boolean
+  timestamp:   string | null
+  wallet_loaded: boolean
+  error?:      string
+}
 
 function AddrBox({ label, addr }: { label: string; addr: string }) {
   const copy = () => { navigator.clipboard.writeText(addr); toast.success('Copied!') }
@@ -25,21 +37,46 @@ function AddrBox({ label, addr }: { label: string; addr: string }) {
 }
 
 export default function WalletPage() {
-  const [botStatus, setBotStatus] = useState<any>(null)
-  const [words, setWords]         = useState<string[]>(Array(12).fill(''))
-  const [showWords, setShowWords] = useState(false)
-  const [busy, setBusy]           = useState(false)
-  const [saved, setSaved]         = useState(false)
+  const [chainInfo,  setChainInfo]  = useState<ChainInfo | null>(null)
+  const [words,      setWords]      = useState<string[]>(Array(12).fill(''))
+  const [showWords,  setShowWords]  = useState(false)
+  const [busy,       setBusy]       = useState(false)
+  const [saved,      setSaved]      = useState(false)
+  const [querying,   setQuerying]   = useState(false)
 
-  useEffect(() => {
-    api.get('/bot/status').then(r => setBotStatus(r.data)).catch(() => {})
+  // Load cached wallet status on mount
+  const loadStatus = useCallback(async () => {
+    try {
+      const r = await fetch('/api/wallet/status')
+      setChainInfo(await r.json())
+    } catch {}
   }, [])
+
+  useEffect(() => { loadStatus() }, [loadStatus])
+
+  // Query live chain (slower — hits Finney)
+  const queryChain = async () => {
+    setQuerying(true)
+    try {
+      const r = await fetch('/api/wallet/chain')
+      const data: ChainInfo = await r.json()
+      setChainInfo(data)
+      if (data.connected) {
+        toast.success(`Chain queried ✅ Block #${data.block?.toLocaleString()}`)
+      } else {
+        toast.error('Chain unreachable — using cached data')
+      }
+    } catch (e) {
+      toast.error('Chain query failed')
+    } finally {
+      setQuerying(false)
+    }
+  }
 
   const wordCount = words.filter(w => w.trim()).length
   const mnemonicOk = wordCount === 12
 
   const handleWordChange = (i: number, val: string) => {
-    // Support pasting full mnemonic into first box
     if (i === 0 && val.trim().split(/\s+/).length >= 12) {
       const parts = val.trim().split(/\s+/).slice(0, 12)
       setWords([...parts, ...Array(12 - parts.length).fill('')])
@@ -55,11 +92,22 @@ export default function WalletPage() {
     setBusy(true)
     try {
       const phrase = words.join(' ')
-      await api.post('/bot/wallet/save-mnemonic', { mnemonic: phrase })
-      setSaved(true)
-      toast.success('Mnemonic saved — wallet will be loaded when Bittensor library is available')
+      // Use new /api/wallet/mnemonic endpoint which uses bittensor 10.x
+      const r    = await fetch('/api/wallet/mnemonic', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ mnemonic: phrase }),
+      })
+      const data = await r.json()
+      if (data.success) {
+        setSaved(true)
+        if (data.chain) setChainInfo(data.chain)
+        toast.success(`✅ Wallet restored — ${data.address?.slice(0, 16)}…`)
+      } else {
+        toast.error(data.error ?? 'Mnemonic restore failed')
+      }
     } catch {
-      toast.error('Failed to save mnemonic')
+      toast.error('Failed to restore wallet')
     } finally {
       setBusy(false)
     }
@@ -67,31 +115,54 @@ export default function WalletPage() {
 
   const clearWords = () => { setWords(Array(12).fill('')); setSaved(false) }
 
-  const price = botStatus?.current_price ?? 0
+  const isConnected = chainInfo?.connected ?? false
+  const balance     = chainInfo?.balance_tao
+  const block       = chainInfo?.block
 
   return (
     <div className="p-6 space-y-5 max-w-3xl">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div>
-        <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-          <WalletIcon size={22} className="text-accent-blue" /> Wallet
-        </h1>
-        <p className="text-sm text-slate-500 mt-0.5">
-          Bittensor Finney mainnet · Coldkey management
-        </p>
-      </div>
-
-      {/* ── Simulation warning ─────────────────────────────────────────────── */}
-      <div className="flex items-start gap-3 px-4 py-3 bg-yellow-400/5 border border-yellow-400/20 rounded-xl">
-        <AlertTriangle size={16} className="text-yellow-400 flex-shrink-0 mt-0.5" />
+      <div className="flex items-start justify-between">
         <div>
-          <p className="text-sm text-yellow-300 font-semibold">Simulation Mode Active</p>
-          <p className="text-xs text-yellow-400/70 mt-0.5">
-            All trades are paper trades. No real TAO will move until the Bittensor library
-            is installed and a wallet is connected. Save your mnemonic below to restore when ready.
+          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <WalletIcon size={22} className="text-accent-blue" /> Wallet
+          </h1>
+          <p className="text-sm text-slate-500 mt-0.5">
+            Bittensor Finney mainnet · Coldkey management
           </p>
         </div>
+        <button
+          onClick={queryChain}
+          disabled={querying}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-semibold hover:bg-indigo-500/25 transition-colors disabled:opacity-50"
+        >
+          <RefreshCw size={12} className={querying ? 'animate-spin' : ''} />
+          {querying ? 'Querying…' : 'Query Chain'}
+        </button>
+      </div>
+
+      {/* ── Chain status ───────────────────────────────────────────────────── */}
+      <div className={clsx(
+        'flex items-center gap-3 px-4 py-3 rounded-xl border font-mono text-xs',
+        isConnected
+          ? 'bg-emerald-500/5 border-emerald-500/20'
+          : 'bg-dark-800 border-dark-600',
+      )}>
+        <span className={clsx('w-2.5 h-2.5 rounded-full flex-shrink-0',
+          isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600')} />
+        <span className={isConnected ? 'text-emerald-400 font-semibold' : 'text-slate-500'}>
+          {isConnected ? '⛓ FINNEY MAINNET CONNECTED' : '○ CHAIN OFFLINE'}
+        </span>
+        {block && (
+          <><span className="text-slate-600">·</span>
+          <span className="text-slate-400">Block #{block.toLocaleString()}</span></>
+        )}
+        {balance != null && (
+          <><span className="text-slate-600">·</span>
+          <span className="text-indigo-400 font-bold">τ{balance.toFixed(6)}</span></>
+        )}
+        <span className="ml-auto text-slate-600">finney.opentensor.ai</span>
       </div>
 
       {/* ── Known address ──────────────────────────────────────────────────── */}
@@ -102,20 +173,22 @@ export default function WalletPage() {
         <AddrBox label="Coldkey (SS58)" addr={TARGET_ADDRESS} />
         <div className="grid grid-cols-3 gap-3 text-xs">
           <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-500 mb-0.5">Balance</p>
-            <p className="text-white font-mono font-semibold">
-              {botStatus?.wallet_balance ? `${botStatus.wallet_balance.toFixed(4)} τ` : '—'}
+            <p className="text-slate-500 mb-0.5">Chain Balance</p>
+            <p className={clsx('font-mono font-bold', balance != null ? 'text-indigo-400' : 'text-slate-600')}>
+              {balance != null ? `τ${balance.toFixed(6)}` : querying ? 'Querying…' : '—'}
             </p>
           </div>
           <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-500 mb-0.5">Network</p>
-            <p className="text-white font-mono">Finney</p>
+            <p className="text-slate-500 mb-0.5">Block</p>
+            <p className="text-white font-mono">
+              {block ? `#${block.toLocaleString()}` : '—'}
+            </p>
           </div>
           <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-500 mb-0.5">Status</p>
+            <p className="text-slate-500 mb-0.5">Chain Status</p>
             <p className={clsx('font-mono font-semibold',
-              botStatus?.wallet_connected ? 'text-accent-green' : 'text-yellow-400')}>
-              {botStatus?.wallet_connected ? 'Connected' : 'Simulation'}
+              isConnected ? 'text-emerald-400' : 'text-amber-400')}>
+              {isConnected ? '⛓ Live' : '○ Cached'}
             </p>
           </div>
         </div>
@@ -215,9 +288,9 @@ export default function WalletPage() {
         <div className="grid grid-cols-2 gap-2 text-xs">
           {[
             { label: 'Network',    val: 'Finney (Mainnet)' },
-            { label: 'TAO Price',  val: price ? `$${price.toFixed(2)}` : '—' },
-            { label: 'Wallet',     val: botStatus?.wallet_connected ? '✅ Connected' : '⚪ Simulation' },
-            { label: 'Node',       val: botStatus?.network_connected ? '✅ Online' : '⚪ Not connected' },
+            { label: 'Balance',    val: balance != null ? `τ${balance.toFixed(6)}` : '—' },
+            { label: 'Chain',      val: isConnected ? '✅ Connected' : '○ Cached' },
+            { label: 'Block',      val: block ? `#${block.toLocaleString()}` : '—' },
           ].map(({ label, val }) => (
             <div key={label} className="flex justify-between items-center px-3 py-2 bg-dark-700 rounded-lg">
               <span className="text-slate-500">{label}</span>

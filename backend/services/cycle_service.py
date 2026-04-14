@@ -28,6 +28,9 @@ from services.alert_service import alert_service
 
 logger = logging.getLogger(__name__)
 
+# Dedup sets — prevent alert spam across cycles
+_drawdown_alerted: set = set()   # strategy names already drawdown-alerted this session
+
 # ── Gate thresholds ───────────────────────────────────────────────────────────
 GATE_CYCLES   = 10
 GATE_WIN_RATE = 55.0
@@ -234,9 +237,10 @@ async def _run_one_cycle() -> None:
             # ── PnL milestone check ──────────────────────────────────────────
             # (checked on every fleet total, done once per cycle in commit hook)
 
-            # ── Drawdown guard (per-strategy) ────────────────────────────────
+            # ── Drawdown guard (per-strategy, once per session) ──────────────
             DRAWDOWN_THRESHOLD = -0.05   # τ
-            if (s.total_pnl or 0) < DRAWDOWN_THRESHOLD:
+            if (s.total_pnl or 0) < DRAWDOWN_THRESHOLD and s.name not in _drawdown_alerted:
+                _drawdown_alerted.add(s.name)
                 alert_service.drawdown_alert(s.name, display, s.total_pnl, DRAWDOWN_THRESHOLD)
 
             # Activity event

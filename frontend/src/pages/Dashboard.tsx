@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   Play, Square, RefreshCw, TrendingUp, TrendingDown,
   Activity, Zap, Bot, Shield, BarChart2, Clock, Award, Radio,
+  Brain, Vote, Bell, Wallet,
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -10,6 +11,15 @@ import {
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
+
+// ── intelligence types ────────────────────────────────────────────────────────
+interface AgentStatus { current_regime: string; regime_color: string; analysis_count: number; total_pnl: number }
+interface ConsensusStats { total_rounds: number; approval_rate_pct: number; total_buy_votes: number; total_sell_votes: number }
+interface WalletStatus { balance_cached: number | null; connected: boolean; block_cached: number | null }
+
+const REGIME_LABEL: Record<string, string> = {
+  BULL: '🐂 BULL', BEAR: '🐻 BEAR', SIDEWAYS: '↔ SIDEWAYS', VOLATILE: '⚡ VOLATILE', UNKNOWN: '⟳ SCANNING',
+}
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface BotStatus {
@@ -97,24 +107,37 @@ export default function Dashboard() {
   const [loading,    setLoading]    = useState(true)
   const [botBusy,    setBotBusy]    = useState(false)
   const [tick,       setTick]       = useState(0)  // countdown tick
+  // Intelligence layer
+  const [agentStatus,    setAgentStatus]    = useState<AgentStatus | null>(null)
+  const [consensusStats, setConsensusStats] = useState<ConsensusStats | null>(null)
+  const [walletStatus,   setWalletStatus]   = useState<WalletStatus | null>(null)
+  const [unreadAlerts,   setUnreadAlerts]   = useState(0)
 
   const load = useCallback(async () => {
     try {
-      const [statusRes, sumRes, stratRes, eqRes, actRes] = await Promise.all([
+      const [statusRes, sumRes, stratRes, eqRes, actRes,
+             agentRes, consensusRes, walletRes, alertsRes] = await Promise.all([
         api.get('/bot/status'),
         fetch('/api/analytics/summary'),
         fetch('/api/analytics/strategies'),
         fetch('/api/analytics/equity'),
         api.get('/fleet/activity?limit=12'),
+        fetch('/api/agent/status').then(r => r.json()).catch(() => null),
+        fetch('/api/consensus/stats').then(r => r.json()).catch(() => null),
+        fetch('/api/wallet/status').then(r => r.json()).catch(() => null),
+        fetch('/api/alerts/unread-count').then(r => r.json()).catch(() => null),
       ])
       setBotStatus(statusRes.data)
       setSummary(await sumRes.json())
       setStrategies(await stratRes.json())
       const eqData: EquityPoint[] = await eqRes.json()
-      // thin to ~100 points
       const stride = Math.max(1, Math.floor(eqData.length / 100))
       setEquity(eqData.filter((_, i) => i % stride === 0))
       setActivity(actRes.data.events || [])
+      if (agentRes)    setAgentStatus(agentRes)
+      if (consensusRes)setConsensusStats(consensusRes)
+      if (walletRes)   setWalletStatus(walletRes)
+      if (alertsRes)   setUnreadAlerts(alertsRes.unread_count ?? 0)
     } catch (e) {
       console.error('Dashboard load error', e)
     } finally {
@@ -217,7 +240,11 @@ export default function Dashboard() {
             <span className="text-slate-500">12 strategies active</span>
           </>
         )}
-        <span className="ml-auto text-slate-600">⚠ SIMULATION MODE — no real trades</span>
+        <span className="ml-auto text-slate-600 font-mono text-[10px]">
+          {walletStatus?.connected
+            ? <span className="text-indigo-400">⛓ CHAIN CONNECTED · Block #{walletStatus.block_cached?.toLocaleString()}</span>
+            : <span>⚠ Paper trading — OpenClaw gates LIVE execution</span>}
+        </span>
       </div>
 
       {/* ── KPI row ──────────────────────────────────────────────────────────── */}
@@ -242,6 +269,67 @@ export default function Dashboard() {
           sub="active in fleet"
           color="text-accent-blue"
         />
+      </div>
+
+      {/* ── Intelligence Row ─────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* II Agent Regime */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
+          <Brain size={15} style={{ color: agentStatus?.regime_color ?? '#6b7280' }} />
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">II Agent Regime</p>
+            <p className="text-sm font-bold font-mono mt-0.5" style={{ color: agentStatus?.regime_color ?? '#6b7280' }}>
+              {REGIME_LABEL[agentStatus?.current_regime ?? 'UNKNOWN'] ?? '⟳ SCANNING'}
+            </p>
+            <p className="text-[10px] text-slate-600 font-mono">{agentStatus?.analysis_count ?? 0} analyses</p>
+          </div>
+        </div>
+
+        {/* OpenClaw consensus */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
+          <Vote size={15} className={
+            (consensusStats?.approval_rate_pct ?? 0) >= 50 ? 'text-emerald-400' : 'text-amber-400'
+          } />
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Consensus Rate</p>
+            <p className={clsx('text-sm font-bold font-mono mt-0.5',
+              (consensusStats?.approval_rate_pct ?? 0) >= 50 ? 'text-emerald-400' : 'text-amber-400'
+            )}>
+              {consensusStats ? `${consensusStats.approval_rate_pct.toFixed(1)}%` : '—'}
+            </p>
+            <p className="text-[10px] text-slate-600 font-mono">{consensusStats?.total_rounds ?? 0} rounds</p>
+          </div>
+        </div>
+
+        {/* Alerts */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
+          <Bell size={15} className={unreadAlerts > 0 ? 'text-red-400' : 'text-slate-500'} />
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Unread Alerts</p>
+            <p className={clsx('text-sm font-bold font-mono mt-0.5',
+              unreadAlerts > 0 ? 'text-red-400' : 'text-emerald-400'
+            )}>
+              {unreadAlerts > 0 ? `${unreadAlerts} new` : 'All clear'}
+            </p>
+            <p className="text-[10px] text-slate-600 font-mono">auto-detected</p>
+          </div>
+        </div>
+
+        {/* Wallet chain */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
+          <Wallet size={15} className={walletStatus?.connected ? 'text-indigo-400' : 'text-slate-600'} />
+          <div className="min-w-0">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Chain Balance</p>
+            <p className="text-sm font-bold font-mono mt-0.5 text-indigo-400">
+              {walletStatus?.balance_cached != null
+                ? `τ${walletStatus.balance_cached.toFixed(6)}`
+                : walletStatus?.connected ? 'Querying…' : 'Offline'}
+            </p>
+            <p className="text-[10px] text-slate-600 font-mono">
+              {walletStatus?.block_cached ? `Block #${walletStatus.block_cached.toLocaleString()}` : 'Finney mainnet'}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* ── Main 2-col ───────────────────────────────────────────────────────── */}
