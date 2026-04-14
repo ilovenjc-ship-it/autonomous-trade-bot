@@ -1,13 +1,14 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
-  Settings, Wallet, Activity, Zap, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote,
+  Settings, Wallet, Activity, Zap, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import clsx from 'clsx'
 
 const navItems = [
   { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
+  { to: '/ii-agent',         icon: Brain,           label: 'II Agent'        },
   { to: '/mission-control',  icon: Radio,           label: 'Mission Control' },
   { to: '/fleet',            icon: Bot,             label: 'Agent Fleet'     },
   { to: '/openclaw',         icon: Vote,            label: 'OpenClaw BFT'    },

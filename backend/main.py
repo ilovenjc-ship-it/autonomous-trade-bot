@@ -13,7 +13,8 @@ from services.price_service import price_service
 from services.strategy_service import DEFAULT_STRATEGIES
 from services.activity_service import seed_startup as seed_activity
 from services.cycle_service import cycle_service
-from routers import bot, trades, price, strategies, fleet, analytics, market, consensus
+from services.agent_service import agent_service
+from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent
 
 logging.basicConfig(
     level=logging.INFO,
@@ -48,10 +49,15 @@ async def lifespan(app: FastAPI):
     await cycle_service.start(interval_seconds=60)
     logger.info("Autonomous cycle engine started (60s interval)")
 
+    # Start II Agent orchestrator (analyses every 5 minutes)
+    await agent_service.start(interval=300)
+    logger.info("II Agent orchestrator started (300s interval)")
+
     yield
 
     # Shutdown
     logger.info("Shutting down…")
+    await agent_service.stop()
     await cycle_service.stop()
     await price_service.stop()
 
@@ -114,6 +120,7 @@ app.include_router(fleet.router)
 app.include_router(analytics.router)
 app.include_router(market.router)
 app.include_router(consensus.router)
+app.include_router(agent.router)
 
 
 @app.get("/")
