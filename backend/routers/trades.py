@@ -24,6 +24,8 @@ async def list_trades(
     page_size: int = Query(20, ge=1, le=100),
     trade_type: Optional[str] = None,
     status: Optional[str] = None,
+    strategy: Optional[str] = None,
+    result: Optional[str] = None,     # "win" | "loss"
     db: AsyncSession = Depends(get_db),
 ):
     q = select(Trade)
@@ -31,6 +33,12 @@ async def list_trades(
         q = q.where(Trade.trade_type == trade_type)
     if status:
         q = q.where(Trade.status == status)
+    if strategy:
+        q = q.where(Trade.strategy == strategy)
+    if result == "win":
+        q = q.where(Trade.pnl > 0)
+    elif result == "loss":
+        q = q.where(Trade.pnl <= 0)
     q = q.order_by(desc(Trade.created_at))
 
     # Count

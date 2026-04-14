@@ -10,6 +10,8 @@ import MissionControl from './pages/MissionControl'
 import AgentFleet from './pages/AgentFleet'
 import RiskConfig from './pages/RiskConfig'
 import Analytics from './pages/Analytics'
+import ActivityLog from './pages/ActivityLog'
+import TradeLog from './pages/TradeLog'
 
 export default function App() {
   return (
@@ -33,6 +35,8 @@ export default function App() {
           <Route path="/fleet"           element={<AgentFleet />}     />
           <Route path="/risk"            element={<RiskConfig />}     />
           <Route path="/analytics"       element={<Analytics />}      />
+          <Route path="/activity"        element={<ActivityLog />}    />
+          <Route path="/trade-log"       element={<TradeLog />}       />
           <Route path="/trades"          element={<Trades />}         />
           <Route path="/strategies"      element={<Strategies />}     />
           <Route path="/wallet"          element={<WalletPage />}     />
