@@ -10,6 +10,7 @@ from models.bot_config import BotConfig
 from services.trading_service import trading_service
 from services.bittensor_service import bittensor_service
 from services.price_service import price_service
+from services.cycle_service import cycle_service
 from core.config import settings
 
 router = APIRouter(prefix="/api/bot", tags=["bot"])
@@ -75,8 +76,12 @@ async def get_status(db: AsyncSession = Depends(get_db)):
     price_data = price_service.price_data
     indicators = price_service.compute_indicators()
     return {
-        "is_running": trading_service.is_running,
-        "status_message": config.status_message,
+        "is_running": cycle_service.is_running,
+        "cycle_number": cycle_service.cycle_number,
+        "cycle_interval": cycle_service.interval,
+        "status_message": config.status_message if config.status_message else (
+            "Cycle engine running" if cycle_service.is_running else "Bot stopped"
+        ),
         "error_message": config.error_message,
         "wallet_connected": bittensor_service.wallet is not None,
         "network_connected": bittensor_service.connected,
@@ -84,7 +89,7 @@ async def get_status(db: AsyncSession = Depends(get_db)):
         "netuid": config.netuid,
         "active_strategy": config.active_strategy,
         "trade_amount": config.trade_amount,
-        "trade_interval": config.trade_interval,
+        "trade_interval": cycle_service.interval,
         "max_daily_trades": config.max_daily_trades,
         "daily_trades": config.daily_trades,
         "total_trades": config.total_trades,
@@ -103,18 +108,18 @@ async def get_status(db: AsyncSession = Depends(get_db)):
 
 @router.post("/start")
 async def start_bot():
-    result = await trading_service.start_bot()
-    if not result["success"]:
-        raise HTTPException(status_code=400, detail=result["message"])
-    return result
+    if cycle_service.is_running:
+        return {"success": False, "message": "Bot already running"}
+    await cycle_service.start(interval_seconds=60)
+    return {"success": True, "message": "Autonomous cycle engine started"}
 
 
 @router.post("/stop")
 async def stop_bot():
-    result = await trading_service.stop_bot()
-    if not result["success"]:
-        raise HTTPException(status_code=400, detail=result["message"])
-    return result
+    if not cycle_service.is_running:
+        return {"success": False, "message": "Bot is not running"}
+    await cycle_service.stop()
+    return {"success": True, "message": "Cycle engine stopped"}
 
 
 @router.get("/config")

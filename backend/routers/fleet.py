@@ -13,28 +13,12 @@ from db.database import get_db
 from models.strategy import Strategy
 from models.trade import Trade
 from services.price_service import price_service
+from services.activity_service import push_event as _push_event_raw, get_events
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 
-# ── In-memory activity log (ring buffer, max 200 events) ─────────────────────
-_activity: List[dict] = []
-
 def _push_event(kind: str, message: str, strategy: Optional[str] = None, detail: str = ""):
-    _activity.append({
-        "id": len(_activity) + 1,
-        "kind": kind,          # trade | signal | gate | system | alert
-        "message": message,
-        "strategy": strategy,
-        "detail": detail,
-        "timestamp": datetime.utcnow().isoformat() + "Z",
-    })
-    if len(_activity) > 200:
-        _activity.pop(0)
-
-# Seed a few startup events
-_push_event("system", "TAO Trading Bot backend online", detail="All systems nominal")
-_push_event("system", "CoinGecko price feed connected", detail="Live TAO price streaming")
-_push_event("system", "SQLite database initialised — 4 strategies seeded")
+    _push_event_raw(kind, message, strategy, detail)
 
 
 # ── Gate helpers ─────────────────────────────────────────────────────────────
@@ -142,7 +126,8 @@ async def get_activity(limit: int = 50, db: AsyncSession = Depends(get_db)):
         })
 
     # Merge with in-memory system events
-    combined = list(reversed(_activity[-limit:])) + trade_events
+    sys_events = get_events(limit)
+    combined = sys_events + trade_events
     combined.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
 
     return {"events": combined[:limit], "total": len(combined)}

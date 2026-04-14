@@ -11,6 +11,8 @@ from core.config import settings
 from db.database import init_db
 from services.price_service import price_service
 from services.strategy_service import DEFAULT_STRATEGIES
+from services.activity_service import seed_startup as seed_activity
+from services.cycle_service import cycle_service
 from routers import bot, trades, price, strategies, fleet, analytics, market
 
 logging.basicConfig(
@@ -33,14 +35,24 @@ async def lifespan(app: FastAPI):
     # Seed default strategies
     await seed_strategies()
 
+    # Seed activity log startup events
+    seed_activity()
+
     # Start price feed
     await price_service.start()
     logger.info("Price feed started")
+
+    # Wait briefly for first price tick, then start autonomous cycle engine
+    import asyncio
+    await asyncio.sleep(3)
+    await cycle_service.start(interval_seconds=60)
+    logger.info("Autonomous cycle engine started (60s interval)")
 
     yield
 
     # Shutdown
     logger.info("Shutting down…")
+    await cycle_service.stop()
     await price_service.stop()
 
 
