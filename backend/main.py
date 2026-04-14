@@ -11,7 +11,7 @@ from core.config import settings
 from db.database import init_db
 from services.price_service import price_service
 from services.strategy_service import DEFAULT_STRATEGIES
-from routers import bot, trades, price, strategies, fleet, analytics
+from routers import bot, trades, price, strategies, fleet, analytics, market
 
 logging.basicConfig(
     level=logging.INFO,
@@ -100,6 +100,7 @@ app.include_router(price.router)
 app.include_router(strategies.router)
 app.include_router(fleet.router)
 app.include_router(analytics.router)
+app.include_router(market.router)
 
 
 @app.get("/")

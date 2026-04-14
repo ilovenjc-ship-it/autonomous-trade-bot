@@ -12,6 +12,7 @@ import RiskConfig from './pages/RiskConfig'
 import Analytics from './pages/Analytics'
 import ActivityLog from './pages/ActivityLog'
 import TradeLog from './pages/TradeLog'
+import MarketData from './pages/MarketData'
 
 export default function App() {
   return (
@@ -37,6 +38,7 @@ export default function App() {
           <Route path="/analytics"       element={<Analytics />}      />
           <Route path="/activity"        element={<ActivityLog />}    />
           <Route path="/trade-log"       element={<TradeLog />}       />
+          <Route path="/market"          element={<MarketData />}     />
           <Route path="/trades"          element={<Trades />}         />
           <Route path="/strategies"      element={<Strategies />}     />
           <Route path="/wallet"          element={<WalletPage />}     />
