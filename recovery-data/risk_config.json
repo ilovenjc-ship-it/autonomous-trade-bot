@@ -1,0 +1,1 @@
+{"max_drawdown_pct":45.0,"stop_loss_pct":8.0,"take_profit_pct":25.0,"max_position_size_pct":30.0,"max_concurrent_positions":4,"daily_loss_circuit_breaker_pct":40.0,"min_confidence_score":0.6,"min_pool_depth_tao":20.0,"max_price_impact_pct":1.5,"kelly_fraction":0.5,"starting_capital_tao":0.103451,"consensus_threshold":0.45,"cycle_interval_seconds":600}
