@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite --port 3002 --host",
     "build": "tsc && vite build",
+    "build:local": "tsc && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
