@@ -1,0 +1,36 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
+import Layout from './components/Layout'
+import Dashboard from './pages/Dashboard'
+import Trades from './pages/Trades'
+import Strategies from './pages/Strategies'
+import WalletPage from './pages/Wallet'
+import Settings from './pages/Settings'
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#0d1424',
+            color: '#e2e8f0',
+            border: '1px solid #1a2540',
+            fontFamily: '"Space Grotesk", system-ui',
+            fontSize: 13,
+          },
+        }}
+      />
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/"           element={<Dashboard />}   />
+          <Route path="/trades"     element={<Trades />}      />
+          <Route path="/strategies" element={<Strategies />}  />
+          <Route path="/wallet"     element={<WalletPage />}  />
+          <Route path="/settings"   element={<Settings />}    />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  )
+}
