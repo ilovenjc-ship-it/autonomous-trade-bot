@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
-  Settings, Wallet, Activity, Zap, Radio,
+  Settings, Wallet, Activity, Zap, Radio, Bot, Shield,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import clsx from 'clsx'
@@ -9,6 +9,8 @@ import clsx from 'clsx'
 const navItems = [
   { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
   { to: '/mission-control',  icon: Radio,           label: 'Mission Control' },
+  { to: '/fleet',            icon: Bot,             label: 'Agent Fleet'     },
+  { to: '/risk',             icon: Shield,          label: 'Risk Config'     },
   { to: '/trades',           icon: ArrowLeftRight,  label: 'Trades'          },
   { to: '/strategies',       icon: TrendingUp,      label: 'Strategies'      },
   { to: '/wallet',           icon: Wallet,          label: 'Wallet'          },

@@ -7,6 +7,8 @@ import Strategies from './pages/Strategies'
 import WalletPage from './pages/Wallet'
 import Settings from './pages/Settings'
 import MissionControl from './pages/MissionControl'
+import AgentFleet from './pages/AgentFleet'
+import RiskConfig from './pages/RiskConfig'
 
 export default function App() {
   return (
@@ -27,6 +29,8 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/"                element={<Dashboard />}      />
           <Route path="/mission-control" element={<MissionControl />} />
+          <Route path="/fleet"           element={<AgentFleet />}     />
+          <Route path="/risk"            element={<RiskConfig />}     />
           <Route path="/trades"          element={<Trades />}         />
           <Route path="/strategies"      element={<Strategies />}     />
           <Route path="/wallet"          element={<WalletPage />}     />

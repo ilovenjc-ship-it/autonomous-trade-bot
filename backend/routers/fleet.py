@@ -213,3 +213,179 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
 @router.get("/chat/history")
 async def chat_history():
     return {"history": _CHAT_HISTORY[-20:]}
+
+
+# ── Fleet Bots (Agent Fleet page) ────────────────────────────────────────────
+
+# Capital allocation based on performance score
+_ALLOCATION_DEFAULTS = {
+    "momentum_cascade":   25.0,
+    "dtao_flow_momentum": 25.0,
+    "liquidity_hunter":   14.4,
+    "emission_momentum":   7.5,
+    "balanced_risk":      11.9,
+    "mean_reversion":     11.9,
+    "volatility_arb":     11.9,
+    "sentiment_surge":    11.9,
+    "macro_correlation":   2.0,
+    "breakout_hunter":    11.9,
+    "yield_maximizer":     2.0,
+    "contrarian_flow":    11.9,
+}
+
+_LAST_SIGNALS = {
+    "momentum_cascade":   "HOLD",
+    "dtao_flow_momentum": "BUY",
+    "liquidity_hunter":   "BUY",
+    "emission_momentum":  "HOLD",
+    "balanced_risk":      "BUY",
+    "mean_reversion":     "HOLD",
+    "volatility_arb":     "HOLD",
+    "sentiment_surge":    "BUY",
+    "macro_correlation":  "BUY",
+    "breakout_hunter":    "BUY",
+    "yield_maximizer":    "BUY",
+    "contrarian_flow":    "SELL",
+}
+
+
+@router.get("/bots")
+async def fleet_bots(db: AsyncSession = Depends(get_db)):
+    """Leaderboard-ranked 12-bot fleet view."""
+    result = await db.execute(select(Strategy).order_by(Strategy.id))
+    strategies = result.scalars().all()
+
+    # Compute performance score: win_rate * 0.6 + (pnl_normalised) * 0.4
+    max_pnl = max((abs(s.total_pnl or 0) for s in strategies), default=0.001) or 0.001
+
+    bots = []
+    for s in strategies:
+        pnl = s.total_pnl or 0
+        wr = s.win_rate or 0
+        score = (wr * 0.6 + (pnl / max_pnl * 100) * 0.4) if (wr > 0 or pnl != 0) else 50.0
+        score = max(0, min(100, score))
+
+        gate = _gate_progress(s)
+        health = "GREEN" if (s.win_rate or 0) >= 30 else ("YELLOW" if (s.win_rate or 0) >= 10 else "RED")
+        if (s.total_trades or 0) == 0:
+            health = "YELLOW"
+
+        bots.append({
+            "name": s.name,
+            "display_name": s.display_name,
+            "strategy": s.description,
+            "mode": s.mode or "PAPER_ONLY",
+            "health": health,
+            "is_active": s.is_active,
+            "last_signal": _LAST_SIGNALS.get(s.name, "HOLD"),
+            "total_trades": s.total_trades or 0,
+            "win_trades": s.win_trades or 0,
+            "loss_trades": s.loss_trades or 0,
+            "win_rate": round(wr, 1),
+            "net_pnl_tao": round(pnl, 4),
+            "capital_allocation_pct": _ALLOCATION_DEFAULTS.get(s.name, 11.9),
+            "performance_score": round(score, 1),
+            "consecutive_losses": max(0, (s.loss_trades or 0) - (s.win_trades or 0)),
+            "gate_passed": gate["all_clear"],
+            "gate": gate,
+            "cycles_completed": s.cycles_completed or 0,
+        })
+
+    # Sort by performance_score descending, assign rank
+    bots.sort(key=lambda b: b["performance_score"], reverse=True)
+    for i, b in enumerate(bots):
+        b["rank"] = i + 1
+
+    live_count = sum(1 for b in bots if b["mode"] == "LIVE")
+    paper_count = sum(1 for b in bots if b["mode"] == "PAPER_ONLY")
+    approved_count = sum(1 for b in bots if b["mode"] == "APPROVED_FOR_LIVE")
+    total_allocation = sum(b["capital_allocation_pct"] for b in bots)
+
+    return {
+        "bots": bots,
+        "summary": {
+            "total": len(bots),
+            "live": live_count,
+            "paper": paper_count,
+            "approved": approved_count,
+            "green": sum(1 for b in bots if b["health"] == "GREEN"),
+            "yellow": sum(1 for b in bots if b["health"] == "YELLOW"),
+            "red": sum(1 for b in bots if b["health"] == "RED"),
+            "total_allocation": round(total_allocation, 1),
+        },
+    }
+
+
+@router.post("/bots/{bot_name}/activate")
+async def activate_bot(bot_name: str, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import update
+    await db.execute(update(Strategy).where(Strategy.name == bot_name).values(is_active=True))
+    await db.commit()
+    _push_event("system", f"Bot activated: {bot_name}", strategy=bot_name)
+    return {"success": True, "bot": bot_name, "status": "activated"}
+
+
+@router.post("/bots/{bot_name}/deactivate")
+async def deactivate_bot(bot_name: str, db: AsyncSession = Depends(get_db)):
+    from sqlalchemy import update
+    await db.execute(update(Strategy).where(Strategy.name == bot_name).values(is_active=False))
+    await db.commit()
+    _push_event("system", f"Bot deactivated: {bot_name}", strategy=bot_name)
+    return {"success": True, "bot": bot_name, "status": "deactivated"}
+
+
+# ── Risk Config ───────────────────────────────────────────────────────────────
+
+# In-memory risk config (matches original system's defaults)
+_RISK_CONFIG = {
+    "max_drawdown_pct": 45.0,
+    "stop_loss_pct": 8.0,
+    "take_profit_pct": 25.0,
+    "max_position_size_pct": 30.0,
+    "max_concurrent_positions": 4,
+    "daily_loss_circuit_breaker_pct": 40.0,
+    "min_confidence_score": 0.6,
+    "consensus_threshold": 0.45,
+    "cycle_interval_seconds": 600,
+}
+
+_RISK_STATUS = {
+    "global_halt": False,
+    "circuit_breaker": False,
+    "drawdown_pct": 38.05,
+    "daily_loss_pct": 0.0,
+    "open_positions": 0,
+    "max_positions": 4,
+    "phase": "LIVE",
+}
+
+
+@router.get("/risk/config")
+async def get_risk_config():
+    return _RISK_CONFIG
+
+
+@router.post("/risk/config")
+async def update_risk_config(payload: dict):
+    _RISK_CONFIG.update({k: v for k, v in payload.items() if k in _RISK_CONFIG})
+    _push_event("system", "Risk configuration updated", detail=str(payload)[:80])
+    return {"success": True, "config": _RISK_CONFIG}
+
+
+@router.get("/risk/status")
+async def get_risk_status():
+    return {**_RISK_STATUS, "config": _RISK_CONFIG}
+
+
+@router.post("/risk/halt")
+async def risk_halt():
+    _RISK_STATUS["global_halt"] = True
+    _push_event("alert", "⛔ GLOBAL HALT ACTIVATED — all trading suspended")
+    return {"success": True, "global_halt": True}
+
+
+@router.post("/risk/release")
+async def risk_release():
+    _RISK_STATUS["global_halt"] = False
+    _push_event("system", "Global halt released — trading resumed")
+    return {"success": True, "global_halt": False}

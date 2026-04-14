@@ -1,0 +1,350 @@
+import { useEffect, useState, useCallback } from 'react'
+import { RefreshCw, BarChart2, CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import clsx from 'clsx'
+import api from '@/api/client'
+
+interface GateCheck { value: number; required: number; ok: boolean }
+interface Gate {
+  cycles: GateCheck; win_rate: GateCheck; win_margin: GateCheck; pnl: GateCheck; all_clear: boolean
+}
+interface Bot {
+  rank: number; name: string; display_name: string; strategy: string
+  mode: string; health: string; is_active: boolean; last_signal: string
+  total_trades: number; win_trades: number; loss_trades: number
+  win_rate: number; net_pnl_tao: number; capital_allocation_pct: number
+  performance_score: number; consecutive_losses: number; gate_passed: boolean
+  gate: Gate; cycles_completed: number
+}
+interface Summary { total: number; live: number; paper: number; approved: number; green: number; yellow: number; red: number }
+
+function HealthDot({ health }: { health: string }) {
+  return (
+    <span className={clsx('inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono', {
+      'bg-emerald-500/15 text-emerald-400': health === 'GREEN',
+      'bg-yellow-500/15 text-yellow-400': health === 'YELLOW',
+      'bg-red-500/15 text-red-400': health === 'RED',
+    })}>
+      <span className={clsx('w-1.5 h-1.5 rounded-full', {
+        'bg-emerald-400': health === 'GREEN',
+        'bg-yellow-400': health === 'YELLOW',
+        'bg-red-400': health === 'RED',
+      })} />
+      {health}
+    </span>
+  )
+}
+
+function SignalBadge({ signal }: { signal: string }) {
+  return (
+    <span className={clsx('px-2 py-0.5 rounded text-[10px] font-bold font-mono', {
+      'bg-emerald-500/20 text-emerald-400': signal === 'BUY',
+      'bg-red-500/20 text-red-400': signal === 'SELL',
+      'bg-slate-500/20 text-slate-400': signal === 'HOLD',
+    })}>
+      {signal}
+    </span>
+  )
+}
+
+function AllocationBar({ pct, max }: { pct: number; max: number }) {
+  return (
+    <div className="flex items-center gap-2 min-w-[100px]">
+      <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
+        <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(pct / max) * 100}%` }} />
+      </div>
+      <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{pct.toFixed(1)}%</span>
+    </div>
+  )
+}
+
+function ScoreBar({ score }: { score: number }) {
+  return (
+    <div className="flex items-center gap-1.5">
+      <div className="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
+        <div className={clsx('h-full rounded-full', score >= 60 ? 'bg-emerald-500' : score >= 30 ? 'bg-yellow-500' : 'bg-red-500')}
+          style={{ width: `${score}%` }} />
+      </div>
+      <span className="text-[10px] text-slate-400 font-mono">{score.toFixed(0)}</span>
+    </div>
+  )
+}
+
+export default function AgentFleet() {
+  const [bots, setBots] = useState<Bot[]>([])
+  const [summary, setSummary] = useState<Summary | null>(null)
+  const [selected, setSelected] = useState<Bot | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [lastUpdated, setLastUpdated] = useState<string>('')
+
+  const fetchBots = useCallback(async () => {
+    setLoading(true)
+    try {
+      const data = await api.get('/fleet/bots').then(r => r.data)
+      setBots(data.bots || [])
+      setSummary(data.summary || null)
+      setLastUpdated(new Date().toLocaleTimeString())
+    } catch (e) {
+      console.error('Fleet bots fetch failed:', e)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchBots()
+    const t = setInterval(fetchBots, 60_000)
+    return () => clearInterval(t)
+  }, [fetchBots])
+
+  const maxAlloc = Math.max(...bots.map(b => b.capital_allocation_pct), 25)
+
+  return (
+    <div className="flex h-full bg-[#080d18] text-slate-200 font-mono overflow-hidden">
+      {/* Main content */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+
+        {/* Header bar */}
+        <div className="px-6 py-3 border-b border-slate-800/60 flex items-center justify-between">
+          <div className="flex items-center gap-6">
+            <div className="text-[10px] text-slate-500 uppercase tracking-wider">Fleet Health:</div>
+            {summary && (
+              <>
+                <span className="flex items-center gap-1.5 text-[11px]">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400" />
+                  <span className="text-emerald-400 font-bold">{summary.green}</span>
+                  <span className="text-slate-500">GREEN</span>
+                </span>
+                <span className="flex items-center gap-1.5 text-[11px]">
+                  <span className="w-2 h-2 rounded-full bg-yellow-400" />
+                  <span className="text-yellow-400 font-bold">{summary.yellow}</span>
+                  <span className="text-slate-500">YELLOW</span>
+                </span>
+                <span className="flex items-center gap-1.5 text-[11px]">
+                  <span className="w-2 h-2 rounded-full bg-red-400" />
+                  <span className="text-red-400 font-bold">{summary.red}</span>
+                  <span className="text-slate-500">RED</span>
+                </span>
+              </>
+            )}
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-slate-600">Updated every 60s by II Agent health-check loop</span>
+            {lastUpdated && <span className="text-[10px] text-slate-700">Last: {lastUpdated}</span>}
+            <button onClick={fetchBots} disabled={loading}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700/50 rounded text-[11px] text-slate-400 hover:text-white hover:border-slate-600 transition-colors">
+              <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        {/* Title row */}
+        <div className="px-6 py-4 border-b border-slate-800/40 flex items-center justify-between">
+          <div>
+            <h1 className="text-lg font-bold text-white tracking-wide">AGENT FLEET</h1>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              {bots.length} Specialized Trading Bot Sub-Agents · Ranked by Performance
+            </p>
+          </div>
+          <button className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded text-blue-400 text-[11px] font-bold hover:bg-blue-500/20 transition-colors">
+            <BarChart2 size={12} />
+            Rebalance Capital
+          </button>
+        </div>
+
+        {/* Table */}
+        <div className="flex-1 overflow-y-auto">
+          <table className="w-full text-[11px]">
+            <thead className="sticky top-0 bg-[#080d18] border-b border-slate-800/60 z-10">
+              <tr>
+                <th className="text-left px-4 py-2.5 text-slate-600 font-normal w-8">#</th>
+                <th className="text-left px-4 py-2.5 text-slate-600 font-normal">AGENT</th>
+                <th className="text-left px-4 py-2.5 text-slate-600 font-normal">HEALTH</th>
+                <th className="text-left px-4 py-2.5 text-slate-600 font-normal">SIGNAL</th>
+                <th className="text-right px-4 py-2.5 text-slate-600 font-normal">WIN RATE</th>
+                <th className="text-right px-4 py-2.5 text-slate-600 font-normal">P&L (TAO)</th>
+                <th className="text-left px-4 py-2.5 text-slate-600 font-normal">ALLOCATION</th>
+                <th className="text-left px-4 py-2.5 text-slate-600 font-normal">SCORE</th>
+                <th className="text-center px-4 py-2.5 text-slate-600 font-normal">STATUS</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-slate-800/30">
+              {bots.map(bot => (
+                <tr key={bot.name}
+                  onClick={() => setSelected(prev => prev?.name === bot.name ? null : bot)}
+                  className={clsx('cursor-pointer transition-colors', {
+                    'bg-blue-500/5 border-l-2 border-blue-500/40': selected?.name === bot.name,
+                    'hover:bg-slate-800/30': selected?.name !== bot.name,
+                  })}>
+                  <td className="px-4 py-3 text-slate-600 font-bold">#{bot.rank}</td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', {
+                        'bg-emerald-400 shadow-[0_0_6px_#34d399]': bot.is_active,
+                        'bg-slate-600': !bot.is_active,
+                      })} />
+                      <div>
+                        <div className="text-slate-100 font-bold uppercase tracking-wider text-[10px]">{bot.display_name}</div>
+                        <div className="text-slate-600 text-[9px] truncate max-w-[160px]">{bot.mode === 'LIVE' ? '● LIVE MODE' : bot.mode === 'APPROVED_FOR_LIVE' ? '◆ APPROVED' : '✗ PAPER'}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3"><HealthDot health={bot.health} /></td>
+                  <td className="px-4 py-3"><SignalBadge signal={bot.last_signal} /></td>
+                  <td className="px-4 py-3 text-right">
+                    <span className={clsx('font-bold', bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 40 ? 'text-yellow-400' : 'text-red-400')}>
+                      {bot.win_rate.toFixed(1)}%
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    <span className={clsx('font-bold', bot.net_pnl_tao > 0 ? 'text-emerald-400' : bot.net_pnl_tao < 0 ? 'text-red-400' : 'text-slate-400')}>
+                      {bot.net_pnl_tao > 0 ? '+' : ''}{bot.net_pnl_tao.toFixed(4)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <AllocationBar pct={bot.capital_allocation_pct} max={maxAlloc} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <ScoreBar score={bot.performance_score} />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-center gap-1">
+                      <button
+                        onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/deactivate`) }}
+                        className={clsx('px-2 py-0.5 rounded text-[9px] font-bold transition-colors', !bot.is_active ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'text-slate-600 hover:text-slate-400')}>
+                        OFF
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/activate`) }}
+                        className={clsx('px-2 py-0.5 rounded text-[9px] font-bold transition-colors', bot.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-600 hover:text-slate-400')}>
+                        ON
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+
+          {/* Legend */}
+          <div className="px-6 py-6 border-t border-slate-800/40 grid grid-cols-2 gap-x-12 gap-y-4 text-[11px]">
+            <div>
+              <div className="text-slate-500 mb-3 uppercase tracking-wider text-[9px]">Status Guide · How it works</div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
+                  <span className="text-emerald-400 font-bold">GREEN</span>
+                  <span className="text-slate-500">Healthy — full consensus weight</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0" />
+                  <span className="text-yellow-400 font-bold">YELLOW</span>
+                  <span className="text-slate-500">Degraded — reduced weight</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
+                  <span className="text-red-400 font-bold">RED</span>
+                  <span className="text-slate-500">Critical — excluded from consensus</span>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2 text-slate-500">
+              <div><span className="text-blue-400 font-bold">◆ LEADERBOARD RANKING</span><br />Ranked by win rate × net P&L. Top performers get more capital; under-performers are starved.</div>
+              <div><span className="text-yellow-400 font-bold">⊙ BFT CONSENSUS GATE</span><br />Each cycle, bots vote independently. OpenClaw needs ≥ 45% weighted agreement to execute.</div>
+              <div><span className="text-emerald-400 font-bold">◇ GATE PASSED</span><br />Awarded once backtest hits profitability threshold. Required for live trading promotion.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Right panel */}
+      <div className="w-72 flex-shrink-0 border-l border-slate-800/60 flex flex-col overflow-hidden">
+        {selected ? (
+          /* Bot detail panel */
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-bold text-white uppercase tracking-wider">{selected.display_name}</span>
+                <HealthDot health={selected.health} />
+              </div>
+              <p className="text-[10px] text-slate-500 leading-relaxed">{selected.strategy}</p>
+            </div>
+
+            {/* Stats grid */}
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: 'Trades', value: selected.total_trades },
+                { label: 'Wins', value: selected.win_trades, cls: 'text-emerald-400' },
+                { label: 'Losses', value: selected.loss_trades, cls: 'text-red-400' },
+                { label: 'Cycles', value: selected.cycles_completed },
+                { label: 'Win Rate', value: `${selected.win_rate.toFixed(1)}%`, cls: selected.win_rate >= 55 ? 'text-emerald-400' : 'text-yellow-400' },
+                { label: 'Net PnL', value: `${selected.net_pnl_tao >= 0 ? '+' : ''}${selected.net_pnl_tao.toFixed(4)}τ`, cls: selected.net_pnl_tao >= 0 ? 'text-emerald-400' : 'text-red-400' },
+              ].map(({ label, value, cls }) => (
+                <div key={label} className="bg-slate-800/40 rounded p-2">
+                  <div className="text-[9px] text-slate-600 uppercase">{label}</div>
+                  <div className={clsx('text-xs font-bold mt-0.5', cls || 'text-slate-200')}>{value}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Gate progress */}
+            <div>
+              <div className="text-[9px] text-slate-600 uppercase tracking-wider mb-2">Gate Progress</div>
+              <div className="space-y-2">
+                {[
+                  { label: 'Cycles ≥ 10', check: selected.gate.cycles },
+                  { label: 'Win Rate ≥ 55%', check: selected.gate.win_rate },
+                  { label: 'Win Margin ≥ 2', check: selected.gate.win_margin },
+                  { label: 'PnL > 0 TAO', check: selected.gate.pnl },
+                ].map(({ label, check }) => (
+                  <div key={label} className="flex items-center gap-2">
+                    {check.ok ? <CheckCircle2 size={11} className="text-emerald-400 flex-shrink-0" /> : <XCircle size={11} className="text-slate-600 flex-shrink-0" />}
+                    <span className={clsx('text-[10px]', check.ok ? 'text-emerald-400' : 'text-slate-500')}>{label}</span>
+                    <span className="ml-auto text-[9px] text-slate-600 font-mono">{check.value}/{check.required}</span>
+                  </div>
+                ))}
+              </div>
+              {selected.gate.all_clear && (
+                <div className="mt-2 p-2 bg-purple-500/10 border border-purple-500/30 rounded text-[10px] text-purple-400 font-bold text-center">
+                  ✓ READY FOR LIVE PROMOTION
+                </div>
+              )}
+            </div>
+
+            {/* Mode */}
+            <div className="p-2 bg-slate-800/40 rounded">
+              <div className="text-[9px] text-slate-600 uppercase">Current Mode</div>
+              <div className={clsx('text-xs font-bold mt-0.5', {
+                'text-emerald-400': selected.mode === 'LIVE',
+                'text-purple-400': selected.mode === 'APPROVED_FOR_LIVE',
+                'text-yellow-400': selected.mode === 'PAPER_ONLY',
+              })}>
+                {selected.mode.replace('_', ' ')}
+              </div>
+            </div>
+          </div>
+        ) : (
+          /* Capital allocation chart */
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="text-[9px] text-slate-600 uppercase tracking-wider mb-3">Capital Allocation %</div>
+            <div className="space-y-2">
+              {bots.map(bot => (
+                <div key={bot.name} className="flex items-center gap-2">
+                  <div className="text-[9px] text-slate-500 w-20 truncate">{bot.name.replace('_', '\u200b')}</div>
+                  <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
+                    <div className="h-full bg-blue-500/70 rounded-full transition-all duration-500"
+                      style={{ width: `${(bot.capital_allocation_pct / maxAlloc) * 100}%` }} />
+                  </div>
+                  <div className="text-[9px] text-slate-400 w-8 text-right">{bot.capital_allocation_pct.toFixed(0)}%</div>
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 text-center text-[10px] text-slate-700 italic">
+              Select an agent<br />to view details
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
