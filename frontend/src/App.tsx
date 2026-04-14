@@ -6,6 +6,7 @@ import Trades from './pages/Trades'
 import Strategies from './pages/Strategies'
 import WalletPage from './pages/Wallet'
 import Settings from './pages/Settings'
+import MissionControl from './pages/MissionControl'
 
 export default function App() {
   return (
@@ -24,11 +25,12 @@ export default function App() {
       />
       <Routes>
         <Route element={<Layout />}>
-          <Route path="/"           element={<Dashboard />}   />
-          <Route path="/trades"     element={<Trades />}      />
-          <Route path="/strategies" element={<Strategies />}  />
-          <Route path="/wallet"     element={<WalletPage />}  />
-          <Route path="/settings"   element={<Settings />}    />
+          <Route path="/"                element={<Dashboard />}      />
+          <Route path="/mission-control" element={<MissionControl />} />
+          <Route path="/trades"          element={<Trades />}         />
+          <Route path="/strategies"      element={<Strategies />}     />
+          <Route path="/wallet"          element={<WalletPage />}     />
+          <Route path="/settings"        element={<Settings />}       />
         </Route>
       </Routes>
     </BrowserRouter>

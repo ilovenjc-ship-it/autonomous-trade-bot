@@ -1,17 +1,18 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
-  Settings, Wallet, Activity, Zap,
+  Settings, Wallet, Activity, Zap, Radio,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import clsx from 'clsx'
 
 const navItems = [
-  { to: '/',           icon: LayoutDashboard, label: 'Dashboard'  },
-  { to: '/trades',     icon: ArrowLeftRight,  label: 'Trades'     },
-  { to: '/strategies', icon: TrendingUp,      label: 'Strategies' },
-  { to: '/wallet',     icon: Wallet,          label: 'Wallet'     },
-  { to: '/settings',   icon: Settings,        label: 'Settings'   },
+  { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
+  { to: '/mission-control',  icon: Radio,           label: 'Mission Control' },
+  { to: '/trades',           icon: ArrowLeftRight,  label: 'Trades'          },
+  { to: '/strategies',       icon: TrendingUp,      label: 'Strategies'      },
+  { to: '/wallet',           icon: Wallet,          label: 'Wallet'          },
+  { to: '/settings',         icon: Settings,        label: 'Settings'        },
 ]
 
 export default function Layout() {

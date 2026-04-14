@@ -13,6 +13,9 @@ class Strategy(Base):
     is_active = Column(Boolean, default=False)
     is_enabled = Column(Boolean, default=True)
 
+    # Trading mode: PAPER_ONLY | APPROVED_FOR_LIVE | LIVE
+    mode = Column(String(20), default="PAPER_ONLY")
+
     # Parameters stored as JSON
     parameters = Column(JSON, default={})
 
@@ -23,6 +26,11 @@ class Strategy(Base):
     total_pnl = Column(Float, default=0.0)
     win_rate = Column(Float, default=0.0)
     avg_return = Column(Float, default=0.0)
+
+    # Gate / paper-trading progress
+    cycles_completed = Column(Integer, default=0)
+    last_cycle_at = Column(DateTime(timezone=True), nullable=True)
+    current_cycle_pnl = Column(Float, default=0.0)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
