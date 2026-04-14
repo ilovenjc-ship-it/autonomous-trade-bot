@@ -21,6 +21,7 @@ from dataclasses import dataclass, field, asdict
 
 from services.activity_service import push_event
 from services.price_service import price_service
+from services.alert_service import alert_service
 
 logger = logging.getLogger(__name__)
 
@@ -366,6 +367,27 @@ class ConsensusService:
             strategy = triggered_by,
             detail   = f"Direction={direction} | {SUPERMAJORITY}/12 threshold | {round_.duration_ms}ms",
         )
+
+        # ── Alert ──
+        if round_.approved:
+            alert_service.consensus_approved(
+                strategy_name = triggered_by,
+                direction     = direction,
+                buy           = round_.buy_count,
+                sell          = round_.sell_count,
+                hold          = round_.hold_count,
+                round_id      = round_id,
+            )
+        else:
+            alert_service.consensus_vetoed(
+                strategy_name = triggered_by,
+                direction     = direction,
+                result        = round_.result,
+                buy           = round_.buy_count,
+                sell          = round_.sell_count,
+                hold          = round_.hold_count,
+                round_id      = round_id,
+            )
 
         logger.info(
             f"Consensus #{round_id}: {round_.result} "

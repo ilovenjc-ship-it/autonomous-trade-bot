@@ -14,7 +14,7 @@ from services.strategy_service import DEFAULT_STRATEGIES
 from services.activity_service import seed_startup as seed_activity
 from services.cycle_service import cycle_service
 from services.agent_service import agent_service
-from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent
+from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent, alerts
 
 logging.basicConfig(
     level=logging.INFO,
@@ -121,6 +121,7 @@ app.include_router(analytics.router)
 app.include_router(market.router)
 app.include_router(consensus.router)
 app.include_router(agent.router)
+app.include_router(alerts.router)
 
 
 @app.get("/")

@@ -24,6 +24,7 @@ from models.trade import Trade
 from services.price_service import price_service
 from services.activity_service import push_event
 from services.consensus_service import consensus_service
+from services.alert_service import alert_service
 
 logger = logging.getLogger(__name__)
 
@@ -205,26 +206,38 @@ async def _run_one_cycle() -> None:
 
             # Gate check & promotion
             gates = _gate_check(s)
+            stats_str = f"Cycles={s.cycles_completed} WR={s.win_rate:.1f}% PnL={s.total_pnl:.4f}τ"
+            display   = DISPLAY_NAMES.get(s.name, s.name)
+
             if s.mode == "PAPER_ONLY" and all(gates.values()):
                 s.mode = "APPROVED_FOR_LIVE"
                 push_event(
                     "gate",
-                    f"🎯 {DISPLAY_NAMES.get(s.name, s.name)} APPROVED FOR LIVE trading!",
+                    f"🎯 {display} APPROVED FOR LIVE trading!",
                     strategy=s.name,
-                    detail=f"Cycles={s.cycles_completed} WR={s.win_rate:.1f}% PnL={s.total_pnl:.4f}",
+                    detail=stats_str,
                 )
+                alert_service.gate_promotion(s.name, display, "APPROVED_FOR_LIVE", stats_str)
                 logger.info(f"Strategy {s.name} promoted to APPROVED_FOR_LIVE")
+
             elif s.mode == "APPROVED_FOR_LIVE" and all(gates.values()):
-                # Simulate some are promoted to full LIVE
-                # (only top-performing strategies)
                 if s.win_rate >= 65 and s.total_pnl > 0.05:
                     s.mode = "LIVE"
                     push_event(
                         "gate",
-                        f"🚀 {DISPLAY_NAMES.get(s.name, s.name)} is now LIVE!",
+                        f"🚀 {display} is now LIVE!",
                         strategy=s.name,
                         detail=f"WR={s.win_rate:.1f}% PnL={s.total_pnl:.4f} τ",
                     )
+                    alert_service.gate_promotion(s.name, display, "LIVE", stats_str)
+
+            # ── PnL milestone check ──────────────────────────────────────────
+            # (checked on every fleet total, done once per cycle in commit hook)
+
+            # ── Drawdown guard (per-strategy) ────────────────────────────────
+            DRAWDOWN_THRESHOLD = -0.05   # τ
+            if (s.total_pnl or 0) < DRAWDOWN_THRESHOLD:
+                alert_service.drawdown_alert(s.name, display, s.total_pnl, DRAWDOWN_THRESHOLD)
 
             # Activity event
             emoji = "✅" if is_win else "❌"
@@ -236,6 +249,10 @@ async def _run_one_cycle() -> None:
             )
 
         await db.commit()
+
+        # ── Fleet-level PnL milestone check ──────────────────────────────────
+        fleet_pnl = sum((s.total_pnl or 0) for s in strategies)
+        alert_service.check_pnl_milestones(fleet_pnl)
 
     push_event("system", f"Cycle complete — {len(strategies)} strategies evaluated @ ${price:.2f}")
 

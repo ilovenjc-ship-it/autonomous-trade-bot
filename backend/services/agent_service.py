@@ -34,6 +34,7 @@ from models.trade import Trade
 from services.price_service import price_service
 from services.activity_service import push_event
 from services.consensus_service import consensus_service
+from services.alert_service import alert_service
 
 logger = logging.getLogger(__name__)
 
@@ -327,8 +328,21 @@ class IIAgentService:
 
                 if health == HEALTH_HOT:
                     hot_bots.append(s.name)
+                    # Alert only first time this strategy is seen as HOT this session
+                    _hot_key = f"hot_{s.name}"
+                    if _hot_key not in self.__dict__.get("_alerted_keys", set()):
+                        if not hasattr(self, "_alerted_keys"):
+                            self._alerted_keys = set()
+                        self._alerted_keys.add(_hot_key)
+                        alert_service.strategy_hot(s.name, DISPLAY_NAMES.get(s.name, s.name), s.win_rate or 0, s.total_pnl or 0)
                 elif health == HEALTH_STRUGGLING:
                     struggling_bots.append(s.name)
+                    _str_key = f"struggling_{s.name}"
+                    if _str_key not in self.__dict__.get("_alerted_keys", set()):
+                        if not hasattr(self, "_alerted_keys"):
+                            self._alerted_keys = set()
+                        self._alerted_keys.add(_str_key)
+                        alert_service.strategy_struggling(s.name, DISPLAY_NAMES.get(s.name, s.name), s.win_rate or 0, s.total_pnl or 0)
 
                 # Promotable = PAPER_ONLY but all gates would pass
                 if s.mode == "PAPER_ONLY":
@@ -386,6 +400,12 @@ class IIAgentService:
                 "alert",
                 f"⚡ II Agent: Regime shifted to {regime}",
                 detail = f"TAO=${price:.2f} RSI={rsi:.1f if rsi else 'n/a'}",
+            )
+            alert_service.regime_shift(
+                from_regime = self._last_regime,
+                to_regime   = regime,
+                price       = price,
+                rsi         = rsi,
             )
 
         # 5. Push activity event

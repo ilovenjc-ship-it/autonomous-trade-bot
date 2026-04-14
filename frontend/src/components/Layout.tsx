@@ -1,17 +1,19 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
-  Settings, Wallet, Activity, Zap, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain,
+  Settings, Wallet, Activity, Zap, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
+import { useAlerts } from '@/hooks/useAlerts'
 import clsx from 'clsx'
 
 const navItems = [
   { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
   { to: '/ii-agent',         icon: Brain,           label: 'II Agent'        },
+  { to: '/openclaw',         icon: Vote,            label: 'OpenClaw BFT'    },
+  { to: '/alerts',           icon: Bell,            label: 'Alerts',         badge: true },
   { to: '/mission-control',  icon: Radio,           label: 'Mission Control' },
   { to: '/fleet',            icon: Bot,             label: 'Agent Fleet'     },
-  { to: '/openclaw',         icon: Vote,            label: 'OpenClaw BFT'    },
   { to: '/risk',             icon: Shield,          label: 'Risk Config'     },
   { to: '/analytics',        icon: BarChart2,       label: 'Analytics'       },
   { to: '/activity',         icon: Activity,        label: 'Activity Log'    },
@@ -27,6 +29,7 @@ export default function Layout() {
   const status = useBotStore((s) => s.status)
   const isRunning = status?.is_running ?? false
   const price = status?.current_price
+  const { unreadCount } = useAlerts()
 
   return (
     <div className="flex h-screen overflow-hidden bg-dark-900">
@@ -63,7 +66,7 @@ export default function Layout() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map(({ to, icon: Icon, label }) => (
+          {navItems.map(({ to, icon: Icon, label, badge }) => (
             <NavLink
               key={to}
               to={to}
@@ -78,7 +81,12 @@ export default function Layout() {
               }
             >
               <Icon size={16} />
-              {label}
+              <span className="flex-1">{label}</span>
+              {badge && unreadCount > 0 && (
+                <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
