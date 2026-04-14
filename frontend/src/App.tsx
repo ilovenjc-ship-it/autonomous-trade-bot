@@ -14,6 +14,7 @@ import ActivityLog from './pages/ActivityLog'
 import TradeLog from './pages/TradeLog'
 import MarketData from './pages/MarketData'
 import StrategyDetail from './pages/StrategyDetail'
+import OpenClaw from './pages/OpenClaw'
 
 export default function App() {
   return (
@@ -41,6 +42,7 @@ export default function App() {
           <Route path="/trade-log"       element={<TradeLog />}       />
           <Route path="/market"          element={<MarketData />}     />
           <Route path="/strategy/:name"  element={<StrategyDetail />} />
+          <Route path="/openclaw"        element={<OpenClaw />}       />
           <Route path="/trades"          element={<Trades />}         />
           <Route path="/strategies"      element={<Strategies />}     />
           <Route path="/wallet"          element={<WalletPage />}     />

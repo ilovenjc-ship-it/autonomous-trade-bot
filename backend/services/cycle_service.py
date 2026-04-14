@@ -23,6 +23,7 @@ from models.strategy import Strategy
 from models.trade import Trade
 from services.price_service import price_service
 from services.activity_service import push_event
+from services.consensus_service import consensus_service
 
 logger = logging.getLogger(__name__)
 
@@ -109,6 +110,10 @@ async def _run_one_cycle() -> None:
         result = await db.execute(select(Strategy))
         strategies: List[Strategy] = result.scalars().all()
 
+        # Keep consensus service in sync with current bot modes
+        mode_map = {s.name: (s.mode or "PAPER_ONLY") for s in strategies}
+        consensus_service.update_bot_modes(mode_map)
+
         for s in strategies:
             p = PERSONALITIES.get(s.name)
             if not p:
@@ -131,6 +136,35 @@ async def _run_one_cycle() -> None:
             side   = random.choice(["buy", "sell"])
 
             reason = _build_signal_reason(s.name, indicators, price)
+
+            # ── OpenClaw BFT Gate (LIVE strategies only) ─────────────────────
+            # LIVE strategies must pass 7/12 supermajority before trade executes.
+            if s.mode == "LIVE":
+                consensus_result = await consensus_service.run_consensus(
+                    triggered_by = s.name,
+                    direction    = side.upper(),
+                )
+                if not consensus_result.approved:
+                    # Consensus rejected — skip this trade, log veto
+                    push_event(
+                        "alert",
+                        f"🚫 OpenClaw VETOED {side.upper()} for {DISPLAY_NAMES.get(s.name, s.name)}",
+                        strategy = s.name,
+                        detail   = f"Result={consensus_result.result} "
+                                   f"({consensus_result.buy_count}B/"
+                                   f"{consensus_result.sell_count}S/"
+                                   f"{consensus_result.hold_count}H)",
+                    )
+                    s.cycles_completed = (s.cycles_completed or 0) + 1
+                    await db.flush()
+                    continue
+                else:
+                    # Consensus approved — override side if needed (majority wins)
+                    if consensus_result.result == "APPROVED_SELL":
+                        side = "sell"
+                    elif consensus_result.result == "APPROVED_BUY":
+                        side = "buy"
+            # ─────────────────────────────────────────────────────────────────
 
             # Persist trade
             trade = Trade(
