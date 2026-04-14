@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { RefreshCw, BarChart2, CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { RefreshCw, BarChart2, CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus, ExternalLink } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 
@@ -70,6 +71,7 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export default function AgentFleet() {
+  const navigate = useNavigate()
   const [bots, setBots] = useState<Bot[]>([])
   const [summary, setSummary] = useState<Summary | null>(null)
   const [selected, setSelected] = useState<Bot | null>(null)
@@ -218,6 +220,13 @@ export default function AgentFleet() {
                         onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/activate`) }}
                         className={clsx('px-2 py-0.5 rounded text-[9px] font-bold transition-colors', bot.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-600 hover:text-slate-400')}>
                         ON
+                      </button>
+                      <button
+                        onClick={e => { e.stopPropagation(); navigate(`/strategy/${bot.name}`) }}
+                        className="px-1.5 py-0.5 rounded text-[9px] text-slate-500 hover:text-accent-blue border border-transparent hover:border-accent-blue/30 transition-colors"
+                        title="View strategy detail"
+                      >
+                        <ExternalLink size={10} />
                       </button>
                     </div>
                   </td>

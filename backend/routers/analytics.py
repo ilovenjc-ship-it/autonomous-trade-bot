@@ -181,6 +181,94 @@ async def rolling_winrate(window: int = 20, db: AsyncSession = Depends(get_db)):
 
 # ── Summary stats ─────────────────────────────────────────────────────────────
 
+@router.get("/strategy/{name}")
+async def strategy_detail(name: str, db: AsyncSession = Depends(get_db)):
+    """Full per-strategy data: stats, equity curve, recent trades, gate progress."""
+    from models.strategy import Strategy as StrategyModel
+
+    # DB strategy row
+    strat_res = await db.execute(
+        text("SELECT * FROM strategies WHERE name = :n LIMIT 1"),
+        {"n": name}
+    )
+    row = strat_res.fetchone()
+    if not row:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Strategy '{name}' not found")
+
+    # Equity curve for this strategy
+    eq_res = await db.execute(
+        text("""
+            SELECT created_at, pnl FROM trades
+            WHERE strategy = :n AND pnl IS NOT NULL
+            ORDER BY created_at ASC
+        """),
+        {"n": name}
+    )
+    eq_rows = eq_res.fetchall()
+    cumulative = 0.0
+    equity = []
+    for ts, pnl in eq_rows:
+        cumulative += float(pnl or 0)
+        equity.append({
+            "time": ts[:16] if ts else "",
+            "pnl": round(float(pnl or 0), 6),
+            "cumulative": round(cumulative, 4),
+        })
+
+    # Recent trades
+    trade_res = await db.execute(
+        text("""
+            SELECT id, trade_type, amount, price_at_trade, pnl, signal_reason, created_at
+            FROM trades WHERE strategy = :n
+            ORDER BY created_at DESC LIMIT 50
+        """),
+        {"n": name}
+    )
+    recent = []
+    for t in trade_res.fetchall():
+        tid, ttype, amt, price, pnl, reason, ts = t
+        recent.append({
+            "id": tid, "type": ttype, "amount": round(float(amt or 0), 4),
+            "price": round(float(price or 0), 2),
+            "pnl": round(float(pnl or 0), 6),
+            "signal": (reason or "")[:80],
+            "time": (ts or "")[:16],
+            "win": (pnl or 0) > 0,
+        })
+
+    # Column indices: id=0,name=1,display_name=2,description=3,is_active=4,is_enabled=5,
+    # mode=6,parameters=7,total_trades=8,win_trades=9,loss_trades=10,total_pnl=11,
+    # win_rate=12,avg_return=13,cycles_completed=14,last_cycle_at=15,current_cycle_pnl=16
+    wins   = row[9]  or 0
+    losses = row[10] or 0
+    total  = row[8]  or 0
+    pnl    = float(row[11] or 0)
+    cycles = row[14] or 0
+    wr     = round(wins / total * 100, 1) if total else 0
+
+    return {
+        "name":             row[1],
+        "display_name":     row[2],
+        "description":      row[3],
+        "mode":             row[6],
+        "total_trades":     total,
+        "win_trades":       wins,
+        "loss_trades":      losses,
+        "win_rate":         wr,
+        "total_pnl":        round(pnl, 4),
+        "cycles_completed": cycles,
+        "equity":           equity,
+        "recent_trades":    recent,
+        "gate": {
+            "cycles":   {"value": cycles,      "required": 10,   "ok": cycles >= 10},
+            "win_rate": {"value": wr,           "required": 55.0, "ok": wr >= 55.0},
+            "margin":   {"value": wins-losses,  "required": 2,    "ok": (wins-losses) >= 2},
+            "pnl":      {"value": round(pnl,4), "required": 0,    "ok": pnl > 0},
+        },
+    }
+
+
 @router.get("/summary")
 async def analytics_summary(db: AsyncSession = Depends(get_db)):
     """Top-level KPIs for the analytics header bar."""
