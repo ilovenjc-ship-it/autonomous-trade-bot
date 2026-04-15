@@ -277,8 +277,32 @@ export default function MissionControl() {
   return (
     <div className="flex h-full bg-[#080d18] text-slate-100 overflow-hidden font-mono">
 
-      {/* ── COL 1: Chat — rightmost of sidebar, next to II Agent orb ──── */}
+      {/* ── COL 1: Clock + Chat ─────────────────────────────────────── */}
       <div className="w-80 flex-shrink-0 flex flex-col border-r border-slate-800/60">
+
+        {/* Clock card — sits above chat */}
+        <div className="flex-shrink-0 border-b border-slate-800/60 px-4 py-3 bg-slate-900/40">
+          <div className="flex items-center justify-between mb-1.5">
+            <span className="text-[9px] text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <Clock size={9} className="text-slate-500" /> Local Time
+            </span>
+            <span className="text-[9px] text-slate-400 uppercase tracking-wider flex items-center gap-1">
+              <ChevronRight size={9} className="text-slate-600" /> Next Cycle
+            </span>
+          </div>
+          <div className="flex items-baseline justify-between gap-2">
+            <div className="text-[22px] font-bold text-slate-100 font-mono leading-none">{liveTime}</div>
+            <div className="text-[22px] font-bold text-blue-300 font-mono leading-none">{fmtCountdown(countdown)}</div>
+          </div>
+          <div className="mt-2.5 h-0.5 bg-slate-700/60 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-1000 rounded-full"
+              style={{ width: `${((300 - countdown) / 300) * 100}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Chat header */}
         <div className="px-4 py-2.5 border-b border-slate-800/40 flex items-center gap-2">
           <Cpu size={12} className="text-emerald-400" />
           <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>
@@ -340,8 +364,8 @@ export default function MissionControl() {
       {/* ── RIGHT AREA: fleet strip + gate strip + widget/activity ────── */}
       <div className="flex-1 flex flex-col min-w-0">
 
-        {/* Fleet strip */}
-        <div className="flex-shrink-0 border-b border-slate-800/60">
+        {/* Fleet strip — fixed height, same as Gate Summary */}
+        <div className="flex-shrink-0 h-[162px] flex flex-col border-b border-slate-800/60">
           <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800/40">
             <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse flex-shrink-0" />
             <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Agent Fleet</span>
@@ -358,7 +382,7 @@ export default function MissionControl() {
               </div>
             )}
           </div>
-          <div className="flex gap-2 px-3 py-2 overflow-x-auto">
+          <div className="flex gap-2 px-3 py-2 overflow-x-auto flex-1 items-start content-start">
             {fleet.length === 0 ? (
               <div className="text-slate-300 text-xs py-2">Loading fleet…</div>
             ) : (
@@ -371,14 +395,14 @@ export default function MissionControl() {
           </div>
         </div>
 
-        {/* Gate Summary strip — same structure as fleet strip */}
-        <div className="flex-shrink-0 border-b border-slate-800/60">
+        {/* Gate Summary strip — same fixed height as fleet strip */}
+        <div className="flex-shrink-0 h-[162px] flex flex-col border-b border-slate-800/60">
           <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800/40">
             <div className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_#a78bfa] animate-pulse flex-shrink-0" />
             <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Gate Summary</span>
             <span className="ml-auto text-[9px] text-slate-400">Cyc · WR · WM · PnL</span>
           </div>
-          <div className="flex gap-2 px-3 py-2 overflow-x-auto">
+          <div className="flex gap-2 px-3 py-2 overflow-x-auto flex-1 items-start content-start">
             {fleet.map(bot => {
               const modeColor = bot.mode === 'LIVE' ? 'bg-emerald-500'
                 : bot.mode === 'APPROVED_FOR_LIVE' ? 'bg-purple-500' : 'bg-slate-600'
@@ -405,25 +429,9 @@ export default function MissionControl() {
         {/* Bottom row: left widget col + activity feed */}
         <div className="flex flex-1 min-h-0">
 
-          {/* Left column: clock, next cycle, market intel, system */}
+          {/* Left column: market intel, system, lock guard */}
           <div className="w-52 flex-shrink-0 border-r border-slate-800/60 overflow-y-auto">
             <div className="flex flex-col gap-2 p-3">
-
-              {/* Clock + Next Cycle — combined card */}
-              <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 px-3 py-2.5">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-[9px] text-slate-400 uppercase tracking-wider">Local Time</span>
-                  <span className="text-[9px] text-slate-400 uppercase tracking-wider">Next Cycle</span>
-                </div>
-                <div className="flex items-end justify-between">
-                  <div className="text-lg font-bold text-slate-100 font-mono">{liveTime}</div>
-                  <div className="text-lg font-bold text-blue-300 font-mono">{fmtCountdown(countdown)}</div>
-                </div>
-                <div className="mt-2 h-0.5 bg-slate-700/60 rounded-full overflow-hidden">
-                  <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-1000 rounded-full"
-                    style={{ width: `${((300 - countdown) / 300) * 100}%` }} />
-                </div>
-              </div>
 
               {/* Market Intel */}
               <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 px-3 py-2.5">

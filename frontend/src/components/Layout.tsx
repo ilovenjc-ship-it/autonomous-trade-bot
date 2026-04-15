@@ -1,7 +1,7 @@
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
-  Settings, Wallet, Activity, Zap, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
+  Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -35,20 +35,7 @@ export default function Layout() {
     <div className="flex h-screen overflow-hidden bg-dark-900">
       {/* Sidebar */}
       <aside className="w-56 flex-shrink-0 bg-dark-800 border-r border-dark-600 flex flex-col">
-        {/* Logo */}
-        <div className="px-4 py-5 border-b border-dark-600">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-accent-green to-accent-blue flex items-center justify-center">
-              <Zap size={16} className="text-dark-900" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold text-white">TAO Bot</p>
-              <p className="text-[10px] text-slate-300 font-mono">Finney Mainnet</p>
-            </div>
-          </div>
-        </div>
-
-        {/* Bot status badge */}
+        {/* Bot status badge — top of sidebar */}
         <div className="px-4 py-3 border-b border-dark-600">
           <div className={clsx(
             'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono',
