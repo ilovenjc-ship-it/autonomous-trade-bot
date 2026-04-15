@@ -21,6 +21,11 @@ class BotConfig(Base):
     network = Column(String(50), default="finney")
     netuid = Column(Integer, default=1)
 
+    # Staking target — the validator hotkey we delegate TAO to
+    # This is TaoBot's SS58 hotkey (or whichever validator is chosen).
+    # Distinct from hotkey_address which is the operator's own wallet hotkey.
+    target_validator_hotkey = Column(String(255), nullable=True)
+
     # Strategy
     active_strategy = Column(String(100), default="momentum")
     trade_amount = Column(Float, default=0.1)

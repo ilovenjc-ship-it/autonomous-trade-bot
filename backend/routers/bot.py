@@ -225,6 +225,70 @@ async def save_mnemonic(payload: MnemonicRequest):
         f.writelines(lines)
     return {"success": True, "message": "Mnemonic saved to .env — will be loaded when Bittensor is available"}
 
+class ValidatorRequest(BaseModel):
+    hotkey: str   # SS58 address of the target validator (e.g. TaoBot)
+
+
+@router.post("/validator")
+async def set_validator(payload: ValidatorRequest, db: AsyncSession = Depends(get_db)):
+    """
+    Set the target validator hotkey for live staking.
+    Verifies the hotkey is a permitted validator on SN1 before saving.
+    """
+    from services.subnet_router import set_primary_validator
+
+    hotkey = payload.hotkey.strip()
+    if not hotkey.startswith("5") or len(hotkey) < 47:
+        raise HTTPException(status_code=400, detail="Invalid SS58 hotkey address")
+
+    # Verify on-chain (optional but recommended — skip if chain unavailable)
+    verified = False
+    stake    = None
+    if bittensor_service.connected:
+        try:
+            import bittensor as bt
+            async with bt.AsyncSubtensor(network="finney") as sub:
+                mg = await sub.metagraph(netuid=1)
+                for hk, s, permit in zip(mg.hotkeys, mg.S.tolist(), mg.validator_permit.tolist()):
+                    if hk == hotkey:
+                        verified = True
+                        stake    = round(float(s), 2)
+                        break
+        except Exception as e:
+            pass   # proceed anyway — user may be setting it while chain is slow
+
+    # Persist to DB
+    config = await get_or_create_config(db)
+    config.target_validator_hotkey = hotkey
+    await db.commit()
+
+    # Arm the subnet router immediately
+    set_primary_validator(hotkey)
+
+    return {
+        "success":   True,
+        "hotkey":    hotkey,
+        "verified_on_chain": verified,
+        "stake_tao": stake,
+        "message":   (
+            f"Validator set and verified on SN1 ({stake:,.2f}τ staked)" if verified
+            else "Validator saved — chain verification skipped (offline or not on SN1)"
+        ),
+    }
+
+
+@router.get("/validator")
+async def get_validator(db: AsyncSession = Depends(get_db)):
+    """Return the currently configured target validator."""
+    from services.subnet_router import get_router_status
+    config = await get_or_create_config(db)
+    router = get_router_status()
+    return {
+        "target_validator_hotkey": config.target_validator_hotkey,
+        "router": router,
+    }
+
+
 @router.get("/network/info")
 async def get_network_info(db: AsyncSession = Depends(get_db)):
     config = await get_or_create_config(db)

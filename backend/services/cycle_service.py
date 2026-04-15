@@ -27,6 +27,7 @@ from services.activity_service import push_event
 from services.consensus_service import consensus_service
 from services.alert_service import alert_service
 from services.bittensor_service import bittensor_service
+from services.subnet_router import get_stake_target
 
 logger = logging.getLogger(__name__)
 
@@ -191,67 +192,72 @@ async def _run_one_cycle() -> None:
             # Conditions: strategy is LIVE + consensus passed + chain reachable
             # + wallet has mnemonic loaded + hotkey configured.
             # Paper strategies and any failed condition fall through to simulation.
-            tx_hash      = None
-            trade_status = "executed"
+            tx_hash       = None
+            trade_status  = "executed"
+            target_netuid = config.netuid if config else 1   # default; router may override
 
             if (
                 s.mode == "LIVE"
                 and bittensor_service.connected
                 and bittensor_service.wallet_loaded
-                and config
-                and config.hotkey_address
             ):
-                live_amount   = config.trade_amount
-                target_netuid = config.netuid or 1
-                hotkey        = config.hotkey_address
+                live_amount = config.trade_amount if config else 0.1
 
-                if side == "buy":
-                    exec_result = await bittensor_service.stake(hotkey, live_amount, target_netuid)
-                else:
-                    exec_result = await bittensor_service.unstake(hotkey, live_amount, target_netuid)
+                # Ask the subnet router for the best (netuid, hotkey) pair
+                target_netuid, hotkey = await get_stake_target(s.name)
 
-                if exec_result.get("success"):
-                    # Upgrade trade to real amount — pnl tracked separately later
-                    amount   = live_amount
-                    tx_hash  = exec_result.get("tx_hash") or exec_result.get("block_hash")
+                if not hotkey:
+                    # Router has no validator yet — fall back to paper this cycle
                     push_event(
-                        "trade",
-                        f"🔴 LIVE {side.upper()} {live_amount:.4f}τ @ ${price:.2f} — on-chain",
-                        strategy = s.name,
-                        detail   = f"tx={tx_hash or 'pending'} | netuid={target_netuid} "
-                                   f"| hotkey={hotkey[:16]}…",
-                    )
-                    logger.info(
-                        f"[LIVE] {s.name}: {side.upper()} {live_amount}τ "
-                        f"netuid={target_netuid} tx={tx_hash}"
+                        "system",
+                        f"⚠️ {display}: no validator resolved — staying paper this cycle",
+                        strategy=s.name,
                     )
                 else:
-                    # On-chain call failed — alert and skip this trade entirely
-                    err = exec_result.get("error", "unknown error")
-                    push_event(
-                        "alert",
-                        f"❌ LIVE execution FAILED for {display}: {err}",
-                        strategy = s.name,
-                    )
-                    alert_service.push_alert(
-                        type     = "SYSTEM",
-                        level    = "CRITICAL",
-                        title    = f"⛔ Live trade failed — {display}",
-                        message  = f"OpenClaw approved {side.upper()} but on-chain execution "
-                                   f"failed: {err}",
-                        strategy = s.name,
-                        detail   = f"side={side} | amount={live_amount}τ | "
-                                   f"hotkey={hotkey[:16]}…",
-                    )
-                    logger.error(
-                        f"[LIVE] {s.name}: execution FAILED — {err}"
-                    )
-                    s.cycles_completed = (s.cycles_completed or 0) + 1
-                    await db.flush()
-                    continue   # do NOT record a failed live trade as executed
+                    if side == "buy":
+                        exec_result = await bittensor_service.stake(hotkey, live_amount, target_netuid)
+                    else:
+                        exec_result = await bittensor_service.unstake(hotkey, live_amount, target_netuid)
+
+                    if exec_result.get("success"):
+                        amount   = live_amount
+                        tx_hash  = exec_result.get("tx_hash") or exec_result.get("block_hash")
+                        push_event(
+                            "trade",
+                            f"🔴 LIVE {side.upper()} {live_amount:.4f}τ @ ${price:.2f} "
+                            f"— SN{target_netuid} on-chain",
+                            strategy = s.name,
+                            detail   = f"tx={tx_hash or 'pending'} | netuid={target_netuid} "
+                                       f"| validator={hotkey[:16]}…",
+                        )
+                        logger.info(
+                            f"[LIVE] {s.name}: {side.upper()} {live_amount}τ "
+                            f"SN{target_netuid} validator={hotkey[:16]} tx={tx_hash}"
+                        )
+                    else:
+                        err = exec_result.get("error", "unknown error")
+                        push_event(
+                            "alert",
+                            f"❌ LIVE execution FAILED for {display} on SN{target_netuid}: {err}",
+                            strategy = s.name,
+                        )
+                        alert_service.push_alert(
+                            type     = "SYSTEM",
+                            level    = "CRITICAL",
+                            title    = f"⛔ Live trade failed — {display}",
+                            message  = f"OpenClaw approved {side.upper()} on SN{target_netuid} "
+                                       f"but execution failed: {err}",
+                            strategy = s.name,
+                            detail   = f"side={side} | amount={live_amount}τ | "
+                                       f"SN{target_netuid} | validator={hotkey[:16]}…",
+                        )
+                        logger.error(f"[LIVE] {s.name}: execution FAILED SN{target_netuid} — {err}")
+                        s.cycles_completed = (s.cycles_completed or 0) + 1
+                        await db.flush()
+                        continue   # do NOT record a failed live trade as executed
             # ─────────────────────────────────────────────────────────────────
 
-            # Persist trade
+            # Persist trade — netuid reflects actual subnet used (router decision)
             trade = Trade(
                 trade_type      = side,
                 status          = trade_status,
@@ -264,6 +270,7 @@ async def _run_one_cycle() -> None:
                 strategy        = s.name,
                 signal_reason   = reason[:200],
                 tx_hash         = tx_hash,
+                netuid          = target_netuid if tx_hash else (config.netuid if config else 1),
                 network         = "finney",
                 executed_at     = datetime.utcnow(),
             )

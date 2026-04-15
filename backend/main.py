@@ -14,6 +14,8 @@ from services.strategy_service import DEFAULT_STRATEGIES
 from services.activity_service import seed_startup as seed_activity
 from services.cycle_service import cycle_service
 from services.agent_service import agent_service
+from services.bittensor_service import bittensor_service
+from services.subnet_router import set_primary_validator
 from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent, alerts, wallet
 
 logging.basicConfig(
@@ -38,6 +40,25 @@ async def lifespan(app: FastAPI):
 
     # Seed activity log startup events
     seed_activity()
+
+    # Load primary validator (TaoBot) from config if already set
+    try:
+        from sqlalchemy import select
+        from db.database import AsyncSessionLocal
+        from models.bot_config import BotConfig
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(select(BotConfig).where(BotConfig.id == 1))
+            cfg = result.scalar_one_or_none()
+            if cfg and cfg.target_validator_hotkey:
+                set_primary_validator(cfg.target_validator_hotkey)
+                logger.info(f"Primary validator loaded: {cfg.target_validator_hotkey[:20]}…")
+            else:
+                logger.warning(
+                    "No target_validator_hotkey in config — subnet router will paper-mode "
+                    "LIVE strategies until hotkey is set via POST /api/bot/validator"
+                )
+    except Exception as e:
+        logger.error(f"Failed to load primary validator from config: {e}")
 
     # Start price feed
     await price_service.start()
