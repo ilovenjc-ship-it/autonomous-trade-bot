@@ -141,34 +141,34 @@ export default function AgentFleet() {
         </div>
 
         {/* How it works — under Fleet Health */}
-        <div className="px-6 py-3 border-b border-slate-800/40 grid grid-cols-3 gap-x-8 gap-y-1 text-[10px]">
+        <div className="px-6 py-3 border-b border-slate-800/40 grid grid-cols-3 gap-x-8 gap-y-2">
           <div className="flex items-start gap-2">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0 mt-0.5" />
-            <span><span className="text-emerald-400 font-bold">GREEN</span><span className="text-slate-400 ml-1">Healthy — full consensus weight</span></span>
+            <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0 mt-1" />
+            <span className="text-xs"><span className="text-emerald-400 font-bold">GREEN</span><span className="text-slate-400 ml-1.5">Healthy — full consensus weight</span></span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-blue-400 font-bold flex-shrink-0">◆</span>
-            <span><span className="text-blue-400 font-bold">LEADERBOARD</span><span className="text-slate-400 ml-1">Ranked by win rate × net P&L. Top performers get more capital.</span></span>
+            <span className="text-blue-400 font-bold flex-shrink-0 text-xs">◆</span>
+            <span className="text-xs"><span className="text-blue-400 font-bold">LEADERBOARD</span><span className="text-slate-400 ml-1.5">Ranked by win rate × net P&L. Top performers get more capital.</span></span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-emerald-400 font-bold flex-shrink-0">◇</span>
-            <span><span className="text-emerald-400 font-bold">GATE PASSED</span><span className="text-slate-400 ml-1">Profitability threshold met. Required for live promotion.</span></span>
+            <span className="text-emerald-400 font-bold flex-shrink-0 text-xs">◇</span>
+            <span className="text-xs"><span className="text-emerald-400 font-bold">GATE PASSED</span><span className="text-slate-400 ml-1.5">Profitability threshold met. Required for live promotion.</span></span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0 mt-0.5" />
-            <span><span className="text-yellow-400 font-bold">YELLOW</span><span className="text-slate-400 ml-1">Degraded — reduced consensus weight</span></span>
+            <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0 mt-1" />
+            <span className="text-xs"><span className="text-yellow-400 font-bold">YELLOW</span><span className="text-slate-400 ml-1.5">Degraded — reduced consensus weight</span></span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-yellow-400 font-bold flex-shrink-0">⊙</span>
-            <span><span className="text-yellow-400 font-bold">BFT CONSENSUS</span><span className="text-slate-400 ml-1">Bots vote each cycle. OpenClaw needs ≥ 45% weighted agreement.</span></span>
+            <span className="text-yellow-400 font-bold flex-shrink-0 text-xs">⊙</span>
+            <span className="text-xs"><span className="text-yellow-400 font-bold">BFT CONSENSUS</span><span className="text-slate-400 ml-1.5">Bots vote each cycle. OpenClaw needs ≥ 45% weighted agreement.</span></span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="text-slate-400 font-bold flex-shrink-0">✗</span>
-            <span><span className="text-slate-300 font-bold">PAPER</span><span className="text-slate-400 ml-1">Gate not yet cleared — trading in simulation only.</span></span>
+            <span className="text-slate-400 font-bold flex-shrink-0 text-xs">✗</span>
+            <span className="text-xs"><span className="text-slate-300 font-bold">PAPER</span><span className="text-slate-400 ml-1.5">Gate not yet cleared — trading in simulation only.</span></span>
           </div>
           <div className="flex items-start gap-2">
-            <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0 mt-0.5" />
-            <span><span className="text-red-400 font-bold">RED</span><span className="text-slate-400 ml-1">Critical — excluded from consensus</span></span>
+            <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0 mt-1" />
+            <span className="text-xs"><span className="text-red-400 font-bold">RED</span><span className="text-slate-400 ml-1.5">Critical — excluded from consensus</span></span>
           </div>
         </div>
 
