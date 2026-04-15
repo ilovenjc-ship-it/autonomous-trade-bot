@@ -10,6 +10,7 @@ import {
   Cpu, Radio, ShieldAlert, ArrowUpRight,
 } from 'lucide-react'
 import clsx from 'clsx'
+import api from '@/api/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -259,25 +260,20 @@ export default function IIAgent() {
   const [cStats,      setCStats]      = useState<{total_rounds:number,approved_rounds:number,approval_rate_pct:number}|null>(null)
 
   const load = useCallback(async () => {
-    try {
-      const [statusRes, obsRes, recsRes, cStatsRes] = await Promise.all([
-        fetch('/api/agent/status'),
-        fetch('/api/agent/observations?limit=40'),
-        fetch('/api/agent/recommendations'),
-        fetch('/api/consensus/stats'),
-      ])
-      const s  = await statusRes.json()
-      const o  = await obsRes.json()
-      const r  = await recsRes.json()
-      const cs = await cStatsRes.json()
-      setStatus(s)
-      if (o.observations)    setObservations(o.observations)
-      if (r.recommendations) setRecs(r.recommendations)
-      if (cs.total_rounds != null) setCStats(cs)
-      setLastRefresh(new Date())
-    } catch (e) {
-      console.error('II Agent load error', e)
-    }
+    const [statusRes, obsRes, recsRes, cStatsRes] = await Promise.allSettled([
+      api.get('/agent/status'),
+      api.get('/agent/observations', { params: { limit: 40 } }),
+      api.get('/agent/recommendations'),
+      api.get('/consensus/stats'),
+    ])
+    if (statusRes.status === 'fulfilled') setStatus(statusRes.value.data)
+    if (obsRes.status === 'fulfilled' && obsRes.value.data.observations)
+      setObservations(obsRes.value.data.observations)
+    if (recsRes.status === 'fulfilled' && recsRes.value.data.recommendations)
+      setRecs(recsRes.value.data.recommendations)
+    if (cStatsRes.status === 'fulfilled' && cStatsRes.value.data.total_rounds != null)
+      setCStats(cStatsRes.value.data)
+    setLastRefresh(new Date())
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -289,8 +285,7 @@ export default function IIAgent() {
   const handleAnalyze = async () => {
     setAnalyzing(true)
     try {
-      const res  = await fetch('/api/agent/analyze', { method: 'POST' })
-      const data = await res.json()
+      const { data } = await api.post('/agent/analyze')
       setLastReport(data.report)
       setFlash(true)
       setTimeout(() => setFlash(false), 1500)
@@ -445,9 +440,9 @@ export default function IIAgent() {
           <div className="flex-1 overflow-y-auto max-h-[420px] divide-y divide-dark-700/50 px-4 py-2 space-y-0">
             {observations.length === 0 ? (
               <div className="py-12 text-center">
-                <Brain size={32} className="text-slate-700 mx-auto mb-2" />
+                <Brain size={32} className="text-slate-600 mx-auto mb-2" />
                 <p className="text-slate-300 text-sm font-mono">Agent initialising…</p>
-                <p className="text-slate-700 text-xs mt-1">Click "Run Analysis" to trigger the first observation cycle.</p>
+                <p className="text-slate-400 text-xs mt-1">Click "Run Analysis" to trigger the first observation cycle.</p>
               </div>
             ) : (
               observations.map(obs => (
@@ -505,7 +500,7 @@ export default function IIAgent() {
         <div className="flex flex-col md:flex-row items-stretch gap-0 px-6 pb-5">
 
           {/* Node 1 — II Agent */}
-          <div className="group relative flex-1 rounded-xl border border-indigo-500/30 bg-indigo-500/8 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-indigo-400/60 hover:bg-indigo-500/15 hover:shadow-lg hover:shadow-indigo-500/10">
+          <div className="group relative flex-1 rounded-xl border border-indigo-500/30 bg-indigo-500/10 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-indigo-400/60 hover:bg-indigo-500/15 hover:shadow-lg hover:shadow-indigo-500/10">
             {/* Default view */}
             <div className="transition-opacity duration-300 group-hover:opacity-0">
               <p className="text-lg mb-1">🧠</p>
@@ -537,7 +532,7 @@ export default function IIAgent() {
           </div>
 
           {/* Node 2 — OpenClaw */}
-          <div className="group relative flex-1 rounded-xl border border-purple-500/30 bg-purple-500/8 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-purple-400/60 hover:bg-purple-500/15 hover:shadow-lg hover:shadow-purple-500/10">
+          <div className="group relative flex-1 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-purple-400/60 hover:bg-purple-500/15 hover:shadow-lg hover:shadow-purple-500/10">
             <div className="transition-opacity duration-300 group-hover:opacity-0">
               <p className="text-lg mb-1">⚡</p>
               <p className="text-sm font-bold text-purple-400 font-mono">OpenClaw</p>
@@ -566,7 +561,7 @@ export default function IIAgent() {
           </div>
 
           {/* Node 3 — 12 Bots */}
-          <div className="group relative flex-1 rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-emerald-400/60 hover:bg-emerald-500/15 hover:shadow-lg hover:shadow-emerald-500/10">
+          <div className="group relative flex-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-emerald-400/60 hover:bg-emerald-500/15 hover:shadow-lg hover:shadow-emerald-500/10">
             <div className="transition-opacity duration-300 group-hover:opacity-0">
               <p className="text-lg mb-1">🤖</p>
               <p className="text-sm font-bold text-emerald-400 font-mono">12 Bots</p>
@@ -595,7 +590,7 @@ export default function IIAgent() {
           </div>
 
           {/* Node 4 — Trades */}
-          <div className="group relative flex-1 rounded-xl border border-sky-500/30 bg-sky-500/8 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-sky-400/60 hover:bg-sky-500/15 hover:shadow-lg hover:shadow-sky-500/10">
+          <div className="group relative flex-1 rounded-xl border border-sky-500/30 bg-sky-500/10 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-sky-400/60 hover:bg-sky-500/15 hover:shadow-lg hover:shadow-sky-500/10">
             <div className="transition-opacity duration-300 group-hover:opacity-0">
               <p className="text-lg mb-1">📈</p>
               <p className="text-sm font-bold text-sky-400 font-mono">Trades</p>
