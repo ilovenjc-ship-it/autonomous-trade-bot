@@ -214,7 +214,7 @@ export default function ActivityLog() {
       </div>
 
       {/* ── Legend ─────────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-6 pt-3 pb-1">
+      <div className="flex-shrink-0 px-6 pt-3 pb-3">
         <LegendBar />
       </div>
 
