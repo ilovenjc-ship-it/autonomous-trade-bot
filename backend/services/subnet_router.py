@@ -45,29 +45,33 @@ ROOT_ALPHA_PRICE   = 1.0   # always 1:1 TAO
 # The router picks the FIRST subnet whose live alpha price >= min_alpha_price.
 # Root (0) is appended implicitly as the final fallback.
 STRATEGY_SUBNET_PREFS: Dict[str, List[Tuple[int, float]]] = {
-    # Follows highest α-price momentum — dTAO hot subnets
-    "dtao_flow_momentum":  [(96, 1.50), (64, 0.06), (4,  0.04)],
-    # Momentum = currently hottest subnet
-    "momentum_cascade":    [(96, 1.50), (4,  0.04), (51, 0.04)],
-    # Breakouts happen in high-demand subnets first
-    "breakout_hunter":     [(96, 1.00), (97, 0.05), (4,  0.04)],
-    # Stable yield over alpha speculation — root first
-    "yield_maximizer":     [(51, 0.04), (44, 0.03)],
-    # Contrarian: buy undervalued subnets
-    "contrarian_flow":     [(3,  0.02), (8,  0.02), (9,  0.02)],
-    # Mean reversion in mid-tier subnets
-    "mean_reversion":      [(64, 0.06), (120, 0.06), (62, 0.02)],
-    # Liquidity-rich subnets
-    "liquidity_hunter":    [(4,  0.04), (8,  0.03), (3,  0.02)],
-    # Emission-weighted subnets
-    "emission_momentum":   [(8,  0.03), (9,  0.02), (56, 0.02)],
-    # High-volatility both directions
-    "volatility_arb":      [(96, 1.00), (3,  0.02), (75, 0.02)],
-    # Sentiment-driven retail subnets
-    "sentiment_surge":     [(51, 0.04), (44, 0.03), (9,  0.02)],
-    # Moderate balanced exposure
-    "balanced_risk":       [(4,  0.04), (8,  0.03)],
-    # Macro = root is the signal
+    # TaoBot confirmed subnets (stake ≥ 1k τ, permit=True):
+    #   SN0 (root) 922,869τ | SN18 274,681τ | SN8 246,867τ
+    #   SN96 204,252τ | SN64 7,580τ | SN1 7,541τ | SN9 1,538τ
+
+    # dTAO flow — follows highest α-price momentum; TaoBot on SN96 + SN64
+    "dtao_flow_momentum":  [(96, 1.50), (64, 0.06), (18, 0.01)],
+    # Pure momentum — hottest subnets; TaoBot on SN96
+    "momentum_cascade":    [(96, 1.50), (18, 0.01), (8,  0.02)],
+    # Breakouts in high-demand subnets; TaoBot on SN96 + SN18
+    "breakout_hunter":     [(96, 1.00), (18, 0.01), (8,  0.02)],
+    # Stable yield — root + SN18 (TaoBot has huge stake on both)
+    "yield_maximizer":     [(18, 0.01), (9,  0.01)],
+    # Contrarian — undervalued; TaoBot on SN9
+    "contrarian_flow":     [(9,  0.01), (8,  0.02), (64, 0.06)],
+    # Mean reversion in mid-tier; TaoBot on SN64
+    "mean_reversion":      [(64, 0.06), (18, 0.01), (9,  0.01)],
+    # Liquidity-rich; TaoBot has biggest presence on SN8
+    "liquidity_hunter":    [(8,  0.02), (18, 0.01), (9,  0.01)],
+    # Emission-weighted; TaoBot on SN8 + SN9
+    "emission_momentum":   [(8,  0.02), (9,  0.01), (18, 0.01)],
+    # High-volatility; TaoBot on SN96 + SN9
+    "volatility_arb":      [(96, 1.00), (9,  0.01), (64, 0.06)],
+    # Sentiment-driven; TaoBot on SN18 + SN9
+    "sentiment_surge":     [(18, 0.01), (9,  0.01), (8,  0.02)],
+    # Balanced; TaoBot on SN8 + SN18
+    "balanced_risk":       [(8,  0.02), (18, 0.01)],
+    # Macro = root is the anchor; falls through to SN0 fallback
     "macro_correlation":   [],
 }
 
