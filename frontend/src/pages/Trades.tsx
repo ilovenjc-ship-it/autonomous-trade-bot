@@ -40,21 +40,38 @@ export default function Trades() {
         </button>
       </div>
 
+      {/* Paper trading disclosure */}
+      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/25 rounded-lg">
+        <span className="text-yellow-400 text-sm">📄</span>
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[11px] font-bold text-yellow-400 font-mono uppercase tracking-wider">
+            Simulated Performance
+          </span>
+          <span className="text-[10px] text-yellow-400/70 font-mono">
+            These figures reflect paper trading only — no real TAO has moved. Volume and P&L are simulated.
+            Win rate = execution success rate (executed ÷ total), not PnL-based.
+          </span>
+        </div>
+      </div>
+
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Trades" value={tradeStats?.total_trades ?? 0} icon={ArrowUpDown} />
-        <StatCard label="Win Rate" value={`${tradeStats?.win_rate ?? 0}%`} icon={Percent} color="green" />
+        <StatCard label="Win Rate" value={`${tradeStats?.win_rate ?? 0}%`} icon={Percent} color="green"
+          sub="Execution success rate" />
         <StatCard
           label="Total Volume"
           value={`$${(tradeStats?.total_volume_usd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
           icon={DollarSign}
           color="blue"
+          sub="Simulated USD"
         />
         <StatCard
           label="Total P&L"
           value={`$${(tradeStats?.total_pnl_usd ?? 0).toFixed(2)}`}
           icon={(tradeStats?.total_pnl_usd ?? 0) >= 0 ? TrendingUp : TrendingDown}
           color={(tradeStats?.total_pnl_usd ?? 0) >= 0 ? 'green' : 'red'}
+          sub="Simulated USD"
         />
       </div>
 
