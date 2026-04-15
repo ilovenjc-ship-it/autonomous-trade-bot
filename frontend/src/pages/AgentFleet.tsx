@@ -58,6 +58,94 @@ function AllocationBar({ pct, max }: { pct: number; max: number }) {
   )
 }
 
+// ── Radar / pentagon chart ────────────────────────────────────────────────────
+function RadarChart({ bot }: { bot: Bot }) {
+  const cx = 110, cy = 108, r = 78, n = 5
+  const gatesPassed = [bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok]
+    .filter(Boolean).length
+
+  const axes = [
+    { label: 'Win Rate',  value: Math.min(bot.win_rate / 75, 1) },
+    { label: 'Score',     value: Math.min(bot.performance_score / 100, 1) },
+    { label: 'Gate',      value: gatesPassed / 4 },
+    { label: 'Alloc',     value: Math.min(bot.capital_allocation_pct / 25, 1) },
+    { label: 'P&L',       value: Math.min(Math.max((bot.net_pnl_tao + 0.05) / 0.35, 0), 1) },
+  ]
+
+  const angle = (i: number) => (i * 2 * Math.PI / n) - Math.PI / 2
+  const pt    = (i: number, s: number) => ({
+    x: cx + r * s * Math.cos(angle(i)),
+    y: cy + r * s * Math.sin(angle(i)),
+  })
+  const poly  = (s: number) => Array.from({ length: n }, (_, i) => pt(i, s))
+    .map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+
+  const dataPts = axes.map((a, i) => pt(i, Math.max(a.value, 0.04)))
+  const dataPath = dataPts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join('') + 'Z'
+
+  const hc = bot.health === 'GREEN' ? '#34d399' : bot.health === 'YELLOW' ? '#fbbf24' : '#f87171'
+
+  return (
+    <svg width="220" height="220" viewBox="0 0 220 220" className="overflow-visible mx-auto block">
+      <defs>
+        <style>{`
+          @keyframes radarBloom {
+            from { opacity:0; transform:scale(0.2); }
+            to   { opacity:1; transform:scale(1); }
+          }
+        `}</style>
+      </defs>
+
+      {/* Grid rings at 25 / 50 / 75 / 100% */}
+      {[0.25, 0.5, 0.75, 1].map(s => (
+        <polygon key={s} points={poly(s)}
+          fill="none" stroke="rgba(148,163,184,0.1)" strokeWidth={s === 1 ? 1.5 : 1} />
+      ))}
+
+      {/* Axis spokes */}
+      {axes.map((_, i) => {
+        const o = pt(i, 1)
+        return <line key={i} x1={cx} y1={cy} x2={o.x} y2={o.y}
+          stroke="rgba(148,163,184,0.12)" strokeWidth="1" />
+      })}
+
+      {/* Data shape — blooms on each new bot selection */}
+      <g key={bot.name}
+        style={{ transformOrigin: `${cx}px ${cy}px`, animation: 'radarBloom 0.5s cubic-bezier(0.34,1.56,0.64,1) forwards' }}>
+        <path d={dataPath}
+          fill={`${hc}28`}
+          stroke={hc}
+          strokeWidth="1.5"
+          strokeLinejoin="round"
+          filter={`drop-shadow(0 0 6px ${hc}88)`}
+        />
+        {dataPts.map((p, i) => (
+          <circle key={i} cx={p.x} cy={p.y} r="3.5"
+            fill={hc}
+            filter={`drop-shadow(0 0 4px ${hc})`}
+          />
+        ))}
+      </g>
+
+      {/* Axis labels */}
+      {axes.map((a, i) => {
+        const lp = pt(i, 1.3)
+        return (
+          <text key={i} x={lp.x} y={lp.y}
+            textAnchor="middle" dominantBaseline="middle"
+            fontSize="9" fill="rgba(148,163,184,0.8)"
+            fontFamily="monospace" fontWeight="bold">
+            {a.label}
+          </text>
+        )
+      })}
+
+      {/* Centre dot */}
+      <circle cx={cx} cy={cy} r="2" fill="rgba(148,163,184,0.3)" />
+    </svg>
+  )
+}
+
 function ScoreBar({ score }: { score: number }) {
   return (
     <div className="flex items-center gap-1.5">
@@ -281,7 +369,15 @@ export default function AgentFleet() {
                 <span className="text-xs font-bold text-white uppercase tracking-wider">{selected.display_name}</span>
                 <HealthDot health={selected.health} />
               </div>
-              <p className="text-[10px] text-slate-300 leading-relaxed">{selected.strategy}</p>
+              <p className="text-[10px] text-slate-400 leading-relaxed">{selected.strategy}</p>
+            </div>
+
+            {/* Radar chart */}
+            <div className="border border-slate-800/60 rounded-lg bg-slate-900/30 py-2">
+              <RadarChart bot={selected} />
+              <div className="flex justify-center gap-4 pb-1 text-[8px] text-slate-500 font-mono">
+                <span>WIN RATE · SCORE · GATE · ALLOC · P&L</span>
+              </div>
             </div>
 
             {/* Stats grid */}
