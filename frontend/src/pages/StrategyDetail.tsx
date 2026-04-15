@@ -5,10 +5,11 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine,
 } from 'recharts'
 import {
-  ArrowLeft, TrendingUp, TrendingDown, CheckCircle2,
-  XCircle, RefreshCw, Award, Shield, Activity,
+  ArrowLeft, TrendingUp, CheckCircle2,
+  XCircle, RefreshCw, Shield, Activity,
 } from 'lucide-react'
 import clsx from 'clsx'
+import api from '@/api/client'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface GateCheck { value: number; required: number; ok: boolean }
@@ -70,9 +71,8 @@ export default function StrategyDetail() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/analytics/strategy/${name}`)
-      if (!res.ok) throw new Error(`${res.status}`)
-      setDetail(await res.json())
+      const { data } = await api.get<Detail>(`/analytics/strategy/${name}`)
+      setDetail(data)
     } catch (e) {
       setError(`Could not load strategy "${name}"`)
     } finally {

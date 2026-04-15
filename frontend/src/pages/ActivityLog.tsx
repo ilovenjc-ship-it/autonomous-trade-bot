@@ -191,9 +191,14 @@ export default function ActivityLog() {
               className="group flex items-start gap-3 px-4 py-2.5 bg-dark-800 border border-dark-700/50 rounded-lg hover:border-dark-500 transition-colors"
             >
               {/* Icon */}
-              <div className={clsx('mt-0.5 w-6 h-6 rounded flex items-center justify-center flex-shrink-0', m.color.split(' ')[1])}>
-                <Icon size={12} className={m.color.split(' ')[0]} />
-              </div>
+              {(() => {
+                const cc = m.color.split(/\s+/).filter(Boolean)
+                return (
+                  <div className={clsx('mt-0.5 w-6 h-6 rounded flex items-center justify-center flex-shrink-0', cc[1])}>
+                    <Icon size={12} className={cc[0]} />
+                  </div>
+                )
+              })()}
 
               {/* Content */}
               <div className="flex-1 min-w-0">

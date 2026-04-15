@@ -88,10 +88,12 @@ export interface Strategy {
   description?: string
   is_active: boolean
   is_enabled: boolean
+  mode: 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'LIVE'
   parameters: Record<string, unknown>
   total_trades: number
   win_rate: number
   total_pnl: number
+  cycles_completed: number
 }
 
 export interface BotConfig {

@@ -30,10 +30,12 @@ async def list_strategies(db: AsyncSession = Depends(get_db)):
             "description": s.description,
             "is_active": s.is_active,
             "is_enabled": s.is_enabled,
+            "mode": getattr(s, "mode", "PAPER_ONLY"),
             "parameters": s.parameters,
             "total_trades": s.total_trades,
             "win_rate": s.win_rate,
             "total_pnl": s.total_pnl,
+            "cycles_completed": getattr(s, "cycles_completed", 0),
         }
         for s in strategies
     ]
