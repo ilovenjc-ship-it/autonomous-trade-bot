@@ -284,10 +284,10 @@ export default function MissionControl() {
         <div className="w-56 flex-shrink-0 border-r border-slate-800/60 flex flex-col overflow-hidden">
 
           {/* Lock guard — top of column */}
-          <div className="flex-shrink-0 border-b border-yellow-500/20 px-3 py-2 bg-yellow-500/5">
-            <div className="flex items-center gap-2">
+          <div className="flex-shrink-0 border-b border-slate-800/50 px-3 py-2">
+            <div className="flex items-center gap-2 bg-yellow-500/5 border border-yellow-500/20 rounded-lg px-2.5 py-1.5">
               <Lock size={10} className="text-yellow-400 flex-shrink-0" />
-              <span className="text-[9px] text-yellow-400/90 leading-tight font-mono tracking-wide">Gate enforced — paper required</span>
+              <span className="text-[9px] text-yellow-400/90 leading-tight">Gate enforced — paper required</span>
             </div>
           </div>
 
