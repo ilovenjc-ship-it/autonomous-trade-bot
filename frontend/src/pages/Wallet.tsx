@@ -2,12 +2,19 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Wallet as WalletIcon, Copy, ExternalLink, ShieldCheck,
   KeyRound, CheckCircle2, RefreshCw, Eye, EyeOff,
+  PieChart, Lock, AlertTriangle, Layers,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
 
 const TARGET_ADDRESS = '5GgRojEFh5aCFNLKuSWb6WtrM5nBDB6GrRpqaqreBLcg4e7L'
+
+/** Masks an SS58 address: first 6 chars + bullets + last 4 chars */
+function maskAddr(addr: string): string {
+  if (!addr || addr.length < 12) return '••••••••••••••••••'
+  return `${addr.slice(0, 6)}${'•'.repeat(20)}${addr.slice(-4)}`
+}
 
 interface ChainInfo {
   address:     string
@@ -20,16 +27,24 @@ interface ChainInfo {
   error?:      string
 }
 
-function AddrBox({ label, addr }: { label: string; addr: string }) {
+function AddrBox({ label, addr, show }: { label: string; addr: string; show: boolean }) {
   const copy = () => { navigator.clipboard.writeText(addr); toast.success('Copied!') }
   return (
     <div className="bg-dark-700 border border-dark-600 rounded-xl px-4 py-3">
-      <p className="text-[10px] text-slate-300 uppercase tracking-widest font-mono mb-1">{label}</p>
+      <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1">{label}</p>
       <div className="flex items-center gap-2">
-        <p className="text-sm font-mono text-slate-100 truncate flex-1">{addr}</p>
-        <button onClick={copy} className="text-slate-300 hover:text-white flex-shrink-0"><Copy size={13} /></button>
+        <p className={clsx('text-sm font-mono truncate flex-1 transition-all',
+          show ? 'text-slate-100' : 'text-slate-500 tracking-widest')}>
+          {show ? addr : maskAddr(addr)}
+        </p>
+        {/* Copy always works even when masked */}
+        <button onClick={copy} className="text-slate-500 hover:text-white flex-shrink-0 transition-colors" title="Copy address">
+          <Copy size={13} />
+        </button>
         <a href={`https://taostats.io/account/${addr}`} target="_blank" rel="noopener noreferrer"
-          className="text-slate-300 hover:text-accent-blue flex-shrink-0"><ExternalLink size={13} /></a>
+          className="text-slate-500 hover:text-accent-blue flex-shrink-0 transition-colors" title="View on Taostats">
+          <ExternalLink size={13} />
+        </a>
       </div>
     </div>
   )
@@ -39,9 +54,11 @@ export default function WalletPage() {
   const [chainInfo,  setChainInfo]  = useState<ChainInfo | null>(null)
   const [words,      setWords]      = useState<string[]>(Array(12).fill(''))
   const [showWords,  setShowWords]  = useState(false)
+  const [showAddr,   setShowAddr]   = useState(false)   // address hidden by default
   const [busy,       setBusy]       = useState(false)
   const [saved,      setSaved]      = useState(false)
   const [querying,   setQuerying]   = useState(false)
+  const [taoPrice,   setTaoPrice]   = useState<number | null>(null)
 
   // Load cached wallet status — auto-refresh every 30 s (cached, not live chain)
   const loadStatus = useCallback(async () => {
@@ -53,6 +70,10 @@ export default function WalletPage() {
 
   useEffect(() => {
     loadStatus()
+    // Also grab current TAO price for USD portfolio estimate
+    api.get<{ price: number }>('/price/current')
+      .then(r => setTaoPrice(r.data.price ?? null))
+      .catch(() => {})
     const t = setInterval(loadStatus, 30_000)
     return () => clearInterval(t)
   }, [loadStatus])
@@ -114,10 +135,10 @@ export default function WalletPage() {
   const clearWords = () => { setWords(Array(12).fill('')); setSaved(false) }
 
   const isConnected   = chainInfo?.connected ?? false
-  const balance       = chainInfo?.balance_tao
+  const balance       = chainInfo?.balance_tao ?? 0
   const block         = chainInfo?.block
-  // Use restored wallet address when available; fall back to known target address
   const displayAddr   = chainInfo?.address || TARGET_ADDRESS
+  const usdValue      = taoPrice != null && balance ? balance * taoPrice : null
 
   return (
     <div className="p-6 space-y-5 max-w-3xl">
@@ -165,33 +186,45 @@ export default function WalletPage() {
         <span className="ml-auto text-slate-300">finney.opentensor.ai</span>
       </div>
 
-      {/* ── Known address ──────────────────────────────────────────────────── */}
+      {/* ── Coldkey address ────────────────────────────────────────────────── */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 space-y-3">
-        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-          <ShieldCheck size={15} className="text-accent-green" /> Target Wallet Address
-        </h2>
-        <AddrBox label="Coldkey (SS58)" addr={displayAddr} />
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+            <ShieldCheck size={15} className="text-accent-green" /> Coldkey Address
+          </h2>
+          <button
+            onClick={() => setShowAddr(v => !v)}
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-mono transition-colors"
+          >
+            {showAddr ? <EyeOff size={12} /> : <Eye size={12} />}
+            {showAddr ? 'Hide' : 'Reveal'}
+          </button>
+        </div>
+
+        <AddrBox label="Coldkey (SS58)" addr={displayAddr} show={showAddr} />
+
         <div className="grid grid-cols-3 gap-3 text-xs">
           <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-300 mb-0.5">Chain Balance</p>
-            <p className={clsx('font-mono font-bold', balance != null ? 'text-indigo-400' : 'text-slate-300')}>
-              {balance != null ? `τ${balance.toFixed(6)}` : querying ? 'Querying…' : '—'}
+            <p className="text-slate-400 mb-0.5">TAO Balance</p>
+            <p className={clsx('font-mono font-bold', balance ? 'text-indigo-400' : 'text-slate-500')}>
+              {querying ? 'Querying…' : balance ? `τ${balance.toFixed(4)}` : '—'}
             </p>
           </div>
           <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-300 mb-0.5">Block</p>
+            <p className="text-slate-400 mb-0.5">Block</p>
             <p className="text-white font-mono">
               {block ? `#${block.toLocaleString()}` : '—'}
             </p>
           </div>
           <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-300 mb-0.5">Chain Status</p>
+            <p className="text-slate-400 mb-0.5">Chain Status</p>
             <p className={clsx('font-mono font-semibold',
               isConnected ? 'text-emerald-400' : 'text-amber-400')}>
               {isConnected ? '⛓ Live' : '○ Cached'}
             </p>
           </div>
         </div>
+
         <a
           href={`https://taostats.io/account/${displayAddr}`}
           target="_blank" rel="noopener noreferrer"
@@ -201,25 +234,97 @@ export default function WalletPage() {
         </a>
       </div>
 
-      {/* ── Mnemonic restore ───────────────────────────────────────────────── */}
+      {/* ── Portfolio ───────────────────────────────────────────────────────── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 space-y-4">
+        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+          <PieChart size={15} className="text-accent-blue" /> Portfolio
+        </h2>
+
+        {/* Top-line value cards */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1">TAO Balance</p>
+            <p className={clsx('text-2xl font-black font-mono', balance ? 'text-white' : 'text-slate-600')}>
+              {balance ? `τ ${balance.toFixed(4)}` : 'τ —'}
+            </p>
+            <p className="text-xs text-slate-500 mt-1 font-mono">Free · unstaked</p>
+          </div>
+          <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1">Est. USD Value</p>
+            <p className={clsx('text-2xl font-black font-mono', usdValue != null ? 'text-emerald-400' : 'text-slate-600')}>
+              {usdValue != null ? `$${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$ —'}
+            </p>
+            <p className="text-xs text-slate-500 mt-1 font-mono">
+              {taoPrice ? `@ $${taoPrice.toFixed(2)} / TAO` : 'Price unavailable'}
+            </p>
+          </div>
+        </div>
+
+        {/* Staking positions — placeholder until chain connected */}
+        <div>
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Staking Positions</p>
+            <span className="text-[10px] text-slate-600 font-mono">Per-subnet αTAO</span>
+          </div>
+          {isConnected ? (
+            <div className="text-xs text-slate-500 font-mono px-3 py-4 bg-dark-700/60 rounded-lg border border-dark-600 text-center">
+              Subnet staking data loading… connect wallet to see αTAO per subnet
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {[
+                { name: 'SN 1 — Apex', amt: null },
+                { name: 'SN 3 — MyShell', amt: null },
+                { name: 'SN 18 — Cortex', amt: null },
+              ].map(({ name }) => (
+                <div key={name} className="flex items-center justify-between px-3 py-2 bg-dark-700/60 rounded-lg border border-dark-600/50">
+                  <div className="flex items-center gap-2">
+                    <Layers size={11} className="text-slate-600" />
+                    <span className="text-xs text-slate-500 font-mono">{name}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-mono">
+                    <Lock size={10} />
+                    Chain offline
+                  </div>
+                </div>
+              ))}
+              <p className="text-[10px] text-slate-600 font-mono text-center pt-1">
+                Query chain to load real staking positions
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ── Recovery Phrase ────────────────────────────────────────────────── */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-1">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <KeyRound size={15} className="text-accent-blue" /> Mnemonic Phrase Restore
+            <KeyRound size={15} className="text-accent-blue" /> Recovery Phrase
           </h2>
           <button
             onClick={() => setShowWords(!showWords)}
-            className="flex items-center gap-1 text-xs text-slate-300 hover:text-white font-mono"
+            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-mono transition-colors"
           >
             {showWords ? <EyeOff size={12} /> : <Eye size={12} />}
-            {showWords ? 'Hide' : 'Show'}
+            {showWords ? 'Hide' : 'Reveal'}
           </button>
         </div>
-
-        <p className="text-xs text-slate-300 mb-4">
-          Enter your 12-word BIP39 mnemonic. You can paste the full phrase into any word box.
-          Words are stored encrypted and only used locally.
+        <p className="text-xs text-slate-500 mb-4">
+          Manage and backup your recovery phrase. Enter your 12-word BIP39 phrase below —
+          paste the full phrase into the first box or type word by word.
+          Stored encrypted, used locally only.
         </p>
+
+        {/* Backup reminder */}
+        <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-500/8 border border-amber-500/20 rounded-lg mb-4">
+          <AlertTriangle size={12} className="text-amber-400 flex-shrink-0 mt-0.5" />
+          <p className="text-[11px] text-amber-400/80 leading-snug">
+            <span className="font-semibold text-amber-400">Never share your recovery phrase.</span>{' '}
+            Anyone with these 12 words has full access to your wallet and all funds.
+            Store them offline in a secure location.
+          </p>
+        </div>
 
         {/* 12-word grid */}
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
