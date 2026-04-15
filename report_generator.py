@@ -961,6 +961,172 @@ def section_agent_fleet():
     ]
 
 
+# ─── Section: Analytics Page Walkthrough ─────────────────────────────────────
+
+def section_analytics():
+    return [
+        *section_header("Analytics — Page Walkthrough",
+                        "Performance intelligence at a glance — every metric, every strategy, every trade"),
+
+        body(
+            "The Analytics page is the performance observatory of the entire fleet. "
+            "Every color, every number, and every chart is connected — the same semantic "
+            "color language used across the whole app (emerald = healthy/positive, "
+            "red = loss/risk, blue = information, purple = rolling intelligence) means "
+            "you can read the page before you've consciously processed a single digit. "
+            "It is designed for observing, not acting — a place to sit with the data."
+        ),
+
+        spacer(8),
+        h2("Page Layout — Top to Bottom"),
+        data_table(
+            ["Zone", "Content"],
+            [
+                ["Header",               "Title · trade count · strategy count · time-range filter (1H/6H/24H/7D/ALL) · Refresh"],
+                ["KPI row",              "4 cards: Total PnL · Win Rate · Best Trade · Worst Trade"],
+                ["Chart panel",          "3-tab switcher: Equity Curve · Drawdown · Rolling Win Rate"],
+                ["Strategy leaderboard", "Sortable 9-column table · 12 strategies · 🥇🥈🥉 medals"],
+                ["PnL distribution",     "Bar chart — all 12 strategies side by side, colour-coded by sign"],
+            ],
+            col_widths=[1.8*inch, 4.6*inch]
+        ),
+
+        spacer(12),
+        h2("KPI Cards — The Four Numbers That Matter"),
+        data_table(
+            ["Card", "Colour logic", "What it tells you"],
+            [
+                ["Total PnL",   "Emerald ≥ 0 · Red < 0",    "Fleet-wide cumulative profit/loss in τ across all trades"],
+                ["Win Rate",    "Emerald ≥ 55% · Yellow otherwise", "Percentage of all trades that closed profitable"],
+                ["Best Trade",  "Always emerald",            "The single highest-PnL trade ever executed"],
+                ["Worst Trade", "Always red",                "The single largest loss — your floor, your reference point"],
+            ],
+            col_widths=[1.2*inch, 1.8*inch, 3.4*inch]
+        ),
+        spacer(4),
+        callout_box(
+            "At session time: Total PnL +1.5969 τ · Win Rate 64.1% · 2,001 total trades across 12 strategies. "
+            "The fleet is solidly profitable and above the 55% gate threshold fleet-wide.",
+            GREEN
+        ),
+
+        spacer(12),
+        h2("The Three Charts"),
+
+        h3("Equity Curve"),
+        body(
+            "Two overlaid area series on the same canvas. The green area is cumulative PnL — "
+            "the running total of every trade since the system started. The blue area is "
+            "per-trade PnL — each individual trade's profit or loss. The gradient fills "
+            "fade to near-transparent at the bottom, keeping both series readable without "
+            "one obscuring the other. A dashed zero reference line anchors the chart."
+        ),
+        bullet("Custom tooltip: shows both cumulative and per-trade PnL at any hover point"),
+        bullet("Data thinning: shows every Nth point when > 200 trades — stays fast as history grows"),
+        bullet("Time range filter applies: select 1H to zoom into the last hour of trading"),
+
+        spacer(8),
+        h3("Drawdown"),
+        body(
+            "Two series on the same canvas: equity (green) and drawdown from peak (red fill, "
+            "always ≤ 0). The drawdown is computed by comparing the current running PnL to "
+            "the highest point it has ever reached. If equity is at a new all-time high, "
+            "drawdown is zero. Every dip below the peak is shown as a red fill. "
+            "Bucketed by hour — one point per hour rather than one per trade."
+        ),
+        bullet("Tells you: how bad did it get, how quickly did it recover"),
+        bullet("Y-axis guarded: always shows below zero even with minimal drawdown"),
+
+        spacer(8),
+        h3("Rolling Win Rate"),
+        body(
+            "A single purple line showing the win rate computed over the last N trades "
+            "at each point in time. Two reference lines provide instant context:"
+        ),
+        data_table(
+            ["Reference line", "Colour", "Meaning"],
+            [
+                ["55% Gate threshold", "Emerald dashed", "Win rate must stay above this for gate promotion"],
+                ["50% Break-even",     "Yellow dashed",  "Below this the bot is losing more than it wins"],
+            ],
+            col_widths=[2.0*inch, 1.3*inch, 3.1*inch]
+        ),
+        spacer(4),
+        body(
+            "Window toggle: 10 / 20 / 50 trades. 10 is sensitive and noisy — shows "
+            "short-term momentum shifts. 50 is smooth — shows the structural trend. "
+            "The toggle appears in the top-right of the chart panel when this tab is active "
+            "and re-fetches live data with the new window size."
+        ),
+
+        spacer(12),
+        h2("Strategy Performance Leaderboard"),
+        body(
+            "A full sortable table of all 12 strategies, defaulting to sort by Total PnL descending. "
+            "Five columns are sortable by clicking the header: Trades, Win Rate, Total PnL, Best, Worst. "
+            "The top three rows get medal icons (🥇 🥈 🥉) as a visual anchor."
+        ),
+        data_table(
+            ["Column",      "What it shows"],
+            [
+                ["#",           "Current leaderboard rank"],
+                ["Strategy",    "Display name + internal key + medal if top 3"],
+                ["Trades",      "Total trade count for this strategy"],
+                ["Win Rate",    "Colour-coded badge: green ≥ 70% · blue ≥ 55% · yellow ≥ 40% · red < 40%"],
+                ["W / L",       "Win count (emerald) / Loss count (red)"],
+                ["Total PnL",   "Net profit/loss in τ across all trades"],
+                ["Avg PnL",     "Average profit/loss per trade"],
+                ["Best",        "Single highest-PnL trade (emerald)"],
+                ["Worst",       "Single largest loss (red)"],
+            ],
+            col_widths=[1.2*inch, 5.2*inch]
+        ),
+        spacer(4),
+        callout_box(
+            "Live leaderboard at session time: Momentum Cascade leads on Total PnL (+0.4056 τ, 287 trades). "
+            "dTAO Flow Momentum has the highest win rate on the fleet at 87.0% across 92 trades — "
+            "ranked #4 by PnL only because it has fewer trades. Sorting by Win Rate puts it #1 instantly.",
+            BLUE
+        ),
+
+        spacer(12),
+        h2("Strategy PnL Distribution Bar Chart"),
+        body(
+            "All 12 strategies shown as bars sorted by PnL descending. "
+            "Emerald bars = positive PnL. Red bars = negative PnL. "
+            "This is the fastest way to see the spread: who's pulling weight, "
+            "who's a drag. X-axis labels are angled at −30° to fit all 12 names cleanly."
+        ),
+
+        spacer(12),
+        h2("What Was Fixed / Added This Session"),
+        data_table(
+            ["Change", "Detail"],
+            [
+                ["API client migration",  "Removed 5 raw fetch() calls + const API=''. Now uses unified api client (axios wrapper) — consistent with every other page"],
+                ["Resilient loading",     "Promise.all → Promise.allSettled. Any one endpoint failure shows a yellow partial-data banner; the other 4 charts still render"],
+                ["Time-range filter",     "1H / 6H / 24H / 7D / ALL buttons in the header. Passes ?hours=N to summary, equity, drawdown, and rolling-winrate endpoints"],
+                ["Win rate window toggle","10 / 20 / 50 trade window selector — appears in chart panel when Rolling Win Rate tab is active. Re-fetches live."],
+                ["PnL legend fix",        "Bar chart legend previously only listed 'Positive'. Added the missing 'Negative' red entry"],
+                ["Backend hours param",   "Added hours: int = 0 to /summary, /equity, /drawdown, /rolling-winrate — filters to created_at >= now - N hours when hours > 0"],
+            ],
+            col_widths=[1.8*inch, 4.6*inch]
+        ),
+
+        spacer(8),
+        callout_box(
+            "The Analytics page is the performance mirror of the fleet. "
+            "It doesn't control anything — it reveals everything. "
+            "The color language does the reading for you: you see green and know the fleet is "
+            "healthy before your brain registers the numbers. That's the design working. "
+            "This is a page for sitting with, observing, and understanding your system over time.",
+            PURPLE
+        ),
+
+        PageBreak(),
+    ]
+
+
 # ─── Section 6: Core Services (renumbered) ───────────────────────────────────
 
 def section_services():
@@ -1410,6 +1576,7 @@ def build():
     story += section_dashboard()
     story += section_fleet()
     story += section_agent_fleet()
+    story += section_analytics()
     story += section_openclaw()
     story += section_alerts()
     story += section_services()
