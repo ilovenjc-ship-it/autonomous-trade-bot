@@ -144,10 +144,10 @@ export default function Layout() {
         {/* II Agent Orb — toggle chat panel */}
         <div className="px-4 py-5 border-t border-dark-600 flex flex-col items-center gap-3 relative">
 
-          {/* ── Floating chat panel (slides up from orb when orbOpen) ── */}
+          {/* ── Floating chat panel — fixed, right of sidebar ── */}
           {orbOpen && (
-            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-[300px] z-50
-              bg-[#0d1526] border border-emerald-500/25 rounded-xl shadow-[0_0_40px_rgba(52,211,153,0.12)]
+            <div className="fixed bottom-6 left-[232px] w-[300px] z-50
+              bg-[#0d1526] border border-emerald-500/25 rounded-xl shadow-[0_0_40px_rgba(52,211,153,0.15)]
               flex flex-col overflow-hidden"
               style={{ height: 360 }}>
 
@@ -237,7 +237,7 @@ export default function Layout() {
           <button
             onClick={() => setOrbOpen(o => !o)}
             title={orbOpen ? 'Close II Agent' : 'Open II Agent chat'}
-            className="relative w-20 h-20 group focus:outline-none"
+            className="relative w-20 h-20 group focus:outline-none cursor-pointer"
           >
             {/* Active: strong outer pulse rings */}
             {orbOpen && (
@@ -284,13 +284,18 @@ export default function Layout() {
           </button>
 
           {/* Label */}
-          <div className="text-center">
-            <div className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase leading-none">II Agent</div>
+          <div className="text-center group/label cursor-pointer" onClick={() => setOrbOpen(o => !o)}>
+            <div className="text-[15px] font-extrabold tracking-widest text-emerald-400 uppercase leading-none drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]">
+              II Agent
+            </div>
+            {/* Subtext — always visible when active, hover-reveal when idle */}
             <div className={clsx(
-              'text-[8px] mt-0.5 font-mono transition-colors duration-300',
-              orbOpen ? 'text-emerald-400 animate-pulse' : 'text-slate-500'
+              'text-[9px] mt-1 font-mono transition-all duration-200',
+              orbOpen
+                ? 'text-emerald-400 animate-pulse opacity-100'
+                : 'text-slate-500 opacity-0 group-hover/label:opacity-100 group-hover/label:text-emerald-400/70'
             )}>
-              {listening ? '● listening…' : orbOpen ? '● active' : 'tap to chat'}
+              {listening ? '● listening…' : orbOpen ? '● active' : '▸ tap to chat'}
             </div>
           </div>
         </div>
