@@ -79,13 +79,18 @@ async def strategy_comparison(db: AsyncSession = Depends(get_db)):
 # ── Equity curve ─────────────────────────────────────────────────────────────
 
 @router.get("/equity")
-async def equity_curve(db: AsyncSession = Depends(get_db)):
-    """Cumulative PnL over time — one point per trade ordered by time."""
+async def equity_curve(hours: int = 0, db: AsyncSession = Depends(get_db)):
+    """Cumulative PnL over time — one point per trade ordered by time.
+    hours=0 means all time; hours>0 limits to last N hours."""
+    where = "WHERE pnl IS NOT NULL"
+    if hours > 0:
+        cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+        where += f" AND created_at >= '{cutoff}'"
     result = await db.execute(
-        text("""
+        text(f"""
             SELECT created_at, pnl, strategy
             FROM trades
-            WHERE pnl IS NOT NULL
+            {where}
             ORDER BY created_at ASC
         """)
     )
@@ -107,16 +112,21 @@ async def equity_curve(db: AsyncSession = Depends(get_db)):
 # ── Drawdown series ───────────────────────────────────────────────────────────
 
 @router.get("/drawdown")
-async def drawdown_series(db: AsyncSession = Depends(get_db)):
+async def drawdown_series(hours: int = 0, db: AsyncSession = Depends(get_db)):
     """
     Returns hourly buckets with max drawdown depth (most negative PnL swing from
     running peak) and total PnL for each bucket.
+    hours=0 means all time; hours>0 limits to last N hours.
     """
+    where = "WHERE pnl IS NOT NULL"
+    if hours > 0:
+        cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+        where += f" AND created_at >= '{cutoff}'"
     result = await db.execute(
-        text("""
+        text(f"""
             SELECT created_at, pnl
             FROM trades
-            WHERE pnl IS NOT NULL
+            {where}
             ORDER BY created_at ASC
         """)
     )
@@ -149,13 +159,18 @@ async def drawdown_series(db: AsyncSession = Depends(get_db)):
 # ── Rolling win rate (last N trades window) ───────────────────────────────────
 
 @router.get("/rolling-winrate")
-async def rolling_winrate(window: int = 20, db: AsyncSession = Depends(get_db)):
-    """Rolling win rate over the last `window` trades at each point."""
+async def rolling_winrate(window: int = 20, hours: int = 0, db: AsyncSession = Depends(get_db)):
+    """Rolling win rate over the last `window` trades at each point.
+    hours=0 means all time; hours>0 limits to last N hours."""
+    where = "WHERE pnl IS NOT NULL"
+    if hours > 0:
+        cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+        where += f" AND created_at >= '{cutoff}'"
     result = await db.execute(
-        text("""
+        text(f"""
             SELECT created_at, pnl
             FROM trades
-            WHERE pnl IS NOT NULL
+            {where}
             ORDER BY created_at ASC
         """)
     )
@@ -270,10 +285,15 @@ async def strategy_detail(name: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/summary")
-async def analytics_summary(db: AsyncSession = Depends(get_db)):
-    """Top-level KPIs for the analytics header bar."""
+async def analytics_summary(hours: int = 0, db: AsyncSession = Depends(get_db)):
+    """Top-level KPIs for the analytics header bar.
+    hours=0 means all time; hours>0 limits to last N hours."""
+    where = ""
+    if hours > 0:
+        cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
+        where = f"WHERE created_at >= '{cutoff}'"
     result = await db.execute(
-        text("""
+        text(f"""
             SELECT
                 COUNT(*)                                     AS total_trades,
                 SUM(pnl)                                     AS total_pnl,
@@ -283,6 +303,7 @@ async def analytics_summary(db: AsyncSession = Depends(get_db)):
                 MIN(pnl)                                     AS worst,
                 COUNT(DISTINCT strategy)                     AS active_strategies
             FROM trades
+            {where}
         """)
     )
     r = result.fetchone()

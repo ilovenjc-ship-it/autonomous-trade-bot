@@ -5,11 +5,10 @@ import {
 } from 'recharts'
 import {
   TrendingUp, TrendingDown, Activity, BarChart2,
-  Award, AlertTriangle, RefreshCw, ChevronUp, ChevronDown,
+  Award, RefreshCw, ChevronUp, ChevronDown, Clock,
 } from 'lucide-react'
 import clsx from 'clsx'
-
-const API = ''   // relative URLs proxied by Vite → FastAPI on :8001
+import api from '@/api/client'
 
 // ── colours ───────────────────────────────────────────────────────────────────
 const C_GREEN  = '#00ff88'
@@ -109,7 +108,13 @@ function DrawdownTooltip({ active, payload, label }: any) {
 }
 
 // ── sort types ────────────────────────────────────────────────────────────────
-type SortKey = 'total_pnl' | 'win_rate' | 'total_trades' | 'best_trade' | 'worst_trade'
+type SortKey    = 'total_pnl' | 'win_rate' | 'total_trades' | 'best_trade' | 'worst_trade'
+type TimeRange  = '1h' | '6h' | '24h' | '7d' | 'all'
+type WrWindow   = 10 | 20 | 50
+
+const TIME_RANGE_HOURS: Record<TimeRange, number> = {
+  '1h': 1, '6h': 6, '24h': 24, '7d': 168, 'all': 0,
+}
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default function Analytics() {
@@ -119,32 +124,58 @@ export default function Analytics() {
   const [drawdown,   setDrawdown]   = useState<DrawdownPoint[]>([])
   const [winRate,    setWinRate]    = useState<WinRatePoint[]>([])
   const [loading,    setLoading]    = useState(true)
+  const [fetchErrors, setFetchErrors] = useState<string[]>([])
   const [sortKey,    setSortKey]    = useState<SortKey>('total_pnl')
   const [sortAsc,    setSortAsc]    = useState(false)
   const [activeChart, setActiveChart] = useState<'equity' | 'drawdown' | 'winrate'>('equity')
+  const [timeRange,  setTimeRange]  = useState<TimeRange>('all')
+  const [wrWindow,   setWrWindow]   = useState<WrWindow>(20)
 
-  const load = useCallback(async () => {
-    try {
-      const [sumRes, stratRes, eqRes, ddRes, wrRes] = await Promise.all([
-        fetch(`${API}/api/analytics/summary`),
-        fetch(`${API}/api/analytics/strategies`),
-        fetch(`${API}/api/analytics/equity`),
-        fetch(`${API}/api/analytics/drawdown`),
-        fetch(`${API}/api/analytics/rolling-winrate?window=20`),
-      ])
-      setSummary(await sumRes.json())
-      setStrategies(await stratRes.json())
-      setEquity(await eqRes.json())
-      setDrawdown(await ddRes.json())
-      setWinRate(await wrRes.json())
-    } catch (e) {
-      console.error('Analytics fetch error', e)
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const load = useCallback(async (range: TimeRange = timeRange, window: WrWindow = wrWindow) => {
+    setLoading(true)
+    setFetchErrors([])
+    const h = TIME_RANGE_HOURS[range]
+    const hoursParam = h > 0 ? `?hours=${h}` : ''
+
+    const results = await Promise.allSettled([
+      api.get(`/analytics/summary${hoursParam}`),
+      api.get('/analytics/strategies'),
+      api.get(`/analytics/equity${hoursParam}`),
+      api.get(`/analytics/drawdown${hoursParam}`),
+      api.get(`/analytics/rolling-winrate?window=${window}${h > 0 ? `&hours=${h}` : ''}`),
+    ])
+
+    const errors: string[] = []
+
+    if (results[0].status === 'fulfilled') setSummary(results[0].value.data)
+    else errors.push('Summary')
+
+    if (results[1].status === 'fulfilled') setStrategies(results[1].value.data)
+    else errors.push('Strategies')
+
+    if (results[2].status === 'fulfilled') setEquity(results[2].value.data)
+    else errors.push('Equity curve')
+
+    if (results[3].status === 'fulfilled') setDrawdown(results[3].value.data)
+    else errors.push('Drawdown')
+
+    if (results[4].status === 'fulfilled') setWinRate(results[4].value.data)
+    else errors.push('Rolling win rate')
+
+    if (errors.length) setFetchErrors(errors)
+    setLoading(false)
+  }, [timeRange, wrWindow])
 
   useEffect(() => { load() }, [load])
+
+  function handleTimeRange(r: TimeRange) {
+    setTimeRange(r)
+    load(r, wrWindow)
+  }
+  function handleWrWindow(w: WrWindow) {
+    setWrWindow(w)
+    load(timeRange, w)
+  }
 
   // sort strategies
   const sorted = [...strategies].sort((a, b) => {
@@ -197,13 +228,40 @@ export default function Analytics() {
             {summary?.total_trades ?? 0} trades across {summary?.active_strategies ?? 0} strategies
           </p>
         </div>
-        <button
-          onClick={load}
-          className="flex items-center gap-2 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white hover:border-accent-blue transition-colors font-mono"
-        >
-          <RefreshCw size={12} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Time range selector */}
+          <div className="flex items-center gap-1 bg-dark-800 border border-dark-600 rounded-lg p-1">
+            <Clock size={11} className="text-slate-400 ml-1" />
+            {(['1h', '6h', '24h', '7d', 'all'] as TimeRange[]).map(r => (
+              <button key={r}
+                onClick={() => handleTimeRange(r)}
+                className={clsx(
+                  'px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-colors',
+                  timeRange === r
+                    ? 'bg-accent-blue/20 text-accent-blue'
+                    : 'text-slate-400 hover:text-slate-200'
+                )}>
+                {r.toUpperCase()}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => load()}
+            className="flex items-center gap-2 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white hover:border-accent-blue transition-colors font-mono"
+          >
+            <RefreshCw size={12} /> Refresh
+          </button>
+        </div>
       </div>
+
+      {/* ── Fetch error banner ──────────────────────────────────────────────── */}
+      {fetchErrors.length > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/30 rounded-lg text-xs font-mono text-yellow-400">
+          <span className="font-bold">⚠ Partial data</span>
+          <span className="text-yellow-500/70">—</span>
+          <span className="text-yellow-300/80">Failed to load: {fetchErrors.join(', ')}</span>
+        </div>
+      )}
 
       {/* ── KPI row ────────────────────────────────────────────────────────── */}
       {summary && (
@@ -235,26 +293,46 @@ export default function Analytics() {
 
       {/* ── Chart area ─────────────────────────────────────────────────────── */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-        {/* Tab selector */}
-        <div className="flex items-center gap-2 mb-5">
-          {[
-            { key: 'equity',   icon: TrendingUp,   label: 'Equity Curve' },
-            { key: 'drawdown', icon: TrendingDown,  label: 'Drawdown' },
-            { key: 'winrate',  icon: Activity,      label: 'Rolling Win Rate' },
-          ].map(({ key, icon: Icon, label }) => (
-            <button
-              key={key}
-              onClick={() => setActiveChart(key as any)}
-              className={clsx(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors',
-                activeChart === key
-                  ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
-                  : 'text-slate-300 hover:text-white border border-transparent'
-              )}
-            >
-              <Icon size={12} /> {label}
-            </button>
-          ))}
+        {/* Tab selector + win rate window toggle */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2">
+            {[
+              { key: 'equity',   icon: TrendingUp,   label: 'Equity Curve' },
+              { key: 'drawdown', icon: TrendingDown,  label: 'Drawdown' },
+              { key: 'winrate',  icon: Activity,      label: 'Rolling Win Rate' },
+            ].map(({ key, icon: Icon, label }) => (
+              <button
+                key={key}
+                onClick={() => setActiveChart(key as any)}
+                className={clsx(
+                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors',
+                  activeChart === key
+                    ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
+                    : 'text-slate-300 hover:text-white border border-transparent'
+                )}
+              >
+                <Icon size={12} /> {label}
+              </button>
+            ))}
+          </div>
+          {/* Win rate window toggle — only relevant on winrate tab */}
+          {activeChart === 'winrate' && (
+            <div className="flex items-center gap-1 bg-dark-700 border border-dark-600 rounded-lg p-0.5">
+              <span className="text-[9px] text-slate-500 font-mono px-1.5">window</span>
+              {([10, 20, 50] as WrWindow[]).map(w => (
+                <button key={w}
+                  onClick={() => handleWrWindow(w)}
+                  className={clsx(
+                    'px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-colors',
+                    wrWindow === w
+                      ? 'bg-purple-500/20 text-purple-400'
+                      : 'text-slate-400 hover:text-slate-200'
+                  )}>
+                  {w}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* ── Equity Curve ─────────────────────────────────────────────────── */}
@@ -321,7 +399,7 @@ export default function Analytics() {
         {activeChart === 'winrate' && (
           <div>
             <p className="text-xs text-slate-300 font-mono mb-3 uppercase tracking-widest">
-              Rolling 20-trade win rate
+              Rolling {wrWindow}-trade win rate
             </p>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={wrThin} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
@@ -482,6 +560,7 @@ export default function Analytics() {
         </ResponsiveContainer>
         <div className="flex gap-4 mt-2 justify-end text-xs font-mono text-slate-300">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-accent-green inline-block" /> Positive</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
         </div>
       </div>
 
