@@ -52,13 +52,30 @@ const TYPE_CFG: Record<string, { label: string; icon: typeof Bell }> = {
   SYSTEM:              { label: 'System',            icon: Cpu           },
 }
 
-function timeSince(iso: string): string {
+function timeSince(iso: string | null | undefined): string {
+  if (!iso) return '—'
   const diff = Date.now() - new Date(iso).getTime()
+  if (isNaN(diff)) return '—'
   const s = Math.floor(diff / 1000)
   if (s < 60)  return `${s}s ago`
   const m = Math.floor(s / 60)
   if (m < 60)  return `${m}m ago`
   return `${Math.floor(m / 60)}h ago`
+}
+
+function toET(iso: string | null | undefined): string {
+  if (!iso) return '—'
+  try {
+    return new Date(iso).toLocaleTimeString('en-US', {
+      timeZone: 'America/New_York',
+      hour:     '2-digit',
+      minute:   '2-digit',
+      second:   '2-digit',
+      hour12:   false,
+    }) + ' ET'
+  } catch {
+    return '—'
+  }
 }
 
 // ── AlertRow ──────────────────────────────────────────────────────────────────
@@ -107,7 +124,10 @@ function AlertRow({ alert, onMarkRead }: { alert: Alert; onMarkRead: (id: number
             </span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-[11px] text-slate-300 font-mono">{timeSince(alert.timestamp)}</span>
+            <div className="text-right">
+              <p className="text-[11px] text-slate-300 font-mono">{toET(alert.timestamp)}</p>
+              <p className="text-[10px] text-slate-500 font-mono">{timeSince(alert.timestamp)}</p>
+            </div>
             {!alert.read && (
               <button
                 onClick={() => onMarkRead(alert.id)}
