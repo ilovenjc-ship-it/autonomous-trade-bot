@@ -280,8 +280,16 @@ export default function MissionControl() {
       {/* ══ TOP SECTION: left info panel + right strips (h = 2 × 162px) ══ */}
       <div className="flex flex-shrink-0 h-[324px] border-b border-slate-800/60">
 
-        {/* Left panel: Clock → Market Intel → System → Lock Guard */}
+        {/* Left panel: Lock Guard → Clock → Market Intel → System */}
         <div className="w-56 flex-shrink-0 border-r border-slate-800/60 flex flex-col overflow-hidden">
+
+          {/* Lock guard — top of column */}
+          <div className="flex-shrink-0 border-b border-yellow-500/20 px-3 py-2 bg-yellow-500/5">
+            <div className="flex items-center gap-2">
+              <Lock size={10} className="text-yellow-400 flex-shrink-0" />
+              <span className="text-[9px] text-yellow-400/90 leading-tight font-mono tracking-wide">Gate enforced — paper required</span>
+            </div>
+          </div>
 
           {/* Clock + Next Cycle */}
           <div className="flex-shrink-0 border-b border-slate-800/50 px-4 py-3 bg-slate-900/50">
@@ -349,13 +357,7 @@ export default function MissionControl() {
             </div>
           </div>
 
-          {/* Lock guard — fills remaining height */}
-          <div className="flex-1 flex items-end px-3 pb-3">
-            <div className="flex items-center gap-2 bg-yellow-500/5 border border-yellow-500/20 rounded-lg px-2.5 py-1.5 w-full">
-              <Lock size={10} className="text-yellow-400 flex-shrink-0" />
-              <span className="text-[9px] text-yellow-400/90 leading-tight">Gate enforced — paper required</span>
-            </div>
-          </div>
+          
 
         </div>{/* end left panel */}
 
