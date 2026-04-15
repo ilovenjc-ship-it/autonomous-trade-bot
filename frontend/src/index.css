@@ -88,3 +88,10 @@
   50%       { opacity: 0.3; }
 }
 .run-pulse { animation: runPulse 1.5s ease-in-out infinite; }
+
+/* Pipeline flow arrows */
+@keyframes flowPulse {
+  0%        { opacity: 0.3; transform: translateX(-3px); }
+  50%       { opacity: 1;   transform: translateX(3px);  }
+  100%      { opacity: 0.3; transform: translateX(-3px); }
+}

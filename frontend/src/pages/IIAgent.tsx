@@ -256,20 +256,24 @@ export default function IIAgent() {
   const [analyzing,   setAnalyzing]   = useState(false)
   const [lastRefresh, setLastRefresh] = useState(new Date())
   const [flash,       setFlash]       = useState(false)
+  const [cStats,      setCStats]      = useState<{total_rounds:number,approved_rounds:number,approval_rate_pct:number}|null>(null)
 
   const load = useCallback(async () => {
     try {
-      const [statusRes, obsRes, recsRes] = await Promise.all([
+      const [statusRes, obsRes, recsRes, cStatsRes] = await Promise.all([
         fetch('/api/agent/status'),
         fetch('/api/agent/observations?limit=40'),
         fetch('/api/agent/recommendations'),
+        fetch('/api/consensus/stats'),
       ])
-      const s = await statusRes.json()
-      const o = await obsRes.json()
-      const r = await recsRes.json()
+      const s  = await statusRes.json()
+      const o  = await obsRes.json()
+      const r  = await recsRes.json()
+      const cs = await cStatsRes.json()
       setStatus(s)
-      if (o.observations) setObservations(o.observations)
+      if (o.observations)    setObservations(o.observations)
       if (r.recommendations) setRecs(r.recommendations)
+      if (cs.total_rounds != null) setCStats(cs)
       setLastRefresh(new Date())
     } catch (e) {
       console.error('II Agent load error', e)
@@ -476,29 +480,155 @@ export default function IIAgent() {
         </div>
       </div>
 
-      {/* ── Agent Architecture ── */}
-      <div className="bg-dark-800/60 border border-dark-700 rounded-xl p-4">
-        <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">Orchestration Architecture</p>
-        <div className="flex flex-wrap items-center gap-2 text-xs font-mono">
-          {[
-            { label: '🧠 II Agent', sub: 'orchestrator', color: 'text-indigo-400', bg: 'bg-indigo-500/10 border-indigo-500/30' },
-            { label: '→', sub: '', color: 'text-slate-300', bg: '' },
-            { label: '⚡ OpenClaw', sub: 'BFT consensus', color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/30' },
-            { label: '→', sub: '', color: 'text-slate-300', bg: '' },
-            { label: '🤖 12 Bots', sub: 'strategy fleet', color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30' },
-            { label: '→', sub: '', color: 'text-slate-300', bg: '' },
-            { label: '📈 Trades', sub: 'TAO execution', color: 'text-sky-400', bg: 'bg-sky-500/10 border-sky-500/30' },
-          ].map((item, i) => item.bg ? (
-            <div key={i} className={clsx('px-3 py-1.5 rounded-lg border', item.bg)}>
-              <p className={item.color}>{item.label}</p>
-              {item.sub && <p className="text-slate-300 text-[9px]">{item.sub}</p>}
-            </div>
-          ) : (
-            <ChevronRight key={i} size={14} className={item.color} />
-          ))}
-          <div className="ml-auto text-slate-300 text-[10px]">
-            Analysis interval: 300s · Consensus threshold: 7/12 · Gate: 55% WR
+      {/* ── Orchestration Architecture Banner ── */}
+      <div className="relative rounded-2xl border border-dark-600 overflow-hidden"
+           style={{ background: 'linear-gradient(135deg, #0d1525 0%, #152030 50%, #0d1525 100%)' }}>
+
+        {/* Subtle top glow strip */}
+        <div className="absolute top-0 left-0 right-0 h-px"
+             style={{ background: 'linear-gradient(90deg, #6366f1, #8b5cf6, #10b981, #0ea5e9)' }} />
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 pt-5 pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-5 rounded-full bg-indigo-400" />
+            <p className="text-xs text-slate-300 uppercase tracking-[0.2em] font-mono font-semibold">
+              How It All Connects
+            </p>
           </div>
+          <p className="text-[10px] font-mono text-slate-400">
+            Hover each tier to learn more
+          </p>
+        </div>
+
+        {/* Pipeline nodes */}
+        <div className="flex flex-col md:flex-row items-stretch gap-0 px-6 pb-5">
+
+          {/* Node 1 — II Agent */}
+          <div className="group relative flex-1 rounded-xl border border-indigo-500/30 bg-indigo-500/8 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-indigo-400/60 hover:bg-indigo-500/15 hover:shadow-lg hover:shadow-indigo-500/10">
+            {/* Default view */}
+            <div className="transition-opacity duration-300 group-hover:opacity-0">
+              <p className="text-lg mb-1">🧠</p>
+              <p className="text-sm font-bold text-indigo-400 font-mono">II Agent</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Master Orchestrator</p>
+              <p className="text-xs font-mono font-semibold text-slate-200">
+                {status?.analysis_count ?? 0} analyses run
+              </p>
+              <p className="text-[10px] text-slate-400 font-mono">
+                {status?.observation_count ?? 0} observations logged
+              </p>
+            </div>
+            {/* Hover description */}
+            <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
+              <p className="text-xs font-bold text-indigo-300 mb-2">🧠 II Agent — Master Orchestrator</p>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Runs every 5 minutes. Analyses all 12 bots, detects market regime (BULL / BEAR / SIDEWAYS / VOLATILE),
+                generates directives, and fires alerts when conditions change. The brain that watches everything.
+              </p>
+            </div>
+          </div>
+
+          {/* Arrow 1 */}
+          <div className="flex items-center justify-center px-2 py-2 md:py-0">
+            <div className="flex gap-0.5" style={{ animation: 'flowPulse 1.8s ease-in-out infinite' }}>
+              <ChevronRight size={16} className="text-indigo-400/60" />
+              <ChevronRight size={16} className="text-purple-400/60 -ml-2" />
+            </div>
+          </div>
+
+          {/* Node 2 — OpenClaw */}
+          <div className="group relative flex-1 rounded-xl border border-purple-500/30 bg-purple-500/8 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-purple-400/60 hover:bg-purple-500/15 hover:shadow-lg hover:shadow-purple-500/10">
+            <div className="transition-opacity duration-300 group-hover:opacity-0">
+              <p className="text-lg mb-1">⚡</p>
+              <p className="text-sm font-bold text-purple-400 font-mono">OpenClaw</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">BFT Consensus</p>
+              <p className="text-xs font-mono font-semibold text-slate-200">
+                {cStats?.total_rounds ?? 0} rounds · {cStats?.approval_rate_pct?.toFixed(1) ?? 0}% approved
+              </p>
+              <p className="text-[10px] text-slate-400 font-mono">7 of 12 supermajority required</p>
+            </div>
+            <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
+              <p className="text-xs font-bold text-purple-300 mb-2">⚡ OpenClaw — BFT Consensus Engine</p>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Every LIVE trade must pass a 7-of-12 supermajority vote before executing.
+                12 bot personalities vote BUY / SELL / HOLD based on their own signal weights.
+                No consensus = no trade. No exceptions.
+              </p>
+            </div>
+          </div>
+
+          {/* Arrow 2 */}
+          <div className="flex items-center justify-center px-2 py-2 md:py-0">
+            <div className="flex gap-0.5" style={{ animation: 'flowPulse 1.8s ease-in-out infinite 0.3s' }}>
+              <ChevronRight size={16} className="text-purple-400/60" />
+              <ChevronRight size={16} className="text-emerald-400/60 -ml-2" />
+            </div>
+          </div>
+
+          {/* Node 3 — 12 Bots */}
+          <div className="group relative flex-1 rounded-xl border border-emerald-500/30 bg-emerald-500/8 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-emerald-400/60 hover:bg-emerald-500/15 hover:shadow-lg hover:shadow-emerald-500/10">
+            <div className="transition-opacity duration-300 group-hover:opacity-0">
+              <p className="text-lg mb-1">🤖</p>
+              <p className="text-sm font-bold text-emerald-400 font-mono">12 Bots</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Strategy Fleet</p>
+              <p className="text-xs font-mono font-semibold text-slate-200">
+                {Object.values(status?.fleet_health ?? {}).filter(h => h === 'LIVE' || h === 'HOT' || h === 'HEALTHY').length} active · {Object.values(status?.fleet_health ?? {}).filter(h => h === 'STRUGGLING').length} struggling
+              </p>
+              <p className="text-[10px] text-slate-400 font-mono">cycling every 60 seconds</p>
+            </div>
+            <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
+              <p className="text-xs font-bold text-emerald-300 mb-2">🤖 12 Bots — Strategy Fleet</p>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                12 strategies run autonomously every 60 seconds. Each starts in PAPER mode and earns
+                promotion through performance — 55%+ win rate unlocks APPROVED, 65%+ unlocks LIVE.
+                The gate system never sleeps.
+              </p>
+            </div>
+          </div>
+
+          {/* Arrow 3 */}
+          <div className="flex items-center justify-center px-2 py-2 md:py-0">
+            <div className="flex gap-0.5" style={{ animation: 'flowPulse 1.8s ease-in-out infinite 0.6s' }}>
+              <ChevronRight size={16} className="text-emerald-400/60" />
+              <ChevronRight size={16} className="text-sky-400/60 -ml-2" />
+            </div>
+          </div>
+
+          {/* Node 4 — Trades */}
+          <div className="group relative flex-1 rounded-xl border border-sky-500/30 bg-sky-500/8 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-sky-400/60 hover:bg-sky-500/15 hover:shadow-lg hover:shadow-sky-500/10">
+            <div className="transition-opacity duration-300 group-hover:opacity-0">
+              <p className="text-lg mb-1">📈</p>
+              <p className="text-sm font-bold text-sky-400 font-mono">Trades</p>
+              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">TAO Execution</p>
+              <p className="text-xs font-mono font-semibold text-slate-200">
+                {(status?.total_pnl ?? 0) >= 0 ? '+' : ''}{(status?.total_pnl ?? 0).toFixed(4)} τ PnL
+              </p>
+              <p className="text-[10px] text-slate-400 font-mono">Finney mainnet · live chain</p>
+            </div>
+            <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
+              <p className="text-xs font-bold text-sky-300 mb-2">📈 Trades — On-Chain Execution</p>
+              <p className="text-[11px] text-slate-300 leading-relaxed">
+                Only trades that clear every layer reach execution. Paper trades build the track record.
+                LIVE trades pass BFT consensus then execute on Finney mainnet via AsyncSubtensor.
+                Real TAO moves only when the full pipeline agrees.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom stats bar */}
+        <div className="border-t border-dark-600 px-6 py-2.5 flex flex-wrap gap-4">
+          {[
+            { label: 'Analysis interval', value: '300s' },
+            { label: 'Consensus threshold', value: '7 / 12 votes' },
+            { label: 'Gate — Paper → Approved', value: '55% win rate' },
+            { label: 'Gate — Approved → Live', value: '65% WR + 0.05τ PnL' },
+          ].map(({ label, value }) => (
+            <div key={label} className="flex items-center gap-2">
+              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">{label}:</span>
+              <span className="text-[10px] font-mono text-slate-300 font-semibold">{value}</span>
+            </div>
+          ))}
         </div>
       </div>
     </div>
