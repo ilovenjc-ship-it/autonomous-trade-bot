@@ -1,23 +1,47 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useBotStore } from '@/store/botStore'
-import { ArrowUpDown, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw } from 'lucide-react'
+import { ArrowUpDown, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import StatCard from '@/components/StatCard'
 
+const STRATEGY_LABELS: Record<string, string> = {
+  momentum_cascade:   'Momentum Cascade',
+  dtao_flow_momentum: 'dTAO Flow Momentum',
+  liquidity_hunter:   'Liquidity Hunter',
+  breakout_hunter:    'Breakout Hunter',
+  yield_maximizer:    'Yield Maximizer',
+  contrarian_flow:    'Contrarian Flow',
+  volatility_arb:     'Volatility Arb',
+  sentiment_surge:    'Sentiment Surge',
+  balanced_risk:      'Balanced Risk',
+  mean_reversion:     'Mean Reversion',
+  emission_momentum:  'Emission Momentum',
+  macro_correlation:  'Macro Correlation',
+}
+
+const PAGE_SIZE = 20
+
 export default function Trades() {
-  const { trades, tradeStats, fetchTrades, fetchTradeStats, manualTrade, status } = useBotStore()
+  const navigate = useNavigate()
+  const { trades, tradeStats, tradeTotal, fetchTrades, fetchTradeStats, manualTrade, status } = useBotStore()
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState<'all' | 'buy' | 'sell'>('all')
   const [manualAction, setManualAction] = useState<'buy' | 'sell'>('buy')
   const [manualAmount, setManualAmount] = useState('0.1')
   const [manualBusy, setManualBusy] = useState(false)
 
+  const pages = Math.max(1, Math.ceil((tradeTotal ?? 0) / PAGE_SIZE))
+
   useEffect(() => {
     fetchTrades(page)
     fetchTradeStats()
   }, [page])
+
+  // Reset to page 1 when filter changes
+  useEffect(() => { setPage(1) }, [filter])
 
   const handleManualTrade = async () => {
     const amount = parseFloat(manualAmount)
@@ -129,7 +153,7 @@ export default function Trades() {
 
       {/* Filter + Table */}
       <div className="card">
-        <div className="flex items-center gap-2 p-4 border-b border-dark-600">
+        <div className="flex items-center gap-2 p-4 border-b border-dark-600 flex-wrap">
           {(['all', 'buy', 'sell'] as const).map((f) => (
             <button
               key={f}
@@ -142,7 +166,42 @@ export default function Trades() {
               {f.toUpperCase()}
             </button>
           ))}
-          <span className="ml-auto text-xs text-slate-300">{filtered.length} trades</span>
+          <span className="text-xs text-slate-300 ml-2">{tradeTotal ?? 0} total</span>
+
+          {/* Pagination controls */}
+          <div className="ml-auto flex items-center gap-1.5">
+            <span className="text-xs text-slate-300 font-mono mr-1">
+              Page {page}/{pages}
+            </span>
+            <button
+              disabled={page <= 1}
+              onClick={() => setPage(p => p - 1)}
+              className="p-1 rounded border border-dark-600 text-slate-300 hover:text-white hover:border-dark-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft size={13} />
+            </button>
+            {Array.from({ length: Math.min(5, pages) }, (_, i) => {
+              const start = Math.max(1, page - 2)
+              const p = start + i
+              if (p > pages) return null
+              return (
+                <button key={p} onClick={() => setPage(p)}
+                  className={clsx(
+                    'px-2 py-0.5 rounded text-xs font-mono border transition-colors',
+                    p === page ? 'bg-accent-blue/20 text-accent-blue border-accent-blue/30' : 'text-slate-300 border-dark-600 hover:text-white'
+                  )}>
+                  {p}
+                </button>
+              )
+            })}
+            <button
+              disabled={page >= pages}
+              onClick={() => setPage(p => p + 1)}
+              className="p-1 rounded border border-dark-600 text-slate-300 hover:text-white hover:border-dark-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight size={13} />
+            </button>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -177,10 +236,22 @@ export default function Trades() {
                     <td className="px-4 py-3 font-mono text-white">{t.amount} TAO</td>
                     <td className="px-4 py-3 font-mono">${t.price_at_trade?.toFixed(2)}</td>
                     <td className="px-4 py-3 font-mono">${t.usd_value?.toFixed(2)}</td>
-                    <td className={clsx('px-4 py-3 font-mono', (t.pnl ?? 0) >= 0 ? 'text-accent-green' : 'text-accent-red')}>
-                      {(t.pnl ?? 0) >= 0 ? '+' : ''}{t.pnl?.toFixed(2)}
+                    <td className={clsx('px-4 py-3 font-mono font-semibold', (t.pnl ?? 0) > 0 ? 'text-accent-green' : (t.pnl ?? 0) < 0 ? 'text-accent-red' : 'text-slate-300')}>
+                      {(t.pnl ?? 0) >= 0 ? '+' : ''}{(t.pnl ?? 0).toFixed(4)}
                     </td>
-                    <td className="px-4 py-3 text-slate-300">{t.strategy ?? '—'}</td>
+                    <td className="px-4 py-3">
+                      {t.strategy ? (
+                        <button
+                          onClick={() => navigate(`/strategy/${t.strategy}`)}
+                          className="flex items-center gap-1 text-slate-300 hover:text-accent-blue transition-colors group"
+                        >
+                          <span className="font-mono text-xs">
+                            {STRATEGY_LABELS[t.strategy] ?? t.strategy}
+                          </span>
+                          <ExternalLink size={9} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      ) : <span className="text-slate-300">—</span>}
+                    </td>
                     <td className="px-4 py-3">
                       <span className={clsx(
                         'px-2 py-0.5 rounded text-[10px] font-mono',

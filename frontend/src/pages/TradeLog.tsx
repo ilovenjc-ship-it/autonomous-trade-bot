@@ -19,6 +19,7 @@ interface Trade {
   pnl_pct: number
   strategy: string | null
   signal_reason: string | null
+  tx_hash: string | null
   created_at: string | null
 }
 
@@ -86,6 +87,12 @@ function ResultBadge({ pnl }: { pnl: number }) {
       {win ? 'WIN' : 'LOSS'}
     </span>
   )
+}
+
+function ModeBadge({ txHash }: { txHash: string | null }) {
+  return txHash
+    ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">● LIVE</span>
+    : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">◌ PAPER</span>
 }
 
 function FilterBtn({ active, onClick, children }: {
@@ -229,6 +236,7 @@ export default function TradeLog() {
             <tr className="text-slate-300 uppercase tracking-wider font-mono">
               <th className="px-4 py-3 text-left w-16">ID</th>
               <th className="px-4 py-3 text-left">Type</th>
+              <th className="px-4 py-3 text-left">Mode</th>
               <th className="px-4 py-3 text-left">Strategy</th>
               <th className="px-4 py-3 text-right">Amount (τ)</th>
               <th className="px-4 py-3 text-right">Price (USD)</th>
@@ -242,14 +250,14 @@ export default function TradeLog() {
           <tbody>
             {loading && (
               <tr>
-                <td colSpan={10} className="py-16 text-center">
+                <td colSpan={11} className="py-16 text-center">
                   <RefreshCw size={18} className="animate-spin text-slate-300 mx-auto" />
                 </td>
               </tr>
             )}
             {!loading && visible.length === 0 && (
               <tr>
-                <td colSpan={10} className="py-16 text-center text-slate-300 font-mono">
+                <td colSpan={11} className="py-16 text-center text-slate-300 font-mono">
                   No trades match the current filter
                 </td>
               </tr>
@@ -268,13 +276,14 @@ export default function TradeLog() {
                 {/* Type */}
                 <td className="px-4 py-2.5"><TypeBadge type={t.trade_type} /></td>
 
+                {/* Mode */}
+                <td className="px-4 py-2.5"><ModeBadge txHash={t.tx_hash} /></td>
+
                 {/* Strategy */}
                 <td className="px-4 py-2.5">
                   <span className="text-slate-300 font-mono">
                     {STRATEGY_LABELS[t.strategy ?? ''] ?? t.strategy ?? '—'}
                   </span>
-                  <br />
-                  <span className="text-slate-300 text-[10px]">{t.strategy}</span>
                 </td>
 
                 {/* Amount */}
