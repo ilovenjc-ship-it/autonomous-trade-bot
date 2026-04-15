@@ -14,6 +14,7 @@ import {
   LineChart, Line, CartesianGrid,
 } from 'recharts'
 import clsx from 'clsx'
+import api from '@/api/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -257,23 +258,18 @@ export default function OpenClaw() {
   const [flashRound,    setFlashRound]    = useState(false)
 
   const load = useCallback(async () => {
-    try {
-      const [latestRes, histRes, statsRes] = await Promise.all([
-        fetch('/api/consensus/latest'),
-        fetch('/api/consensus/history?limit=30'),
-        fetch('/api/consensus/stats'),
-      ])
-      const latestData = await latestRes.json()
-      const histData   = await histRes.json()
-      const statsData  = await statsRes.json()
-
-      if (latestData.round) setLatestRound(latestData.round)
-      if (histData.rounds)  setHistory(histData.rounds)
-      setStats(statsData)
-      setLastRefresh(new Date())
-    } catch (e) {
-      console.error('OpenClaw fetch error', e)
-    }
+    const [latestRes, histRes, statsRes] = await Promise.allSettled([
+      api.get('/consensus/latest'),
+      api.get('/consensus/history', { params: { limit: 30 } }),
+      api.get('/consensus/stats'),
+    ])
+    if (latestRes.status === 'fulfilled' && latestRes.value.data.round)
+      setLatestRound(latestRes.value.data.round)
+    if (histRes.status === 'fulfilled' && histRes.value.data.rounds)
+      setHistory(histRes.value.data.rounds)
+    if (statsRes.status === 'fulfilled')
+      setStats(statsRes.value.data)
+    setLastRefresh(new Date())
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -287,14 +283,9 @@ export default function OpenClaw() {
   const handleTrigger = async (direction: 'BUY' | 'SELL') => {
     setTriggering(true)
     try {
-      const res = await fetch('/api/consensus/trigger', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ triggered_by: 'manual_ui', direction }),
-      })
-      const data = await res.json()
-      if (data.detail) {
-        setLatestRound(data.detail.round)
+      const { data } = await api.post('/consensus/trigger', { triggered_by: 'manual_ui', direction })
+      if (data?.round) {
+        setLatestRound(data.round)
         setFlashRound(true)
         setTimeout(() => setFlashRound(false), 1200)
       }
@@ -379,7 +370,7 @@ export default function OpenClaw() {
         <StatCard
           icon={CheckCircle2}
           label="Approval Rate"
-          value={`${stats?.approval_rate_pct ?? 0}%`}
+          value={`${(stats?.approval_rate_pct ?? 0).toFixed(1)}%`}
           sub={`${stats?.approved_rounds ?? 0} approved / ${stats?.rejected_rounds ?? 0} rejected`}
           accent="bg-emerald-500/15 text-emerald-400"
         />
