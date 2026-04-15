@@ -37,6 +37,17 @@ GATE_WIN_RATE = 55.0
 GATE_MARGIN   = 2     # wins - losses ≥ 2
 GATE_PNL      = 0.0   # cumulative PnL > 0
 
+# ── Demotion thresholds ───────────────────────────────────────────────────────
+# A bot is demoted when it has enough history to be judged AND performance
+# has genuinely degraded — win rate tanked AND cumulative PnL turned negative.
+# Positive PnL saves a bot even with a lower win rate (big winners count).
+DEMOTE_WIN_RATE   = 45.0   # WR below this triggers demotion evaluation
+DEMOTE_MIN_CYCLES = 15     # must have enough history before we can judge
+DEMOTE_PNL        = 0.0    # must also have negative cumulative PnL to demote
+
+# Dedup sets — prevent same demotion alert firing every cycle
+_demoted_alerted: set = set()
+
 # ── Strategy personalities ────────────────────────────────────────────────────
 # win_bias  = probability of a WIN trade when signal fires
 # trade_pct = probability signal fires at all this cycle (0-1)
@@ -233,6 +244,66 @@ async def _run_one_cycle() -> None:
                         detail=f"WR={s.win_rate:.1f}% PnL={s.total_pnl:.4f} τ",
                     )
                     alert_service.gate_promotion(s.name, display, "LIVE", stats_str)
+
+            # ── Demotion system ──────────────────────────────────────────────
+            # A bot that earned promotion but has since degraded gets knocked
+            # back so it must re-prove itself before trading real capital again.
+            # Two conditions must BOTH be true: WR tanked AND PnL is negative.
+            # Positive PnL saves a bot even at a lower win rate (big winners).
+            cycles_done = s.cycles_completed or 0
+            wr_now      = s.win_rate or 0
+            pnl_now     = s.total_pnl or 0
+            is_degraded = (
+                wr_now      <  DEMOTE_WIN_RATE   and
+                pnl_now     <  DEMOTE_PNL        and
+                cycles_done >= DEMOTE_MIN_CYCLES
+            )
+
+            if is_degraded and s.name not in _demoted_alerted:
+                if s.mode == "LIVE":
+                    old_mode = "LIVE"
+                    s.mode   = "APPROVED_FOR_LIVE"
+                    push_event(
+                        "gate",
+                        f"⬇️ {display} DEMOTED — LIVE → APPROVED",
+                        strategy=s.name,
+                        detail=f"WR={wr_now:.1f}% PnL={pnl_now:.4f}τ — must recover",
+                    )
+                    alert_service.push_alert(
+                        type     = "GATE_DEMOTION",
+                        level    = "WARNING",
+                        title    = f"⬇️ {display} demoted to APPROVED",
+                        message  = f"{display} dropped to {wr_now:.1f}% WR with {pnl_now:.4f}τ PnL. "
+                                   f"Moved from LIVE → APPROVED until performance recovers.",
+                        strategy = s.name,
+                        detail   = stats_str,
+                    )
+                    _demoted_alerted.add(s.name)
+                    logger.warning(f"{s.name} demoted LIVE → APPROVED_FOR_LIVE (WR={wr_now:.1f}% PnL={pnl_now:.4f})")
+
+                elif s.mode == "APPROVED_FOR_LIVE":
+                    s.mode = "PAPER_ONLY"
+                    push_event(
+                        "gate",
+                        f"⬇️ {display} DEMOTED — APPROVED → PAPER",
+                        strategy=s.name,
+                        detail=f"WR={wr_now:.1f}% PnL={pnl_now:.4f}τ — back to proving ground",
+                    )
+                    alert_service.push_alert(
+                        type     = "GATE_DEMOTION",
+                        level    = "WARNING",
+                        title    = f"⬇️ {display} demoted to PAPER",
+                        message  = f"{display} dropped to {wr_now:.1f}% WR with {pnl_now:.4f}τ PnL. "
+                                   f"Moved from APPROVED → PAPER. Must re-earn gate passage.",
+                        strategy = s.name,
+                        detail   = stats_str,
+                    )
+                    _demoted_alerted.add(s.name)
+                    logger.warning(f"{s.name} demoted APPROVED → PAPER_ONLY (WR={wr_now:.1f}% PnL={pnl_now:.4f})")
+
+            # If performance has recovered, allow re-alerting on next demotion
+            elif not is_degraded and s.name in _demoted_alerted:
+                _demoted_alerted.discard(s.name)
 
             # ── PnL milestone check ──────────────────────────────────────────
             # (checked on every fleet total, done once per cycle in commit hook)
