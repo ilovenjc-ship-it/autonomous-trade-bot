@@ -1,8 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Wallet as WalletIcon, Copy, ExternalLink, ShieldCheck,
-  KeyRound, AlertTriangle, CheckCircle2, RefreshCw, Eye, EyeOff, Zap,
-  Link, Database, Activity,
+  KeyRound, CheckCircle2, RefreshCw, Eye, EyeOff,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
@@ -44,29 +43,32 @@ export default function WalletPage() {
   const [saved,      setSaved]      = useState(false)
   const [querying,   setQuerying]   = useState(false)
 
-  // Load cached wallet status on mount
+  // Load cached wallet status — auto-refresh every 30 s (cached, not live chain)
   const loadStatus = useCallback(async () => {
     try {
-      const r = await fetch('/api/wallet/status')
-      setChainInfo(await r.json())
+      const { data } = await api.get<ChainInfo>('/wallet/status')
+      setChainInfo(data)
     } catch {}
   }, [])
 
-  useEffect(() => { loadStatus() }, [loadStatus])
+  useEffect(() => {
+    loadStatus()
+    const t = setInterval(loadStatus, 30_000)
+    return () => clearInterval(t)
+  }, [loadStatus])
 
-  // Query live chain (slower — hits Finney)
+  // Query live chain (slower — hits Finney mainnet directly)
   const queryChain = async () => {
     setQuerying(true)
     try {
-      const r = await fetch('/api/wallet/chain')
-      const data: ChainInfo = await r.json()
+      const { data } = await api.get<ChainInfo>('/wallet/chain')
       setChainInfo(data)
       if (data.connected) {
         toast.success(`Chain queried ✅ Block #${data.block?.toLocaleString()}`)
       } else {
         toast.error('Chain unreachable — using cached data')
       }
-    } catch (e) {
+    } catch {
       toast.error('Chain query failed')
     } finally {
       setQuerying(false)
@@ -92,13 +94,9 @@ export default function WalletPage() {
     setBusy(true)
     try {
       const phrase = words.join(' ')
-      // Use new /api/wallet/mnemonic endpoint which uses bittensor 10.x
-      const r    = await fetch('/api/wallet/mnemonic', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ mnemonic: phrase }),
-      })
-      const data = await r.json()
+      const { data } = await api.post<{ success: boolean; address?: string; chain?: ChainInfo; error?: string }>(
+        '/wallet/mnemonic', { mnemonic: phrase }
+      )
       if (data.success) {
         setSaved(true)
         if (data.chain) setChainInfo(data.chain)
@@ -115,9 +113,11 @@ export default function WalletPage() {
 
   const clearWords = () => { setWords(Array(12).fill('')); setSaved(false) }
 
-  const isConnected = chainInfo?.connected ?? false
-  const balance     = chainInfo?.balance_tao
-  const block       = chainInfo?.block
+  const isConnected   = chainInfo?.connected ?? false
+  const balance       = chainInfo?.balance_tao
+  const block         = chainInfo?.block
+  // Use restored wallet address when available; fall back to known target address
+  const displayAddr   = chainInfo?.address || TARGET_ADDRESS
 
   return (
     <div className="p-6 space-y-5 max-w-3xl">
@@ -170,7 +170,7 @@ export default function WalletPage() {
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
           <ShieldCheck size={15} className="text-accent-green" /> Target Wallet Address
         </h2>
-        <AddrBox label="Coldkey (SS58)" addr={TARGET_ADDRESS} />
+        <AddrBox label="Coldkey (SS58)" addr={displayAddr} />
         <div className="grid grid-cols-3 gap-3 text-xs">
           <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
             <p className="text-slate-300 mb-0.5">Chain Balance</p>
@@ -193,7 +193,7 @@ export default function WalletPage() {
           </div>
         </div>
         <a
-          href={`https://taostats.io/account/${TARGET_ADDRESS}`}
+          href={`https://taostats.io/account/${displayAddr}`}
           target="_blank" rel="noopener noreferrer"
           className="flex items-center gap-1 text-xs text-accent-blue hover:underline font-mono"
         >
@@ -280,30 +280,6 @@ export default function WalletPage() {
         )}
       </div>
 
-      {/* ── Network status ─────────────────────────────────────────────────── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
-          <Zap size={15} className="text-yellow-400" /> Network Status
-        </h2>
-        <div className="grid grid-cols-2 gap-2 text-xs">
-          {[
-            { label: 'Network',    val: 'Finney (Mainnet)' },
-            { label: 'Balance',    val: balance != null ? `τ${balance.toFixed(6)}` : '—' },
-            { label: 'Chain',      val: isConnected ? '✅ Connected' : '○ Cached' },
-            { label: 'Block',      val: block ? `#${block.toLocaleString()}` : '—' },
-          ].map(({ label, val }) => (
-            <div key={label} className="flex justify-between items-center px-3 py-2 bg-dark-700 rounded-lg">
-              <span className="text-slate-300">{label}</span>
-              <span className="font-mono text-slate-100">{val}</span>
-            </div>
-          ))}
-        </div>
-
-        <p className="text-xs text-slate-300 mt-4 font-mono">
-          Install bittensor: pip install bittensor==6.9.3 · Requires Python 3.11+
-        </p>
       </div>
-
-    </div>
   )
 }

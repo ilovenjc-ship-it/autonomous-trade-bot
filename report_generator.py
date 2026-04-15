@@ -1459,6 +1459,94 @@ def section_risk_config():
     ]
 
 
+# ─── Section: Wallet Page Walkthrough ────────────────────────────────────────
+
+def section_wallet():
+    return [
+        *section_header("Wallet — Page Walkthrough",
+                        "Bittensor Finney mainnet coldkey management and chain connection"),
+
+        body(
+            "The Wallet page is the bridge between the bot and the actual blockchain. "
+            "Everything else in the system is logic and simulation — this page is where "
+            "real TAO lives. It manages the coldkey address, queries live chain state from "
+            "Finney mainnet, and handles mnemonic phrase restore for wallet recovery. "
+            "It is intentionally minimal: you configure it once, it persists, and the system "
+            "uses it automatically from that point forward."
+        ),
+
+        spacer(8),
+        h2("Page Structure"),
+        data_table(
+            ["Section", "What It Shows"],
+            [
+                ["Chain status banner",    "Live connection indicator — FINNEY MAINNET CONNECTED / CHAIN OFFLINE · Block number · TAO balance"],
+                ["Target Wallet Address",  "SS58 coldkey address with copy button + Taostats.io block explorer link · Balance / Block / Chain Status mini-cards"],
+                ["Mnemonic Phrase Restore","12-word BIP39 input grid — paste full phrase or enter word by word · Progress bar · Save / Clear"],
+            ],
+            col_widths=[1.8*inch, 4.6*inch]
+        ),
+
+        spacer(8),
+        h2("Chain Query — Cached vs Live"),
+        body(
+            "The page operates in two modes. On load, it fetches cached wallet status from the "
+            "backend (fast, no chain hit, auto-refreshes every 30 seconds). The 'Query Chain' "
+            "button in the header triggers a live query directly against Finney mainnet — slower, "
+            "but returns the real-time block number and confirmed balance. "
+            "This separation exists by design: you don't want the page hammering the chain "
+            "on every render. Manual live queries are intentional, cached status is always available."
+        ),
+
+        spacer(8),
+        h2("Mnemonic Restore — How It Works"),
+        body(
+            "The 12-word grid accepts input in two ways: type each word individually into its "
+            "numbered box, or paste the full phrase into the first box — the system detects "
+            "the space-separated phrase and auto-distributes all 12 words instantly. "
+            "A progress bar fills as words are entered (0/12 → 12/12). The Save button "
+            "activates only when all 12 words are present. Once saved, the mnemonic is stored "
+            "encrypted and loaded automatically by the Bittensor service. "
+            "The words can be hidden/shown via the Eye toggle for screen privacy."
+        ),
+
+        spacer(8),
+        h2("UI Fixes Applied — This Session"),
+        data_table(
+            ["Fix", "Before", "After"],
+            [
+                ["Raw fetch() calls",      "3 bare fetch() calls: /api/wallet/status, /api/wallet/chain, POST /api/wallet/mnemonic",
+                                           "All migrated to api.get() / api.post() — consistent with every other page"],
+                ["Auto-refresh",           "loadStatus() called once on mount, then stale",
+                                           "setInterval 30s on cached status — balance and connection state stay current"],
+                ["Address display",        "TARGET_ADDRESS hardcoded — always showed the known address even after a different wallet was restored",
+                                           "displayAddr = chainInfo?.address || TARGET_ADDRESS — live wallet address shown when restored"],
+                ["Taostats link",          "Always linked to TARGET_ADDRESS regardless of restored wallet",
+                                           "Links to displayAddr — correct address in block explorer at all times"],
+                ["Network Status card",    "Duplicate panel at bottom: Network / Balance / Chain / Block — identical data shown twice",
+                                           "Removed entirely — no redundant section"],
+                ["Dev note in UI",         "'pip install bittensor==6.9.3 · Requires Python 3.11+' visible on production page",
+                                           "Removed — belongs in README, not the live interface"],
+                ["Unused imports",         "Zap, Link, Database, Activity imported but unused after card removal",
+                                           "Cleaned up"],
+            ],
+            col_widths=[1.4*inch, 2.0*inch, 3.0*inch]
+        ),
+
+        spacer(8),
+        callout_box(
+            "The Wallet page is the quietest page in the app — and the most consequential. "
+            "Everything the bot does flows through the address stored here. "
+            "The mnemonic grid, the chain query, the taostats link — they're not features, "
+            "they're infrastructure. The page doesn't need to impress. "
+            "It needs to be correct. And now it is.",
+            BLUE
+        ),
+
+        PageBreak(),
+    ]
+
+
 # ─── Section 6: Core Services (renumbered) ───────────────────────────────────
 
 def section_services():
@@ -1913,6 +2001,7 @@ def build():
     story += section_openclaw()
     story += section_alerts()
     story += section_risk_config()
+    story += section_wallet()
     story += section_services()
     story += section_conversations()
     story += section_next_steps()
