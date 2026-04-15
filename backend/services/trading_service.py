@@ -182,16 +182,23 @@ class TradingService:
             success = False
             error_msg = None
 
-            if bittensor_service.connected and bittensor_service.wallet:
+            # Resolve the validator hotkey for staking
+            cfg = await self._get_config()
+            hotkey = cfg.hotkey_address if cfg else None
+
+            if bittensor_service.connected and bittensor_service.wallet_loaded and hotkey:
                 if action == Signal.BUY:
-                    success, msg, tx_hash = await bittensor_service.stake(amount, netuid)
+                    result = await bittensor_service.stake(hotkey, amount, netuid)
                 else:
-                    success, msg, tx_hash = await bittensor_service.unstake(amount, netuid)
+                    result = await bittensor_service.unstake(hotkey, amount, netuid)
+                success   = result.get("success", False)
+                tx_hash   = result.get("tx_hash") or result.get("block_hash")
+                msg       = "OK" if success else result.get("error", "execution failed")
                 error_msg = None if success else msg
             else:
-                # Simulation mode
+                # Simulation mode — wallet not connected or hotkey not configured
                 success = True
-                msg = f"[SIMULATED] {action} {amount} TAO @ ${price:.2f}"
+                msg = f"[PAPER] {action} {amount} TAO @ ${price:.2f}"
                 logger.info(msg)
 
             trade.status = "executed" if success else "failed"

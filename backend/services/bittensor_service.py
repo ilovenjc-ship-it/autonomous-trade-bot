@@ -242,6 +242,10 @@ class BittensorService:
 
     # ── Staking (requires mnemonic) ───────────────────────────────────────────
 
+    async def stake(self, hotkey_address: str, amount_tao: float, netuid: int = 1) -> Dict:
+        """Alias for add_stake — used by trading_service and cycle_service."""
+        return await self.add_stake(hotkey_address, amount_tao, netuid)
+
     async def add_stake(self, hotkey_address: str, amount_tao: float, netuid: int = 1) -> Dict:
         """
         Stake TAO to a hotkey on a subnet.
