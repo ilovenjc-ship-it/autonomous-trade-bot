@@ -149,7 +149,7 @@ export default function Trades() {
           <table className="w-full text-xs">
             <thead>
               <tr className="text-slate-300 border-b border-dark-600">
-                {['#', 'Type', 'Amount', 'Price', 'USD Value', 'P&L', 'Strategy', 'Status', 'Time'].map((h) => (
+                {['#', 'Type', 'Mode', 'Amount', 'Price', 'USD Value', 'P&L', 'Strategy', 'Status', 'Time'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
                 ))}
               </tr>
@@ -157,7 +157,7 @@ export default function Trades() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-slate-300">No trades found</td>
+                  <td colSpan={10} className="px-4 py-8 text-center text-slate-300">No trades found</td>
                 </tr>
               ) : (
                 filtered.map((t) => (
@@ -167,6 +167,12 @@ export default function Trades() {
                       <span className={t.trade_type === 'buy' ? 'tag-buy' : 'tag-sell'}>
                         {t.trade_type.toUpperCase()}
                       </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      {t.tx_hash
+                        ? <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">● LIVE</span>
+                        : <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">◌ PAPER</span>
+                      }
                     </td>
                     <td className="px-4 py-3 font-mono text-white">{t.amount} TAO</td>
                     <td className="px-4 py-3 font-mono">${t.price_at_trade?.toFixed(2)}</td>
