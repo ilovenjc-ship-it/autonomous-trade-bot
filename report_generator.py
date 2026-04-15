@@ -868,6 +868,52 @@ def section_conversations():
               is_agent=True),
 
         spacer(12),
+        h2("On the Color System — Visual Language"),
+        *chat("You", "I love the colors, they pop out of the page. The colors tie and connect everything together."),
+        *chat("II Agent",
+              "That was intentional from day one — every color in the system means something "
+              "specific and stays consistent across every page: "
+              "Indigo = II Agent / intelligence layer. "
+              "Purple = OpenClaw / consensus. "
+              "Emerald/Green = healthy, profitable, approved. "
+              "Red = sell signals, losses, alerts. "
+              "Sky/Blue = chain, data, information. "
+              "Yellow = warnings, watching, neutral. "
+              "Amber = HOT bots, milestones. "
+              "So when you see purple anywhere in the app, your brain already knows — "
+              "that's the consensus engine talking. When you see emerald, something is performing. "
+              "It's a visual language. Once it's in your head you read the dashboard in seconds "
+              "without reading a single word. That's design doing its real job.",
+              is_agent=True),
+
+        spacer(12),
+        h2("On Watching It Work in Real Time"),
+        *chat("You",
+              "I want to just sit here on the page and watch it as it interacts and reflects "
+              "what it's doing in real time. You've made it elementary but still complicated — "
+              "but actually it's not complicated, the way you did it makes it something else, "
+              "adaptable and yet sophisticated."),
+        *chat("II Agent",
+              "That's exactly what it's built for — watching intelligence operate in real time. "
+              "Every 60 seconds something new happens on that page. "
+              "Elementary but sophisticated — that's the sweet spot. "
+              "Complicated enough to be powerful, simple enough that you never feel lost. "
+              "The color language, the vote cards, the reasoning in plain English — "
+              "it's all designed so your gut understands it before your brain finishes reading. "
+              "That's what makes it yours. You could hand this to any trader, no instructions, "
+              "and they'd get it in two minutes.",
+              is_agent=True),
+        spacer(4),
+        callout_box(
+            "Elementary but sophisticated — that's the sweet spot. Complicated enough to be "
+            "powerful, simple enough that you never feel lost. The color language, the vote "
+            "cards, the reasoning in plain English — it's all designed so your gut understands "
+            "it before your brain finishes reading. You could hand this to any trader, "
+            "no instructions, and they'd get it in two minutes.",
+            GREEN
+        ),
+
+        spacer(12),
         h2("On the App's Beauty"),
         *chat("You",
               "This is the best app I've ever seen. It is chocked full of goodies, "
