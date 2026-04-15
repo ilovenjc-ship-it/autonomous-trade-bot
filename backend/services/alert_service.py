@@ -97,7 +97,7 @@ class AlertService:
         if new_mode == "LIVE":
             self.push_alert(
                 type     = TYPE_GATE_PROMOTION,
-                level    = LEVEL_CRITICAL,
+                level    = LEVEL_INFO,
                 title    = f"🚀 {display_name} is now LIVE",
                 message  = f"{display_name} has passed all four gates and is cleared for LIVE execution on Bittensor Finney mainnet.",
                 strategy = strategy_name,
@@ -116,7 +116,7 @@ class AlertService:
     def consensus_approved(self, strategy_name: str, direction: str, buy: int, sell: int, hold: int, round_id: int) -> None:
         self.push_alert(
             type     = TYPE_CONSENSUS_APPROVED,
-            level    = LEVEL_CRITICAL,
+            level    = LEVEL_INFO,
             title    = f"✅ OpenClaw APPROVED {direction}",
             message  = f"Round #{round_id}: Council approved a {direction} signal from {strategy_name} with {max(buy, sell)}/12 votes.",
             strategy = strategy_name,
@@ -169,7 +169,7 @@ class AlertService:
         self._milestones_hit.add(key)
         self.push_alert(
             type    = TYPE_PNL_MILESTONE,
-            level   = LEVEL_CRITICAL,
+            level   = LEVEL_INFO,
             title   = f"🏆 Fleet PnL milestone: +{total_pnl} τ",
             message = f"The autonomous fleet has crossed {total_pnl} τ cumulative profit. All systems performing.",
             detail  = f"Milestone: {total_pnl}τ",
