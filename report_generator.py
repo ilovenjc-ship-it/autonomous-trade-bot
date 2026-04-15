@@ -750,6 +750,217 @@ def section_alerts():
         PageBreak(),
     ]
 
+# ─── Section: Agent Fleet Page Walkthrough ───────────────────────────────────
+
+def section_agent_fleet():
+    return [
+        *section_header("Agent Fleet — Page Walkthrough",
+                        "The leaderboard, health monitor, and radar profiler for all 12 sub-agents"),
+
+        body(
+            "The Agent Fleet page is the operations centre for every individual trading bot. "
+            "It shows all 12 strategies ranked by performance, color-coded by health, and "
+            "lets you drill into each one via a full radar profile. It replaced a simple bot "
+            "list with a proper leaderboard + intelligence panel during this session."
+        ),
+
+        spacer(8),
+        h2("Page Layout — Two-Column Split"),
+        data_table(
+            ["Zone", "Width", "Content"],
+            [
+                ["Header bar",      "Full width", "Fleet Health dot counts · Last-updated timestamp · Refresh button"],
+                ["Legend strip",    "Full width", "How It Works — 7 items explaining dots, modes, BFT, gate icons"],
+                ["Title row",       "Full width", "AGENT FLEET heading · bot count · Rebalance Capital button"],
+                ["Bot table",       "Fills left", "12 rows, scrollable — rank, agent, health, signal, win rate, PnL, alloc, score, controls"],
+                ["Right panel",     "310 px",     "Two-slide carousel — Profile radar (slide 0) + Capital Allocation bars (slide 1)"],
+            ],
+            col_widths=[1.4*inch, 1.0*inch, 3.9*inch]
+        ),
+
+        spacer(12),
+        h2("Fleet Health Bar — Header Row"),
+        body(
+            "The top-left of the header always shows the current fleet health split: "
+            "three dots (emerald / yellow / red) each followed by a live count. "
+            "No text labels — just the dots and numbers. Clean at a glance."
+        ),
+        data_table(
+            ["Dot colour",  "Meaning",                                "Consensus weight impact"],
+            [
+                ["🟢 Emerald", "GREEN — bot is healthy, performing",   "Full weight in OpenClaw voting"],
+                ["🟡 Yellow",  "YELLOW — degraded, watching closely",  "Reduced weight in consensus"],
+                ["🔴 Red",     "RED — critical underperformer",        "Excluded from consensus votes"],
+            ],
+            col_widths=[1.1*inch, 2.5*inch, 2.7*inch]
+        ),
+
+        spacer(12),
+        h2("How It Works Legend"),
+        body(
+            "Directly below the health bar is a 3-column legend strip — the first thing you "
+            "read when you land on the page. It explains every icon and badge used in the table "
+            "so nothing needs a tooltip or manual."
+        ),
+        data_table(
+            ["Icon/Symbol",   "Label",         "Meaning"],
+            [
+                ["🟢 dot",     "GREEN",         "Healthy — full consensus weight"],
+                ["🟡 dot",     "YELLOW",        "Degraded — reduced consensus weight"],
+                ["🔴 dot",     "RED",           "Critical — excluded from consensus"],
+                ["◆ blue",     "LEADERBOARD",   "Ranked by win rate × net P&L — top performers get more capital"],
+                ["◇ emerald",  "GATE PASSED",   "Profitability threshold met. Required for live promotion."],
+                ["⊙ yellow",   "BFT CONSENSUS", "Bots vote each cycle. OpenClaw needs ≥ 45% weighted agreement."],
+                ["✗ slate",    "PAPER",         "Gate not yet cleared — trading in simulation only."],
+            ],
+            col_widths=[0.9*inch, 1.3*inch, 4.1*inch]
+        ),
+        spacer(4),
+        callout_box(
+            "UI improvement this session: The legend was originally buried at the bottom of the "
+            "page — after a full scroll. It was moved to the top, immediately under Fleet Health, "
+            "so it reads as a key before the table. You now understand every symbol before "
+            "your eye reaches the first bot row.",
+            BLUE
+        ),
+
+        spacer(12),
+        h2("Bot Table — Column Reference"),
+        data_table(
+            ["Column",      "Data",                     "Detail"],
+            [
+                ["#",           "Rank",                 "Leaderboard position — best performer = #1"],
+                ["AGENT",       "Name + mode badge",    "Display name, active pulse dot, and mode chip (LIVE / APPROVED / PAPER)"],
+                ["HEALTH",      "Health badge",         "GREEN / YELLOW / RED with coloured dot"],
+                ["SIGNAL",      "Last signal",          "BUY (emerald) · SELL (red) · HOLD (slate) — most recent bot output"],
+                ["WIN RATE",    "Win %",                "Emerald ≥ 55% · Yellow ≥ 40% · Red < 40%"],
+                ["P&L (TAO)",   "Net profit/loss",      "Emerald = positive · Red = negative · 4 decimal places"],
+                ["ALLOCATION",  "Capital bar",          "Horizontal bar proportional to capital_allocation_pct"],
+                ["SCORE",       "Performance score",    "0–100 composite. Emerald ≥ 60 · Yellow ≥ 30 · Red < 30"],
+                ["STATUS",      "ON / OFF / Detail",    "Toggle bot active/inactive · ExternalLink → Strategy Detail page"],
+            ],
+            col_widths=[1.0*inch, 1.2*inch, 4.1*inch]
+        ),
+        spacer(4),
+        body(
+            "Clicking any row selects that bot and populates the right panel carousel with its "
+            "full profile. A second click on the same row deselects. The selected row is "
+            "highlighted with a subtle blue left-border and surface tint."
+        ),
+
+        spacer(12),
+        h2("Right Panel — Two-Slide Carousel"),
+        body(
+            "The right panel (310 px wide) contains a sliding carousel with two views. "
+            "Navigation: tab buttons at the top, left/right arrow buttons, and two dot indicators."
+        ),
+
+        h3("Slide 0 — Agent Profile (Radar Chart)"),
+        body(
+            "The radar (pentagon spider chart) is a pure SVG component with zero external "
+            "dependencies. It plots 5 axes for the selected bot and blooms to life with a "
+            "spring animation every time you switch bots."
+        ),
+        data_table(
+            ["Radar Axis",  "Data mapped",                              "100% ceiling"],
+            [
+                ["Win Rate",  "bot.win_rate",                           "75% = full extent"],
+                ["Score",     "bot.performance_score",                  "100 = full extent"],
+                ["Gate",      "gates passed (0–4) / 4",                 "All 4 checks = full"],
+                ["Alloc",     "bot.capital_allocation_pct",             "25% = full extent"],
+                ["P&L",       "net_pnl_tao normalised –0.05 → +0.30τ", "0.30τ = full extent"],
+            ],
+            col_widths=[1.0*inch, 2.5*inch, 1.8*inch]
+        ),
+        spacer(4),
+        bullet("Polygon fill + stroke colour = health colour (emerald / yellow / red)"),
+        bullet("Drop-shadow glow at 88% opacity on the stroke"),
+        bullet("Spring bloom animation: cubic-bezier(0.34,1.56,0.64,1) — overshoots then settles"),
+        bullet("Key triggers on bot.name — so every new selection re-fires the bloom"),
+        spacer(4),
+        body("Below the radar: a 6-cell stats grid (trades, wins, losses, cycles, win rate, net PnL), "
+             "then the Gate Progress checklist (4 checks with ✓ / ✗), then the mode chip."),
+        spacer(4),
+        callout_box(
+            "Gate all-clear banner: when all 4 gate checks pass, a purple "
+            "✓ READY FOR LIVE PROMOTION banner appears at the bottom of the gate section. "
+            "This is the intended trigger for a future 'Promote to LIVE' CTA button "
+            "(not yet wired — flagged as a next-build item).",
+            PURPLE
+        ),
+
+        h3("Slide 1 — Capital Allocation"),
+        body(
+            "A sorted bar chart showing every bot's capital allocation percentage. "
+            "Bars are colour-coded by health (emerald / yellow / red). Clicking any bar "
+            "instantly switches to Slide 0 and selects that bot's profile — "
+            "the carousel and table stay in sync."
+        ),
+        data_table(
+            ["Bar colour",   "Condition",      "Opacity"],
+            [
+                ["Emerald",  "GREEN health",   "70% — 'bg-emerald-500/70'"],
+                ["Yellow",   "YELLOW health",  "70% — 'bg-yellow-500/70'"],
+                ["Red",      "RED health",     "70% — 'bg-red-500/70'"],
+            ],
+            col_widths=[1.2*inch, 1.6*inch, 2.9*inch]
+        ),
+
+        spacer(12),
+        h2("UI Improvements Made This Session"),
+        data_table(
+            ["Change",                              "Before",                        "After"],
+            [
+                ["Legend position",                 "Bottom of page (buried)",       "Top strip, directly under Fleet Health"],
+                ["Legend font size",                "text-[10px] (too small)",       "text-xs with larger row gap"],
+                ["Legend timestamp colour",         "text-slate-700 (invisible)",    "text-slate-400 (readable)"],
+                ["Fleet Health header",             "Dot + coloured text label",     "Dot + count only (cleaner)"],
+                ["Right panel content",             "Single static profile view",    "Two-slide carousel (Profile + Capital)"],
+                ["Radar chart",                     "Missing / removed",             "Restored in pure SVG with bloom animation"],
+                ["Capital allocation bars",         "Thin h-1 bars",                 "Taller h-3 bars, health-coloured"],
+                ["Right panel width",               "Narrower",                      "Widened to 310 px"],
+            ],
+            col_widths=[2.0*inch, 1.8*inch, 2.5*inch]
+        ),
+
+        spacer(12),
+        h2("Known Issues & Flagged Next-Build Items"),
+        data_table(
+            ["Issue",                               "Impact",                        "Plan"],
+            [
+                ["ON/OFF toggle doesn't refetch immediately",
+                 "State change not reflected until next 60s poll",
+                 "Call fetchBots() after activate/deactivate API call"],
+                ["No 'Promote to LIVE' CTA",
+                 "Gate all-clear banner shows but no action button",
+                 "Add CTA when gate.all_clear === true — wire to promotion endpoint"],
+                ["Rebalance Capital button not wired",
+                 "Button exists but does nothing",
+                 "Wire to a /fleet/rebalance endpoint"],
+                ["Consecutive losses not surfaced",
+                 "bot.consecutive_losses field exists in data but not shown",
+                 "Add streak indicator to bot row (e.g. 🔥 3 in a row)"],
+                ["No demotion indicator",
+                 "User can't see if a bot was recently demoted",
+                 "Add a 'Demoted' chip/badge when mode recently stepped down"],
+            ],
+            col_widths=[2.0*inch, 1.7*inch, 2.6*inch]
+        ),
+
+        spacer(8),
+        callout_box(
+            "The Agent Fleet page is the most data-dense page in the app. Every decision "
+            "the system makes flows through here — which bots are healthy, how capital is "
+            "allocated, which ones are gate-ready, and which ones need attention. "
+            "The radar profile gives you a five-axis fingerprint of each bot at a glance. "
+            "No other trading dashboard does this.",
+            GREEN
+        ),
+
+        PageBreak(),
+    ]
+
+
 # ─── Section 6: Core Services (renumbered) ───────────────────────────────────
 
 def section_services():
@@ -1198,6 +1409,7 @@ def build():
     story += section_architecture()
     story += section_dashboard()
     story += section_fleet()
+    story += section_agent_fleet()
     story += section_openclaw()
     story += section_alerts()
     story += section_services()
