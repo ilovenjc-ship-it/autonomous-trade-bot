@@ -644,6 +644,33 @@ def section_openclaw():
             PURPLE
         ),
 
+        spacer(12),
+        h2("UI Improvements Applied — This Session"),
+        data_table(
+            ["Change", "Before", "After"],
+            [
+                ["Symbol legend",   "No legend — symbols required implicit knowledge",
+                                    "Compact legend bar at top of page identifies every icon: BUY↑, SELL↓, HOLD─, ABSTAIN?, APPROVED✓, REJECTED✗, DEADLOCK⚠, and all three mode badges"],
+                ["Timestamp tz",    "toLocaleTimeString() — browser local time, no timezone label",
+                                    "Eastern time (America/New_York), 24-hour military format, 'ET' suffix — e.g. 18:04:32 ET"],
+                ["Pop-up toasts",   "Not yet present",
+                                    "Bottom-right toasts confirmed working and well-received — right call on placement"],
+            ],
+            col_widths=[1.4*inch, 2.0*inch, 3.0*inch]
+        ),
+
+        spacer(8),
+        callout_box(
+            "The legend is small but significant. The color-coded signals, mode badges, "
+            "and result symbols are the whole story of the page — vote by vote, "
+            "timestamp by timestamp, personality by personality. Adding a single-line "
+            "key on the top line means a new reader understands the full picture in "
+            "seconds. It adds light without adding noise. And the timestamps in ET "
+            "give every decision a real-world anchor. This is the system being "
+            "accountable to itself — and to you.",
+            GREEN
+        ),
+
         PageBreak(),
     ]
 

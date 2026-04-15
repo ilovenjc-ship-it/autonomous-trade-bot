@@ -81,7 +81,51 @@ function timeSince(iso: string): string {
   return `${Math.floor(m / 60)}h ago`
 }
 
+/** Format a Date as HH:MM:SS Eastern time (24-hr military) */
+function toET(d: Date): string {
+  return d.toLocaleTimeString('en-US', {
+    timeZone: 'America/New_York',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }) + ' ET'
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+/** Compact top-of-page legend identifying every symbol on the page */
+function LegendBar() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 bg-dark-800/70 border border-dark-700 rounded-xl text-[10px] font-mono">
+
+      {/* Vote types */}
+      <span className="text-slate-500 uppercase tracking-widest text-[9px]">Votes</span>
+      <span className="flex items-center gap-1 text-emerald-400"><TrendingUp  size={10} /> BUY — strategy recommends buying</span>
+      <span className="flex items-center gap-1 text-red-400">   <TrendingDown size={10} /> SELL — strategy recommends selling</span>
+      <span className="flex items-center gap-1 text-amber-400"> <Minus        size={10} /> HOLD — no clear edge, wait</span>
+      <span className="flex items-center gap-1 text-slate-400"> <HelpCircle   size={10} /> ABSTAIN — insufficient data</span>
+
+      {/* Divider */}
+      <span className="hidden sm:block w-px h-4 bg-dark-600" />
+
+      {/* Round results */}
+      <span className="text-slate-500 uppercase tracking-widest text-[9px]">Result</span>
+      <span className="flex items-center gap-1 text-emerald-400"><ShieldCheck   size={10} /> APPROVED — supermajority reached</span>
+      <span className="flex items-center gap-1 text-red-400">   <ShieldX       size={10} /> REJECTED — vote failed</span>
+      <span className="flex items-center gap-1 text-amber-400"> <AlertTriangle size={10} /> DEADLOCK — tie, no majority</span>
+
+      {/* Divider */}
+      <span className="hidden sm:block w-px h-4 bg-dark-600" />
+
+      {/* Mode badges */}
+      <span className="text-slate-500 uppercase tracking-widest text-[9px]">Mode</span>
+      <span className="text-emerald-400">🚀 LIVE — executes real on-chain trades</span>
+      <span className="text-sky-400">✅ APPROVED — gate passed, awaiting deploy</span>
+      <span className="text-slate-400">📄 PAPER — simulated, no real funds</span>
+    </div>
+  )
+}
 
 function StatCard({ icon: Icon, label, value, sub, accent }: {
   icon: typeof Zap; label: string; value: string | number
@@ -325,9 +369,9 @@ export default function OpenClaw() {
         </div>
 
         <div className="flex items-center gap-3">
-          {/* Last refresh */}
+          {/* Last refresh — Eastern time */}
           <span className="text-xs text-slate-300 font-mono">
-            ↻ {lastRefresh.toLocaleTimeString()}
+            ↻ {toET(lastRefresh)}
           </span>
 
           {/* Manual trigger */}
@@ -357,6 +401,9 @@ export default function OpenClaw() {
           </div>
         </div>
       </div>
+
+      {/* ── Symbol Legend ── */}
+      <LegendBar />
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
