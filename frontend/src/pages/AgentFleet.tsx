@@ -131,7 +131,7 @@ export default function AgentFleet() {
           </div>
           <div className="flex items-center gap-3">
             <span className="text-[10px] text-slate-300">Updated every 60s by II Agent health-check loop</span>
-            {lastUpdated && <span className="text-[10px] text-slate-700">Last: {lastUpdated}</span>}
+            {lastUpdated && <span className="text-[10px] text-slate-400">Last: {lastUpdated}</span>}
             <button onClick={fetchBots} disabled={loading}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700/50 rounded text-[11px] text-slate-300 hover:text-white hover:border-slate-600 transition-colors">
               <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
@@ -140,11 +140,43 @@ export default function AgentFleet() {
           </div>
         </div>
 
+        {/* How it works — under Fleet Health */}
+        <div className="px-6 py-3 border-b border-slate-800/40 grid grid-cols-3 gap-x-8 gap-y-1 text-[10px]">
+          <div className="flex items-start gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0 mt-0.5" />
+            <span><span className="text-emerald-400 font-bold">GREEN</span><span className="text-slate-400 ml-1">Healthy — full consensus weight</span></span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-blue-400 font-bold flex-shrink-0">◆</span>
+            <span><span className="text-blue-400 font-bold">LEADERBOARD</span><span className="text-slate-400 ml-1">Ranked by win rate × net P&L. Top performers get more capital.</span></span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-emerald-400 font-bold flex-shrink-0">◇</span>
+            <span><span className="text-emerald-400 font-bold">GATE PASSED</span><span className="text-slate-400 ml-1">Profitability threshold met. Required for live promotion.</span></span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0 mt-0.5" />
+            <span><span className="text-yellow-400 font-bold">YELLOW</span><span className="text-slate-400 ml-1">Degraded — reduced consensus weight</span></span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-yellow-400 font-bold flex-shrink-0">⊙</span>
+            <span><span className="text-yellow-400 font-bold">BFT CONSENSUS</span><span className="text-slate-400 ml-1">Bots vote each cycle. OpenClaw needs ≥ 45% weighted agreement.</span></span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="text-slate-400 font-bold flex-shrink-0">✗</span>
+            <span><span className="text-slate-300 font-bold">PAPER</span><span className="text-slate-400 ml-1">Gate not yet cleared — trading in simulation only.</span></span>
+          </div>
+          <div className="flex items-start gap-2">
+            <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0 mt-0.5" />
+            <span><span className="text-red-400 font-bold">RED</span><span className="text-slate-400 ml-1">Critical — excluded from consensus</span></span>
+          </div>
+        </div>
+
         {/* Title row */}
         <div className="px-6 py-4 border-b border-slate-800/40 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-white tracking-wide">AGENT FLEET</h1>
-            <p className="text-[11px] text-slate-300 mt-0.5">
+            <p className="text-[11px] text-slate-400 mt-0.5">
               {bots.length} Specialized Trading Bot Sub-Agents · Ranked by Performance
             </p>
           </div>
@@ -235,34 +267,7 @@ export default function AgentFleet() {
             </tbody>
           </table>
 
-          {/* Legend */}
-          <div className="px-6 py-6 border-t border-slate-800/40 grid grid-cols-2 gap-x-12 gap-y-4 text-[11px]">
-            <div>
-              <div className="text-slate-300 mb-3 uppercase tracking-wider text-[9px]">Status Guide · How it works</div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
-                  <span className="text-emerald-400 font-bold">GREEN</span>
-                  <span className="text-slate-300">Healthy — full consensus weight</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0" />
-                  <span className="text-yellow-400 font-bold">YELLOW</span>
-                  <span className="text-slate-300">Degraded — reduced weight</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
-                  <span className="text-red-400 font-bold">RED</span>
-                  <span className="text-slate-300">Critical — excluded from consensus</span>
-                </div>
-              </div>
-            </div>
-            <div className="space-y-2 text-slate-300">
-              <div><span className="text-blue-400 font-bold">◆ LEADERBOARD RANKING</span><br />Ranked by win rate × net P&L. Top performers get more capital; under-performers are starved.</div>
-              <div><span className="text-yellow-400 font-bold">⊙ BFT CONSENSUS GATE</span><br />Each cycle, bots vote independently. OpenClaw needs ≥ 45% weighted agreement to execute.</div>
-              <div><span className="text-emerald-400 font-bold">◇ GATE PASSED</span><br />Awarded once backtest hits profitability threshold. Required for live trading promotion.</div>
-            </div>
-          </div>
+          
         </div>
       </div>
 
