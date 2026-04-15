@@ -9,18 +9,18 @@ import clsx from 'clsx'
 
 const navItems = [
   { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
+  { to: '/mission-control',  icon: Radio,           label: 'Mission Control' },
+  { to: '/fleet',            icon: Bot,             label: 'Agent Fleet'     },
   { to: '/ii-agent',         icon: Brain,           label: 'II Agent'        },
   { to: '/openclaw',         icon: Vote,            label: 'OpenClaw BFT'    },
   { to: '/alerts',           icon: Bell,            label: 'Alerts',         badge: true },
-  { to: '/mission-control',  icon: Radio,           label: 'Mission Control' },
-  { to: '/fleet',            icon: Bot,             label: 'Agent Fleet'     },
-  { to: '/risk',             icon: Shield,          label: 'Risk Config'     },
   { to: '/analytics',        icon: BarChart2,       label: 'Analytics'       },
-  { to: '/activity',         icon: Activity,        label: 'Activity Log'    },
+  { to: '/trades',           icon: ArrowLeftRight,  label: 'Trades'          },
   { to: '/trade-log',        icon: BookOpen,        label: 'Trade Log'       },
   { to: '/market',           icon: Globe,           label: 'Market Data'     },
-  { to: '/trades',           icon: ArrowLeftRight,  label: 'Trades'          },
   { to: '/strategies',       icon: TrendingUp,      label: 'Strategies'      },
+  { to: '/activity',         icon: Activity,        label: 'Activity Log'    },
+  { to: '/risk',             icon: Shield,          label: 'Risk Config'     },
   { to: '/wallet',           icon: Wallet,          label: 'Wallet'          },
   { to: '/settings',         icon: Settings,        label: 'Settings'        },
 ]
