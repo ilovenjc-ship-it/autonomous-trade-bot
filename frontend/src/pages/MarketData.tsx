@@ -4,6 +4,7 @@ import {
   ChevronUp, ChevronDown, Search, Filter, Star,
 } from 'lucide-react'
 import clsx from 'clsx'
+import api from '@/api/client'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Subnet {
@@ -43,7 +44,7 @@ function fmtUSD(n: number) {
   return `$${n.toFixed(0)}`
 }
 
-type SortKey = 'uid' | 'stake_tao' | 'apy' | 'emission' | 'miners' | 'score'
+type SortKey = 'uid' | 'stake_tao' | 'stake_usd' | 'apy' | 'emission' | 'miners' | 'score'
 
 // ── sub-components ────────────────────────────────────────────────────────────
 function TrendIcon({ trend }: { trend: string }) {
@@ -127,19 +128,17 @@ export default function MarketData() {
   const [autoRef,  setAutoRef]  = useState(true)
 
   const load = useCallback(async () => {
-    try {
-      const [ovRes, snRes] = await Promise.all([
-        fetch('/api/market/overview'),
-        fetch(`/api/market/subnets?sort=${sortCol}&order=${sortAsc ? 'asc' : 'desc'}&min_apy=${minApy}&search=${encodeURIComponent(search)}`),
-      ])
-      setOverview(await ovRes.json())
-      const snData = await snRes.json()
-      setSubnets(snData.subnets ?? [])
-    } catch (e) {
-      console.error('Market fetch error', e)
-    } finally {
-      setLoading(false)
-    }
+    const [ovRes, snRes] = await Promise.allSettled([
+      api.get('/market/overview'),
+      api.get('/market/subnets', {
+        params: { sort: sortCol, order: sortAsc ? 'asc' : 'desc', min_apy: minApy, search },
+      }),
+    ])
+    if (ovRes.status === 'fulfilled') setOverview(ovRes.value.data)
+    else console.error('Market overview fetch error', ovRes.reason)
+    if (snRes.status === 'fulfilled') setSubnets(snRes.value.data.subnets ?? [])
+    else console.error('Market subnets fetch error', snRes.reason)
+    setLoading(false)
   }, [sortCol, sortAsc, minApy, search])
 
   useEffect(() => { load() }, [load])
@@ -186,7 +185,7 @@ export default function MarketData() {
                   : 'bg-dark-700 text-slate-300 border-dark-600'
               )}
             >
-              <span className={clsx('w-1.5 h-1.5 rounded-full', autoRef ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
+              <span className={clsx('w-1.5 h-1.5 rounded-full', autoRef ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
               {autoRef ? 'AUTO' : 'MANUAL'}
             </button>
             <button
@@ -257,7 +256,7 @@ export default function MarketData() {
               <th className="px-4 py-3 text-left">Subnet</th>
               <th className="px-4 py-3 text-left">Ticker</th>
               <SortTh col="stake_tao"  label="Staked (τ)"  current={sortCol} order={sortAsc ? 'asc' : 'desc'} onClick={toggleSort} />
-              <SortTh col="stake_tao"  label="Staked ($)"  current={sortCol} order={sortAsc ? 'asc' : 'desc'} onClick={toggleSort} />
+              <SortTh col="stake_usd"  label="Staked ($)"  current={sortCol} order={sortAsc ? 'asc' : 'desc'} onClick={toggleSort} />
               <SortTh col="apy"        label="APY"         current={sortCol} order={sortAsc ? 'asc' : 'desc'} onClick={toggleSort} />
               <SortTh col="emission"   label="Emission"    current={sortCol} order={sortAsc ? 'asc' : 'desc'} onClick={toggleSort} />
               <SortTh col="miners"     label="Miners"      current={sortCol} order={sortAsc ? 'asc' : 'desc'} onClick={toggleSort} />
@@ -288,7 +287,7 @@ export default function MarketData() {
                 {/* Subnet name */}
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
-                    {s.uid <= 3 && <Star size={10} className="text-yellow-400 flex-shrink-0" />}
+                    {idx < 3 && <Star size={10} className="text-yellow-400 flex-shrink-0" />}
                     <div>
                       <p className="text-white font-medium">{s.name}</p>
                       <p className="text-slate-300 font-mono text-[10px]">SN{s.uid}</p>
