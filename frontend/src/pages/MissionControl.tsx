@@ -278,28 +278,8 @@ export default function MissionControl() {
       {/* ── TOP: Agent Fleet horizontal strip ─────────────────────────── */}
       <div className="flex-shrink-0 border-b border-slate-800/60">
         {/* Strip header */}
-        <div className="flex items-center gap-4 px-4 py-2 border-b border-slate-800/40">
-
-          {/* II Agent orb — top-left corner */}
-          <div className="flex items-center gap-2.5 pr-4 border-r border-slate-800/60 flex-shrink-0">
-            <div className="relative w-9 h-9">
-              <div className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-25" />
-              <div className="absolute inset-0 rounded-full flex items-center justify-center">
-                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500/30 to-blue-500/30 border border-emerald-500/40 flex items-center justify-center">
-                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]" />
-                </div>
-              </div>
-              <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/20"
-                style={{ animation: 'spin 8s linear infinite' }} />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase leading-none">II Agent</div>
-              <div className="text-[8px] text-slate-500 mt-0.5 tracking-wide">Autonomous Mode</div>
-            </div>
-          </div>
-
-          {/* Fleet label + counts */}
-          <div className="w-2 h-2 rounded-full bg-slate-400 shadow-[0_0_6px_#94a3b8] animate-pulse flex-shrink-0" />
+        <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800/40">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse flex-shrink-0" />
           <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Agent Fleet</span>
           {summary && (
             <div className="flex items-center gap-4 ml-1">
@@ -395,64 +375,7 @@ export default function MissionControl() {
           </div>
         </div>
 
-        {/* Chat interface */}
-        <div className="border-t border-slate-800/60 flex flex-col" style={{ height: '220px' }}>
-          <div className="px-4 py-2 border-b border-slate-800/40 flex items-center gap-2">
-            <Cpu size={12} className="text-emerald-400" />
-            <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>
-          </div>
-          <div ref={chatRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
-            {chat.length === 0 && (
-              <div className="text-[11px] text-slate-300 italic">Ask II Agent about price, strategy status, gate progress…</div>
-            )}
-            {chat.map((entry, i) => (
-              <div key={i} className={clsx('flex', entry.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div className={clsx(
-                  'max-w-[80%] px-3 py-2 rounded-lg text-[11px] leading-relaxed',
-                  entry.role === 'user'
-                    ? 'bg-blue-500/20 text-blue-100 rounded-br-sm'
-                    : 'bg-slate-800/80 text-slate-300 rounded-bl-sm border border-slate-700/50'
-                )}>
-                  {entry.role === 'agent' && (
-                    <div className="text-[9px] text-emerald-400 mb-1 font-bold tracking-wider">II AGENT</div>
-                  )}
-                  {entry.content}
-                </div>
-              </div>
-            ))}
-            {chatLoading && (
-              <div className="flex justify-start">
-                <div className="bg-slate-800/80 border border-slate-700/50 px-3 py-2 rounded-lg rounded-bl-sm">
-                  <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          <div className="px-3 py-2 border-t border-slate-800/40">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && sendChat()}
-                placeholder="Ask II Agent…"
-                className="flex-1 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-1.5 text-[11px] text-slate-100 placeholder-slate-600 outline-none focus:border-blue-500/50 transition-colors"
-              />
-              <button
-                onClick={sendChat}
-                disabled={chatLoading || !chatInput.trim()}
-                className="px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 rounded-lg text-blue-400 hover:bg-blue-500/30 disabled:opacity-40 transition-colors"
-              >
-                <Send size={12} />
-              </button>
-            </div>
-          </div>
         </div>
-      </div>
 
       {/* ── RIGHT: Command Panel ──────────────────────────────────────── */}
       <div className="w-52 flex-shrink-0 flex flex-col">
@@ -574,6 +497,92 @@ export default function MissionControl() {
       </div>
 
       </div>{/* end MAIN row */}
+
+      {/* ── BOTTOM: II Agent orb + Chat ───────────────────────────────── */}
+      <div className="flex-shrink-0 flex border-t border-slate-800/60" style={{ height: '210px' }}>
+
+        {/* Orb — bottom-left */}
+        <div className="flex-shrink-0 flex flex-col items-center justify-center gap-3 px-6 border-r border-slate-800/60 bg-slate-900/30"
+          style={{ width: '130px' }}>
+          <div className="relative w-14 h-14">
+            <div className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-25" />
+            <div className="absolute inset-1 rounded-full border border-emerald-500/20" />
+            <div className="absolute inset-0 rounded-full flex items-center justify-center">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500/30 to-blue-500/20 border border-emerald-500/40 flex items-center justify-center">
+                <div className="w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-[0_0_14px_#34d399]" />
+              </div>
+            </div>
+            <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/20"
+              style={{ animation: 'spin 8s linear infinite' }} />
+          </div>
+          <div className="text-center">
+            <div className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase leading-none">II Agent</div>
+            <div className="text-[8px] text-slate-500 mt-1 tracking-wide">Autonomous Mode</div>
+          </div>
+        </div>
+
+        {/* Chat window */}
+        <div className="flex-1 flex flex-col min-w-0">
+          <div className="px-4 py-2 border-b border-slate-800/40 flex items-center gap-2">
+            <Cpu size={12} className="text-emerald-400" />
+            <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>
+            <span className="ml-auto text-[8px] text-slate-600 italic">ask about price, bots, gate progress…</span>
+          </div>
+          <div ref={chatRef} className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
+            {chat.length === 0 && (
+              <div className="text-[11px] text-slate-500 italic mt-1">
+                Ask II Agent about strategy status, win rates, next cycle…
+              </div>
+            )}
+            {chat.map((entry, i) => (
+              <div key={i} className={clsx('flex', entry.role === 'user' ? 'justify-end' : 'justify-start')}>
+                <div className={clsx(
+                  'max-w-[75%] px-3 py-2 rounded-lg text-[11px] leading-relaxed',
+                  entry.role === 'user'
+                    ? 'bg-blue-500/20 text-blue-100 rounded-br-sm'
+                    : 'bg-slate-800/80 text-slate-300 rounded-bl-sm border border-slate-700/50'
+                )}>
+                  {entry.role === 'agent' && (
+                    <div className="text-[9px] text-emerald-400 mb-1 font-bold tracking-wider">II AGENT</div>
+                  )}
+                  {entry.content}
+                </div>
+              </div>
+            ))}
+            {chatLoading && (
+              <div className="flex justify-start">
+                <div className="bg-slate-800/80 border border-slate-700/50 px-3 py-2 rounded-lg rounded-bl-sm">
+                  <div className="flex gap-1">
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }} />
+                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }} />
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="px-3 py-2 border-t border-slate-800/40">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && sendChat()}
+                placeholder="Ask II Agent…"
+                className="flex-1 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-1.5 text-[11px] text-slate-100 placeholder-slate-600 outline-none focus:border-emerald-500/40 transition-colors"
+              />
+              <button
+                onClick={sendChat}
+                disabled={chatLoading || !chatInput.trim()}
+                className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-40 transition-colors"
+              >
+                <Send size={12} />
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
     </div>
   )
 }
