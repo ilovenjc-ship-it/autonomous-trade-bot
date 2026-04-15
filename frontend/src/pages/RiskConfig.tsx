@@ -89,18 +89,21 @@ export default function RiskConfig() {
   const [halting, setHalting] = useState(false)
 
   const fetchConfig = useCallback(async () => {
-    try {
-      const [cfg, st] = await Promise.all([
-        api.get('/fleet/risk/config').then(r => r.data),
-        api.get('/fleet/risk/status').then(r => r.data),
-      ])
-      if (cfg && typeof cfg.max_drawdown_pct === 'number') setConfig(cfg)
-      if (st) setStatus(st)
-    } catch {}
+    const [cfgRes, stRes] = await Promise.allSettled([
+      api.get('/fleet/risk/config').then(r => r.data),
+      api.get('/fleet/risk/status').then(r => r.data),
+    ])
+    if (cfgRes.status === 'fulfilled' && cfgRes.value && typeof cfgRes.value.max_drawdown_pct === 'number')
+      setConfig(cfgRes.value)
+    if (stRes.status === 'fulfilled' && stRes.value)
+      setStatus(stRes.value)
   }, [])
 
   useEffect(() => {
     fetchConfig()
+    // Auto-refresh risk status every 5 s — circuit breaker, drawdown, halt can change at any time
+    const t = setInterval(fetchConfig, 5000)
+    return () => clearInterval(t)
   }, [fetchConfig])
 
   const handleApply = async () => {
@@ -256,6 +259,24 @@ export default function RiskConfig() {
                   rangeLabel="0.4 — 0.95"
                   onChange={v => setConfig(c => ({ ...c, min_confidence_score: v }))}
                 />
+                <RiskSlider
+                  label="OpenClaw Consensus Threshold"
+                  description="Minimum fraction of bots that must agree direction for trade approval"
+                  value={config.consensus_threshold}
+                  min={0.4} max={0.9} step={0.05}
+                  format={v => `${(v * 100).toFixed(0)}% (${Math.ceil(v * 12)}/12 bots)`}
+                  rangeLabel="0.40 — 0.90"
+                  onChange={v => setConfig(c => ({ ...c, consensus_threshold: v }))}
+                />
+                <RiskSlider
+                  label="Cycle Interval (seconds)"
+                  description="How often each strategy bot evaluates and potentially trades"
+                  value={config.cycle_interval_seconds}
+                  min={60} max={3600} step={60}
+                  format={v => v >= 3600 ? '1 hr' : v >= 60 ? `${v / 60} min` : `${v}s`}
+                  rangeLabel="60s — 3600s"
+                  onChange={v => setConfig(c => ({ ...c, cycle_interval_seconds: v }))}
+                />
               </div>
             </div>
 
@@ -319,11 +340,17 @@ export default function RiskConfig() {
 
         {/* Open positions */}
         <div className="p-4 border-b border-slate-800/60">
-          <h3 className="text-[9px] text-slate-300 uppercase tracking-widest mb-3">Open Positions ({status?.open_positions || 0})</h3>
+          <h3 className="text-[9px] text-slate-300 uppercase tracking-widest mb-3">
+            Open Positions ({status?.open_positions || 0} / {status?.max_positions || config.max_concurrent_positions})
+          </h3>
           {(status?.open_positions || 0) === 0 ? (
-            <div className="text-center py-4 text-[11px] text-slate-700 italic">No open positions</div>
+            <div className="text-center py-4 text-[11px] text-slate-500 italic">
+              No open positions
+            </div>
           ) : (
-            <div className="text-[11px] text-slate-300">Positions loading…</div>
+            <div className="text-[11px] text-slate-400 italic">
+              Position detail available once LIVE strategies are deployed.
+            </div>
           )}
         </div>
 
@@ -332,13 +359,21 @@ export default function RiskConfig() {
           <h3 className="text-[9px] text-slate-300 uppercase tracking-widest mb-3">System Info</h3>
           <div className="space-y-1 text-[10px] text-slate-300">
             <div>
-              <span className="text-emerald-400">▶ Phase: </span>
-              <span className="text-emerald-400 font-bold">{status?.phase || 'LIVE TRADE'}</span>
+              <span className="text-slate-500">▶ Phase: </span>
+              <span className={clsx('font-bold', {
+                'text-emerald-400': status?.phase === 'LIVE',
+                'text-yellow-400':  status?.phase === 'APPROVED_FOR_LIVE',
+                'text-slate-300':   !status?.phase || status.phase === 'PAPER_ONLY' || status.phase === 'PAPER',
+              })}>
+                {status?.phase
+                  ? status.phase.replace(/_/g, ' ')
+                  : 'PAPER — no live strategies yet'}
+              </span>
             </div>
-            <div className="mt-2 leading-relaxed">
-              {config.max_concurrent_positions} bots approved & active for live execution.<br />
+            <div className="mt-2 leading-relaxed text-slate-400">
+              All 12 strategy bots run within these guardrails.<br />
               Circuit breaker + drawdown limits enforced each cycle.<br />
-              Changes apply from the next cycle onwards.
+              Changes take effect from the next evaluation cycle.
             </div>
           </div>
         </div>

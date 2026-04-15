@@ -1288,6 +1288,120 @@ def section_market_data():
     ]
 
 
+# ─── Section: Risk Config Page Walkthrough ───────────────────────────────────
+
+def section_risk_config():
+    return [
+        *section_header("Risk Configuration — Page Walkthrough",
+                        "The pre-trade guardrail panel — set once, bot operates autonomously within limits"),
+
+        body(
+            "The Risk Configuration page is the safety boundary of the entire system. "
+            "Every number here is a hard constraint — not a suggestion. The bot operates "
+            "autonomously within whatever you define here. Set it wrong and the bot will follow it "
+            "wrong. Set it right and you can walk away knowing the system cannot exceed your risk tolerance."
+        ),
+
+        spacer(8),
+        h2("Page Layout"),
+        body(
+            "Two-panel layout: left panel holds all the sliders; right panel shows live risk status. "
+            "The right panel auto-refreshes every 5 seconds — drawdown, circuit breaker, and halt "
+            "status update in real time without a manual refresh. The Emergency Halt button lives "
+            "in the top-right of the header — one click, all trading stops."
+        ),
+
+        spacer(8),
+        h2("Slider Reference — All 9 Guardrails"),
+        data_table(
+            ["Parameter", "Default", "Range", "What It Controls"],
+            [
+                ["Max Drawdown %",        "45%",   "5–50%",    "Portfolio drop % that triggers global halt — the ceiling on total portfolio pain"],
+                ["Stop Loss %",           "8%",    "0.5–20%",  "Per-trade stop-loss as % of position — exits automatically if trade goes this far against you"],
+                ["Take Profit %",         "25%",   "1–50%",    "Per-trade take-profit — closes and locks in the gain when hit"],
+                ["Max Position Size %",   "30%",   "1–50%",    "Maximum % of portfolio per single trade — limits concentration risk"],
+                ["Max Concurrent Positions", "4",  "1–20",     "How many open trades can exist simultaneously across all 12 bots"],
+                ["Daily Circuit Breaker %","40%",  "2–50%",    "Daily portfolio drop % that halts all trading for the rest of the day"],
+                ["Min AI Confidence",     "0.60",  "0.40–0.95","Minimum confidence score a bot must have to execute — filters low-conviction signals"],
+                ["OpenClaw Consensus %",  "45%",   "40–90%",   "Fraction of 12 bots that must vote the same direction — shown as X/12 bots live"],
+                ["Cycle Interval",        "10 min","60s–1hr",  "How often each strategy evaluates and potentially trades — lower = more active"],
+            ],
+            col_widths=[1.6*inch, 0.65*inch, 0.75*inch, 3.4*inch]
+        ),
+
+        spacer(8),
+        callout_box(
+            "The consensus threshold slider is particularly important: at 45% (the default), "
+            "6 of 12 bots must agree. At 58% (7/12), you get the full supermajority. "
+            "Raising it makes the system more conservative — fewer trades, higher conviction. "
+            "The slider shows the math live: '58% (7/12 bots)' so there is no ambiguity.",
+            BLUE
+        ),
+
+        spacer(12),
+        h2("Live Risk Status Panel (Right Side)"),
+        data_table(
+            ["Indicator", "Green / Safe", "Red / Danger"],
+            [
+                ["Global HALT",     "CLEAR — trading running normally",        "ACTIVE — all bots suspended, manual release required"],
+                ["Circuit Breaker", "CLEAR — daily loss within limit",         "TRIGGERED — daily loss % exceeded, auto-halted for the day"],
+                ["Drawdown bar",    "Green fill — within comfortable range",   "Yellow >20% / Red >35% — approaching or near halt threshold"],
+                ["Daily Loss %",    "Near zero",                               "Approaching daily_circuit_breaker_pct value"],
+                ["Open Positions",  "Within max_concurrent_positions limit",   "At limit — no new trades until one closes"],
+            ],
+            col_widths=[1.5*inch, 2.2*inch, 2.7*inch]
+        ),
+
+        spacer(8),
+        h2("Phase Display — The Fix"),
+        body(
+            "Before this session, the Phase field in the System Info panel showed a hardcoded "
+            "'LIVE TRADE' fallback string — even with no live strategies running. "
+            "This was confusing: it made the system appear to be executing real trades when "
+            "everything was paper only. The fix: the phase now reads from the actual backend "
+            "status object. When no LIVE strategies are deployed, it shows "
+            "'PAPER — no live strategies yet' in neutral grey. When a strategy is promoted, "
+            "it updates to APPROVED (yellow) or LIVE (green) accordingly."
+        ),
+
+        spacer(8),
+        h2("UI Improvements Applied — This Session"),
+        data_table(
+            ["Change", "Before", "After"],
+            [
+                ["Phase fallback",   "'LIVE TRADE' hardcoded — showed even with all paper bots",
+                                     "'PAPER — no live strategies yet' in slate grey; goes green/yellow when status returns a real phase"],
+                ["Data fetch",       "Promise.all — one endpoint failing silenced both panels",
+                                     "Promise.allSettled — config and status load independently"],
+                ["Auto-refresh",     "Risk status loaded once on mount, then stale",
+                                     "setInterval 5 s — drawdown, halt, circuit breaker update live"],
+                ["Missing sliders",  "consensus_threshold + cycle_interval_seconds in config but no UI",
+                                     "Two new sliders added: Consensus % (shows X/12 live) and Cycle Interval (min/hr formatted)"],
+                ["Empty state",      "'No open positions' in text-slate-700 — invisible on dark bg",
+                                     "Bumped to text-slate-500 — legible"],
+                ["Position panel",   "'Positions loading…' shown forever when positions > 0",
+                                     "Clean placeholder: 'Position detail available once LIVE strategies are deployed'"],
+                ["System info copy", "'X bots approved & active for live execution' — wrong context during paper trading",
+                                     "'All 12 strategy bots run within these guardrails' — always accurate"],
+            ],
+            col_widths=[1.4*inch, 2.0*inch, 3.0*inch]
+        ),
+
+        spacer(8),
+        callout_box(
+            "Risk Config is the quietest page in the app — and that's exactly right. "
+            "You set the numbers once, and then you don't have to think about them again. "
+            "The system enforces them automatically every cycle, every trade, every vote. "
+            "The one thing it must never do is lie about what phase it's in. "
+            "The 'LIVE TRADE' fallback was a small label — but it said the wrong thing "
+            "at the most important moment. That's fixed.",
+            GREEN
+        ),
+
+        PageBreak(),
+    ]
+
+
 # ─── Section 6: Core Services (renumbered) ───────────────────────────────────
 
 def section_services():
@@ -1741,6 +1855,7 @@ def build():
     story += section_market_data()
     story += section_openclaw()
     story += section_alerts()
+    story += section_risk_config()
     story += section_services()
     story += section_conversations()
     story += section_next_steps()
