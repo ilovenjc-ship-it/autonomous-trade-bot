@@ -1,8 +1,9 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
-  Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell, Mic, MicOff,
+  Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
+  Mic, Send, ChevronDown,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -33,58 +34,65 @@ export default function Layout() {
   const price = status?.current_price
   const { unreadCount } = useAlerts()
 
-  // ── Push-to-talk state ────────────────────────────────────────────
-  const [listening, setListening]   = useState(false)
-  const [orbPopup,  setOrbPopup]    = useState<{ text: string; kind: 'transcript' | 'response' | 'error' } | null>(null)
-  const recognitionRef  = useRef<any>(null)
-  const popupTimerRef   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // ── Orb toggle + floating chat state ─────────────────────────────
+  const [orbOpen,     setOrbOpen]     = useState(false)
+  const [chatHistory, setChatHistory] = useState<{ role: string; content: string }[]>([])
+  const [chatInput,   setChatInput]   = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const [listening,   setListening]   = useState(false)
+  const [voiceHint,   setVoiceHint]   = useState<string | null>(null)
 
-  const showPopup = (text: string, kind: 'transcript' | 'response' | 'error', autoDismiss = 7000) => {
-    if (popupTimerRef.current) clearTimeout(popupTimerRef.current)
-    setOrbPopup({ text, kind })
-    if (autoDismiss > 0) {
-      popupTimerRef.current = setTimeout(() => setOrbPopup(null), autoDismiss)
+  const chatPanelRef  = useRef<HTMLDivElement>(null)
+  const recognitionRef = useRef<any>(null)
+
+  // Auto-scroll chat panel
+  useEffect(() => {
+    if (chatPanelRef.current) {
+      chatPanelRef.current.scrollTop = chatPanelRef.current.scrollHeight
     }
-  }
+  }, [chatHistory, chatLoading])
 
-  const handleOrbClick = useCallback(async () => {
-    // Stop if already listening
-    if (listening) {
-      recognitionRef.current?.stop()
-      setListening(false)
-      return
+  // Load chat history when panel opens
+  useEffect(() => {
+    if (orbOpen && chatHistory.length === 0) {
+      api.get('/fleet/chat/history').then(r => setChatHistory(r.data.history ?? [])).catch(() => {})
     }
+  }, [orbOpen])
 
+  const sendMessage = useCallback(async (text: string) => {
+    const msg = text.trim()
+    if (!msg || chatLoading) return
+    setChatInput('')
+    setChatLoading(true)
+    setChatHistory(prev => [...prev, { role: 'user', content: msg }])
+    try {
+      const data = await api.post('/fleet/chat', { message: msg }).then(r => r.data)
+      setChatHistory(data.history ?? [])
+    } catch {
+      setChatHistory(prev => [...prev, { role: 'agent', content: 'Connection error. Please retry.' }])
+    } finally {
+      setChatLoading(false)
+    }
+  }, [chatLoading])
+
+  const startVoice = useCallback(() => {
+    if (listening) { recognitionRef.current?.stop(); return }
     const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
-    if (!SR) {
-      showPopup('Voice not supported in this browser', 'error')
-      return
-    }
+    if (!SR) { setVoiceHint('Voice not supported in this browser'); return }
 
     const rec = new SR()
-    rec.continuous   = false
-    rec.interimResults = false
-    rec.lang         = 'en-US'
-
-    rec.onstart  = () => { setListening(true); setOrbPopup(null) }
+    rec.continuous = false; rec.interimResults = false; rec.lang = 'en-US'
+    rec.onstart  = () => { setListening(true); setVoiceHint(null) }
     rec.onend    = () => setListening(false)
-    rec.onerror  = () => { setListening(false); showPopup('Mic error — check permissions', 'error') }
-
-    rec.onresult = async (e: any) => {
-      const transcript = e.results[0][0].transcript
-      showPopup(`"${transcript}"`, 'transcript', 0)   // hold until response arrives
-      try {
-        const data = await api.post('/fleet/chat', { message: transcript }).then(r => r.data)
-        const last = (data.history ?? []).findLast((m: any) => m.role === 'agent')
-        showPopup(last?.content ?? 'No response', 'response')
-      } catch {
-        showPopup('II Agent unreachable', 'error')
-      }
+    rec.onerror  = () => { setListening(false); setVoiceHint('Mic error — check permissions') }
+    rec.onresult = (e: any) => {
+      const t = e.results[0][0].transcript
+      setVoiceHint(null)
+      sendMessage(t)
     }
-
     recognitionRef.current = rec
     rec.start()
-  }, [listening])
+  }, [listening, sendMessage])
 
   return (
     <div className="flex h-screen overflow-hidden bg-dark-900">
@@ -133,78 +141,156 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* II Agent Orb — push to talk */}
-        <div className="px-4 py-5 border-t border-dark-600 flex flex-col items-center gap-3">
-          <div className="relative flex flex-col items-center">
+        {/* II Agent Orb — toggle chat panel */}
+        <div className="px-4 py-5 border-t border-dark-600 flex flex-col items-center gap-3 relative">
 
-            {/* Speech bubble popup */}
-            {orbPopup && (
-              <div className={clsx(
-                'absolute bottom-[calc(100%+12px)] left-1/2 -translate-x-1/2 w-44 text-[10px] leading-snug px-3 py-2 rounded-lg border shadow-xl z-50 text-center',
-                orbPopup.kind === 'response' && 'bg-slate-800 border-emerald-500/30 text-slate-200',
-                orbPopup.kind === 'transcript' && 'bg-slate-900 border-slate-600/50 text-slate-400 italic',
-                orbPopup.kind === 'error'    && 'bg-red-950/60 border-red-500/30 text-red-300',
-              )}>
-                {orbPopup.text}
-                {/* Tail */}
-                <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-0 h-0
-                  border-l-[6px] border-r-[6px] border-t-[6px]
-                  border-l-transparent border-r-transparent
-                  border-t-slate-700" />
+          {/* ── Floating chat panel (slides up from orb when orbOpen) ── */}
+          {orbOpen && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-[300px] z-50
+              bg-[#0d1526] border border-emerald-500/25 rounded-xl shadow-[0_0_40px_rgba(52,211,153,0.12)]
+              flex flex-col overflow-hidden"
+              style={{ height: 360 }}>
+
+              {/* Panel header */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/60 flex-shrink-0">
+                <div className="flex items-center gap-2">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] animate-pulse" />
+                  <span className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">II Agent</span>
+                </div>
+                <button onClick={() => setOrbOpen(false)} className="text-slate-500 hover:text-slate-300 transition-colors">
+                  <ChevronDown size={14} />
+                </button>
               </div>
-            )}
 
-            {/* The orb button */}
-            <button
-              onClick={handleOrbClick}
-              title={listening ? 'Tap to stop listening' : 'Push to talk — ask II Agent'}
-              className="relative w-20 h-20 group focus:outline-none"
-            >
-              {/* Listening pulse ring */}
-              {listening && (
-                <span className="absolute inset-0 rounded-full border-2 border-emerald-400/70 animate-ping" />
-              )}
-              {/* Idle outer ping */}
-              {!listening && (
-                <span className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-20" />
-              )}
-              {/* Inner static ring */}
-              <span className="absolute inset-1 rounded-full border border-emerald-500/15" />
-              {/* Core shell */}
+              {/* Messages */}
+              <div ref={chatPanelRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+                {chatHistory.length === 0 && !chatLoading && (
+                  <p className="text-[10px] text-slate-500 italic text-center mt-4">
+                    Ask II Agent anything about the fleet…
+                  </p>
+                )}
+                {chatHistory.map((m, i) => (
+                  <div key={i} className={clsx('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
+                    <div className={clsx(
+                      'max-w-[85%] px-2.5 py-1.5 rounded-lg text-[11px] leading-relaxed',
+                      m.role === 'user'
+                        ? 'bg-blue-500/20 text-blue-100 rounded-br-sm'
+                        : 'bg-slate-800/80 text-slate-200 rounded-bl-sm border border-slate-700/40'
+                    )}>
+                      {m.role === 'agent' && (
+                        <div className="text-[8px] text-emerald-400 mb-0.5 font-bold tracking-wider">II AGENT</div>
+                      )}
+                      {m.content}
+                    </div>
+                  </div>
+                ))}
+                {chatLoading && (
+                  <div className="flex justify-start">
+                    <div className="bg-slate-800/80 border border-slate-700/40 px-3 py-2 rounded-lg rounded-bl-sm flex gap-1">
+                      {[0, 150, 300].map(d => (
+                        <div key={d} className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {voiceHint && (
+                  <p className="text-[9px] text-red-400 text-center">{voiceHint}</p>
+                )}
+              </div>
+
+              {/* Input row */}
+              <div className="px-3 py-2 border-t border-slate-800/60 flex-shrink-0 flex gap-2">
+                <input
+                  autoFocus
+                  type="text"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && sendMessage(chatInput)}
+                  placeholder="Ask II Agent…"
+                  className="flex-1 bg-slate-800/60 border border-slate-700/40 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500/40 transition-colors"
+                />
+                {/* Mic button — voice option */}
+                <button
+                  onClick={startVoice}
+                  title={listening ? 'Stop listening' : 'Voice input'}
+                  className={clsx(
+                    'px-2 py-1.5 rounded-lg border transition-all duration-200',
+                    listening
+                      ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 animate-pulse'
+                      : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30'
+                  )}
+                >
+                  <Mic size={12} />
+                </button>
+                <button
+                  onClick={() => sendMessage(chatInput)}
+                  disabled={chatLoading || !chatInput.trim()}
+                  className="px-2.5 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-40 transition-colors"
+                >
+                  <Send size={12} />
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── The orb button (toggle) ── */}
+          <button
+            onClick={() => setOrbOpen(o => !o)}
+            title={orbOpen ? 'Close II Agent' : 'Open II Agent chat'}
+            className="relative w-20 h-20 group focus:outline-none"
+          >
+            {/* Active: strong outer pulse rings */}
+            {orbOpen && (
+              <>
+                <span className="absolute inset-0 rounded-full border-2 border-emerald-400/50 animate-ping" />
+                <span className="absolute -inset-2 rounded-full border border-emerald-500/20 animate-ping"
+                  style={{ animationDuration: '1.8s', animationDelay: '0.4s' }} />
+              </>
+            )}
+            {/* Idle outer ping */}
+            {!orbOpen && (
+              <span className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-20" />
+            )}
+            {/* Inner ring */}
+            <span className={clsx(
+              'absolute inset-1 rounded-full border transition-all duration-500',
+              orbOpen ? 'border-emerald-500/40' : 'border-emerald-500/15'
+            )} />
+            {/* Core shell */}
+            <span className={clsx(
+              'absolute inset-0 rounded-full flex items-center justify-center transition-all duration-300',
+              'group-hover:scale-105 group-active:scale-95',
+              orbOpen && 'scale-105',
+            )}>
               <span className={clsx(
-                'absolute inset-0 rounded-full flex items-center justify-center transition-all duration-200',
-                'group-hover:scale-105 group-active:scale-95',
-                listening && 'scale-105',
+                'w-14 h-14 rounded-full border flex items-center justify-center transition-all duration-500',
+                orbOpen
+                  ? 'bg-gradient-to-br from-emerald-500/50 to-blue-500/30 border-emerald-400/60 shadow-[0_0_36px_rgba(52,211,153,0.55)]'
+                  : 'bg-gradient-to-br from-emerald-500/25 to-blue-500/15 border-emerald-500/35 group-hover:from-emerald-500/40 group-hover:border-emerald-400/55 group-hover:shadow-[0_0_22px_rgba(52,211,153,0.3)]',
               )}>
-                <span className={clsx(
-                  'w-14 h-14 rounded-full border flex items-center justify-center transition-all duration-300',
-                  listening
-                    ? 'bg-gradient-to-br from-emerald-500/55 to-blue-500/35 border-emerald-400/70 shadow-[0_0_28px_rgba(52,211,153,0.4)]'
-                    : 'bg-gradient-to-br from-emerald-500/25 to-blue-500/15 border-emerald-500/35 group-hover:from-emerald-500/40 group-hover:border-emerald-400/55',
-                )}>
-                  {/* Core dot or mic icon */}
-                  {listening
-                    ? <Mic size={18} className="text-emerald-300 animate-pulse" />
-                    : <div className="w-5 h-5 rounded-full bg-emerald-400 shadow-[0_0_20px_#34d399] group-hover:shadow-[0_0_28px_#34d399] transition-all duration-200" />
-                  }
-                </span>
+                <div className={clsx(
+                  'rounded-full transition-all duration-500',
+                  orbOpen
+                    ? 'w-6 h-6 bg-emerald-300 shadow-[0_0_28px_#34d399,0_0_60px_rgba(52,211,153,0.4)]'
+                    : 'w-5 h-5 bg-emerald-400 shadow-[0_0_20px_#34d399] group-hover:shadow-[0_0_28px_#34d399]'
+                )} />
               </span>
-              {/* Orbit ring */}
-              <span
-                className="absolute inset-0 rounded-full border border-dashed border-emerald-500/25"
-                style={{ animation: listening ? 'spin 2.5s linear infinite' : 'spin 8s linear infinite' }}
-              />
-            </button>
-          </div>
+            </span>
+            {/* Orbit ring — spins faster when active */}
+            <span
+              className="absolute inset-0 rounded-full border border-dashed border-emerald-500/25"
+              style={{ animation: orbOpen ? 'spin 2s linear infinite' : 'spin 8s linear infinite' }}
+            />
+          </button>
 
           {/* Label */}
           <div className="text-center">
             <div className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase leading-none">II Agent</div>
             <div className={clsx(
-              'text-[8px] mt-0.5 font-mono transition-colors duration-200',
-              listening ? 'text-emerald-400 animate-pulse' : 'text-slate-400'
+              'text-[8px] mt-0.5 font-mono transition-colors duration-300',
+              orbOpen ? 'text-emerald-400 animate-pulse' : 'text-slate-500'
             )}>
-              {listening ? '● listening…' : 'push to talk'}
+              {listening ? '● listening…' : orbOpen ? '● active' : 'tap to chat'}
             </div>
           </div>
         </div>
