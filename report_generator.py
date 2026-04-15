@@ -1547,6 +1547,89 @@ def section_wallet():
     ]
 
 
+# ─── Section: Settings Page Walkthrough ──────────────────────────────────────
+
+def section_settings():
+    return [
+        *section_header("Settings — Page Walkthrough",
+                        "Bot behaviour, trade sizing, network identity"),
+
+        body(
+            "Settings is the operational layer of the system — it defines how the bot behaves, "
+            "how much it trades, and what network it runs on. It is distinct from Risk Config, "
+            "which manages guardrails and halt conditions. Settings is about normal operation; "
+            "Risk Config is about boundaries. Both pages are needed; neither overlaps."
+        ),
+
+        spacer(8),
+        h2("What Was Wrong Before"),
+        data_table(
+            ["Issue", "Detail"],
+            [
+                ["Risk Config duplicates",   "Stop Loss % and Take Profit % appeared on both Settings and Risk Config — two authoritative sources for the same value"],
+                ["No input validation",      "Number inputs had no min, max, or step — free-text entry, could accept 'abc' or negative values"],
+                ["Raw interval display",     "Trade Interval showed seconds only — '600' with no indication that's 10 minutes"],
+                ["No simulation badge",      "Whether the system was in paper or live mode was not surfaced on this page"],
+                ["No mainnet warning",       "Switching to Finney mainnet looked identical to switching to testnet — no visual distinction"],
+                ["Missing field hints",      "max_trade_amount, min_trade_amount, wallet_hotkey, netuid had no descriptions"],
+                ["Dead Danger Zone",         "'Reset All Trade Data' fired a toast: 'Reset is disabled in this build for safety' — no useful outcome"],
+                ["Visual design",            "Plain text inputs with no icons, no sections, no hierarchy"],
+            ],
+            col_widths=[1.7*inch, 4.7*inch]
+        ),
+
+        spacer(8),
+        h2("Redesigned Page Structure"),
+        data_table(
+            ["Section", "Fields", "Notes"],
+            [
+                ["Trade Execution",    "Trade Amount · Max Trade Amount · Min Trade Amount · Trade Interval · Max Daily Trades",
+                                       "All number inputs have min/max/step + τ suffix. Interval shows '10 min' inline in the hint."],
+                ["Network & Identity", "Network (dropdown) · Subnet UID · Wallet Name · Hotkey Name",
+                                       "Network shows amber FINNEY MAINNET warning when mainnet selected. Blue callout redirects to Risk Config for stop-loss/take-profit."],
+                ["Danger Zone",        "Reset All Trade Data",
+                                       "Two-step confirmation: first click arms it, shows 'Are you sure?' with Cancel/Confirm. No accidental resets."],
+            ],
+            col_widths=[1.4*inch, 2.4*inch, 2.6*inch]
+        ),
+
+        spacer(8),
+        h2("Status Badges at the Top"),
+        body(
+            "Two context badges appear below the header. The first shows the current trading mode: "
+            "'PAPER MODE — no real funds at risk' (grey) or 'LIVE MODE — real TAO executing' (emerald). "
+            "The second appears only when Finney mainnet is selected: 'FINNEY MAINNET — real money' in amber. "
+            "This makes the stakes immediately visible before any field is touched."
+        ),
+
+        spacer(8),
+        h2("What Was Removed"),
+        data_table(
+            ["Removed", "Reason"],
+            [
+                ["Stop Loss % field",    "Authoritative setting lives in Risk Config — having it in two places created silent conflicts"],
+                ["Take Profit % field",  "Same reason — Risk Config is the single source of truth for all guardrail values"],
+                ["active_strategy field","Obsolete — all 12 strategies run simultaneously, no single 'active' strategy exists"],
+            ],
+            col_widths=[1.7*inch, 4.7*inch]
+        ),
+
+        spacer(8),
+        callout_box(
+            "Settings is the page you configure once and rarely revisit. "
+            "The job of the design is to make that one visit clear and safe. "
+            "Every field has a label, a hint, validation bounds, and a unit suffix. "
+            "The mainnet warning is impossible to miss. The reset confirmation makes "
+            "it impossible to accidentally delete history. And there's a direct signpost "
+            "to Risk Config for anyone looking for stop-loss controls. "
+            "Simple, honest, unambiguous.",
+            BLUE
+        ),
+
+        PageBreak(),
+    ]
+
+
 # ─── Section 6: Core Services (renumbered) ───────────────────────────────────
 
 def section_services():
@@ -2002,6 +2085,7 @@ def build():
     story += section_alerts()
     story += section_risk_config()
     story += section_wallet()
+    story += section_settings()
     story += section_services()
     story += section_conversations()
     story += section_next_steps()

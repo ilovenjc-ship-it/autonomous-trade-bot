@@ -2,17 +2,91 @@ import { useEffect, useState } from 'react'
 import { useBotStore } from '@/store/botStore'
 import { botApi } from '@/api/client'
 import type { BotConfig } from '@/types'
-import { Save, Settings as SettingsIcon } from 'lucide-react'
+import {
+  Save, Settings as SettingsIcon, ArrowLeftRight, Clock,
+  Globe, Hash, KeyRound, User, AlertTriangle, RefreshCw,
+  FlaskConical, Wifi,
+} from 'lucide-react'
 import toast from 'react-hot-toast'
+import clsx from 'clsx'
 
+// ── helpers ───────────────────────────────────────────────────────────────────
+function fmtInterval(s: number): string {
+  if (!s || s <= 0) return '—'
+  if (s < 60)  return `${s}s`
+  if (s < 3600) return `${Math.round(s / 60)} min`
+  return `${(s / 3600).toFixed(1)} hr`
+}
+
+// ── field components ──────────────────────────────────────────────────────────
+function FieldRow({
+  icon: Icon, label, hint, children,
+}: {
+  icon: React.ElementType; label: string; hint?: string; children: React.ReactNode
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <div className="mt-6 p-1.5 rounded-lg bg-dark-700 border border-dark-600 flex-shrink-0">
+        <Icon size={13} className="text-slate-400" />
+      </div>
+      <div className="flex-1 min-w-0">
+        <label className="block text-xs font-semibold text-slate-300 mb-1">{label}</label>
+        {children}
+        {hint && <p className="text-[10px] text-slate-500 mt-1 leading-snug">{hint}</p>}
+      </div>
+    </div>
+  )
+}
+
+function NumberInput({
+  value, onChange, min, max, step, suffix,
+}: {
+  value: number | undefined; onChange: (v: number) => void
+  min?: number; max?: number; step?: number; suffix?: string
+}) {
+  return (
+    <div className="relative">
+      <input
+        type="number"
+        value={value ?? ''}
+        min={min} max={max} step={step ?? 'any'}
+        onChange={e => onChange(parseFloat(e.target.value))}
+        className="input w-full pr-12"
+      />
+      {suffix && (
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 font-mono pointer-events-none">
+          {suffix}
+        </span>
+      )}
+    </div>
+  )
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 space-y-5">
+      <h2 className="text-xs font-bold text-slate-400 uppercase tracking-widest border-b border-dark-600 pb-3">
+        {title}
+      </h2>
+      {children}
+    </div>
+  )
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 export default function Settings() {
   const { status, fetchStatus } = useBotStore()
-  const [config, setConfig] = useState<Partial<BotConfig>>({})
-  const [saving, setSaving] = useState(false)
+  const [config,       setConfig]       = useState<Partial<BotConfig>>({})
+  const [saving,       setSaving]       = useState(false)
+  const [resetArmed,   setResetArmed]   = useState(false)   // two-step confirm
+  const [resetting,    setResetting]    = useState(false)
 
   useEffect(() => {
-    botApi.getConfig().then((c) => setConfig(c)).catch(console.error)
+    botApi.getConfig().then(c => setConfig(c)).catch(console.error)
   }, [])
+
+  const set = <K extends keyof BotConfig>(k: K, v: BotConfig[K]) =>
+    setConfig(c => ({ ...c, [k]: v }))
 
   const handleSave = async () => {
     setSaving(true)
@@ -27,94 +101,215 @@ export default function Settings() {
     }
   }
 
-  const field = (
-    key: keyof BotConfig,
-    label: string,
-    type: 'number' | 'text' = 'number',
-    hint?: string
-  ) => (
-    <div>
-      <label className="block text-xs text-slate-300 mb-1">{label}</label>
-      <input
-        type={type}
-        value={(config[key] as string | number | undefined) ?? ''}
-        onChange={(e) =>
-          setConfig((c) => ({
-            ...c,
-            [key]: type === 'number' ? parseFloat(e.target.value) : e.target.value,
-          }))
-        }
-        className="input"
-      />
-      {hint && <p className="text-[10px] text-slate-300 mt-1">{hint}</p>}
-    </div>
-  )
+  const handleReset = async () => {
+    setResetting(true)
+    try {
+      // Soft reset — clears trade history, keeps wallet + config
+      await botApi.updateConfig({ _reset_trades: true } as Record<string, unknown>)
+      toast.success('Trade history cleared')
+      setResetArmed(false)
+    } catch {
+      toast.error('Reset failed — no data was changed')
+    } finally {
+      setResetting(false)
+    }
+  }
+
+  const isMainnet    = (config.network ?? 'finney') === 'finney'
+  const isRunning    = status?.is_running ?? false
+  const simMode      = status?.simulation_mode ?? true
+  const tradeInterval = config.trade_interval ?? 0
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="p-6 space-y-6 animate-fade-in max-w-3xl">
+
+      {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-white flex items-center gap-2">
-          <SettingsIcon size={18} /> Settings
-        </h1>
-        <button onClick={handleSave} disabled={saving} className="btn-primary flex items-center gap-2">
-          <Save size={14} />
+        <div>
+          <h1 className="text-xl font-semibold text-white flex items-center gap-2">
+            <SettingsIcon size={18} className="text-slate-400" /> Settings
+          </h1>
+          <p className="text-xs text-slate-500 mt-0.5">Bot behaviour, trade sizing, network identity</p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 px-4 py-2 bg-accent-blue/15 border border-accent-blue/30 rounded-lg text-accent-blue text-xs font-semibold hover:bg-accent-blue/25 disabled:opacity-50 transition-colors"
+        >
+          <Save size={13} />
           {saving ? 'Saving…' : 'Save Config'}
         </button>
       </div>
 
-      {status?.is_running && (
-        <div className="px-4 py-2 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-xs">
-          ⚠ Bot is running. Settings will apply on the next trading cycle.
+      {/* ── Status banners ─────────────────────────────────────────────────── */}
+      {isRunning && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-xs">
+          <AlertTriangle size={13} />
+          Bot is running — changes apply from the next trading cycle.
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Trading */}
-        <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-white border-b border-dark-600 pb-2">Trading</h2>
-          {field('trade_amount', 'Trade Amount (TAO)', 'number', 'Amount of TAO per trade')}
-          {field('max_trade_amount', 'Max Trade Amount (TAO)')}
-          {field('min_trade_amount', 'Min Trade Amount (TAO)')}
-          {field('trade_interval', 'Trade Interval (seconds)', 'number', 'Time between trading cycles')}
-          {field('max_daily_trades', 'Max Daily Trades', 'number', 'Hard limit on trades per day')}
-        </div>
+      {/* Mode badge row */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className={clsx(
+          'flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold border',
+          simMode
+            ? 'bg-slate-700/60 text-slate-300 border-slate-600'
+            : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+        )}>
+          <FlaskConical size={11} />
+          {simMode ? 'PAPER MODE — no real funds at risk' : 'LIVE MODE — real TAO executing'}
+        </span>
 
-        {/* Risk */}
-        <div className="card p-4 space-y-4">
-          <h2 className="text-sm font-semibold text-white border-b border-dark-600 pb-2">Risk Management</h2>
-          {field('stop_loss_pct', 'Stop Loss %', 'number', 'Exit trade if loss exceeds this %')}
-          {field('take_profit_pct', 'Take Profit %', 'number', 'Exit trade when profit reaches this %')}
-
-          <h2 className="text-sm font-semibold text-white border-b border-dark-600 pb-2 pt-2">Network</h2>
-          <div>
-            <label className="block text-xs text-slate-300 mb-1">Network</label>
-            <select
-              value={config.network ?? 'finney'}
-              onChange={(e) => setConfig((c) => ({ ...c, network: e.target.value }))}
-              className="input"
-            >
-              <option value="finney">Finney (Mainnet)</option>
-              <option value="test">Testnet</option>
-              <option value="local">Local</option>
-            </select>
-          </div>
-          {field('netuid', 'Subnet UID (netuid)', 'number', 'Bittensor subnet ID')}
-        </div>
+        {isMainnet && (
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold border bg-amber-500/10 text-amber-400 border-amber-500/30">
+            <AlertTriangle size={11} />
+            FINNEY MAINNET — real money
+          </span>
+        )}
       </div>
 
-      {/* Danger zone */}
-      <div className="card p-4 border-accent-red/20">
-        <h2 className="text-sm font-semibold text-accent-red mb-2">Danger Zone</h2>
-        <p className="text-xs text-slate-300 mb-3">
-          These actions are irreversible. Resetting clears all trade history from the local database.
+      {/* ── Trade Execution ────────────────────────────────────────────────── */}
+      <Section title="Trade Execution">
+        <FieldRow icon={ArrowLeftRight} label="Trade Amount (TAO)"
+          hint="Default TAO amount placed per individual trade">
+          <NumberInput
+            value={config.trade_amount} min={0.001} max={100} step={0.001} suffix="τ"
+            onChange={v => set('trade_amount', v)}
+          />
+        </FieldRow>
+        <FieldRow icon={ArrowLeftRight} label="Max Trade Amount (TAO)"
+          hint="Hard ceiling — no single trade can exceed this regardless of signal strength">
+          <NumberInput
+            value={config.max_trade_amount} min={0.001} max={1000} step={0.001} suffix="τ"
+            onChange={v => set('max_trade_amount', v)}
+          />
+        </FieldRow>
+        <FieldRow icon={ArrowLeftRight} label="Min Trade Amount (TAO)"
+          hint="Trades smaller than this are skipped — prevents dust transactions">
+          <NumberInput
+            value={config.min_trade_amount} min={0.0001} max={10} step={0.0001} suffix="τ"
+            onChange={v => set('min_trade_amount', v)}
+          />
+        </FieldRow>
+        <FieldRow icon={Clock} label="Trade Interval (seconds)"
+          hint={`How long each bot waits between evaluation cycles${tradeInterval > 0 ? ` — currently ${fmtInterval(tradeInterval)}` : ''}`}>
+          <NumberInput
+            value={config.trade_interval} min={60} max={86400} step={60} suffix="s"
+            onChange={v => set('trade_interval', v)}
+          />
+        </FieldRow>
+        <FieldRow icon={Hash} label="Max Daily Trades"
+          hint="Hard limit on total executions across all 12 bots per day">
+          <NumberInput
+            value={config.max_daily_trades} min={1} max={500} step={1}
+            onChange={v => set('max_daily_trades', v)}
+          />
+        </FieldRow>
+      </Section>
+
+      {/* ── Network & Identity ─────────────────────────────────────────────── */}
+      <Section title="Network &amp; Identity">
+
+        {/* Network selector */}
+        <FieldRow icon={Globe} label="Network"
+          hint={isMainnet ? '⚠ Finney mainnet — real TAO, real consequences' : 'Safe testing environment — no real funds'}>
+          <select
+            value={config.network ?? 'finney'}
+            onChange={e => set('network', e.target.value)}
+            className={clsx('input w-full', isMainnet && 'border-amber-500/40 text-amber-400')}
+          >
+            <option value="finney">Finney (Mainnet) — real TAO</option>
+            <option value="test">Testnet — no real funds</option>
+            <option value="local">Local — development only</option>
+          </select>
+        </FieldRow>
+
+        <FieldRow icon={Hash} label="Subnet UID (netuid)"
+          hint="Bittensor subnet the bot stakes and trades on — SN0 is the root network">
+          <NumberInput
+            value={config.netuid} min={0} max={512} step={1}
+            onChange={v => set('netuid', v)}
+          />
+        </FieldRow>
+
+        <FieldRow icon={User} label="Wallet Name (coldkey)"
+          hint="Name of the Bittensor coldkey wallet on disk">
+          <input
+            type="text"
+            value={(config.wallet_name as string | undefined) ?? ''}
+            onChange={e => set('wallet_name', e.target.value)}
+            className="input w-full font-mono"
+            placeholder="default"
+          />
+        </FieldRow>
+
+        <FieldRow icon={KeyRound} label="Hotkey Name"
+          hint="Hotkey associated with the coldkey — used for staking and voting">
+          <input
+            type="text"
+            value={(config.wallet_hotkey as string | undefined) ?? ''}
+            onChange={e => set('wallet_hotkey', e.target.value)}
+            className="input w-full font-mono"
+            placeholder="default"
+          />
+        </FieldRow>
+
+        <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-500/8 border border-blue-500/15 rounded-lg">
+          <Wifi size={12} className="text-blue-400 flex-shrink-0 mt-0.5" />
+          <p className="text-[11px] text-blue-400/80 leading-snug">
+            Stop-loss %, take-profit %, and consensus thresholds are managed on the{' '}
+            <span className="font-semibold text-blue-400">Risk Config</span> page.
+          </p>
+        </div>
+      </Section>
+
+      {/* ── Danger Zone ────────────────────────────────────────────────────── */}
+      <div className="bg-dark-800 border border-red-500/20 rounded-xl p-5">
+        <h2 className="text-xs font-bold text-red-400 uppercase tracking-widest border-b border-red-500/15 pb-3 mb-4">
+          Danger Zone
+        </h2>
+        <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+          Clears all trade history from the local database. Wallet, configuration, and strategy
+          state are preserved. This action cannot be undone.
         </p>
-        <button
-          className="btn-danger text-xs px-3 py-1.5 opacity-70 hover:opacity-100"
-          onClick={() => toast.error('Reset is disabled in this build for safety.')}
-        >
-          Reset All Trade Data
-        </button>
+
+        {!resetArmed ? (
+          <button
+            onClick={() => setResetArmed(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs font-semibold hover:bg-red-500/20 transition-colors"
+          >
+            <AlertTriangle size={13} />
+            Reset All Trade Data
+          </button>
+        ) : (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/30 rounded-lg">
+              <AlertTriangle size={13} className="text-red-400 flex-shrink-0" />
+              <p className="text-xs text-red-400 font-semibold">
+                This will permanently delete all trade history. Are you sure?
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleReset}
+                disabled={resetting}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-xs font-bold hover:bg-red-500/30 disabled:opacity-50 transition-colors"
+              >
+                {resetting ? <RefreshCw size={12} className="animate-spin" /> : <AlertTriangle size={12} />}
+                {resetting ? 'Clearing…' : 'Yes, delete everything'}
+              </button>
+              <button
+                onClick={() => setResetArmed(false)}
+                className="px-4 py-2 bg-dark-700 border border-dark-600 rounded-lg text-slate-400 text-xs hover:text-white hover:border-dark-500 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
       </div>
+
     </div>
   )
 }
