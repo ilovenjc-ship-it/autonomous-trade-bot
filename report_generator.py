@@ -1387,14 +1387,71 @@ def section_risk_config():
             col_widths=[1.4*inch, 2.0*inch, 3.0*inch]
         ),
 
+        spacer(12),
+        h2("Visual Redesign — Abracadabra"),
+        body(
+            "After the initial fixes, the page got a full visual overhaul. The two-panel layout "
+            "(sliders left, status right) was replaced with a single full-width column. "
+            "The result: the guardrails breathe, the numbers read at a glance, and the status "
+            "information is front and centre rather than buried in a sidebar."
+        ),
+        spacer(6),
+        data_table(
+            ["Element", "Before", "After"],
+            [
+                ["Layout",          "Two-panel: left sliders + right 288px status panel",
+                                    "Single full-width column — no sidebar, nothing cramped"],
+                ["Status cards",    "Buried in right panel, small text, only visible if you scroll",
+                                    "5 cards across the top of the page: Halt · Circuit Breaker · Drawdown · Daily Loss · Open Positions — each self-colours"],
+                ["Guardrail title", "text-[9px] uppercase — whisper-small",
+                                    "text-2xl font-black uppercase tracking-widest — commands the section"],
+                ["Slider values",   "text-sm emerald-400 — static, always green",
+                                    "text-xl font-black — colour matches risk level, pulses in danger zone"],
+                ["Slider grid",     "Single column, max-w-2xl — underused whitespace",
+                                    "lg:grid-cols-2 — 2-column on desktop, fills the page naturally"],
+                ["Apply/Reset",     "Small text-[11px] buttons at the bottom of a narrow column",
+                                    "Full-width rounded-xl buttons, text-sm — proportional to the page"],
+            ],
+            col_widths=[1.3*inch, 2.0*inch, 3.1*inch]
+        ),
+
+        spacer(8),
+        h2("The Colour System — How the Risk Gradient Works"),
+        body(
+            "Every slider encodes its own danger direction. Some parameters become risky as they "
+            "go higher (more drawdown allowed, bigger positions, more concurrent trades). Others "
+            "become risky as they go lower (weaker stop-loss, lower confidence threshold, fewer "
+            "bots required to agree). The riskDir prop tells each slider which way danger lives."
+        ),
+        spacer(4),
+        data_table(
+            ["Zone", "Fill Colour", "Value Text", "Threshold", "Animation"],
+            [
+                ["Safe",     "Emerald #10b981", "text-emerald-400", "0–40% of risk range",   "None"],
+                ["Moderate", "Amber #f59e0b",   "text-amber-400",   "40–72% of risk range",  "None"],
+                ["Danger",   "Red #ef4444",     "text-red-400",     "72–100% of risk range", "animate-pulse on value"],
+            ],
+            col_widths=[0.8*inch, 1.4*inch, 1.4*inch, 1.5*inch, 1.8*inch]
+        ),
+        spacer(4),
+        body(
+            "A coloured glow line sits below each slider track, intensifying from a soft emerald "
+            "glow to a hot red halo as the setting approaches danger. SAFE · MODERATE · DANGER "
+            "zone labels are printed in dim text under every track so the meaning is legible even "
+            "before you touch anything. The slider thumb itself casts a matching shadow, making "
+            "the current risk level immediately readable at any screen size."
+        ),
+
         spacer(8),
         callout_box(
             "Risk Config is the quietest page in the app — and that's exactly right. "
-            "You set the numbers once, and then you don't have to think about them again. "
+            "You set the numbers once and you don't think about them again. "
             "The system enforces them automatically every cycle, every trade, every vote. "
-            "The one thing it must never do is lie about what phase it's in. "
-            "The 'LIVE TRADE' fallback was a small label — but it said the wrong thing "
-            "at the most important moment. That's fixed.",
+            "But the old design made that feel bureaucratic. The redesign makes it feel powerful. "
+            "The sliders glow. The status cards breathe. The numbers are big enough to read "
+            "from across the room. You know immediately if something is in the red zone — "
+            "because the page tells you so without you having to look for it. "
+            "That is the whole point of a risk dashboard.",
             GREEN
         ),
 
