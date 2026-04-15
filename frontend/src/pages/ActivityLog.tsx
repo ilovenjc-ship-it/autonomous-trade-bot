@@ -54,6 +54,41 @@ function KindBadge({ kind }: { kind: string }) {
   )
 }
 
+// ── Legend bar ────────────────────────────────────────────────────────────────
+const LEGEND_ITEMS: { kind: string; desc: string }[] = [
+  { kind: 'trade',  desc: 'TAO buy / sell executed'         },
+  { kind: 'signal', desc: 'Bot signal generated'            },
+  { kind: 'gate',   desc: 'Promotion / demotion checkpoint' },
+  { kind: 'alert',  desc: 'Risk trigger or error'           },
+  { kind: 'system', desc: 'Scheduler / system event'        },
+]
+
+function LegendBar() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5
+                    bg-dark-800/60 border border-dark-600/60 rounded-xl">
+      <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest pr-1">
+        Legend
+      </span>
+      {LEGEND_ITEMS.map(({ kind, desc }) => {
+        const m    = KIND_META[kind]
+        const Icon = m.icon
+        // pull first colour token (text-*) from the compound class string
+        const textColor = m.color.split(/\s+/).find(c => c.startsWith('text-')) ?? 'text-slate-300'
+        return (
+          <span key={kind} className="inline-flex items-center gap-1.5">
+            <Icon size={11} className={textColor} />
+            <span className={clsx('text-[11px] font-mono font-semibold', textColor)}>
+              {m.label}
+            </span>
+            <span className="text-[11px] text-slate-500 font-mono">— {desc}</span>
+          </span>
+        )
+      })}
+    </div>
+  )
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 export default function ActivityLog() {
   const [events,   setEvents]   = useState<Event[]>([])
@@ -124,7 +159,7 @@ export default function ActivityLog() {
               )}
             >
               <span className={clsx('w-1.5 h-1.5 rounded-full', live ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
-              {live ? 'LIVE' : 'PAUSED'}
+              {live ? 'FEED: LIVE' : 'FEED: PAUSED'}
             </button>
 
             <button
@@ -176,6 +211,11 @@ export default function ActivityLog() {
             className="ml-auto px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 placeholder-slate-600 font-mono focus:outline-none focus:border-accent-blue w-48"
           />
         </div>
+      </div>
+
+      {/* ── Legend ─────────────────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 px-6 pt-3 pb-1">
+        <LegendBar />
       </div>
 
       {/* ── Event stream ───────────────────────────────────────────────────── */}
