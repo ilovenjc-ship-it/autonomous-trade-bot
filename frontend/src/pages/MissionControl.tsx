@@ -278,11 +278,31 @@ export default function MissionControl() {
       {/* ── TOP: Agent Fleet horizontal strip ─────────────────────────── */}
       <div className="flex-shrink-0 border-b border-slate-800/60">
         {/* Strip header */}
-        <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800/40">
-          <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
+        <div className="flex items-center gap-4 px-4 py-2 border-b border-slate-800/40">
+
+          {/* II Agent orb — top-left corner */}
+          <div className="flex items-center gap-2.5 pr-4 border-r border-slate-800/60 flex-shrink-0">
+            <div className="relative w-9 h-9">
+              <div className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-25" />
+              <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-500/30 to-blue-500/30 border border-emerald-500/40 flex items-center justify-center">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399]" />
+                </div>
+              </div>
+              <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/20"
+                style={{ animation: 'spin 8s linear infinite' }} />
+            </div>
+            <div>
+              <div className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase leading-none">II Agent</div>
+              <div className="text-[8px] text-slate-500 mt-0.5 tracking-wide">Autonomous Mode</div>
+            </div>
+          </div>
+
+          {/* Fleet label + counts */}
+          <div className="w-2 h-2 rounded-full bg-slate-400 shadow-[0_0_6px_#94a3b8] animate-pulse flex-shrink-0" />
           <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Agent Fleet</span>
           {summary && (
-            <div className="flex items-center gap-4 ml-2">
+            <div className="flex items-center gap-4 ml-1">
               <span className="text-[10px] text-emerald-400 font-bold">{summary.live} live</span>
               <span className="text-[10px] text-purple-400 font-bold">{summary.approved} approved</span>
               <span className="text-[10px] text-yellow-400 font-bold">{summary.paper} paper</span>
@@ -437,27 +457,6 @@ export default function MissionControl() {
       {/* ── RIGHT: Command Panel ──────────────────────────────────────── */}
       <div className="w-52 flex-shrink-0 flex flex-col">
 
-        {/* II Agent status */}
-        <div className="px-4 py-4 border-b border-slate-800/60 text-center">
-          {/* HAL-like indicator */}
-          <div className="relative mx-auto w-16 h-16 mb-3">
-            <div className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-30" />
-            <div className="absolute inset-1 rounded-full border border-emerald-500/30" />
-            <div className="absolute inset-0 rounded-full flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-500/30 to-blue-500/30 border border-emerald-500/40 flex items-center justify-center">
-                <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" />
-              </div>
-            </div>
-            {/* Orbit ring */}
-            <div
-              className="absolute inset-0 rounded-full border border-dashed border-emerald-500/20"
-              style={{ animation: 'spin 8s linear infinite' }}
-            />
-          </div>
-          <div className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">II Agent</div>
-          <div className="text-[9px] text-slate-300 mt-0.5">Autonomous Mode</div>
-        </div>
-
         {/* Next cycle countdown */}
         <div className="px-4 py-3 border-b border-slate-800/60">
           <div className="flex items-center gap-1.5 mb-1">
@@ -508,49 +507,60 @@ export default function MissionControl() {
           )}
         </div>
 
-        {/* Gate summary */}
-        <div className="px-4 py-3 border-b border-slate-800/60">
-          <div className="text-[9px] text-slate-300 uppercase tracking-wider mb-2">Gate Summary</div>
-          <div className="space-y-1.5">
-            {fleet.map(bot => {
-              const passed = [bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok].filter(Boolean).length
-              return (
-                <div key={bot.id} className="flex items-center gap-2">
-                  <div className={clsx('w-1 h-4 rounded-full flex-shrink-0', {
-                    'bg-emerald-500': bot.mode === 'LIVE',
-                    'bg-purple-500': bot.mode === 'APPROVED_FOR_LIVE',
-                    'bg-yellow-500/50': bot.mode === 'PAPER_ONLY',
-                  })} />
-                  <span className="text-[10px] text-slate-300 truncate flex-1">{bot.display_name}</span>
-                  <div className="flex gap-0.5">
-                    {[0,1,2,3].map(i => (
-                      <div key={i} className={clsx('w-1 h-1 rounded-full', i < passed ? 'bg-emerald-500' : 'bg-slate-700')} />
-                    ))}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* System status */}
-        <div className="px-4 py-3 flex-1">
-          <div className="text-[9px] text-slate-300 uppercase tracking-wider mb-2">System</div>
-          <div className="space-y-1.5">
+        {/* System status — compact */}
+        <div className="px-4 py-2.5 border-b border-slate-800/60">
+          <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-2">System</div>
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
             {[
               { label: 'Price Feed',   ok: true },
               { label: 'Database',     ok: true },
               { label: 'Strategy Eng', ok: true },
               { label: 'Risk Guard',   ok: true },
             ].map(({ label, ok }) => (
-              <div key={label} className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-300">{label}</span>
-                <div className="flex items-center gap-1">
-                  <div className={clsx('w-1.5 h-1.5 rounded-full', ok ? 'bg-emerald-400' : 'bg-red-400')} />
-                  <span className={clsx('text-[9px]', ok ? 'text-emerald-500' : 'text-red-500')}>{ok ? 'OK' : 'ERR'}</span>
-                </div>
+              <div key={label} className="flex items-center gap-1.5">
+                <div className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', ok ? 'bg-emerald-400' : 'bg-red-400')} />
+                <span className="text-[9px] text-slate-400 truncate">{label}</span>
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Gate Summary — big, flex-1, owns the bottom */}
+        <div className="flex-1 flex flex-col min-h-0 px-4 pt-3 pb-2 overflow-hidden">
+          <div className="text-[9px] text-slate-500 uppercase tracking-wider mb-3">Gate Summary</div>
+          <div className="flex-1 overflow-y-auto space-y-2 pr-1">
+            {fleet.map(bot => {
+              const passed = [bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok].filter(Boolean).length
+              const modeColor = bot.mode === 'LIVE'
+                ? 'bg-emerald-500'
+                : bot.mode === 'APPROVED_FOR_LIVE'
+                ? 'bg-purple-500'
+                : 'bg-slate-600'
+              return (
+                <div key={bot.id} className="rounded-md bg-slate-900/50 border border-slate-800/60 px-2.5 py-2">
+                  {/* Name + mode bar */}
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className={clsx('w-1 h-full min-h-[28px] rounded-full flex-shrink-0', modeColor)} style={{ width: 3 }} />
+                    <span className="text-[11px] font-semibold text-slate-200 truncate flex-1">{bot.display_name}</span>
+                    <span className={clsx('text-[10px] font-bold font-mono',
+                      bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400'
+                    )}>{bot.win_rate.toFixed(0)}%</span>
+                  </div>
+                  {/* Gate bars */}
+                  <div className="flex gap-1">
+                    {['Cyc','WR','WM','PnL'].map((lbl, i) => {
+                      const ok = [bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok][i]
+                      return (
+                        <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
+                          <div className={clsx('w-full h-1.5 rounded-full', ok ? 'bg-emerald-500' : 'bg-slate-700')} />
+                          <span className="text-[7px] text-slate-600">{lbl}</span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
 
