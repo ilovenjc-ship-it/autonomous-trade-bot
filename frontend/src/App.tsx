@@ -22,19 +22,19 @@ export default function App() {
   return (
     <BrowserRouter>
       <Toaster
-        position="top-right"
+        position="bottom-right"
         reverseOrder={false}
         gutter={8}
-        containerStyle={{ top: 16, right: 16 }}
+        containerStyle={{ bottom: 24, right: 20 }}
         toastOptions={{
-          duration: 4000,
+          duration: 2500,
           style: {
             background: '#152030',
             color: '#f1f5f9',
             border: '1px solid #243450',
             fontFamily: '"Space Grotesk", system-ui',
             fontSize: 13,
-            maxWidth: 360,
+            maxWidth: 340,
           },
         }}
       />

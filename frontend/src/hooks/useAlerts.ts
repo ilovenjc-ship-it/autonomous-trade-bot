@@ -36,9 +36,9 @@ function getLevelStyle(level: string): { background: string; color: string; bord
 
 function getLevelDuration(level: string): number {
   switch (level) {
-    case 'CRITICAL': return 7000
-    case 'WARNING':  return 5000
-    default:         return 4000
+    case 'CRITICAL': return 6000   // drawdown — serious, needs time to register
+    case 'WARNING':  return 4000   // regime / demotion — noted and gone
+    default:         return 2500   // info / promotion — positive FYI, clear fast
   }
 }
 
@@ -72,8 +72,8 @@ export function useAlerts() {
       lastSeenId.current = maxId
       localStorage.setItem(STORAGE_KEY, String(maxId))
 
-      // Fire toasts — newest last (so they stack oldest→newest)
-      const toShow = [...newAlerts].reverse().slice(0, 4)
+      // Fire toasts — newest last (so they stack oldest→newest), cap at 3
+      const toShow = [...newAlerts].reverse().slice(0, 3)
       for (const alert of toShow) {
         const style = getLevelStyle(alert.level)
         const text  = alert.strategy
