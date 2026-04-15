@@ -106,14 +106,24 @@ export function useAlerts() {
         const res  = await fetch('/api/alerts?limit=1')
         if (!res.ok) return
         const data = await res.json()
-        const first: Alert | undefined = data.alerts?.[0]
-        if (first && first.id > lastSeenId.current) {
-          lastSeenId.current = first.id
-          localStorage.setItem(STORAGE_KEY, String(first.id))
+        const latest: Alert | undefined = data.alerts?.[0]
+
+        if (latest) {
+          // If stored ID is higher than the latest alert ID, the backend
+          // restarted and reset its ring buffer — clear stored value so
+          // we don't miss any new alerts going forward
+          if (lastSeenId.current > latest.id) {
+            lastSeenId.current = 0
+            localStorage.removeItem(STORAGE_KEY)
+          } else {
+            // Normal case — seed to latest so we don't toast old backlog
+            lastSeenId.current = latest.id
+            localStorage.setItem(STORAGE_KEY, String(latest.id))
+          }
         }
         setUnreadCount(data.unread_count ?? 0)
       } catch (_) {}
-      finally { initialized.current = true }  // always unblock polling after seed
+      finally { initialized.current = true }
     }
     seedInitial()
   }, [])
