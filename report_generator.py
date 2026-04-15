@@ -1127,6 +1127,140 @@ def section_analytics():
     ]
 
 
+# ─── Section: Market Data Page Walkthrough ───────────────────────────────────
+
+def section_market_data():
+    return [
+        *section_header("Market Data — Page Walkthrough",
+                        "Bittensor subnet intelligence — the capital routing decision engine"),
+
+        body(
+            "The Market Data page is the network intelligence layer of the system. "
+            "It tracks all 64 active Bittensor subnets — stake, APY, emission rate, "
+            "miner count, trend direction, and a composite score — giving you everything "
+            "you need to decide where capital belongs. It auto-refreshes every 15 seconds "
+            "and is built to be one of the primary daily go-to pages."
+        ),
+
+        spacer(8),
+        h2("Page Layout"),
+        data_table(
+            ["Zone", "Content"],
+            [
+                ["Header",      "Title · subnet count · ↑up / ↓down trend split · AUTO/MANUAL toggle · Refresh button"],
+                ["KPI row",     "6 cards: TAO Price · Total Staked · Avg APY · Active Subnets · Top Subnet · Top Stake"],
+                ["Filter row",  "Search box (name/ticker) · Min APY filter: All / 10%+ / 20%+ / 30%+"],
+                ["Subnet table","64 subnets · 10 columns · sortable · live trend icons · APY badges · score bars"],
+                ["Footer",      "Data source disclosure · auto-refresh interval"],
+            ],
+            col_widths=[1.2*inch, 5.2*inch]
+        ),
+
+        spacer(12),
+        h2("AUTO / MANUAL Toggle"),
+        body(
+            "The top-right AUTO button (emerald, pulsing dot) keeps the page alive — "
+            "fetching fresh subnet data every 15 seconds without any interaction. "
+            "Toggle to MANUAL to freeze the snapshot and study it. "
+            "This is the right behavior for a market intelligence page: "
+            "watch it live, or pause it to analyse."
+        ),
+
+        spacer(12),
+        h2("The Score — The Gem of This Page"),
+        body("Every subnet gets a composite score computed by a single formula:"),
+        spacer(4),
+        callout_box(
+            "score = log₁₀(stake_tao) × 10 + APY",
+            BLUE
+        ),
+        spacer(6),
+        body(
+            "It rewards two things simultaneously. Stake (logarithmically scaled) — "
+            "so large subnets matter but don't linearly dominate everything else. "
+            "And APY — so yield is always part of the equation. "
+            "The result surfaces subnets that are both significant AND productive. "
+            "Not just the biggest. Not just the highest yield. The intersection of both."
+        ),
+        spacer(4),
+        data_table(
+            ["Example", "Stake", "APY", "Score", "Verdict"],
+            [
+                ["High stake, low yield",  "2.0M τ", "8%",  "~71", "Large but lazy"],
+                ["Solid stake, high yield","1.5M τ", "40%", "~101","Capital routing target"],
+                ["Small stake, high yield","200K τ", "45%", "~98", "Good yield, less weight"],
+            ],
+            col_widths=[1.6*inch, 0.8*inch, 0.7*inch, 0.7*inch, 1.9*inch]
+        ),
+        spacer(4),
+        callout_box(
+            "When this score feeds into the bot's staking logic — determining which subnet "
+            "gets what percentage of capital — it becomes the actual decision engine. "
+            "Right now it is informational. The roadmap: make it operational. "
+            "The column is already there. The formula is already there. "
+            "The infrastructure just needs to be wired to it.",
+            GREEN
+        ),
+
+        spacer(12),
+        h2("Subnet Table — Column Reference"),
+        data_table(
+            ["Column",      "Detail"],
+            [
+                ["#",           "Current rank by active sort column — ⭐ on top 3"],
+                ["Subnet",      "Full name + SN{uid} identifier"],
+                ["Ticker",      "αTAO token ticker in a mono badge"],
+                ["Staked (τ)",  "Total TAO staked — sortable. K/M abbreviated"],
+                ["Staked ($)",  "USD equivalent at live TAO price — sortable on stake_usd"],
+                ["APY",         "Annual yield — colour-coded: green ≥40% · blue ≥25% · yellow ≥15% · slate <15%"],
+                ["Emission",    "Subnet emission rate (τ/block proportion) — 4dp"],
+                ["Miners",      "Active miner count on this subnet"],
+                ["Trend",       "↑ emerald (up) · ↓ red (down) · — slate (neutral) — per-refresh random walk"],
+                ["Score",       "Composite score bar (gradient blue→green) + numeric value"],
+            ],
+            col_widths=[1.1*inch, 5.3*inch]
+        ),
+
+        spacer(12),
+        h2("Trend — What It Is and Where It's Going"),
+        body(
+            "Currently: each subnet's trend is derived from a small random noise value "
+            "(±3%) applied on every refresh. Noise > +1% = up. Noise < -1% = down. Flat = neutral. "
+            "The structure is exactly right — it simulates realistic live movement. "
+            "When the Bittensor wallet is connected and real on-chain stake queries run, "
+            "this field swaps to actual directional subnet flow data automatically. "
+            "No page changes required — just real data feeding the same field."
+        ),
+
+        spacer(12),
+        h2("Fixes Applied This Session"),
+        data_table(
+            ["Fix", "Detail"],
+            [
+                ["api client",          "Removed raw fetch() calls — now uses unified api client (axios)"],
+                ["Promise.allSettled",  "One failed endpoint no longer blacks out the whole page"],
+                ["Staked ($) sort",     "Was incorrectly sorting stake_tao — now correctly sorts stake_usd"],
+                ["Stars by rank",       "Was uid ≤ 3 (always SN1/2/3) — now idx < 3 (top 3 by current sort)"],
+                ["AUTO dot pulse",      "run-pulse (undefined class) → animate-pulse (real Tailwind) — dot now actually pulses"],
+            ],
+            col_widths=[1.6*inch, 4.8*inch]
+        ),
+
+        spacer(8),
+        callout_box(
+            "This page is one of the primary daily go-to pages. "
+            "Color-connected, live-updating, and genuinely actionable. "
+            "The score column alone makes it worth opening every session — "
+            "it tells you in one number which subnets deserve your capital's attention. "
+            "When staking is wired to it, this page stops being a dashboard "
+            "and starts being a command.",
+            PURPLE
+        ),
+
+        PageBreak(),
+    ]
+
+
 # ─── Section 6: Core Services (renumbered) ───────────────────────────────────
 
 def section_services():
@@ -1577,6 +1711,7 @@ def build():
     story += section_fleet()
     story += section_agent_fleet()
     story += section_analytics()
+    story += section_market_data()
     story += section_openclaw()
     story += section_alerts()
     story += section_services()
