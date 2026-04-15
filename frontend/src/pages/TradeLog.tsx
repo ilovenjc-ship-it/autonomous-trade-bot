@@ -98,7 +98,7 @@ function FilterBtn({ active, onClick, children }: {
         'px-3 py-1.5 rounded-lg text-xs font-mono transition-colors border',
         active
           ? 'bg-accent-blue/20 text-accent-blue border-accent-blue/30'
-          : 'text-slate-400 border-dark-600 hover:text-white hover:border-dark-400'
+          : 'text-slate-300 border-dark-600 hover:text-white hover:border-dark-400'
       )}
     >
       {children}
@@ -162,13 +162,13 @@ export default function TradeLog() {
               <ArrowLeftRight size={22} className="text-accent-green" />
               Trade Log
             </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <p className="text-sm text-slate-300 mt-0.5">
               {total} trades total · page {page}/{pages}
             </p>
           </div>
           <button
             onClick={load}
-            className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-400 hover:text-white transition-colors font-mono"
+            className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
           >
             <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
             Refresh
@@ -177,7 +177,7 @@ export default function TradeLog() {
 
         {/* Filter row */}
         <div className="flex flex-wrap items-center gap-2">
-          <Filter size={12} className="text-slate-500 flex-shrink-0" />
+          <Filter size={12} className="text-slate-300 flex-shrink-0" />
 
           {/* Type */}
           <div className="flex gap-1">
@@ -211,7 +211,7 @@ export default function TradeLog() {
 
           {/* Search */}
           <div className="ml-auto flex items-center gap-1.5 bg-dark-700 border border-dark-600 rounded-lg px-2.5 py-1.5">
-            <Search size={11} className="text-slate-500" />
+            <Search size={11} className="text-slate-300" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -226,7 +226,7 @@ export default function TradeLog() {
       <div className="flex-1 overflow-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 z-10 bg-dark-900 border-b border-dark-600">
-            <tr className="text-slate-500 uppercase tracking-wider font-mono">
+            <tr className="text-slate-300 uppercase tracking-wider font-mono">
               <th className="px-4 py-3 text-left w-16">ID</th>
               <th className="px-4 py-3 text-left">Type</th>
               <th className="px-4 py-3 text-left">Strategy</th>
@@ -243,13 +243,13 @@ export default function TradeLog() {
             {loading && (
               <tr>
                 <td colSpan={10} className="py-16 text-center">
-                  <RefreshCw size={18} className="animate-spin text-slate-500 mx-auto" />
+                  <RefreshCw size={18} className="animate-spin text-slate-300 mx-auto" />
                 </td>
               </tr>
             )}
             {!loading && visible.length === 0 && (
               <tr>
-                <td colSpan={10} className="py-16 text-center text-slate-500 font-mono">
+                <td colSpan={10} className="py-16 text-center text-slate-300 font-mono">
                   No trades match the current filter
                 </td>
               </tr>
@@ -263,7 +263,7 @@ export default function TradeLog() {
                 )}
               >
                 {/* ID */}
-                <td className="px-4 py-2.5 text-slate-600 font-mono">#{t.id}</td>
+                <td className="px-4 py-2.5 text-slate-300 font-mono">#{t.id}</td>
 
                 {/* Type */}
                 <td className="px-4 py-2.5"><TypeBadge type={t.trade_type} /></td>
@@ -274,7 +274,7 @@ export default function TradeLog() {
                     {STRATEGY_LABELS[t.strategy ?? ''] ?? t.strategy ?? '—'}
                   </span>
                   <br />
-                  <span className="text-slate-600 text-[10px]">{t.strategy}</span>
+                  <span className="text-slate-300 text-[10px]">{t.strategy}</span>
                 </td>
 
                 {/* Amount */}
@@ -283,19 +283,19 @@ export default function TradeLog() {
                 </td>
 
                 {/* Price */}
-                <td className="px-4 py-2.5 text-right font-mono text-slate-400">
+                <td className="px-4 py-2.5 text-right font-mono text-slate-300">
                   ${t.price_at_trade.toFixed(2)}
                 </td>
 
                 {/* USD Value */}
-                <td className="px-4 py-2.5 text-right font-mono text-slate-400">
+                <td className="px-4 py-2.5 text-right font-mono text-slate-300">
                   ${t.usd_value.toFixed(4)}
                 </td>
 
                 {/* PnL */}
                 <td className={clsx(
                   'px-4 py-2.5 text-right font-mono font-semibold',
-                  t.pnl > 0 ? 'text-accent-green' : t.pnl < 0 ? 'text-red-400' : 'text-slate-500'
+                  t.pnl > 0 ? 'text-accent-green' : t.pnl < 0 ? 'text-red-400' : 'text-slate-300'
                 )}>
                   {fmt4(t.pnl)}
                 </td>
@@ -307,13 +307,13 @@ export default function TradeLog() {
 
                 {/* Signal */}
                 <td className="px-4 py-2.5 max-w-[200px]">
-                  <span className="text-slate-500 truncate block" title={t.signal_reason ?? ''}>
+                  <span className="text-slate-300 truncate block" title={t.signal_reason ?? ''}>
                     {t.signal_reason ? t.signal_reason.slice(0, 50) : '—'}
                   </span>
                 </td>
 
                 {/* Time */}
-                <td className="px-4 py-2.5 font-mono text-slate-500 whitespace-nowrap">
+                <td className="px-4 py-2.5 font-mono text-slate-300 whitespace-nowrap">
                   {ts(t.created_at)}
                 </td>
               </tr>
@@ -324,7 +324,7 @@ export default function TradeLog() {
 
       {/* ── Pagination ─────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 py-3 border-t border-dark-600 flex items-center justify-between">
-        <p className="text-xs text-slate-500 font-mono">
+        <p className="text-xs text-slate-300 font-mono">
           Showing {visible.length} of {total} trades
           {typeFilter || resultFilt || stratFilter
             ? ` (filtered)`
@@ -335,7 +335,7 @@ export default function TradeLog() {
           <button
             disabled={page <= 1}
             onClick={() => setPage(p => p - 1)}
-            className="p-1.5 rounded border border-dark-600 text-slate-400 hover:text-white hover:border-dark-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1.5 rounded border border-dark-600 text-slate-300 hover:text-white hover:border-dark-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronLeft size={14} />
           </button>
@@ -353,7 +353,7 @@ export default function TradeLog() {
                   'px-2.5 py-1 rounded text-xs font-mono border transition-colors',
                   p === page
                     ? 'bg-accent-blue/20 text-accent-blue border-accent-blue/30'
-                    : 'text-slate-400 border-dark-600 hover:text-white'
+                    : 'text-slate-300 border-dark-600 hover:text-white'
                 )}
               >
                 {p}
@@ -364,7 +364,7 @@ export default function TradeLog() {
           <button
             disabled={page >= pages}
             onClick={() => setPage(p => p + 1)}
-            className="p-1.5 rounded border border-dark-600 text-slate-400 hover:text-white hover:border-dark-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            className="p-1.5 rounded border border-dark-600 text-slate-300 hover:text-white hover:border-dark-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
           >
             <ChevronRight size={14} />
           </button>

@@ -61,9 +61,9 @@ function RiskSlider({ label, description, value, min, max, step, format, onChang
           <span className="text-[11px] font-bold text-slate-300">{label}</span>
           <span className="ml-3 text-sm font-bold text-emerald-400">{fmt(value)}</span>
         </div>
-        <span className="text-[9px] text-slate-600 font-mono">{rangeLabel || `${min}% — ${max}%`}</span>
+        <span className="text-[9px] text-slate-300 font-mono">{rangeLabel || `${min}% — ${max}%`}</span>
       </div>
-      <p className="text-[10px] text-slate-600">{description}</p>
+      <p className="text-[10px] text-slate-300">{description}</p>
       <div className="relative">
         <input
           type="range"
@@ -146,7 +146,7 @@ export default function RiskConfig() {
   const drawdown = status?.drawdown_pct || 0
 
   return (
-    <div className="flex h-full bg-[#080d18] text-slate-200 font-mono overflow-hidden">
+    <div className="flex h-full bg-[#080d18] text-slate-100 font-mono overflow-hidden">
 
       {/* Left: Config sliders */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
@@ -156,7 +156,7 @@ export default function RiskConfig() {
           <div className="flex items-center justify-between">
             <div>
               <h1 className="text-lg font-bold text-white tracking-wide">RISK CONFIGURATION</h1>
-              <p className="text-[11px] text-slate-500 mt-0.5">Pre-trade guardrails — set once, bot operates autonomously within these limits</p>
+              <p className="text-[11px] text-slate-300 mt-0.5">Pre-trade guardrails — set once, bot operates autonomously within these limits</p>
             </div>
             <button onClick={handleHalt} disabled={halting || isHalted}
               className="flex items-center gap-2 px-4 py-2 bg-red-500/15 border border-red-500/40 rounded text-red-400 text-[11px] font-bold hover:bg-red-500/25 disabled:opacity-50 transition-colors">
@@ -175,7 +175,7 @@ export default function RiskConfig() {
               {isHalted ? '⛔ TRADING HALTED' : '✓ TRADING ACTIVE'}
             </span>
             {!isHalted && status && (
-              <span className="text-[11px] text-slate-500">
+              <span className="text-[11px] text-slate-300">
                 Running normally · drawdown {drawdown.toFixed(1)}% of {config.max_drawdown_pct}% limit
               </span>
             )}
@@ -191,7 +191,7 @@ export default function RiskConfig() {
         <div className="flex-1 overflow-y-auto px-6 py-6">
           <div className="max-w-2xl space-y-6">
             <div>
-              <h3 className="text-[9px] text-slate-600 uppercase tracking-widest mb-4">Autonomous Guardrails</h3>
+              <h3 className="text-[9px] text-slate-300 uppercase tracking-widest mb-4">Autonomous Guardrails</h3>
               <div className="space-y-6">
                 <RiskSlider
                   label="Max Drawdown %"
@@ -267,7 +267,7 @@ export default function RiskConfig() {
                 {saving ? 'Applying…' : '⊙ Apply Configuration'}
               </button>
               <button onClick={handleReset}
-                className="px-4 py-2.5 bg-slate-800/60 border border-slate-700/50 rounded text-slate-400 text-[11px] hover:text-white hover:border-slate-600 transition-colors">
+                className="px-4 py-2.5 bg-slate-800/60 border border-slate-700/50 rounded text-slate-300 text-[11px] hover:text-white hover:border-slate-600 transition-colors">
                 <RefreshCw size={11} className="inline mr-1.5" />
                 Reset
               </button>
@@ -281,21 +281,21 @@ export default function RiskConfig() {
 
         {/* Live risk status */}
         <div className="p-4 border-b border-slate-800/60">
-          <h3 className="text-[9px] text-slate-600 uppercase tracking-widest mb-3">Live Risk Status</h3>
+          <h3 className="text-[9px] text-slate-300 uppercase tracking-widest mb-3">Live Risk Status</h3>
           <div className="space-y-2">
             {[
               { label: 'Global HALT', value: isHalted ? 'ACTIVE' : 'CLEAR', danger: isHalted },
               { label: 'Circuit Breaker', value: status?.circuit_breaker ? 'TRIGGERED' : 'CLEAR', danger: status?.circuit_breaker },
             ].map(({ label, value, danger }) => (
               <div key={label} className="flex items-center justify-between py-1 border-b border-slate-800/40">
-                <span className="text-[10px] text-slate-500">{label}</span>
+                <span className="text-[10px] text-slate-300">{label}</span>
                 <span className={clsx('text-[10px] font-bold px-2 py-0.5 rounded', danger ? 'bg-red-500/20 text-red-400' : 'bg-emerald-500/10 text-emerald-500')}>
                   {value}
                 </span>
               </div>
             ))}
             <div className="flex items-center justify-between py-1 border-b border-slate-800/40">
-              <span className="text-[10px] text-slate-500">Drawdown</span>
+              <span className="text-[10px] text-slate-300">Drawdown</span>
               <div className="flex items-center gap-2">
                 <div className="w-16 h-1 bg-slate-800 rounded-full overflow-hidden">
                   <div className={clsx('h-full rounded-full', drawdown > 35 ? 'bg-red-500' : drawdown > 20 ? 'bg-yellow-500' : 'bg-emerald-500')}
@@ -307,30 +307,30 @@ export default function RiskConfig() {
               </div>
             </div>
             <div className="flex items-center justify-between py-1 border-b border-slate-800/40">
-              <span className="text-[10px] text-slate-500">Daily Loss</span>
-              <span className="text-[10px] text-slate-400">{(status?.daily_loss_pct || 0).toFixed(1)}%</span>
+              <span className="text-[10px] text-slate-300">Daily Loss</span>
+              <span className="text-[10px] text-slate-300">{(status?.daily_loss_pct || 0).toFixed(1)}%</span>
             </div>
             <div className="flex items-center justify-between py-1">
-              <span className="text-[10px] text-slate-500">Open Positions</span>
-              <span className="text-[10px] text-slate-400">{status?.open_positions || 0} / {status?.max_positions || config.max_concurrent_positions}</span>
+              <span className="text-[10px] text-slate-300">Open Positions</span>
+              <span className="text-[10px] text-slate-300">{status?.open_positions || 0} / {status?.max_positions || config.max_concurrent_positions}</span>
             </div>
           </div>
         </div>
 
         {/* Open positions */}
         <div className="p-4 border-b border-slate-800/60">
-          <h3 className="text-[9px] text-slate-600 uppercase tracking-widest mb-3">Open Positions ({status?.open_positions || 0})</h3>
+          <h3 className="text-[9px] text-slate-300 uppercase tracking-widest mb-3">Open Positions ({status?.open_positions || 0})</h3>
           {(status?.open_positions || 0) === 0 ? (
             <div className="text-center py-4 text-[11px] text-slate-700 italic">No open positions</div>
           ) : (
-            <div className="text-[11px] text-slate-500">Positions loading…</div>
+            <div className="text-[11px] text-slate-300">Positions loading…</div>
           )}
         </div>
 
         {/* System info */}
         <div className="p-4">
-          <h3 className="text-[9px] text-slate-600 uppercase tracking-widest mb-3">System Info</h3>
-          <div className="space-y-1 text-[10px] text-slate-500">
+          <h3 className="text-[9px] text-slate-300 uppercase tracking-widest mb-3">System Info</h3>
+          <div className="space-y-1 text-[10px] text-slate-300">
             <div>
               <span className="text-emerald-400">▶ Phase: </span>
               <span className="text-emerald-400 font-bold">{status?.phase || 'LIVE TRADE'}</span>

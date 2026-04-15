@@ -57,16 +57,16 @@ function pct(n: number) { return `${n.toFixed(1)}%` }
 function KPI({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
     <div className="bg-dark-800 border border-dark-600 rounded-xl px-5 py-4 flex flex-col gap-1">
-      <p className="text-xs text-slate-500 uppercase tracking-widest font-mono">{label}</p>
+      <p className="text-xs text-slate-300 uppercase tracking-widest font-mono">{label}</p>
       <p className={clsx('text-2xl font-bold font-mono', color ?? 'text-white')}>{value}</p>
-      {sub && <p className="text-xs text-slate-500">{sub}</p>}
+      {sub && <p className="text-xs text-slate-300">{sub}</p>}
     </div>
   )
 }
 
 function PnlCell({ v }: { v: number }) {
   return (
-    <span className={clsx('font-mono text-sm', v > 0 ? 'text-accent-green' : v < 0 ? 'text-red-400' : 'text-slate-400')}>
+    <span className={clsx('font-mono text-sm', v > 0 ? 'text-accent-green' : v < 0 ? 'text-red-400' : 'text-slate-300')}>
       {fmt(v, 4)}
     </span>
   )
@@ -90,7 +90,7 @@ function EquityTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-xs font-mono">
-      <p className="text-slate-400 mb-1">{label}</p>
+      <p className="text-slate-300 mb-1">{label}</p>
       <p className="text-accent-green">Cumulative: {fmt(payload[0]?.value, 4)} TAO</p>
       <p className="text-blue-400">Trade PnL: {fmt(payload[1]?.value ?? 0, 6)}</p>
     </div>
@@ -101,7 +101,7 @@ function DrawdownTooltip({ active, payload, label }: any) {
   if (!active || !payload?.length) return null
   return (
     <div className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-xs font-mono">
-      <p className="text-slate-400 mb-1">{label}</p>
+      <p className="text-slate-300 mb-1">{label}</p>
       <p className="text-accent-green">Equity: {fmt(payload[0]?.value, 4)}</p>
       <p className="text-red-400">Drawdown: {fmt(payload[1]?.value ?? 0, 4)}</p>
     </div>
@@ -158,7 +158,7 @@ export default function Analytics() {
   }
 
   function SortIcon({ col }: { col: SortKey }) {
-    if (col !== sortKey) return <ChevronUp size={10} className="text-slate-600" />
+    if (col !== sortKey) return <ChevronUp size={10} className="text-slate-300" />
     return sortAsc
       ? <ChevronUp   size={10} className="text-accent-blue" />
       : <ChevronDown size={10} className="text-accent-blue" />
@@ -173,7 +173,7 @@ export default function Analytics() {
   // ── loading ────────────────────────────────────────────────────────────────
   if (loading) return (
     <div className="flex h-full items-center justify-center">
-      <div className="flex items-center gap-3 text-slate-400">
+      <div className="flex items-center gap-3 text-slate-300">
         <RefreshCw size={20} className="animate-spin" />
         <span className="font-mono text-sm">Loading analytics…</span>
       </div>
@@ -193,13 +193,13 @@ export default function Analytics() {
             <BarChart2 size={24} className="text-accent-blue" />
             Analytics
           </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-sm text-slate-300 mt-0.5">
             {summary?.total_trades ?? 0} trades across {summary?.active_strategies ?? 0} strategies
           </p>
         </div>
         <button
           onClick={load}
-          className="flex items-center gap-2 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-400 hover:text-white hover:border-accent-blue transition-colors font-mono"
+          className="flex items-center gap-2 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white hover:border-accent-blue transition-colors font-mono"
         >
           <RefreshCw size={12} /> Refresh
         </button>
@@ -249,7 +249,7 @@ export default function Analytics() {
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors',
                 activeChart === key
                   ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
-                  : 'text-slate-400 hover:text-white border border-transparent'
+                  : 'text-slate-300 hover:text-white border border-transparent'
               )}
             >
               <Icon size={12} /> {label}
@@ -260,7 +260,7 @@ export default function Analytics() {
         {/* ── Equity Curve ─────────────────────────────────────────────────── */}
         {activeChart === 'equity' && (
           <div>
-            <p className="text-xs text-slate-500 font-mono mb-3 uppercase tracking-widest">
+            <p className="text-xs text-slate-300 font-mono mb-3 uppercase tracking-widest">
               Cumulative PnL — {equity.length} trades
             </p>
             <ResponsiveContainer width="100%" height={300}>
@@ -275,7 +275,7 @@ export default function Analytics() {
                     <stop offset="95%" stopColor={C_BLUE} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1a2540" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#243450" />
                 <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
                 <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => v.toFixed(3)} />
                 <ReferenceLine y={0} stroke="#334155" strokeDasharray="4 4" />
@@ -290,7 +290,7 @@ export default function Analytics() {
         {/* ── Drawdown ─────────────────────────────────────────────────────── */}
         {activeChart === 'drawdown' && (
           <div>
-            <p className="text-xs text-slate-500 font-mono mb-3 uppercase tracking-widest">
+            <p className="text-xs text-slate-300 font-mono mb-3 uppercase tracking-widest">
               Drawdown from peak — hourly buckets
             </p>
             <ResponsiveContainer width="100%" height={300}>
@@ -305,7 +305,7 @@ export default function Analytics() {
                     <stop offset="95%" stopColor={C_RED} stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1a2540" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#243450" />
                 <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
                 <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => v.toFixed(3)} />
                 <ReferenceLine y={0} stroke="#334155" strokeDasharray="4 4" />
@@ -320,18 +320,18 @@ export default function Analytics() {
         {/* ── Rolling win rate ─────────────────────────────────────────────── */}
         {activeChart === 'winrate' && (
           <div>
-            <p className="text-xs text-slate-500 font-mono mb-3 uppercase tracking-widest">
+            <p className="text-xs text-slate-300 font-mono mb-3 uppercase tracking-widest">
               Rolling 20-trade win rate
             </p>
             <ResponsiveContainer width="100%" height={300}>
               <LineChart data={wrThin} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1a2540" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#243450" />
                 <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
                 <YAxis domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
                 <ReferenceLine y={55} stroke={C_GREEN}  strokeDasharray="4 4" label={{ value: 'Gate 55%', fill: C_GREEN, fontSize: 10, position: 'insideTopRight' }} />
                 <ReferenceLine y={50} stroke={C_YELLOW} strokeDasharray="4 4" label={{ value: 'Break-even', fill: C_YELLOW, fontSize: 10, position: 'insideBottomRight' }} />
                 <Tooltip
-                  contentStyle={{ background: '#0d1424', border: '1px solid #1a2540', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
+                  contentStyle={{ background: '#152030', border: '1px solid #243450', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
                   formatter={(v: any) => [`${v}%`, 'Win Rate']}
                 />
                 <Line dataKey="win_rate" stroke={C_PURPLE} strokeWidth={2} dot={false} name="Win Rate" />
@@ -354,13 +354,13 @@ export default function Analytics() {
             <Award size={16} className="text-accent-blue" />
             Strategy Performance Leaderboard
           </h2>
-          <p className="text-xs text-slate-500 font-mono">{strategies.length} strategies</p>
+          <p className="text-xs text-slate-300 font-mono">{strategies.length} strategies</p>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b border-dark-600 text-xs text-slate-500 uppercase tracking-wider font-mono">
+              <tr className="border-b border-dark-600 text-xs text-slate-300 uppercase tracking-wider font-mono">
                 <th className="px-5 py-3 text-left">#</th>
                 <th className="px-5 py-3 text-left">Strategy</th>
                 <th className="px-5 py-3 text-right cursor-pointer hover:text-white select-none" onClick={() => toggleSort('total_trades')}>
@@ -386,7 +386,7 @@ export default function Analytics() {
               {sorted.map((s, idx) => (
                 <tr key={s.name} className="border-b border-dark-700/50 hover:bg-dark-700/40 transition-colors">
                   {/* Rank */}
-                  <td className="px-5 py-3 text-slate-600 font-mono text-xs">{idx + 1}</td>
+                  <td className="px-5 py-3 text-slate-300 font-mono text-xs">{idx + 1}</td>
 
                   {/* Strategy name */}
                   <td className="px-5 py-3">
@@ -396,7 +396,7 @@ export default function Analytics() {
                       {idx === 2 && <span className="text-amber-600">🥉</span>}
                       <div>
                         <p className="text-white font-medium text-xs">{s.label}</p>
-                        <p className="text-slate-600 font-mono text-[10px]">{s.name}</p>
+                        <p className="text-slate-300 font-mono text-[10px]">{s.name}</p>
                       </div>
                     </div>
                   </td>
@@ -414,7 +414,7 @@ export default function Analytics() {
                   {/* W/L */}
                   <td className="px-5 py-3 text-right font-mono text-xs">
                     <span className="text-accent-green">{s.wins}</span>
-                    <span className="text-slate-600"> / </span>
+                    <span className="text-slate-300"> / </span>
                     <span className="text-red-400">{s.losses}</span>
                   </td>
 
@@ -436,7 +436,7 @@ export default function Analytics() {
                 </tr>
               ))}
               {sorted.length === 0 && (
-                <tr><td colSpan={9} className="px-5 py-8 text-center text-slate-500 font-mono text-xs">No trade data available</td></tr>
+                <tr><td colSpan={9} className="px-5 py-8 text-center text-slate-300 font-mono text-xs">No trade data available</td></tr>
               )}
             </tbody>
           </table>
@@ -454,7 +454,7 @@ export default function Analytics() {
             data={[...strategies].sort((a, b) => b.total_pnl - a.total_pnl)}
             margin={{ top: 5, right: 10, left: 10, bottom: 40 }}
           >
-            <CartesianGrid strokeDasharray="3 3" stroke="#1a2540" vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#243450" vertical={false} />
             <XAxis
               dataKey="label"
               tick={{ fill: '#64748b', fontSize: 9 }}
@@ -468,7 +468,7 @@ export default function Analytics() {
             <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => v.toFixed(3)} />
             <ReferenceLine y={0} stroke="#334155" />
             <Tooltip
-              contentStyle={{ background: '#0d1424', border: '1px solid #1a2540', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
+              contentStyle={{ background: '#152030', border: '1px solid #243450', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
               formatter={(v: any) => [v.toFixed(4), 'Total PnL']}
             />
             <Bar dataKey="total_pnl" radius={[4, 4, 0, 0]}>
@@ -480,7 +480,7 @@ export default function Analytics() {
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-        <div className="flex gap-4 mt-2 justify-end text-xs font-mono text-slate-500">
+        <div className="flex gap-4 mt-2 justify-end text-xs font-mono text-slate-300">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-accent-green inline-block" /> Positive</span>
         </div>
       </div>

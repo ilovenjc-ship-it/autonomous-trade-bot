@@ -31,6 +31,7 @@ class Settings(BaseSettings):
     BT_WALLET_NAME: str = "default"
     BT_WALLET_HOTKEY: str = "default"
     BT_WALLET_PATH: str = "~/.bittensor/wallets"
+    BT_MNEMONIC: Optional[str] = None
 
     # Trading defaults
     DEFAULT_TRADE_AMOUNT: float = 0.1        # TAO

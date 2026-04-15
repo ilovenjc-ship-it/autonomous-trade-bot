@@ -43,7 +43,7 @@ export default function Layout() {
             </div>
             <div>
               <p className="text-sm font-semibold text-white">TAO Bot</p>
-              <p className="text-[10px] text-slate-500 font-mono">Finney Mainnet</p>
+              <p className="text-[10px] text-slate-300 font-mono">Finney Mainnet</p>
             </div>
           </div>
         </div>
@@ -52,13 +52,13 @@ export default function Layout() {
         <div className="px-4 py-3 border-b border-dark-600">
           <div className={clsx(
             'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono',
-            isRunning ? 'bg-accent-green/10 text-accent-green' : 'bg-dark-700 text-slate-500'
+            isRunning ? 'bg-accent-green/10 text-accent-green' : 'bg-dark-700 text-slate-300'
           )}>
             <span className={clsx('w-2 h-2 rounded-full', isRunning ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
             {isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
           </div>
           {price && (
-            <p className="mt-2 text-xs text-slate-400 font-mono px-1">
+            <p className="mt-2 text-xs text-slate-300 font-mono px-1">
               TAO <span className="text-white font-semibold">${price.toFixed(2)}</span>
             </p>
           )}
@@ -76,7 +76,7 @@ export default function Layout() {
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                   isActive
                     ? 'bg-accent-blue/15 text-accent-blue font-medium'
-                    : 'text-slate-400 hover:text-white hover:bg-dark-700'
+                    : 'text-slate-300 hover:text-white hover:bg-dark-700'
                 )
               }
             >
@@ -94,8 +94,8 @@ export default function Layout() {
         {/* Network indicator */}
         <div className="px-4 py-3 border-t border-dark-600">
           <div className="flex items-center gap-2">
-            <Activity size={12} className={status?.network_connected ? 'text-accent-green' : 'text-slate-600'} />
-            <span className="text-xs text-slate-500 font-mono">
+            <Activity size={12} className={status?.network_connected ? 'text-accent-green' : 'text-slate-300'} />
+            <span className="text-xs text-slate-300 font-mono">
               {status?.network_connected ? status.network : 'disconnected'}
             </span>
           </div>

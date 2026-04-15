@@ -61,7 +61,7 @@ const VOTE_META = {
   BUY:     { label: 'BUY',     color: '#10b981', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40', text: 'text-emerald-400', icon: TrendingUp    },
   SELL:    { label: 'SELL',    color: '#ef4444', bg: 'bg-red-500/15',     border: 'border-red-500/40',     text: 'text-red-400',     icon: TrendingDown  },
   HOLD:    { label: 'HOLD',    color: '#f59e0b', bg: 'bg-amber-500/15',   border: 'border-amber-500/40',   text: 'text-amber-400',   icon: Minus         },
-  ABSTAIN: { label: 'ABSTAIN', color: '#6b7280', bg: 'bg-slate-700/40',   border: 'border-slate-600/40',   text: 'text-slate-500',   icon: HelpCircle    },
+  ABSTAIN: { label: 'ABSTAIN', color: '#6b7280', bg: 'bg-slate-700/40',   border: 'border-slate-600/40',   text: 'text-slate-300',   icon: HelpCircle    },
 }
 
 const RESULT_META: Record<string, { label: string; color: string; bg: string; icon: typeof ShieldCheck }> = {
@@ -92,9 +92,9 @@ function StatCard({ icon: Icon, label, value, sub, accent }: {
         <Icon size={16} className={clsx(accent ? '' : 'text-indigo-400')} />
       </div>
       <div>
-        <p className="text-[11px] text-slate-500 uppercase tracking-wider font-mono">{label}</p>
+        <p className="text-[11px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
         <p className="text-xl font-bold text-white font-mono mt-0.5">{value}</p>
-        {sub && <p className="text-[11px] text-slate-500 mt-0.5">{sub}</p>}
+        {sub && <p className="text-[11px] text-slate-300 mt-0.5">{sub}</p>}
       </div>
     </div>
   )
@@ -112,7 +112,7 @@ function VoteBar({ buyCount, sellCount, holdCount, abstainCount, threshold }: {
 
   return (
     <div className="space-y-2">
-      <div className="flex justify-between text-xs text-slate-500 font-mono mb-1">
+      <div className="flex justify-between text-xs text-slate-300 font-mono mb-1">
         <span>0</span>
         <span className="text-amber-400">⊢ {threshold}/12 supermajority</span>
         <span>12</span>
@@ -144,7 +144,7 @@ function VoteBar({ buyCount, sellCount, holdCount, abstainCount, threshold }: {
         )}
         {abstainCount > 0 && (
           <div
-            className="h-full flex items-center justify-center text-xs font-bold text-slate-400 transition-all duration-700"
+            className="h-full flex items-center justify-center text-xs font-bold text-slate-300 transition-all duration-700"
             style={{ width: `${abstainPct}%`, background: '#374151' }}
           >
             {abstainPct > 8 && `${abstainCount}A`}
@@ -160,7 +160,7 @@ function VoteBar({ buyCount, sellCount, holdCount, abstainCount, threshold }: {
         <span className="text-emerald-400">● BUY {buyCount}</span>
         <span className="text-red-400">● SELL {sellCount}</span>
         <span className="text-amber-400">● HOLD {holdCount}</span>
-        <span className="text-slate-500">● ABSTAIN {abstainCount}</span>
+        <span className="text-slate-300">● ABSTAIN {abstainCount}</span>
       </div>
     </div>
   )
@@ -187,7 +187,7 @@ function BotVoteCard({ vote }: { vote: BotVote }) {
       {/* Confidence bar */}
       <div>
         <div className="flex justify-between text-[10px] font-mono mb-1">
-          <span className="text-slate-500">Confidence</span>
+          <span className="text-slate-300">Confidence</span>
           <span className={meta.text}>{(vote.confidence * 100).toFixed(0)}%</span>
         </div>
         <div className="h-1.5 rounded-full bg-dark-700 overflow-hidden">
@@ -204,14 +204,14 @@ function BotVoteCard({ vote }: { vote: BotVote }) {
           'text-[9px] font-mono px-1.5 py-0.5 rounded font-semibold',
           vote.mode === 'LIVE'             ? 'bg-emerald-500/20 text-emerald-400' :
           vote.mode === 'APPROVED_FOR_LIVE'? 'bg-sky-500/20 text-sky-400' :
-                                             'bg-slate-700 text-slate-500'
+                                             'bg-slate-700 text-slate-300'
         )}>
           {vote.mode === 'LIVE' ? '🚀 LIVE' : vote.mode === 'APPROVED_FOR_LIVE' ? '✅ APPROVED' : '📄 PAPER'}
         </span>
       </div>
 
       {/* Reasoning */}
-      <p className="text-[10px] text-slate-500 leading-tight line-clamp-2">{vote.reasoning}</p>
+      <p className="text-[10px] text-slate-300 leading-tight line-clamp-2">{vote.reasoning}</p>
     </div>
   )
 }
@@ -221,7 +221,7 @@ function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
   const ResultIcon = rm.icon
   return (
     <tr className={clsx('border-b border-dark-700 hover:bg-dark-700/40 transition-colors', index === 0 && 'bg-dark-700/30')}>
-      <td className="px-3 py-2 font-mono text-xs text-slate-400">#{round.round_id}</td>
+      <td className="px-3 py-2 font-mono text-xs text-slate-300">#{round.round_id}</td>
       <td className="px-3 py-2 text-xs text-slate-300 truncate max-w-[120px]">{round.triggered_by}</td>
       <td className="px-3 py-2">
         <span className={clsx(
@@ -233,14 +233,14 @@ function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
       </td>
       <td className="px-3 py-2 font-mono text-xs text-center">
         <span className="text-emerald-400">{round.buy_count}B</span>
-        <span className="text-slate-600 mx-1">/</span>
+        <span className="text-slate-300 mx-1">/</span>
         <span className="text-red-400">{round.sell_count}S</span>
-        <span className="text-slate-600 mx-1">/</span>
+        <span className="text-slate-300 mx-1">/</span>
         <span className="text-amber-400">{round.hold_count}H</span>
       </td>
-      <td className="px-3 py-2 text-[11px] text-slate-400 font-mono">${round.price_at_round.toFixed(2)}</td>
-      <td className="px-3 py-2 text-[11px] text-slate-500">{timeSince(round.timestamp)}</td>
-      <td className="px-3 py-2 text-[10px] text-slate-600 font-mono">{round.duration_ms}ms</td>
+      <td className="px-3 py-2 text-[11px] text-slate-300 font-mono">${round.price_at_round.toFixed(2)}</td>
+      <td className="px-3 py-2 text-[11px] text-slate-300">{timeSince(round.timestamp)}</td>
+      <td className="px-3 py-2 text-[10px] text-slate-300 font-mono">{round.duration_ms}ms</td>
     </tr>
   )
 }
@@ -328,14 +328,14 @@ export default function OpenClaw() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-white tracking-tight">OpenClaw Consensus</h1>
-              <p className="text-xs text-slate-500 font-mono">BFT Multi-Agent Voting Council · 7/12 supermajority</p>
+              <p className="text-xs text-slate-300 font-mono">BFT Multi-Agent Voting Council · 7/12 supermajority</p>
             </div>
           </div>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Last refresh */}
-          <span className="text-xs text-slate-600 font-mono">
+          <span className="text-xs text-slate-300 font-mono">
             ↻ {lastRefresh.toLocaleTimeString()}
           </span>
 
@@ -359,7 +359,7 @@ export default function OpenClaw() {
             </button>
             <button
               onClick={load}
-              className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-400 hover:text-white transition-colors"
+              className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white transition-colors"
             >
               <RefreshCw size={14} />
             </button>
@@ -408,11 +408,11 @@ export default function OpenClaw() {
           {/* Round header */}
           <div className="flex items-center justify-between flex-wrap gap-3">
             <div className="flex items-center gap-3">
-              <span className="text-slate-500 font-mono text-sm">Round <span className="text-white font-bold">#{latestRound.round_id}</span></span>
-              <span className="text-slate-600">·</span>
-              <span className="text-slate-400 text-xs font-mono">triggered by <span className="text-indigo-400">{latestRound.triggered_by}</span></span>
-              <span className="text-slate-600">·</span>
-              <span className="text-slate-500 text-xs font-mono">${latestRound.price_at_round.toFixed(2)} TAO</span>
+              <span className="text-slate-300 font-mono text-sm">Round <span className="text-white font-bold">#{latestRound.round_id}</span></span>
+              <span className="text-slate-300">·</span>
+              <span className="text-slate-300 text-xs font-mono">triggered by <span className="text-indigo-400">{latestRound.triggered_by}</span></span>
+              <span className="text-slate-300">·</span>
+              <span className="text-slate-300 text-xs font-mono">${latestRound.price_at_round.toFixed(2)} TAO</span>
             </div>
             <div className="flex items-center gap-3">
               {rm && (
@@ -421,7 +421,7 @@ export default function OpenClaw() {
                   <span className={rm.color}>{rm.label}</span>
                 </div>
               )}
-              <span className="text-[11px] text-slate-600 font-mono">{timeSince(latestRound.timestamp)} · {latestRound.duration_ms}ms</span>
+              <span className="text-[11px] text-slate-300 font-mono">{timeSince(latestRound.timestamp)} · {latestRound.duration_ms}ms</span>
             </div>
           </div>
 
@@ -436,7 +436,7 @@ export default function OpenClaw() {
 
           {/* 12 bot vote cards */}
           <div>
-            <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mb-3">Council Votes</p>
+            <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">Council Votes</p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
               {latestRound.votes.map(v => (
                 <BotVoteCard key={v.bot_name} vote={v} />
@@ -447,8 +447,8 @@ export default function OpenClaw() {
       ) : (
         <div className="bg-dark-800 border border-dark-600 rounded-2xl p-10 text-center">
           <Vote size={40} className="text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-500 font-mono text-sm">No consensus rounds yet.</p>
-          <p className="text-slate-600 text-xs mt-1">Trigger a manual vote above, or wait for a LIVE strategy to fire.</p>
+          <p className="text-slate-300 font-mono text-sm">No consensus rounds yet.</p>
+          <p className="text-slate-300 text-xs mt-1">Trigger a manual vote above, or wait for a LIVE strategy to fire.</p>
         </div>
       )}
 
@@ -456,14 +456,14 @@ export default function OpenClaw() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Vote breakdown chart */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mb-4">Vote Breakdown — Last 20 Rounds</p>
+          <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-4">Vote Breakdown — Last 20 Rounds</p>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={chartData} barSize={8} barGap={1}>
                 <XAxis dataKey="id" tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false} domain={[0, 12]} />
                 <Tooltip
-                  contentStyle={{ background: '#0d1424', border: '1px solid #1e293b', borderRadius: 8, fontSize: 11 }}
+                  contentStyle={{ background: '#152030', border: '1px solid #1e293b', borderRadius: 8, fontSize: 11 }}
                   labelStyle={{ color: '#94a3b8' }}
                 />
                 <Bar dataKey="buy"  fill="#10b981" name="BUY"     radius={[2,2,0,0]} />
@@ -472,13 +472,13 @@ export default function OpenClaw() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[180px] flex items-center justify-center text-slate-600 text-sm">No data yet</div>
+            <div className="h-[180px] flex items-center justify-center text-slate-300 text-sm">No data yet</div>
           )}
         </div>
 
         {/* Approval trend */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
-          <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mb-4">Approval Trend (1=approved · 0=rejected)</p>
+          <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-4">Approval Trend (1=approved · 0=rejected)</p>
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height={180}>
               <LineChart data={chartData}>
@@ -486,7 +486,7 @@ export default function OpenClaw() {
                 <XAxis dataKey="id" tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false} domain={[-0.1, 1.1]} ticks={[0, 1]} />
                 <Tooltip
-                  contentStyle={{ background: '#0d1424', border: '1px solid #1e293b', borderRadius: 8, fontSize: 11 }}
+                  contentStyle={{ background: '#152030', border: '1px solid #1e293b', borderRadius: 8, fontSize: 11 }}
                 />
                 <Line
                   type="step"
@@ -499,7 +499,7 @@ export default function OpenClaw() {
               </LineChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[180px] flex items-center justify-center text-slate-600 text-sm">No data yet</div>
+            <div className="h-[180px] flex items-center justify-center text-slate-300 text-sm">No data yet</div>
           )}
         </div>
       </div>
@@ -507,14 +507,14 @@ export default function OpenClaw() {
       {/* ── History Table ── */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-dark-700 flex items-center gap-2">
-          <Clock size={14} className="text-slate-500" />
-          <span className="text-xs text-slate-500 uppercase tracking-wider font-mono">Consensus History</span>
-          <span className="ml-auto text-xs text-slate-600 font-mono">{history.length} rounds</span>
+          <Clock size={14} className="text-slate-300" />
+          <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Consensus History</span>
+          <span className="ml-auto text-xs text-slate-300 font-mono">{history.length} rounds</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-dark-700 text-[10px] text-slate-500 uppercase tracking-wider font-mono">
+              <tr className="border-b border-dark-700 text-[10px] text-slate-300 uppercase tracking-wider font-mono">
                 <th className="px-3 py-2">Round</th>
                 <th className="px-3 py-2">Trigger</th>
                 <th className="px-3 py-2">Result</th>
@@ -527,7 +527,7 @@ export default function OpenClaw() {
             <tbody>
               {history.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-10 text-center text-slate-600 text-sm">
+                  <td colSpan={7} className="px-4 py-10 text-center text-slate-300 text-sm">
                     No consensus rounds recorded yet
                   </td>
                 </tr>
@@ -541,8 +541,8 @@ export default function OpenClaw() {
 
       {/* ── How it works ── */}
       <div className="bg-dark-800/60 border border-dark-700 rounded-xl p-4">
-        <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mb-3">How OpenClaw Works</p>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs text-slate-500">
+        <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">How OpenClaw Works</p>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs text-slate-300">
           <div className="flex gap-2">
             <span className="text-indigo-400 font-bold font-mono">01</span>
             <span>A <span className="text-white">LIVE</span> strategy generates a trade signal (BUY or SELL)</span>

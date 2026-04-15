@@ -25,12 +25,12 @@ function AddrBox({ label, addr }: { label: string; addr: string }) {
   const copy = () => { navigator.clipboard.writeText(addr); toast.success('Copied!') }
   return (
     <div className="bg-dark-700 border border-dark-600 rounded-xl px-4 py-3">
-      <p className="text-[10px] text-slate-500 uppercase tracking-widest font-mono mb-1">{label}</p>
+      <p className="text-[10px] text-slate-300 uppercase tracking-widest font-mono mb-1">{label}</p>
       <div className="flex items-center gap-2">
-        <p className="text-sm font-mono text-slate-200 truncate flex-1">{addr}</p>
-        <button onClick={copy} className="text-slate-500 hover:text-white flex-shrink-0"><Copy size={13} /></button>
+        <p className="text-sm font-mono text-slate-100 truncate flex-1">{addr}</p>
+        <button onClick={copy} className="text-slate-300 hover:text-white flex-shrink-0"><Copy size={13} /></button>
         <a href={`https://taostats.io/account/${addr}`} target="_blank" rel="noopener noreferrer"
-          className="text-slate-500 hover:text-accent-blue flex-shrink-0"><ExternalLink size={13} /></a>
+          className="text-slate-300 hover:text-accent-blue flex-shrink-0"><ExternalLink size={13} /></a>
       </div>
     </div>
   )
@@ -128,7 +128,7 @@ export default function WalletPage() {
           <h1 className="text-2xl font-bold text-white flex items-center gap-2">
             <WalletIcon size={22} className="text-accent-blue" /> Wallet
           </h1>
-          <p className="text-sm text-slate-500 mt-0.5">
+          <p className="text-sm text-slate-300 mt-0.5">
             Bittensor Finney mainnet · Coldkey management
           </p>
         </div>
@@ -151,18 +151,18 @@ export default function WalletPage() {
       )}>
         <span className={clsx('w-2.5 h-2.5 rounded-full flex-shrink-0',
           isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600')} />
-        <span className={isConnected ? 'text-emerald-400 font-semibold' : 'text-slate-500'}>
+        <span className={isConnected ? 'text-emerald-400 font-semibold' : 'text-slate-300'}>
           {isConnected ? '⛓ FINNEY MAINNET CONNECTED' : '○ CHAIN OFFLINE'}
         </span>
         {block && (
-          <><span className="text-slate-600">·</span>
-          <span className="text-slate-400">Block #{block.toLocaleString()}</span></>
+          <><span className="text-slate-300">·</span>
+          <span className="text-slate-300">Block #{block.toLocaleString()}</span></>
         )}
         {balance != null && (
-          <><span className="text-slate-600">·</span>
+          <><span className="text-slate-300">·</span>
           <span className="text-indigo-400 font-bold">τ{balance.toFixed(6)}</span></>
         )}
-        <span className="ml-auto text-slate-600">finney.opentensor.ai</span>
+        <span className="ml-auto text-slate-300">finney.opentensor.ai</span>
       </div>
 
       {/* ── Known address ──────────────────────────────────────────────────── */}
@@ -173,19 +173,19 @@ export default function WalletPage() {
         <AddrBox label="Coldkey (SS58)" addr={TARGET_ADDRESS} />
         <div className="grid grid-cols-3 gap-3 text-xs">
           <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-500 mb-0.5">Chain Balance</p>
-            <p className={clsx('font-mono font-bold', balance != null ? 'text-indigo-400' : 'text-slate-600')}>
+            <p className="text-slate-300 mb-0.5">Chain Balance</p>
+            <p className={clsx('font-mono font-bold', balance != null ? 'text-indigo-400' : 'text-slate-300')}>
               {balance != null ? `τ${balance.toFixed(6)}` : querying ? 'Querying…' : '—'}
             </p>
           </div>
           <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-500 mb-0.5">Block</p>
+            <p className="text-slate-300 mb-0.5">Block</p>
             <p className="text-white font-mono">
               {block ? `#${block.toLocaleString()}` : '—'}
             </p>
           </div>
           <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-500 mb-0.5">Chain Status</p>
+            <p className="text-slate-300 mb-0.5">Chain Status</p>
             <p className={clsx('font-mono font-semibold',
               isConnected ? 'text-emerald-400' : 'text-amber-400')}>
               {isConnected ? '⛓ Live' : '○ Cached'}
@@ -209,14 +209,14 @@ export default function WalletPage() {
           </h2>
           <button
             onClick={() => setShowWords(!showWords)}
-            className="flex items-center gap-1 text-xs text-slate-400 hover:text-white font-mono"
+            className="flex items-center gap-1 text-xs text-slate-300 hover:text-white font-mono"
           >
             {showWords ? <EyeOff size={12} /> : <Eye size={12} />}
             {showWords ? 'Hide' : 'Show'}
           </button>
         </div>
 
-        <p className="text-xs text-slate-500 mb-4">
+        <p className="text-xs text-slate-300 mb-4">
           Enter your 12-word BIP39 mnemonic. You can paste the full phrase into any word box.
           Words are stored encrypted and only used locally.
         </p>
@@ -225,7 +225,7 @@ export default function WalletPage() {
         <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
           {words.map((w, i) => (
             <div key={i} className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-600 font-mono select-none">
+              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-300 font-mono select-none">
                 {i + 1}.
               </span>
               <input
@@ -247,7 +247,7 @@ export default function WalletPage() {
               style={{ width: `${(wordCount / 12) * 100}%` }}
             />
           </div>
-          <span className="text-xs font-mono text-slate-400">{wordCount}/12</span>
+          <span className="text-xs font-mono text-slate-300">{wordCount}/12</span>
         </div>
 
         <div className="flex gap-2">
@@ -258,7 +258,7 @@ export default function WalletPage() {
               'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all border flex-1',
               mnemonicOk && !saved
                 ? 'bg-accent-green/15 text-accent-green border-accent-green/30 hover:bg-accent-green/30'
-                : 'bg-dark-700 text-slate-500 border-dark-600 cursor-not-allowed'
+                : 'bg-dark-700 text-slate-300 border-dark-600 cursor-not-allowed'
             )}
           >
             {saved ? <CheckCircle2 size={14} /> : busy ? <RefreshCw size={14} className="animate-spin" /> : <KeyRound size={14} />}
@@ -266,7 +266,7 @@ export default function WalletPage() {
           </button>
           <button
             onClick={clearWords}
-            className="px-3 py-2 rounded-lg text-xs text-slate-500 border border-dark-600 hover:text-white hover:border-dark-400 transition-colors"
+            className="px-3 py-2 rounded-lg text-xs text-slate-300 border border-dark-600 hover:text-white hover:border-dark-400 transition-colors"
           >
             Clear
           </button>
@@ -293,13 +293,13 @@ export default function WalletPage() {
             { label: 'Block',      val: block ? `#${block.toLocaleString()}` : '—' },
           ].map(({ label, val }) => (
             <div key={label} className="flex justify-between items-center px-3 py-2 bg-dark-700 rounded-lg">
-              <span className="text-slate-500">{label}</span>
-              <span className="font-mono text-slate-200">{val}</span>
+              <span className="text-slate-300">{label}</span>
+              <span className="font-mono text-slate-100">{val}</span>
             </div>
           ))}
         </div>
 
-        <p className="text-xs text-slate-600 mt-4 font-mono">
+        <p className="text-xs text-slate-300 mt-4 font-mono">
           Install bittensor: pip install bittensor==6.9.3 · Requires Python 3.11+
         </p>
       </div>

@@ -34,7 +34,7 @@ function fmt(n: number, d = 4) {
 const MODE_COLOR: Record<string, string> = {
   LIVE:              'bg-accent-green/20 text-accent-green border-accent-green/40',
   APPROVED_FOR_LIVE: 'bg-yellow-400/20 text-yellow-400 border-yellow-400/40',
-  PAPER_ONLY:        'bg-slate-700 text-slate-400 border-slate-600',
+  PAPER_ONLY:        'bg-slate-700 text-slate-300 border-slate-600',
 }
 
 function GateBar({ label, g }: { label: string; g: GateCheck }) {
@@ -42,8 +42,8 @@ function GateBar({ label, g }: { label: string; g: GateCheck }) {
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs font-mono">
-        <span className="text-slate-400">{label}</span>
-        <span className={g.ok ? 'text-accent-green' : 'text-slate-500'}>
+        <span className="text-slate-300">{label}</span>
+        <span className={g.ok ? 'text-accent-green' : 'text-slate-300'}>
           {g.value.toFixed(typeof g.value === 'number' && g.value % 1 !== 0 ? 1 : 0)}
           {' / '}{g.required}
           {g.ok ? ' ✓' : ''}
@@ -84,7 +84,7 @@ export default function StrategyDetail() {
 
   if (loading) return (
     <div className="flex h-full items-center justify-center">
-      <RefreshCw size={20} className="animate-spin text-slate-500" />
+      <RefreshCw size={20} className="animate-spin text-slate-300" />
     </div>
   )
 
@@ -109,7 +109,7 @@ export default function StrategyDetail() {
       <div className="flex items-start gap-4">
         <button
           onClick={() => navigate('/fleet')}
-          className="mt-1 p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-400 hover:text-white transition-colors"
+          className="mt-1 p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white transition-colors"
         >
           <ArrowLeft size={14} />
         </button>
@@ -121,9 +121,9 @@ export default function StrategyDetail() {
               {detail.mode.replace('_', ' ')}
             </span>
           </div>
-          <p className="text-sm text-slate-500 mt-1">{detail.description}</p>
+          <p className="text-sm text-slate-300 mt-1">{detail.description}</p>
         </div>
-        <button onClick={load} className="mt-1 p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-400 hover:text-white">
+        <button onClick={load} className="mt-1 p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white">
           <RefreshCw size={13} />
         </button>
       </div>
@@ -140,7 +140,7 @@ export default function StrategyDetail() {
           { label: 'Cycles',       value: String(detail.cycles_completed), color: 'text-accent-blue' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3">
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest font-mono">{label}</p>
+            <p className="text-[10px] text-slate-300 uppercase tracking-widest font-mono">{label}</p>
             <p className={clsx('text-xl font-bold font-mono mt-1', color)}>{value}</p>
           </div>
         ))}
@@ -164,14 +164,14 @@ export default function StrategyDetail() {
                     <stop offset="95%" stopColor="#00ff88" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1a2540" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#243450" />
                 <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 9 }}
                   tickLine={false} axisLine={false} interval="preserveStartEnd" />
                 <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false}
                   axisLine={false} tickFormatter={v => v.toFixed(3)} />
                 <ReferenceLine y={0} stroke="#334155" strokeDasharray="4 4" />
                 <Tooltip
-                  contentStyle={{ background: '#0d1424', border: '1px solid #1a2540', borderRadius: 8, fontSize: 11, fontFamily: 'monospace' }}
+                  contentStyle={{ background: '#152030', border: '1px solid #243450', borderRadius: 8, fontSize: 11, fontFamily: 'monospace' }}
                   formatter={(v: any) => [`${v.toFixed(4)} τ`, 'Cumulative']}
                 />
                 <Area dataKey="cumulative" stroke="#00ff88" strokeWidth={2}
@@ -179,7 +179,7 @@ export default function StrategyDetail() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[240px] flex items-center justify-center text-slate-600 text-sm font-mono">
+            <div className="h-[240px] flex items-center justify-center text-slate-300 text-sm font-mono">
               Not enough trades yet
             </div>
           )}
@@ -192,7 +192,7 @@ export default function StrategyDetail() {
             <span className={clsx('ml-auto text-xs font-mono px-2 py-0.5 rounded border',
               gatesPassed === 4
                 ? 'text-accent-green bg-accent-green/10 border-accent-green/30'
-                : 'text-slate-400 bg-dark-700 border-dark-600')}>
+                : 'text-slate-300 bg-dark-700 border-dark-600')}>
               {gatesPassed}/4 gates
             </span>
           </h2>
@@ -208,7 +208,7 @@ export default function StrategyDetail() {
             'mt-5 px-3 py-2.5 rounded-lg border text-xs font-mono text-center font-semibold',
             detail.mode === 'LIVE'              ? 'bg-accent-green/10 border-accent-green/30 text-accent-green' :
             detail.mode === 'APPROVED_FOR_LIVE' ? 'bg-yellow-400/10 border-yellow-400/30 text-yellow-400' :
-                                                  'bg-dark-700 border-dark-600 text-slate-400'
+                                                  'bg-dark-700 border-dark-600 text-slate-300'
           )}>
             {detail.mode === 'LIVE'              ? '🚀 LIVE — Executing real trades' :
              detail.mode === 'APPROVED_FOR_LIVE' ? '🎯 APPROVED — Awaiting deployment' :
@@ -223,12 +223,12 @@ export default function StrategyDetail() {
           <h2 className="text-sm font-semibold text-white flex items-center gap-2">
             <Activity size={14} className="text-accent-blue" /> Recent Trades
           </h2>
-          <span className="text-xs text-slate-500 font-mono">last 50 · newest first</span>
+          <span className="text-xs text-slate-300 font-mono">last 50 · newest first</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-dark-600 text-[10px] text-slate-500 uppercase tracking-wider font-mono">
+              <tr className="border-b border-dark-600 text-[10px] text-slate-300 uppercase tracking-wider font-mono">
                 <th className="px-4 py-2.5 text-left">ID</th>
                 <th className="px-4 py-2.5 text-left">Type</th>
                 <th className="px-4 py-2.5 text-right">Amount</th>
@@ -245,7 +245,7 @@ export default function StrategyDetail() {
                   'border-b border-dark-700/40 hover:bg-dark-700/40',
                   i % 2 === 0 ? '' : 'bg-dark-800/30'
                 )}>
-                  <td className="px-4 py-2 text-slate-600 font-mono">#{t.id}</td>
+                  <td className="px-4 py-2 text-slate-300 font-mono">#{t.id}</td>
                   <td className="px-4 py-2">
                     <span className={clsx('font-mono font-bold text-[11px]',
                       t.type === 'buy' ? 'text-accent-green' : 'text-red-400')}>
@@ -253,9 +253,9 @@ export default function StrategyDetail() {
                     </span>
                   </td>
                   <td className="px-4 py-2 text-right font-mono text-slate-300">{t.amount.toFixed(4)} τ</td>
-                  <td className="px-4 py-2 text-right font-mono text-slate-400">${t.price.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right font-mono text-slate-300">${t.price.toFixed(2)}</td>
                   <td className={clsx('px-4 py-2 text-right font-mono font-semibold',
-                    t.pnl > 0 ? 'text-accent-green' : t.pnl < 0 ? 'text-red-400' : 'text-slate-500')}>
+                    t.pnl > 0 ? 'text-accent-green' : t.pnl < 0 ? 'text-red-400' : 'text-slate-300')}>
                     {fmt(t.pnl, 4)}
                   </td>
                   <td className="px-4 py-2 text-center">
@@ -264,12 +264,12 @@ export default function StrategyDetail() {
                       : <XCircle     size={12} className="text-red-400 mx-auto" />
                     }
                   </td>
-                  <td className="px-4 py-2 text-slate-500 max-w-[200px] truncate">{t.signal || '—'}</td>
-                  <td className="px-4 py-2 font-mono text-slate-500 whitespace-nowrap">{t.time}</td>
+                  <td className="px-4 py-2 text-slate-300 max-w-[200px] truncate">{t.signal || '—'}</td>
+                  <td className="px-4 py-2 font-mono text-slate-300 whitespace-nowrap">{t.time}</td>
                 </tr>
               ))}
               {detail.recent_trades.length === 0 && (
-                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-600 font-mono">
+                <tr><td colSpan={8} className="px-4 py-8 text-center text-slate-300 font-mono">
                   No trades yet
                 </td></tr>
               )}

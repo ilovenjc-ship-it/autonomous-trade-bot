@@ -21,7 +21,7 @@ export default function Strategies() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold text-white">Strategies</h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-xs text-slate-300 mt-0.5">
             Active: <span className="text-accent-blue font-mono">{status?.active_strategy ?? '—'}</span>
           </p>
         </div>
@@ -41,11 +41,11 @@ export default function Strategies() {
                 {s.is_active ? (
                   <CheckCircle size={16} className="text-accent-green" />
                 ) : (
-                  <Circle size={16} className="text-slate-600" />
+                  <Circle size={16} className="text-slate-300" />
                 )}
                 <div>
                   <h3 className="text-sm font-semibold text-white">{s.display_name}</h3>
-                  <p className="text-[10px] font-mono text-slate-500">{s.name}</p>
+                  <p className="text-[10px] font-mono text-slate-300">{s.name}</p>
                 </div>
               </div>
               {s.is_active && (
@@ -55,15 +55,15 @@ export default function Strategies() {
               )}
             </div>
 
-            <p className="text-xs text-slate-400 mb-4 leading-relaxed">{s.description}</p>
+            <p className="text-xs text-slate-300 mb-4 leading-relaxed">{s.description}</p>
 
             {/* Params */}
             <div className="bg-dark-900 rounded-lg p-3 mb-4">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider mb-2">Parameters</p>
+              <p className="text-[10px] text-slate-300 uppercase tracking-wider mb-2">Parameters</p>
               <div className="grid grid-cols-2 gap-1.5">
                 {Object.entries(s.parameters || {}).map(([k, v]) => (
                   <div key={k} className="flex justify-between text-xs">
-                    <span className="text-slate-500">{k}</span>
+                    <span className="text-slate-300">{k}</span>
                     <span className="font-mono text-slate-300">{String(v)}</span>
                   </div>
                 ))}
@@ -79,7 +79,7 @@ export default function Strategies() {
               ].map(({ label, value }) => (
                 <div key={label} className="text-center">
                   <p className="text-xs font-mono text-white">{value}</p>
-                  <p className="text-[10px] text-slate-500">{label}</p>
+                  <p className="text-[10px] text-slate-300">{label}</p>
                 </div>
               ))}
             </div>
@@ -90,7 +90,7 @@ export default function Strategies() {
               className={clsx(
                 'w-full py-2 rounded-lg text-xs font-semibold transition-all',
                 s.is_active
-                  ? 'bg-dark-700 text-slate-500 cursor-not-allowed'
+                  ? 'bg-dark-700 text-slate-300 cursor-not-allowed'
                   : 'btn-secondary hover:border-accent-blue/40 hover:text-accent-blue'
               )}
             >
@@ -105,7 +105,7 @@ export default function Strategies() {
         <h2 className="text-sm font-semibold text-white mb-2 flex items-center gap-2">
           <Zap size={14} className="text-accent-yellow" /> Current Signal
         </h2>
-        <p className="text-xs text-slate-400">
+        <p className="text-xs text-slate-300">
           Strategy signals update every price tick. Start the bot to see live signals on the dashboard.
         </p>
       </div>

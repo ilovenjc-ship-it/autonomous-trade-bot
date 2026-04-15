@@ -21,7 +21,7 @@ const KIND_META: Record<string, { label: string; color: string; icon: React.Elem
   trade:  { label: 'Trade',  color: 'text-accent-green  bg-accent-green/10 border-accent-green/30',  icon: TrendingUp     },
   signal: { label: 'Signal', color: 'text-accent-blue   bg-accent-blue/10  border-accent-blue/30',   icon: Radio          },
   gate:   { label: 'Gate',   color: 'text-yellow-400    bg-yellow-400/10   border-yellow-400/30',    icon: CheckCircle2   },
-  system: { label: 'System', color: 'text-slate-400     bg-dark-700        border-dark-600',          icon: Zap            },
+  system: { label: 'System', color: 'text-slate-300     bg-dark-700        border-dark-600',          icon: Zap            },
   alert:  { label: 'Alert',  color: 'text-red-400       bg-red-400/10      border-red-400/30',        icon: AlertTriangle  },
 }
 
@@ -96,7 +96,7 @@ export default function ActivityLog() {
               <Activity size={22} className="text-accent-blue" />
               Activity Log
             </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <p className="text-sm text-slate-300 mt-0.5">
               {filtered.length} events{filter !== 'all' ? ` (${filter})` : ''} — {events.length} total
             </p>
           </div>
@@ -109,7 +109,7 @@ export default function ActivityLog() {
                 'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono border transition-colors',
                 live
                   ? 'bg-accent-green/15 text-accent-green border-accent-green/30'
-                  : 'bg-dark-700 text-slate-400 border-dark-600'
+                  : 'bg-dark-700 text-slate-300 border-dark-600'
               )}
             >
               <span className={clsx('w-1.5 h-1.5 rounded-full', live ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
@@ -118,7 +118,7 @@ export default function ActivityLog() {
 
             <button
               onClick={load}
-              className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-400 hover:text-white transition-colors font-mono"
+              className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
             >
               <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
               Refresh
@@ -130,12 +130,12 @@ export default function ActivityLog() {
         <div className="flex flex-wrap items-center gap-2">
           {/* Kind filter chips */}
           <div className="flex items-center gap-1">
-            <Filter size={12} className="text-slate-500" />
+            <Filter size={12} className="text-slate-300" />
             <button
               onClick={() => setFilter('all')}
               className={clsx(
                 'px-2.5 py-1 rounded-md text-xs font-mono transition-colors',
-                filter === 'all' ? 'bg-accent-blue/20 text-accent-blue' : 'text-slate-500 hover:text-white'
+                filter === 'all' ? 'bg-accent-blue/20 text-accent-blue' : 'text-slate-300 hover:text-white'
               )}
             >
               ALL ({events.length})
@@ -148,7 +148,7 @@ export default function ActivityLog() {
                   onClick={() => setFilter(filter === k ? 'all' : k)}
                   className={clsx(
                     'px-2.5 py-1 rounded-md text-xs font-mono transition-colors',
-                    filter === k ? 'bg-accent-blue/20 text-accent-blue' : 'text-slate-500 hover:text-white'
+                    filter === k ? 'bg-accent-blue/20 text-accent-blue' : 'text-slate-300 hover:text-white'
                   )}
                 >
                   {m.label} ({counts[k] || 0})
@@ -171,12 +171,12 @@ export default function ActivityLog() {
       <div className="flex-1 overflow-y-auto px-6 py-3 space-y-1.5">
         {loading && (
           <div className="flex items-center justify-center py-16">
-            <RefreshCw size={20} className="animate-spin text-slate-500" />
+            <RefreshCw size={20} className="animate-spin text-slate-300" />
           </div>
         )}
 
         {!loading && filtered.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-16 text-slate-500">
+          <div className="flex flex-col items-center justify-center py-16 text-slate-300">
             <Activity size={32} className="mb-3 opacity-40" />
             <p className="font-mono text-sm">No events match your filter</p>
           </div>
@@ -200,17 +200,17 @@ export default function ActivityLog() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <KindBadge kind={ev.kind} />
                   {ev.strategy && (
-                    <span className="text-[10px] font-mono text-slate-500 bg-dark-700 px-1.5 py-0.5 rounded">
+                    <span className="text-[10px] font-mono text-slate-300 bg-dark-700 px-1.5 py-0.5 rounded">
                       {ev.strategy}
                     </span>
                   )}
-                  <span className="text-[10px] font-mono text-slate-600 ml-auto">
+                  <span className="text-[10px] font-mono text-slate-300 ml-auto">
                     {ts(ev.timestamp)}
                   </span>
                 </div>
                 <p className="text-sm text-slate-300 mt-1 font-mono">{ev.message}</p>
                 {ev.detail && (
-                  <p className="text-xs text-slate-500 mt-0.5">{ev.detail}</p>
+                  <p className="text-xs text-slate-300 mt-0.5">{ev.detail}</p>
                 )}
               </div>
             </div>
@@ -222,12 +222,12 @@ export default function ActivityLog() {
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 py-2 border-t border-dark-600 flex items-center justify-between">
-        <p className="text-xs text-slate-600 font-mono">
+        <p className="text-xs text-slate-300 font-mono">
           Ring buffer — last 200 events in memory
         </p>
         <button
           onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 font-mono transition-colors"
+          className="flex items-center gap-1 text-xs text-slate-300 hover:text-slate-300 font-mono transition-colors"
         >
           <ArrowDownCircle size={12} /> Jump to latest
         </button>

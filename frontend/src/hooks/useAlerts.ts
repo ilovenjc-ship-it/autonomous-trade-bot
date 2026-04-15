@@ -26,11 +26,11 @@ const STORAGE_KEY   = 'tao_last_seen_alert_id'
 function getLevelStyle(level: string): { background: string; color: string; border: string } {
   switch (level) {
     case 'CRITICAL':
-      return { background: '#0d1424', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)' }
+      return { background: '#152030', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)' }
     case 'WARNING':
-      return { background: '#0d1424', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.4)' }
+      return { background: '#152030', color: '#fbbf24', border: '1px solid rgba(251,191,36,0.4)' }
     default:
-      return { background: '#0d1424', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }
+      return { background: '#152030', color: '#34d399', border: '1px solid rgba(52,211,153,0.3)' }
   }
 }
 
@@ -44,11 +44,13 @@ function getLevelDuration(level: string): number {
 
 export function useAlerts() {
   const [unreadCount, setUnreadCount] = useState(0)
+  const initialized                   = useRef(false)
   const lastSeenId = useRef<number>(
     parseInt(localStorage.getItem(STORAGE_KEY) ?? '0', 10)
   )
 
   const poll = useCallback(async () => {
+    if (!initialized.current) return   // don't toast until seed is done
     try {
       const res  = await fetch('/api/alerts?limit=20')
       if (!res.ok) return
@@ -111,6 +113,7 @@ export function useAlerts() {
         }
         setUnreadCount(data.unread_count ?? 0)
       } catch (_) {}
+      finally { initialized.current = true }  // always unblock polling after seed
     }
     seedInitial()
   }, [])

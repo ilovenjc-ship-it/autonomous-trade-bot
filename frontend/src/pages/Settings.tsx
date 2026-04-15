@@ -34,7 +34,7 @@ export default function Settings() {
     hint?: string
   ) => (
     <div>
-      <label className="block text-xs text-slate-400 mb-1">{label}</label>
+      <label className="block text-xs text-slate-300 mb-1">{label}</label>
       <input
         type={type}
         value={(config[key] as string | number | undefined) ?? ''}
@@ -46,7 +46,7 @@ export default function Settings() {
         }
         className="input"
       />
-      {hint && <p className="text-[10px] text-slate-600 mt-1">{hint}</p>}
+      {hint && <p className="text-[10px] text-slate-300 mt-1">{hint}</p>}
     </div>
   )
 
@@ -87,7 +87,7 @@ export default function Settings() {
 
           <h2 className="text-sm font-semibold text-white border-b border-dark-600 pb-2 pt-2">Network</h2>
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Network</label>
+            <label className="block text-xs text-slate-300 mb-1">Network</label>
             <select
               value={config.network ?? 'finney'}
               onChange={(e) => setConfig((c) => ({ ...c, network: e.target.value }))}
@@ -105,7 +105,7 @@ export default function Settings() {
       {/* Danger zone */}
       <div className="card p-4 border-accent-red/20">
         <h2 className="text-sm font-semibold text-accent-red mb-2">Danger Zone</h2>
-        <p className="text-xs text-slate-500 mb-3">
+        <p className="text-xs text-slate-300 mb-3">
           These actions are irreversible. Resetting clears all trade history from the local database.
         </p>
         <button

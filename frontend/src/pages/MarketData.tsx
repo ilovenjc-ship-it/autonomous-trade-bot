@@ -49,7 +49,7 @@ type SortKey = 'uid' | 'stake_tao' | 'apy' | 'emission' | 'miners' | 'score'
 function TrendIcon({ trend }: { trend: string }) {
   if (trend === 'up')   return <TrendingUp   size={12} className="text-accent-green" />
   if (trend === 'down') return <TrendingDown  size={12} className="text-red-400" />
-  return <Minus size={12} className="text-slate-500" />
+  return <Minus size={12} className="text-slate-300" />
 }
 
 function ApyBadge({ apy }: { apy: number }) {
@@ -57,7 +57,7 @@ function ApyBadge({ apy }: { apy: number }) {
     apy >= 40 ? 'bg-accent-green/20 text-accent-green' :
     apy >= 25 ? 'bg-blue-500/20 text-blue-400' :
     apy >= 15 ? 'bg-yellow-400/20 text-yellow-400' :
-                'bg-dark-600 text-slate-400'
+                'bg-dark-600 text-slate-300'
   return (
     <span className={clsx('px-2 py-0.5 rounded font-mono text-[11px] font-semibold', color)}>
       {apy.toFixed(1)}%
@@ -76,7 +76,7 @@ function ScoreBar({ score }: { score: number }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="font-mono text-xs text-slate-400">{score.toFixed(0)}</span>
+      <span className="font-mono text-xs text-slate-300">{score.toFixed(0)}</span>
     </div>
   )
 }
@@ -84,9 +84,9 @@ function ScoreBar({ score }: { score: number }) {
 function KPI({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
     <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex flex-col gap-1 min-w-0">
-      <p className="text-[10px] text-slate-500 uppercase tracking-widest font-mono truncate">{label}</p>
+      <p className="text-[10px] text-slate-300 uppercase tracking-widest font-mono truncate">{label}</p>
       <p className={clsx('text-xl font-bold font-mono truncate', color ?? 'text-white')}>{value}</p>
-      {sub && <p className="text-[10px] text-slate-500 truncate">{sub}</p>}
+      {sub && <p className="text-[10px] text-slate-300 truncate">{sub}</p>}
     </div>
   )
 }
@@ -169,7 +169,7 @@ export default function MarketData() {
               <Globe size={22} className="text-accent-blue" />
               Market Data
             </h1>
-            <p className="text-sm text-slate-500 mt-0.5">
+            <p className="text-sm text-slate-300 mt-0.5">
               {subnets.length} subnets ·
               <span className="text-accent-green ml-1">↑{upCount}</span>
               <span className="text-red-400 ml-1">↓{downCount}</span>
@@ -183,7 +183,7 @@ export default function MarketData() {
                 'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono border transition-colors',
                 autoRef
                   ? 'bg-accent-green/15 text-accent-green border-accent-green/30'
-                  : 'bg-dark-700 text-slate-400 border-dark-600'
+                  : 'bg-dark-700 text-slate-300 border-dark-600'
               )}
             >
               <span className={clsx('w-1.5 h-1.5 rounded-full', autoRef ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
@@ -191,7 +191,7 @@ export default function MarketData() {
             </button>
             <button
               onClick={load}
-              className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-400 hover:text-white transition-colors font-mono"
+              className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
             >
               <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
               Refresh
@@ -215,7 +215,7 @@ export default function MarketData() {
         <div className="flex flex-wrap items-center gap-2">
           {/* Search */}
           <div className="flex items-center gap-1.5 bg-dark-700 border border-dark-600 rounded-lg px-2.5 py-1.5">
-            <Search size={11} className="text-slate-500" />
+            <Search size={11} className="text-slate-300" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -226,15 +226,15 @@ export default function MarketData() {
 
           {/* Min APY */}
           <div className="flex items-center gap-1.5">
-            <Filter size={11} className="text-slate-500" />
-            <span className="text-xs text-slate-500 font-mono">Min APY:</span>
+            <Filter size={11} className="text-slate-300" />
+            <span className="text-xs text-slate-300 font-mono">Min APY:</span>
             {[0, 10, 20, 30].map(v => (
               <button
                 key={v}
                 onClick={() => setMinApy(v)}
                 className={clsx(
                   'px-2.5 py-1 rounded-md text-xs font-mono transition-colors',
-                  minApy === v ? 'bg-accent-blue/20 text-accent-blue' : 'text-slate-500 hover:text-white'
+                  minApy === v ? 'bg-accent-blue/20 text-accent-blue' : 'text-slate-300 hover:text-white'
                 )}
               >
                 {v === 0 ? 'All' : `${v}%+`}
@@ -248,7 +248,7 @@ export default function MarketData() {
       <div className="flex-1 overflow-auto">
         <table className="w-full text-xs">
           <thead className="sticky top-0 z-10 bg-dark-900 border-b border-dark-600">
-            <tr className="text-slate-500 uppercase tracking-wider font-mono">
+            <tr className="text-slate-300 uppercase tracking-wider font-mono">
               <th className="px-4 py-3 text-left w-10">
                 <span className="flex items-center gap-1 cursor-pointer hover:text-white" onClick={() => toggleSort('uid')}>
                   # {sortCol === 'uid' ? (sortAsc ? <ChevronUp size={10} className="text-accent-blue" /> : <ChevronDown size={10} className="text-accent-blue" />) : <ChevronUp size={10} className="text-slate-700" />}
@@ -269,7 +269,7 @@ export default function MarketData() {
             {loading && !subnets.length && (
               <tr>
                 <td colSpan={10} className="py-16 text-center">
-                  <RefreshCw size={18} className="animate-spin text-slate-500 mx-auto" />
+                  <RefreshCw size={18} className="animate-spin text-slate-300 mx-auto" />
                 </td>
               </tr>
             )}
@@ -283,7 +283,7 @@ export default function MarketData() {
                 )}
               >
                 {/* Rank */}
-                <td className="px-4 py-2.5 text-slate-600 font-mono">{idx + 1}</td>
+                <td className="px-4 py-2.5 text-slate-300 font-mono">{idx + 1}</td>
 
                 {/* Subnet name */}
                 <td className="px-4 py-2.5">
@@ -291,14 +291,14 @@ export default function MarketData() {
                     {s.uid <= 3 && <Star size={10} className="text-yellow-400 flex-shrink-0" />}
                     <div>
                       <p className="text-white font-medium">{s.name}</p>
-                      <p className="text-slate-600 font-mono text-[10px]">SN{s.uid}</p>
+                      <p className="text-slate-300 font-mono text-[10px]">SN{s.uid}</p>
                     </div>
                   </div>
                 </td>
 
                 {/* Ticker */}
                 <td className="px-4 py-2.5">
-                  <span className="font-mono text-slate-400 text-[11px] bg-dark-700 px-1.5 py-0.5 rounded">
+                  <span className="font-mono text-slate-300 text-[11px] bg-dark-700 px-1.5 py-0.5 rounded">
                     {s.ticker.toUpperCase()}
                   </span>
                 </td>
@@ -309,7 +309,7 @@ export default function MarketData() {
                 </td>
 
                 {/* Stake USD */}
-                <td className="px-4 py-2.5 text-right font-mono text-slate-500">
+                <td className="px-4 py-2.5 text-right font-mono text-slate-300">
                   {fmtUSD(s.stake_usd)}
                 </td>
 
@@ -319,7 +319,7 @@ export default function MarketData() {
                 </td>
 
                 {/* Emission */}
-                <td className="px-4 py-2.5 text-right font-mono text-slate-400">
+                <td className="px-4 py-2.5 text-right font-mono text-slate-300">
                   {s.emission.toFixed(4)}
                 </td>
 
@@ -344,7 +344,7 @@ export default function MarketData() {
 
             {!loading && subnets.length === 0 && (
               <tr>
-                <td colSpan={10} className="py-16 text-center text-slate-500 font-mono">
+                <td colSpan={10} className="py-16 text-center text-slate-300 font-mono">
                   No subnets match filter
                 </td>
               </tr>
@@ -355,7 +355,7 @@ export default function MarketData() {
 
       {/* Footer */}
       <div className="flex-shrink-0 px-6 py-2 border-t border-dark-600">
-        <p className="text-xs text-slate-600 font-mono">
+        <p className="text-xs text-slate-300 font-mono">
           Data simulated — connect Bittensor wallet for live subnet metrics · auto-refresh every 15s
         </p>
       </div>

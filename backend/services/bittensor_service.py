@@ -30,10 +30,20 @@ _MNEMONIC_ENV_KEY = "BT_MNEMONIC"
 
 
 def _load_mnemonic_from_env() -> Optional[str]:
-    """Read stored mnemonic from environment or .env file."""
+    """Read stored mnemonic — checks os.environ first, then pydantic settings (which reads .env file)."""
+    # Check runtime environment first
     m = os.environ.get(_MNEMONIC_ENV_KEY, "").strip()
     if m and len(m.split()) >= 12:
         return m
+    # Fallback: pydantic settings reads the .env file directly
+    try:
+        from core.config import settings
+        m2 = (settings.BT_MNEMONIC or "").strip()
+        if m2 and len(m2.split()) >= 12:
+            os.environ[_MNEMONIC_ENV_KEY] = m2  # cache into os.environ for next time
+            return m2
+    except Exception:
+        pass
     return None
 
 

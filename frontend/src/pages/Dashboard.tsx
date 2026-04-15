@@ -69,12 +69,12 @@ function KPI({ label, value, sub, color, icon: Icon }: {
   return (
     <div className="bg-dark-800 border border-dark-600 rounded-xl px-5 py-4 flex items-start gap-3">
       <div className="w-9 h-9 rounded-lg bg-dark-700 flex items-center justify-center flex-shrink-0">
-        <Icon size={16} className={color ?? 'text-slate-400'} />
+        <Icon size={16} className={color ?? 'text-slate-300'} />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-mono">{label}</p>
+        <p className="text-[10px] text-slate-300 uppercase tracking-widest font-mono">{label}</p>
         <p className={clsx('text-xl font-bold font-mono mt-0.5', color ?? 'text-white')}>{value}</p>
-        {sub && <p className="text-[11px] text-slate-500 mt-0.5">{sub}</p>}
+        {sub && <p className="text-[11px] text-slate-300 mt-0.5">{sub}</p>}
       </div>
     </div>
   )
@@ -83,13 +83,13 @@ function KPI({ label, value, sub, color, icon: Icon }: {
 function IndRow({ label, val, good, bad }: {
   label: string; val: number | null | undefined; good?: number; bad?: number
 }) {
-  const color = val == null ? 'text-slate-600'
+  const color = val == null ? 'text-slate-300'
     : good != null && bad != null
       ? val <= good ? 'text-accent-green' : val >= bad ? 'text-red-400' : 'text-yellow-400'
       : 'text-white'
   return (
     <div className="flex justify-between items-center py-1.5 border-b border-dark-700 last:border-0">
-      <span className="text-xs text-slate-500">{label}</span>
+      <span className="text-xs text-slate-300">{label}</span>
       <span className={clsx('text-xs font-mono font-semibold', color)}>
         {val != null ? val.toFixed(4) : '—'}
       </span>
@@ -193,13 +193,13 @@ export default function Dashboard() {
           <h1 className="text-xl font-bold text-white flex items-center gap-2">
             <Zap size={20} className="text-accent-green" /> Command Dashboard
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5 font-mono">
+          <p className="text-xs text-slate-300 mt-0.5 font-mono">
             Finney Mainnet · Paper Trading · {isRunning ? `Cycle #${cycleN}` : 'Stopped'}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button onClick={load} disabled={loading}
-            className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-400 hover:text-white transition-colors">
+            className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white transition-colors">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
           </button>
           <button
@@ -228,19 +228,19 @@ export default function Dashboard() {
       )}>
         <span className={clsx('w-2 h-2 rounded-full flex-shrink-0',
           isRunning ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
-        <span className={isRunning ? 'text-accent-green' : 'text-slate-500'}>
+        <span className={isRunning ? 'text-accent-green' : 'text-slate-300'}>
           {isRunning ? `RUNNING — Cycle #${cycleN}` : 'STOPPED'}
         </span>
         {isRunning && (
           <>
-            <span className="text-slate-600">·</span>
-            <Clock size={11} className="text-slate-500" />
-            <span className="text-slate-400">Next cycle in {secToNext}s</span>
-            <span className="text-slate-600">·</span>
-            <span className="text-slate-500">12 strategies active</span>
+            <span className="text-slate-300">·</span>
+            <Clock size={11} className="text-slate-300" />
+            <span className="text-slate-300">Next cycle in {secToNext}s</span>
+            <span className="text-slate-300">·</span>
+            <span className="text-slate-300">12 strategies active</span>
           </>
         )}
-        <span className="ml-auto text-slate-600 font-mono text-[10px]">
+        <span className="ml-auto text-slate-300 font-mono text-[10px]">
           {walletStatus?.connected
             ? <span className="text-indigo-400">⛓ CHAIN CONNECTED · Block #{walletStatus.block_cached?.toLocaleString()}</span>
             : <span>⚠ Paper trading — OpenClaw gates LIVE execution</span>}
@@ -277,11 +277,11 @@ export default function Dashboard() {
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
           <Brain size={15} style={{ color: agentStatus?.regime_color ?? '#6b7280' }} />
           <div className="min-w-0">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">II Agent Regime</p>
+            <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">II Agent Regime</p>
             <p className="text-sm font-bold font-mono mt-0.5" style={{ color: agentStatus?.regime_color ?? '#6b7280' }}>
               {REGIME_LABEL[agentStatus?.current_regime ?? 'UNKNOWN'] ?? '⟳ SCANNING'}
             </p>
-            <p className="text-[10px] text-slate-600 font-mono">{agentStatus?.analysis_count ?? 0} analyses</p>
+            <p className="text-[10px] text-slate-300 font-mono">{agentStatus?.analysis_count ?? 0} analyses</p>
           </div>
         </div>
 
@@ -291,41 +291,41 @@ export default function Dashboard() {
             (consensusStats?.approval_rate_pct ?? 0) >= 50 ? 'text-emerald-400' : 'text-amber-400'
           } />
           <div className="min-w-0">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Consensus Rate</p>
+            <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">Consensus Rate</p>
             <p className={clsx('text-sm font-bold font-mono mt-0.5',
               (consensusStats?.approval_rate_pct ?? 0) >= 50 ? 'text-emerald-400' : 'text-amber-400'
             )}>
               {consensusStats ? `${consensusStats.approval_rate_pct.toFixed(1)}%` : '—'}
             </p>
-            <p className="text-[10px] text-slate-600 font-mono">{consensusStats?.total_rounds ?? 0} rounds</p>
+            <p className="text-[10px] text-slate-300 font-mono">{consensusStats?.total_rounds ?? 0} rounds</p>
           </div>
         </div>
 
         {/* Alerts */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
-          <Bell size={15} className={unreadAlerts > 0 ? 'text-red-400' : 'text-slate-500'} />
+          <Bell size={15} className={unreadAlerts > 0 ? 'text-red-400' : 'text-slate-300'} />
           <div className="min-w-0">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Unread Alerts</p>
+            <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">Unread Alerts</p>
             <p className={clsx('text-sm font-bold font-mono mt-0.5',
               unreadAlerts > 0 ? 'text-red-400' : 'text-emerald-400'
             )}>
               {unreadAlerts > 0 ? `${unreadAlerts} new` : 'All clear'}
             </p>
-            <p className="text-[10px] text-slate-600 font-mono">auto-detected</p>
+            <p className="text-[10px] text-slate-300 font-mono">auto-detected</p>
           </div>
         </div>
 
         {/* Wallet chain */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
-          <Wallet size={15} className={walletStatus?.connected ? 'text-indigo-400' : 'text-slate-600'} />
+          <Wallet size={15} className={walletStatus?.connected ? 'text-indigo-400' : 'text-slate-300'} />
           <div className="min-w-0">
-            <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Chain Balance</p>
+            <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">Chain Balance</p>
             <p className="text-sm font-bold font-mono mt-0.5 text-indigo-400">
               {walletStatus?.balance_cached != null
                 ? `τ${walletStatus.balance_cached.toFixed(6)}`
                 : walletStatus?.connected ? 'Querying…' : 'Offline'}
             </p>
-            <p className="text-[10px] text-slate-600 font-mono">
+            <p className="text-[10px] text-slate-300 font-mono">
               {walletStatus?.block_cached ? `Block #${walletStatus.block_cached.toLocaleString()}` : 'Finney mainnet'}
             </p>
           </div>
@@ -350,14 +350,14 @@ export default function Dashboard() {
                     <stop offset="95%" stopColor="#00ff88" stopOpacity={0.02} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1a2540" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#243450" />
                 <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 9 }}
                   tickLine={false} axisLine={false} interval="preserveStartEnd" />
                 <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false}
                   axisLine={false} tickFormatter={v => v.toFixed(3)} />
                 <ReferenceLine y={0} stroke="#334155" strokeDasharray="4 4" />
                 <Tooltip
-                  contentStyle={{ background: '#0d1424', border: '1px solid #1a2540', borderRadius: 8, fontSize: 11, fontFamily: 'monospace' }}
+                  contentStyle={{ background: '#152030', border: '1px solid #243450', borderRadius: 8, fontSize: 11, fontFamily: 'monospace' }}
                   formatter={(v: any) => [`${v.toFixed(4)} τ`, 'Cumulative PnL']}
                 />
                 <Area dataKey="cumulative" stroke="#00ff88" strokeWidth={2}
@@ -365,7 +365,7 @@ export default function Dashboard() {
               </AreaChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-[220px] flex items-center justify-center text-slate-600 font-mono text-sm">
+            <div className="h-[220px] flex items-center justify-center text-slate-300 font-mono text-sm">
               {loading ? 'Loading equity curve…' : 'No trade data yet'}
             </div>
           )}
@@ -387,7 +387,7 @@ export default function Dashboard() {
 
           {/* Momentum signal summary */}
           <div className="mt-4 p-3 rounded-lg bg-dark-700 border border-dark-600">
-            <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-1">Momentum Signal</p>
+            <p className="text-[10px] text-slate-300 font-mono uppercase tracking-widest mb-1">Momentum Signal</p>
             {ind.rsi_14 != null ? (
               <p className={clsx('text-sm font-bold font-mono',
                 ind.rsi_14 < 35 ? 'text-accent-green' :
@@ -397,7 +397,7 @@ export default function Dashboard() {
                  ind.rsi_14 > 65 ? '🔴 OVERBOUGHT — SELL' : '🟡 NEUTRAL — HOLD'}
               </p>
             ) : (
-              <p className="text-slate-600 text-sm font-mono">Accumulating data…</p>
+              <p className="text-slate-300 text-sm font-mono">Accumulating data…</p>
             )}
           </div>
         </div>
@@ -414,11 +414,11 @@ export default function Dashboard() {
           <div className="space-y-2">
             {top5.map((s, i) => (
               <div key={s.name} className="flex items-center gap-3 px-3 py-2 bg-dark-700 rounded-lg">
-                <span className="text-slate-500 font-mono text-xs w-4">{i + 1}</span>
+                <span className="text-slate-300 font-mono text-xs w-4">{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-white font-medium truncate">{s.label}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-mono text-slate-500">{s.total_trades} trades</span>
+                    <span className="text-[10px] font-mono text-slate-300">{s.total_trades} trades</span>
                     <span className={clsx('text-[10px] font-mono',
                       s.win_rate >= 55 ? 'text-accent-green' : 'text-yellow-400'
                     )}>{s.win_rate.toFixed(1)}% WR</span>
@@ -432,7 +432,7 @@ export default function Dashboard() {
               </div>
             ))}
             {top5.length === 0 && (
-              <p className="text-slate-600 text-xs font-mono text-center py-4">No strategy data yet</p>
+              <p className="text-slate-300 text-xs font-mono text-center py-4">No strategy data yet</p>
             )}
           </div>
         </div>
@@ -441,29 +441,29 @@ export default function Dashboard() {
         <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
             <Activity size={14} className="text-accent-blue" /> Live Activity
-            <span className="ml-auto text-[10px] text-slate-500 font-mono">auto-refresh 15s</span>
+            <span className="ml-auto text-[10px] text-slate-300 font-mono">auto-refresh 15s</span>
           </h2>
           <div className="space-y-1.5 max-h-[230px] overflow-y-auto">
             {activity.slice(0, 10).map((ev, i) => {
               const colors: Record<string, string> = {
                 trade: 'text-accent-green', signal: 'text-accent-blue',
-                gate: 'text-yellow-400', system: 'text-slate-400', alert: 'text-red-400',
+                gate: 'text-yellow-400', system: 'text-slate-300', alert: 'text-red-400',
               }
               return (
                 <div key={`${ev.id}-${i}`} className="flex items-start gap-2 text-xs">
                   <span className={clsx('font-mono font-bold flex-shrink-0 text-[10px] mt-0.5',
-                    colors[ev.kind] ?? 'text-slate-400')}>
+                    colors[ev.kind] ?? 'text-slate-300')}>
                     {ev.kind.toUpperCase().slice(0, 3)}
                   </span>
                   <span className="text-slate-300 font-mono truncate">{ev.message}</span>
                   {ev.strategy && (
-                    <span className="text-slate-600 text-[10px] ml-auto flex-shrink-0">{ev.strategy.slice(0, 8)}</span>
+                    <span className="text-slate-300 text-[10px] ml-auto flex-shrink-0">{ev.strategy.slice(0, 8)}</span>
                   )}
                 </div>
               )
             })}
             {activity.length === 0 && (
-              <p className="text-slate-600 text-xs font-mono text-center py-4">No activity yet</p>
+              <p className="text-slate-300 text-xs font-mono text-center py-4">No activity yet</p>
             )}
           </div>
         </div>

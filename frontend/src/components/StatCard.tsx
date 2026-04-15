@@ -26,7 +26,7 @@ export default function StatCard({ label, value, sub, icon: Icon, color = 'defau
         <div className="space-y-1">
           <p className="stat-label">{label}</p>
           <p className={clsx('stat-value', colorMap[color])}>{value}</p>
-          {sub && <p className="text-xs text-slate-500">{sub}</p>}
+          {sub && <p className="text-xs text-slate-300">{sub}</p>}
         </div>
         {Icon && (
           <div className={clsx('p-2 rounded-lg bg-dark-700', colorMap[color])}>

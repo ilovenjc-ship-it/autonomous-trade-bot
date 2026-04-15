@@ -23,13 +23,18 @@ export default function App() {
     <BrowserRouter>
       <Toaster
         position="top-right"
+        reverseOrder={false}
+        gutter={8}
+        containerStyle={{ top: 16, right: 16 }}
         toastOptions={{
+          duration: 4000,
           style: {
-            background: '#0d1424',
-            color: '#e2e8f0',
-            border: '1px solid #1a2540',
+            background: '#152030',
+            color: '#f1f5f9',
+            border: '1px solid #243450',
             fontFamily: '"Space Grotesk", system-ui',
             fontSize: 13,
+            maxWidth: 360,
           },
         }}
       />

@@ -83,7 +83,7 @@ async def get_status(db: AsyncSession = Depends(get_db)):
             "Cycle engine running" if cycle_service.is_running else "Bot stopped"
         ),
         "error_message": config.error_message,
-        "wallet_connected": bittensor_service.wallet is not None,
+        "wallet_connected": bittensor_service.wallet_loaded,
         "network_connected": bittensor_service.connected,
         "network": config.network,
         "netuid": config.netuid,

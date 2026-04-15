@@ -92,7 +92,7 @@ function AlertRow({ alert, onMarkRead }: { alert: Alert; onMarkRead: (id: number
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className={clsx('text-sm font-semibold', !alert.read ? 'text-white' : 'text-slate-400')}>
+            <p className={clsx('text-sm font-semibold', !alert.read ? 'text-white' : 'text-slate-300')}>
               {alert.title}
             </p>
             <span className={clsx(
@@ -101,16 +101,16 @@ function AlertRow({ alert, onMarkRead }: { alert: Alert; onMarkRead: (id: number
             )}>
               {lc.label}
             </span>
-            <span className="text-[10px] text-slate-600 font-mono bg-dark-700 px-1.5 py-0.5 rounded">
+            <span className="text-[10px] text-slate-300 font-mono bg-dark-700 px-1.5 py-0.5 rounded">
               {tc.label}
             </span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-[11px] text-slate-600 font-mono">{timeSince(alert.timestamp)}</span>
+            <span className="text-[11px] text-slate-300 font-mono">{timeSince(alert.timestamp)}</span>
             {!alert.read && (
               <button
                 onClick={() => onMarkRead(alert.id)}
-                className="opacity-0 group-hover:opacity-100 p-1 rounded text-slate-600 hover:text-emerald-400 transition-all"
+                className="opacity-0 group-hover:opacity-100 p-1 rounded text-slate-300 hover:text-emerald-400 transition-all"
                 title="Mark as read"
               >
                 <Check size={12} />
@@ -119,13 +119,13 @@ function AlertRow({ alert, onMarkRead }: { alert: Alert; onMarkRead: (id: number
           </div>
         </div>
 
-        <p className="text-xs text-slate-400 mt-1 leading-relaxed">{alert.message}</p>
+        <p className="text-xs text-slate-300 mt-1 leading-relaxed">{alert.message}</p>
 
         {alert.strategy && (
           <p className="text-[11px] text-indigo-400 font-mono mt-1">↳ {alert.strategy}</p>
         )}
         {alert.detail && (
-          <p className="text-[10px] text-slate-600 font-mono mt-0.5">{alert.detail}</p>
+          <p className="text-[10px] text-slate-300 font-mono mt-0.5">{alert.detail}</p>
         )}
       </div>
     </div>
@@ -206,11 +206,11 @@ export default function AlertInbox() {
           </div>
           <div>
             <h1 className="text-xl font-bold text-white tracking-tight">Alert Inbox</h1>
-            <p className="text-xs text-slate-500 font-mono">
+            <p className="text-xs text-slate-300 font-mono">
               {unreadCount > 0
                 ? <span className="text-red-400">{unreadCount} unread alerts</span>
                 : <span className="text-emerald-400">All caught up</span>}
-              <span className="text-slate-600 ml-2">· ↻ {lastRefresh.toLocaleTimeString()}</span>
+              <span className="text-slate-300 ml-2">· ↻ {lastRefresh.toLocaleTimeString()}</span>
             </p>
           </div>
         </div>
@@ -225,7 +225,7 @@ export default function AlertInbox() {
               Mark All Read
             </button>
           )}
-          <button onClick={load} className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-400 hover:text-white">
+          <button onClick={load} className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white">
             <RefreshCw size={14} />
           </button>
         </div>
@@ -241,7 +241,7 @@ export default function AlertInbox() {
             { label: 'Warnings', value: (stats.by_level?.WARNING ?? 0),       accent: 'text-amber-400'  },
           ].map(({ label, value, accent }) => (
             <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl p-3 text-center">
-              <p className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">{label}</p>
+              <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
               <p className={clsx('text-2xl font-bold font-mono mt-1', accent)}>{value}</p>
             </div>
           ))}
@@ -250,7 +250,7 @@ export default function AlertInbox() {
 
       {/* ── Filters ── */}
       <div className="flex flex-wrap gap-3 items-center">
-        <Filter size={14} className="text-slate-600" />
+        <Filter size={14} className="text-slate-300" />
 
         {/* Level filter */}
         <div className="flex gap-1">
@@ -264,7 +264,7 @@ export default function AlertInbox() {
                   ? level === 'ALL'
                     ? 'bg-slate-600 text-white'
                     : `${LEVEL_CFG[level]?.bg ?? ''} ${LEVEL_CFG[level]?.text ?? ''} border ${LEVEL_CFG[level]?.border ?? ''}`
-                  : 'bg-dark-700 text-slate-500 hover:text-white',
+                  : 'bg-dark-700 text-slate-300 hover:text-white',
               )}
             >
               {level}
@@ -281,7 +281,7 @@ export default function AlertInbox() {
             'flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-mono font-semibold transition-colors',
             unreadOnly
               ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
-              : 'bg-dark-700 text-slate-500 hover:text-white',
+              : 'bg-dark-700 text-slate-300 hover:text-white',
           )}
         >
           {unreadOnly ? <Bell size={11} /> : <BellOff size={11} />}
@@ -292,7 +292,7 @@ export default function AlertInbox() {
         <select
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}
-          className="ml-auto bg-dark-700 border border-dark-600 text-slate-400 text-xs font-mono rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500"
+          className="ml-auto bg-dark-700 border border-dark-600 text-slate-300 text-xs font-mono rounded-lg px-2 py-1.5 focus:outline-none focus:border-indigo-500"
         >
           <option value="ALL">All Types</option>
           {ALL_TYPES.map(type => (
@@ -304,15 +304,15 @@ export default function AlertInbox() {
       {/* ── Alert list ── */}
       <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
         <div className="px-4 py-3 border-b border-dark-700 flex items-center gap-2">
-          <Bell size={13} className="text-slate-500" />
-          <span className="text-xs text-slate-500 uppercase tracking-wider font-mono">Alerts</span>
-          <span className="ml-auto text-[10px] text-slate-600 font-mono">{filtered.length} shown</span>
+          <Bell size={13} className="text-slate-300" />
+          <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Alerts</span>
+          <span className="ml-auto text-[10px] text-slate-300 font-mono">{filtered.length} shown</span>
         </div>
 
         {filtered.length === 0 ? (
           <div className="py-16 text-center">
             <BellOff size={36} className="text-slate-700 mx-auto mb-3" />
-            <p className="text-slate-500 text-sm font-mono">
+            <p className="text-slate-300 text-sm font-mono">
               {unreadOnly ? 'No unread alerts.' : 'No alerts yet.'}
             </p>
             <p className="text-slate-700 text-xs mt-1">
@@ -331,7 +331,7 @@ export default function AlertInbox() {
 
       {/* ── Alert type reference ── */}
       <div className="bg-dark-800/60 border border-dark-700 rounded-xl p-4">
-        <p className="text-xs text-slate-500 uppercase tracking-wider font-mono mb-3">Alert Types</p>
+        <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">Alert Types</p>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
           {Object.entries(TYPE_CFG).map(([type, cfg]) => {
             const Icon = cfg.icon
@@ -344,13 +344,13 @@ export default function AlertInbox() {
                   'flex items-center gap-2 p-2 rounded-lg text-left transition-colors border',
                   typeFilter === type
                     ? 'bg-indigo-500/15 border-indigo-500/30 text-indigo-400'
-                    : 'bg-dark-700/50 border-dark-600/50 text-slate-500 hover:text-white hover:border-dark-500'
+                    : 'bg-dark-700/50 border-dark-600/50 text-slate-300 hover:text-white hover:border-dark-500'
                 )}
               >
                 <Icon size={12} />
                 <div>
                   <p className="text-[10px] font-mono leading-none">{cfg.label}</p>
-                  <p className="text-[10px] text-slate-600 font-mono">{count} fired</p>
+                  <p className="text-[10px] text-slate-300 font-mono">{count} fired</p>
                 </div>
               </button>
             )

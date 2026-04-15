@@ -71,7 +71,7 @@ function ModeBadge({ mode }: { mode: string }) {
     PAPER_ONLY:       { label: 'PAPER',    cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
     APPROVED_FOR_LIVE:{ label: 'APPROVED', cls: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
     LIVE:             { label: 'LIVE',     cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
-  }[mode] ?? { label: mode, cls: 'bg-slate-500/15 text-slate-400 border-slate-500/30' }
+  }[mode] ?? { label: mode, cls: 'bg-slate-500/15 text-slate-300 border-slate-500/30' }
 
   return (
     <span className={clsx('text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded border font-mono', cfg.cls)}>
@@ -87,8 +87,8 @@ function GateBar({ label, check }: { label: string; check: GateCheck }) {
   return (
     <div className="space-y-0.5">
       <div className="flex justify-between items-center">
-        <span className="text-[10px] text-slate-500 font-mono">{label}</span>
-        <span className={clsx('text-[10px] font-mono', check.ok ? 'text-emerald-400' : 'text-slate-400')}>
+        <span className="text-[10px] text-slate-300 font-mono">{label}</span>
+        <span className={clsx('text-[10px] font-mono', check.ok ? 'text-emerald-400' : 'text-slate-300')}>
           {check.ok ? '✓' : `${check.value}/${check.required}`}
         </span>
       </div>
@@ -124,7 +124,7 @@ function BotCard({ bot, selected, onClick }: { bot: FleetBot; selected: boolean;
             'w-1.5 h-1.5 rounded-full flex-shrink-0',
             bot.is_active ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-slate-600'
           )} />
-          <span className="text-xs font-semibold text-slate-200 truncate max-w-[100px]">
+          <span className="text-xs font-semibold text-slate-100 truncate max-w-[100px]">
             {bot.display_name}
           </span>
         </div>
@@ -137,17 +137,17 @@ function BotCard({ bot, selected, onClick }: { bot: FleetBot; selected: boolean;
           <div className={clsx('text-xs font-bold font-mono', bot.win_rate >= 55 ? 'text-emerald-400' : 'text-slate-300')}>
             {bot.win_rate.toFixed(0)}%
           </div>
-          <div className="text-[9px] text-slate-600">win rate</div>
+          <div className="text-[9px] text-slate-300">win rate</div>
         </div>
         <div className="text-center">
           <div className={clsx('text-xs font-bold font-mono', bot.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
             {bot.total_pnl >= 0 ? '+' : ''}{bot.total_pnl.toFixed(3)}
           </div>
-          <div className="text-[9px] text-slate-600">PnL TAO</div>
+          <div className="text-[9px] text-slate-300">PnL TAO</div>
         </div>
         <div className="text-center">
           <div className="text-xs font-bold font-mono text-slate-300">{bot.total_trades}</div>
-          <div className="text-[9px] text-slate-600">trades</div>
+          <div className="text-[9px] text-slate-300">trades</div>
         </div>
       </div>
 
@@ -156,7 +156,7 @@ function BotCard({ bot, selected, onClick }: { bot: FleetBot; selected: boolean;
         {[bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok].map((ok, i) => (
           <div key={i} className={clsx('w-2 h-2 rounded-full', ok ? 'bg-emerald-500' : 'bg-slate-700')} />
         ))}
-        <span className="text-[9px] text-slate-600 ml-1 font-mono">{gatesPassed}/4 gates</span>
+        <span className="text-[9px] text-slate-300 ml-1 font-mono">{gatesPassed}/4 gates</span>
         {bot.gate.all_clear && (
           <span className="ml-auto text-[9px] text-purple-400 font-bold animate-pulse">READY</span>
         )}
@@ -172,9 +172,9 @@ function EventIcon({ kind }: { kind: string }) {
     trade:  { icon: TrendingUp, cls: 'text-blue-400' },
     signal: { icon: Radio,      cls: 'text-yellow-400' },
     gate:   { icon: Shield,     cls: 'text-purple-400' },
-    system: { icon: Cpu,        cls: 'text-slate-400' },
+    system: { icon: Cpu,        cls: 'text-slate-300' },
     alert:  { icon: AlertTriangle, cls: 'text-orange-400' },
-  }[kind] ?? { icon: Activity, cls: 'text-slate-400' }
+  }[kind] ?? { icon: Activity, cls: 'text-slate-300' }
 
   const Icon = cfg.icon
   return <Icon size={11} className={cfg.cls} />
@@ -276,7 +276,7 @@ export default function MissionControl() {
   const rsiTrend = (summary?.rsi ?? 50) > 60 ? 'Overbought' : (summary?.rsi ?? 50) < 40 ? 'Oversold' : 'Neutral'
 
   return (
-    <div className="flex h-full bg-[#080d18] text-slate-200 overflow-hidden font-mono">
+    <div className="flex h-full bg-[#080d18] text-slate-100 overflow-hidden font-mono">
 
       {/* ── LEFT: Agent Fleet ─────────────────────────────────────────── */}
       <div className="w-56 flex-shrink-0 border-r border-slate-800/60 flex flex-col">
@@ -290,15 +290,15 @@ export default function MissionControl() {
             <div className="mt-2 grid grid-cols-3 gap-1 text-center">
               <div>
                 <div className="text-emerald-400 text-xs font-bold">{summary.live}</div>
-                <div className="text-[9px] text-slate-600">live</div>
+                <div className="text-[9px] text-slate-300">live</div>
               </div>
               <div>
                 <div className="text-yellow-400 text-xs font-bold">{summary.paper}</div>
-                <div className="text-[9px] text-slate-600">paper</div>
+                <div className="text-[9px] text-slate-300">paper</div>
               </div>
               <div>
                 <div className="text-purple-400 text-xs font-bold">{summary.approved}</div>
-                <div className="text-[9px] text-slate-600">approved</div>
+                <div className="text-[9px] text-slate-300">approved</div>
               </div>
             </div>
           )}
@@ -307,7 +307,7 @@ export default function MissionControl() {
         {/* Bot cards */}
         <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1.5">
           {fleet.length === 0 ? (
-            <div className="text-center py-8 text-slate-600 text-xs">Loading fleet…</div>
+            <div className="text-center py-8 text-slate-300 text-xs">Loading fleet…</div>
           ) : (
             fleet.map(bot => (
               <BotCard
@@ -323,7 +323,7 @@ export default function MissionControl() {
         {/* Fleet PnL footer */}
         {summary && (
           <div className="px-3 py-2 border-t border-slate-800/60">
-            <div className="text-[9px] text-slate-600 uppercase tracking-wider">Fleet PnL</div>
+            <div className="text-[9px] text-slate-300 uppercase tracking-wider">Fleet PnL</div>
             <div className={clsx('text-sm font-bold', summary.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
               {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(4)} TAO
             </div>
@@ -363,7 +363,7 @@ export default function MissionControl() {
         <div className="flex-1 flex flex-col min-h-0">
           <div className="px-4 py-2 border-b border-slate-800/40 flex items-center gap-2">
             <Activity size={12} className="text-blue-400" />
-            <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">Activity Stream</span>
+            <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Activity Stream</span>
             <span className="ml-auto text-[9px] text-slate-700 font-mono">live</span>
             <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
           </div>
@@ -379,7 +379,7 @@ export default function MissionControl() {
                   <div className="flex-1 min-w-0">
                     <div className="text-[11px] text-slate-300 leading-tight">{ev.message}</div>
                     {ev.detail && (
-                      <div className="text-[9px] text-slate-600 truncate mt-0.5">{ev.detail}</div>
+                      <div className="text-[9px] text-slate-300 truncate mt-0.5">{ev.detail}</div>
                     )}
                   </div>
                   <div className="text-[9px] text-slate-700 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -395,11 +395,11 @@ export default function MissionControl() {
         <div className="border-t border-slate-800/60 flex flex-col" style={{ height: '220px' }}>
           <div className="px-4 py-2 border-b border-slate-800/40 flex items-center gap-2">
             <Cpu size={12} className="text-emerald-400" />
-            <span className="text-[10px] font-bold tracking-widest text-slate-500 uppercase">II Agent Chat</span>
+            <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>
           </div>
           <div ref={chatRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
             {chat.length === 0 && (
-              <div className="text-[11px] text-slate-600 italic">Ask II Agent about price, strategy status, gate progress…</div>
+              <div className="text-[11px] text-slate-300 italic">Ask II Agent about price, strategy status, gate progress…</div>
             )}
             {chat.map((entry, i) => (
               <div key={i} className={clsx('flex', entry.role === 'user' ? 'justify-end' : 'justify-start')}>
@@ -436,7 +436,7 @@ export default function MissionControl() {
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendChat()}
                 placeholder="Ask II Agent…"
-                className="flex-1 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-1.5 text-[11px] text-slate-200 placeholder-slate-600 outline-none focus:border-blue-500/50 transition-colors"
+                className="flex-1 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-1.5 text-[11px] text-slate-100 placeholder-slate-600 outline-none focus:border-blue-500/50 transition-colors"
               />
               <button
                 onClick={sendChat}
@@ -471,16 +471,16 @@ export default function MissionControl() {
             />
           </div>
           <div className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">II Agent</div>
-          <div className="text-[9px] text-slate-600 mt-0.5">Autonomous Mode</div>
+          <div className="text-[9px] text-slate-300 mt-0.5">Autonomous Mode</div>
         </div>
 
         {/* Next cycle countdown */}
         <div className="px-4 py-3 border-b border-slate-800/60">
           <div className="flex items-center gap-1.5 mb-1">
-            <Clock size={10} className="text-slate-500" />
-            <span className="text-[9px] text-slate-600 uppercase tracking-wider">Next Cycle</span>
+            <Clock size={10} className="text-slate-300" />
+            <span className="text-[9px] text-slate-300 uppercase tracking-wider">Next Cycle</span>
           </div>
-          <div className="text-2xl font-bold text-slate-200 tracking-widest">
+          <div className="text-2xl font-bold text-slate-100 tracking-widest">
             {fmtCountdown(countdown)}
           </div>
           <div className="mt-1 h-0.5 bg-slate-800 rounded-full overflow-hidden">
@@ -493,29 +493,29 @@ export default function MissionControl() {
 
         {/* Market intel */}
         <div className="px-4 py-3 border-b border-slate-800/60">
-          <div className="text-[9px] text-slate-600 uppercase tracking-wider mb-2">Market Intel</div>
+          <div className="text-[9px] text-slate-300 uppercase tracking-wider mb-2">Market Intel</div>
           {summary ? (
             <div className="space-y-2">
               <div className="flex justify-between items-center">
-                <span className="text-[10px] text-slate-500">TAO/USD</span>
+                <span className="text-[10px] text-slate-300">TAO/USD</span>
                 <span className="text-[11px] font-bold text-white">${summary.tao_price.toFixed(2)}</span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[10px] text-slate-500">RSI-14</span>
+                <span className="text-[10px] text-slate-300">RSI-14</span>
                 <span className={clsx('text-[11px] font-bold', summary.rsi > 60 ? 'text-red-400' : summary.rsi < 40 ? 'text-emerald-400' : 'text-slate-300')}>
                   {summary.rsi.toFixed(1)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-[10px] text-slate-500">Momentum</span>
+                <span className="text-[10px] text-slate-300">Momentum</span>
                 <div className="flex items-center gap-1">
                   {summary.rsi > 55
                     ? <TrendingUp size={10} className="text-emerald-400" />
                     : summary.rsi < 45
                     ? <TrendingDown size={10} className="text-red-400" />
-                    : <Circle size={10} className="text-slate-500" />
+                    : <Circle size={10} className="text-slate-300" />
                   }
-                  <span className="text-[10px] text-slate-400">{rsiTrend}</span>
+                  <span className="text-[10px] text-slate-300">{rsiTrend}</span>
                 </div>
               </div>
             </div>
@@ -526,7 +526,7 @@ export default function MissionControl() {
 
         {/* Gate summary */}
         <div className="px-4 py-3 border-b border-slate-800/60">
-          <div className="text-[9px] text-slate-600 uppercase tracking-wider mb-2">Gate Summary</div>
+          <div className="text-[9px] text-slate-300 uppercase tracking-wider mb-2">Gate Summary</div>
           <div className="space-y-1.5">
             {fleet.map(bot => {
               const passed = [bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok].filter(Boolean).length
@@ -537,7 +537,7 @@ export default function MissionControl() {
                     'bg-purple-500': bot.mode === 'APPROVED_FOR_LIVE',
                     'bg-yellow-500/50': bot.mode === 'PAPER_ONLY',
                   })} />
-                  <span className="text-[10px] text-slate-400 truncate flex-1">{bot.display_name}</span>
+                  <span className="text-[10px] text-slate-300 truncate flex-1">{bot.display_name}</span>
                   <div className="flex gap-0.5">
                     {[0,1,2,3].map(i => (
                       <div key={i} className={clsx('w-1 h-1 rounded-full', i < passed ? 'bg-emerald-500' : 'bg-slate-700')} />
@@ -551,7 +551,7 @@ export default function MissionControl() {
 
         {/* System status */}
         <div className="px-4 py-3 flex-1">
-          <div className="text-[9px] text-slate-600 uppercase tracking-wider mb-2">System</div>
+          <div className="text-[9px] text-slate-300 uppercase tracking-wider mb-2">System</div>
           <div className="space-y-1.5">
             {[
               { label: 'Price Feed',   ok: true },
@@ -560,7 +560,7 @@ export default function MissionControl() {
               { label: 'Risk Guard',   ok: true },
             ].map(({ label, ok }) => (
               <div key={label} className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-500">{label}</span>
+                <span className="text-[10px] text-slate-300">{label}</span>
                 <div className="flex items-center gap-1">
                   <div className={clsx('w-1.5 h-1.5 rounded-full', ok ? 'bg-emerald-400' : 'bg-red-400')} />
                   <span className={clsx('text-[9px]', ok ? 'text-emerald-500' : 'text-red-500')}>{ok ? 'OK' : 'ERR'}</span>

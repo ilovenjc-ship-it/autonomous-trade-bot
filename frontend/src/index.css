@@ -14,8 +14,8 @@
   }
 
   body {
-    background-color: #070b14;
-    color: #e2e8f0;
+    background-color: #0d1525;
+    color: #f1f5f9;
     font-family: 'Space Grotesk', system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
@@ -24,8 +24,8 @@
     width: 6px;
     height: 6px;
   }
-  ::-webkit-scrollbar-track { background: #0d1424; }
-  ::-webkit-scrollbar-thumb { background: #233050; border-radius: 3px; }
+  ::-webkit-scrollbar-track { background: #152030; }
+  ::-webkit-scrollbar-thumb { background: #2d3f60; border-radius: 3px; }
   ::-webkit-scrollbar-thumb:hover { background: #3b82f6; }
 }
 
@@ -45,7 +45,7 @@
   }
 
   .btn-secondary {
-    @apply bg-dark-600 text-slate-200 font-medium px-4 py-2 rounded-lg
+    @apply bg-dark-600 text-slate-100 font-medium px-4 py-2 rounded-lg
            hover:bg-dark-500 transition-all duration-150 active:scale-95 border border-dark-500;
   }
 
@@ -69,12 +69,12 @@
   }
 
   .stat-label {
-    @apply text-xs text-slate-400 uppercase tracking-widest;
+    @apply text-xs text-slate-300 uppercase tracking-widest;
   }
 
   .input {
     @apply w-full bg-dark-700 border border-dark-500 rounded-lg px-3 py-2 text-sm
-           text-slate-200 focus:outline-none focus:border-accent-blue/60 transition-colors;
+           text-slate-100 focus:outline-none focus:border-accent-blue/60 transition-colors;
   }
 }
 

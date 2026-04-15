@@ -71,7 +71,7 @@ export default function Trades() {
                   'px-4 py-2 rounded-lg text-sm font-semibold transition-all',
                   manualAction === a && a === 'buy' && 'bg-accent-green text-dark-900',
                   manualAction === a && a === 'sell' && 'bg-accent-red text-white',
-                  manualAction !== a && 'bg-dark-700 text-slate-400 hover:text-white'
+                  manualAction !== a && 'bg-dark-700 text-slate-300 hover:text-white'
                 )}
               >
                 {a.toUpperCase()}
@@ -79,7 +79,7 @@ export default function Trades() {
             ))}
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-500">Amount (TAO)</label>
+            <label className="text-xs text-slate-300">Amount (TAO)</label>
             <input
               type="number"
               value={manualAmount}
@@ -91,7 +91,7 @@ export default function Trades() {
           </div>
           {status?.current_price && (
             <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-500">Estimated Value</label>
+              <label className="text-xs text-slate-300">Estimated Value</label>
               <div className="input w-36 text-slate-300 bg-dark-700">
                 ${(parseFloat(manualAmount || '0') * status.current_price).toFixed(2)}
               </div>
@@ -119,19 +119,19 @@ export default function Trades() {
               onClick={() => setFilter(f)}
               className={clsx(
                 'px-3 py-1 rounded text-xs font-mono transition-colors',
-                filter === f ? 'bg-accent-blue text-white' : 'text-slate-400 hover:text-white'
+                filter === f ? 'bg-accent-blue text-white' : 'text-slate-300 hover:text-white'
               )}
             >
               {f.toUpperCase()}
             </button>
           ))}
-          <span className="ml-auto text-xs text-slate-500">{filtered.length} trades</span>
+          <span className="ml-auto text-xs text-slate-300">{filtered.length} trades</span>
         </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="text-slate-500 border-b border-dark-600">
+              <tr className="text-slate-300 border-b border-dark-600">
                 {['#', 'Type', 'Amount', 'Price', 'USD Value', 'P&L', 'Strategy', 'Status', 'Time'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
                 ))}
@@ -140,12 +140,12 @@ export default function Trades() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-8 text-center text-slate-600">No trades found</td>
+                  <td colSpan={9} className="px-4 py-8 text-center text-slate-300">No trades found</td>
                 </tr>
               ) : (
                 filtered.map((t) => (
                   <tr key={t.id} className="border-b border-dark-700 hover:bg-dark-700/50 transition-colors">
-                    <td className="px-4 py-3 font-mono text-slate-500">#{t.id}</td>
+                    <td className="px-4 py-3 font-mono text-slate-300">#{t.id}</td>
                     <td className="px-4 py-3">
                       <span className={t.trade_type === 'buy' ? 'tag-buy' : 'tag-sell'}>
                         {t.trade_type.toUpperCase()}
@@ -157,18 +157,18 @@ export default function Trades() {
                     <td className={clsx('px-4 py-3 font-mono', (t.pnl ?? 0) >= 0 ? 'text-accent-green' : 'text-accent-red')}>
                       {(t.pnl ?? 0) >= 0 ? '+' : ''}{t.pnl?.toFixed(2)}
                     </td>
-                    <td className="px-4 py-3 text-slate-400">{t.strategy ?? '—'}</td>
+                    <td className="px-4 py-3 text-slate-300">{t.strategy ?? '—'}</td>
                     <td className="px-4 py-3">
                       <span className={clsx(
                         'px-2 py-0.5 rounded text-[10px] font-mono',
                         t.status === 'executed' ? 'bg-accent-green/10 text-accent-green' :
                         t.status === 'failed'   ? 'bg-accent-red/10 text-accent-red' :
-                        'bg-dark-600 text-slate-400'
+                        'bg-dark-600 text-slate-300'
                       )}>
                         {t.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500 font-mono">
+                    <td className="px-4 py-3 text-slate-300 font-mono">
                       {t.created_at ? format(new Date(t.created_at), 'MMM d HH:mm') : '—'}
                     </td>
                   </tr>

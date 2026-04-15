@@ -40,7 +40,7 @@ function SignalBadge({ signal }: { signal: string }) {
     <span className={clsx('px-2 py-0.5 rounded text-[10px] font-bold font-mono', {
       'bg-emerald-500/20 text-emerald-400': signal === 'BUY',
       'bg-red-500/20 text-red-400': signal === 'SELL',
-      'bg-slate-500/20 text-slate-400': signal === 'HOLD',
+      'bg-slate-500/20 text-slate-300': signal === 'HOLD',
     })}>
       {signal}
     </span>
@@ -53,7 +53,7 @@ function AllocationBar({ pct, max }: { pct: number; max: number }) {
       <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
         <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(pct / max) * 100}%` }} />
       </div>
-      <span className="text-[10px] text-slate-400 font-mono w-8 text-right">{pct.toFixed(1)}%</span>
+      <span className="text-[10px] text-slate-300 font-mono w-8 text-right">{pct.toFixed(1)}%</span>
     </div>
   )
 }
@@ -65,7 +65,7 @@ function ScoreBar({ score }: { score: number }) {
         <div className={clsx('h-full rounded-full', score >= 60 ? 'bg-emerald-500' : score >= 30 ? 'bg-yellow-500' : 'bg-red-500')}
           style={{ width: `${score}%` }} />
       </div>
-      <span className="text-[10px] text-slate-400 font-mono">{score.toFixed(0)}</span>
+      <span className="text-[10px] text-slate-300 font-mono">{score.toFixed(0)}</span>
     </div>
   )
 }
@@ -101,39 +101,39 @@ export default function AgentFleet() {
   const maxAlloc = Math.max(...bots.map(b => b.capital_allocation_pct), 25)
 
   return (
-    <div className="flex h-full bg-[#080d18] text-slate-200 font-mono overflow-hidden">
+    <div className="flex h-full bg-[#080d18] text-slate-100 font-mono overflow-hidden">
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Header bar */}
         <div className="px-6 py-3 border-b border-slate-800/60 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <div className="text-[10px] text-slate-500 uppercase tracking-wider">Fleet Health:</div>
+            <div className="text-[10px] text-slate-300 uppercase tracking-wider">Fleet Health:</div>
             {summary && (
               <>
                 <span className="flex items-center gap-1.5 text-[11px]">
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   <span className="text-emerald-400 font-bold">{summary.green}</span>
-                  <span className="text-slate-500">GREEN</span>
+                  <span className="text-slate-300">GREEN</span>
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px]">
                   <span className="w-2 h-2 rounded-full bg-yellow-400" />
                   <span className="text-yellow-400 font-bold">{summary.yellow}</span>
-                  <span className="text-slate-500">YELLOW</span>
+                  <span className="text-slate-300">YELLOW</span>
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px]">
                   <span className="w-2 h-2 rounded-full bg-red-400" />
                   <span className="text-red-400 font-bold">{summary.red}</span>
-                  <span className="text-slate-500">RED</span>
+                  <span className="text-slate-300">RED</span>
                 </span>
               </>
             )}
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-slate-600">Updated every 60s by II Agent health-check loop</span>
+            <span className="text-[10px] text-slate-300">Updated every 60s by II Agent health-check loop</span>
             {lastUpdated && <span className="text-[10px] text-slate-700">Last: {lastUpdated}</span>}
             <button onClick={fetchBots} disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700/50 rounded text-[11px] text-slate-400 hover:text-white hover:border-slate-600 transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700/50 rounded text-[11px] text-slate-300 hover:text-white hover:border-slate-600 transition-colors">
               <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
               Refresh
             </button>
@@ -144,7 +144,7 @@ export default function AgentFleet() {
         <div className="px-6 py-4 border-b border-slate-800/40 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-white tracking-wide">AGENT FLEET</h1>
-            <p className="text-[11px] text-slate-500 mt-0.5">
+            <p className="text-[11px] text-slate-300 mt-0.5">
               {bots.length} Specialized Trading Bot Sub-Agents · Ranked by Performance
             </p>
           </div>
@@ -159,15 +159,15 @@ export default function AgentFleet() {
           <table className="w-full text-[11px]">
             <thead className="sticky top-0 bg-[#080d18] border-b border-slate-800/60 z-10">
               <tr>
-                <th className="text-left px-4 py-2.5 text-slate-600 font-normal w-8">#</th>
-                <th className="text-left px-4 py-2.5 text-slate-600 font-normal">AGENT</th>
-                <th className="text-left px-4 py-2.5 text-slate-600 font-normal">HEALTH</th>
-                <th className="text-left px-4 py-2.5 text-slate-600 font-normal">SIGNAL</th>
-                <th className="text-right px-4 py-2.5 text-slate-600 font-normal">WIN RATE</th>
-                <th className="text-right px-4 py-2.5 text-slate-600 font-normal">P&L (TAO)</th>
-                <th className="text-left px-4 py-2.5 text-slate-600 font-normal">ALLOCATION</th>
-                <th className="text-left px-4 py-2.5 text-slate-600 font-normal">SCORE</th>
-                <th className="text-center px-4 py-2.5 text-slate-600 font-normal">STATUS</th>
+                <th className="text-left px-4 py-2.5 text-slate-300 font-normal w-8">#</th>
+                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">AGENT</th>
+                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">HEALTH</th>
+                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">SIGNAL</th>
+                <th className="text-right px-4 py-2.5 text-slate-300 font-normal">WIN RATE</th>
+                <th className="text-right px-4 py-2.5 text-slate-300 font-normal">P&L (TAO)</th>
+                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">ALLOCATION</th>
+                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">SCORE</th>
+                <th className="text-center px-4 py-2.5 text-slate-300 font-normal">STATUS</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/30">
@@ -178,7 +178,7 @@ export default function AgentFleet() {
                     'bg-blue-500/5 border-l-2 border-blue-500/40': selected?.name === bot.name,
                     'hover:bg-slate-800/30': selected?.name !== bot.name,
                   })}>
-                  <td className="px-4 py-3 text-slate-600 font-bold">#{bot.rank}</td>
+                  <td className="px-4 py-3 text-slate-300 font-bold">#{bot.rank}</td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <div className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', {
@@ -187,7 +187,7 @@ export default function AgentFleet() {
                       })} />
                       <div>
                         <div className="text-slate-100 font-bold uppercase tracking-wider text-[10px]">{bot.display_name}</div>
-                        <div className="text-slate-600 text-[9px] truncate max-w-[160px]">{bot.mode === 'LIVE' ? '● LIVE MODE' : bot.mode === 'APPROVED_FOR_LIVE' ? '◆ APPROVED' : '✗ PAPER'}</div>
+                        <div className="text-slate-300 text-[9px] truncate max-w-[160px]">{bot.mode === 'LIVE' ? '● LIVE MODE' : bot.mode === 'APPROVED_FOR_LIVE' ? '◆ APPROVED' : '✗ PAPER'}</div>
                       </div>
                     </div>
                   </td>
@@ -199,7 +199,7 @@ export default function AgentFleet() {
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
-                    <span className={clsx('font-bold', bot.net_pnl_tao > 0 ? 'text-emerald-400' : bot.net_pnl_tao < 0 ? 'text-red-400' : 'text-slate-400')}>
+                    <span className={clsx('font-bold', bot.net_pnl_tao > 0 ? 'text-emerald-400' : bot.net_pnl_tao < 0 ? 'text-red-400' : 'text-slate-300')}>
                       {bot.net_pnl_tao > 0 ? '+' : ''}{bot.net_pnl_tao.toFixed(4)}
                     </span>
                   </td>
@@ -213,17 +213,17 @@ export default function AgentFleet() {
                     <div className="flex items-center justify-center gap-1">
                       <button
                         onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/deactivate`) }}
-                        className={clsx('px-2 py-0.5 rounded text-[9px] font-bold transition-colors', !bot.is_active ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'text-slate-600 hover:text-slate-400')}>
+                        className={clsx('px-2 py-0.5 rounded text-[9px] font-bold transition-colors', !bot.is_active ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'text-slate-300 hover:text-slate-300')}>
                         OFF
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/activate`) }}
-                        className={clsx('px-2 py-0.5 rounded text-[9px] font-bold transition-colors', bot.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-600 hover:text-slate-400')}>
+                        className={clsx('px-2 py-0.5 rounded text-[9px] font-bold transition-colors', bot.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-300 hover:text-slate-300')}>
                         ON
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); navigate(`/strategy/${bot.name}`) }}
-                        className="px-1.5 py-0.5 rounded text-[9px] text-slate-500 hover:text-accent-blue border border-transparent hover:border-accent-blue/30 transition-colors"
+                        className="px-1.5 py-0.5 rounded text-[9px] text-slate-300 hover:text-accent-blue border border-transparent hover:border-accent-blue/30 transition-colors"
                         title="View strategy detail"
                       >
                         <ExternalLink size={10} />
@@ -238,26 +238,26 @@ export default function AgentFleet() {
           {/* Legend */}
           <div className="px-6 py-6 border-t border-slate-800/40 grid grid-cols-2 gap-x-12 gap-y-4 text-[11px]">
             <div>
-              <div className="text-slate-500 mb-3 uppercase tracking-wider text-[9px]">Status Guide · How it works</div>
+              <div className="text-slate-300 mb-3 uppercase tracking-wider text-[9px]">Status Guide · How it works</div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-emerald-400 flex-shrink-0" />
                   <span className="text-emerald-400 font-bold">GREEN</span>
-                  <span className="text-slate-500">Healthy — full consensus weight</span>
+                  <span className="text-slate-300">Healthy — full consensus weight</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-yellow-400 flex-shrink-0" />
                   <span className="text-yellow-400 font-bold">YELLOW</span>
-                  <span className="text-slate-500">Degraded — reduced weight</span>
+                  <span className="text-slate-300">Degraded — reduced weight</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0" />
                   <span className="text-red-400 font-bold">RED</span>
-                  <span className="text-slate-500">Critical — excluded from consensus</span>
+                  <span className="text-slate-300">Critical — excluded from consensus</span>
                 </div>
               </div>
             </div>
-            <div className="space-y-2 text-slate-500">
+            <div className="space-y-2 text-slate-300">
               <div><span className="text-blue-400 font-bold">◆ LEADERBOARD RANKING</span><br />Ranked by win rate × net P&L. Top performers get more capital; under-performers are starved.</div>
               <div><span className="text-yellow-400 font-bold">⊙ BFT CONSENSUS GATE</span><br />Each cycle, bots vote independently. OpenClaw needs ≥ 45% weighted agreement to execute.</div>
               <div><span className="text-emerald-400 font-bold">◇ GATE PASSED</span><br />Awarded once backtest hits profitability threshold. Required for live trading promotion.</div>
@@ -276,7 +276,7 @@ export default function AgentFleet() {
                 <span className="text-xs font-bold text-white uppercase tracking-wider">{selected.display_name}</span>
                 <HealthDot health={selected.health} />
               </div>
-              <p className="text-[10px] text-slate-500 leading-relaxed">{selected.strategy}</p>
+              <p className="text-[10px] text-slate-300 leading-relaxed">{selected.strategy}</p>
             </div>
 
             {/* Stats grid */}
@@ -290,15 +290,15 @@ export default function AgentFleet() {
                 { label: 'Net PnL', value: `${selected.net_pnl_tao >= 0 ? '+' : ''}${selected.net_pnl_tao.toFixed(4)}τ`, cls: selected.net_pnl_tao >= 0 ? 'text-emerald-400' : 'text-red-400' },
               ].map(({ label, value, cls }) => (
                 <div key={label} className="bg-slate-800/40 rounded p-2">
-                  <div className="text-[9px] text-slate-600 uppercase">{label}</div>
-                  <div className={clsx('text-xs font-bold mt-0.5', cls || 'text-slate-200')}>{value}</div>
+                  <div className="text-[9px] text-slate-300 uppercase">{label}</div>
+                  <div className={clsx('text-xs font-bold mt-0.5', cls || 'text-slate-100')}>{value}</div>
                 </div>
               ))}
             </div>
 
             {/* Gate progress */}
             <div>
-              <div className="text-[9px] text-slate-600 uppercase tracking-wider mb-2">Gate Progress</div>
+              <div className="text-[9px] text-slate-300 uppercase tracking-wider mb-2">Gate Progress</div>
               <div className="space-y-2">
                 {[
                   { label: 'Cycles ≥ 10', check: selected.gate.cycles },
@@ -307,9 +307,9 @@ export default function AgentFleet() {
                   { label: 'PnL > 0 TAO', check: selected.gate.pnl },
                 ].map(({ label, check }) => (
                   <div key={label} className="flex items-center gap-2">
-                    {check.ok ? <CheckCircle2 size={11} className="text-emerald-400 flex-shrink-0" /> : <XCircle size={11} className="text-slate-600 flex-shrink-0" />}
-                    <span className={clsx('text-[10px]', check.ok ? 'text-emerald-400' : 'text-slate-500')}>{label}</span>
-                    <span className="ml-auto text-[9px] text-slate-600 font-mono">{check.value}/{check.required}</span>
+                    {check.ok ? <CheckCircle2 size={11} className="text-emerald-400 flex-shrink-0" /> : <XCircle size={11} className="text-slate-300 flex-shrink-0" />}
+                    <span className={clsx('text-[10px]', check.ok ? 'text-emerald-400' : 'text-slate-300')}>{label}</span>
+                    <span className="ml-auto text-[9px] text-slate-300 font-mono">{check.value}/{check.required}</span>
                   </div>
                 ))}
               </div>
@@ -322,7 +322,7 @@ export default function AgentFleet() {
 
             {/* Mode */}
             <div className="p-2 bg-slate-800/40 rounded">
-              <div className="text-[9px] text-slate-600 uppercase">Current Mode</div>
+              <div className="text-[9px] text-slate-300 uppercase">Current Mode</div>
               <div className={clsx('text-xs font-bold mt-0.5', {
                 'text-emerald-400': selected.mode === 'LIVE',
                 'text-purple-400': selected.mode === 'APPROVED_FOR_LIVE',
@@ -335,16 +335,16 @@ export default function AgentFleet() {
         ) : (
           /* Capital allocation chart */
           <div className="flex-1 overflow-y-auto p-4">
-            <div className="text-[9px] text-slate-600 uppercase tracking-wider mb-3">Capital Allocation %</div>
+            <div className="text-[9px] text-slate-300 uppercase tracking-wider mb-3">Capital Allocation %</div>
             <div className="space-y-2">
               {bots.map(bot => (
                 <div key={bot.name} className="flex items-center gap-2">
-                  <div className="text-[9px] text-slate-500 w-20 truncate">{bot.name.replace('_', '\u200b')}</div>
+                  <div className="text-[9px] text-slate-300 w-20 truncate">{bot.name.replace('_', '\u200b')}</div>
                   <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
                     <div className="h-full bg-blue-500/70 rounded-full transition-all duration-500"
                       style={{ width: `${(bot.capital_allocation_pct / maxAlloc) * 100}%` }} />
                   </div>
-                  <div className="text-[9px] text-slate-400 w-8 text-right">{bot.capital_allocation_pct.toFixed(0)}%</div>
+                  <div className="text-[9px] text-slate-300 w-8 text-right">{bot.capital_allocation_pct.toFixed(0)}%</div>
                 </div>
               ))}
             </div>
