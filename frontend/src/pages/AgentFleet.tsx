@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RefreshCw, BarChart2, CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus, ExternalLink } from 'lucide-react'
+import { RefreshCw, BarChart2, CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 
@@ -60,7 +60,7 @@ function AllocationBar({ pct, max }: { pct: number; max: number }) {
 
 // ── Radar / pentagon chart ────────────────────────────────────────────────────
 function RadarChart({ bot }: { bot: Bot }) {
-  const cx = 110, cy = 108, r = 78, n = 5
+  const cx = 135, cy = 132, r = 100, n = 5
   const gatesPassed = [bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok]
     .filter(Boolean).length
 
@@ -86,7 +86,7 @@ function RadarChart({ bot }: { bot: Bot }) {
   const hc = bot.health === 'GREEN' ? '#34d399' : bot.health === 'YELLOW' ? '#fbbf24' : '#f87171'
 
   return (
-    <svg width="220" height="220" viewBox="0 0 220 220" className="overflow-visible mx-auto block">
+    <svg width="270" height="265" viewBox="0 0 270 265" className="overflow-visible mx-auto block">
       <defs>
         <style>{`
           @keyframes radarBloom {
@@ -165,6 +165,7 @@ export default function AgentFleet() {
   const [selected, setSelected] = useState<Bot | null>(null)
   const [loading, setLoading] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<string>('')
+  const [slide, setSlide] = useState(0) // 0 = radar profile, 1 = capital allocation
 
   const fetchBots = useCallback(async () => {
     setLoading(true)
@@ -359,101 +360,175 @@ export default function AgentFleet() {
         </div>
       </div>
 
-      {/* Right panel */}
-      <div className="w-72 flex-shrink-0 border-l border-slate-800/60 flex flex-col overflow-hidden">
-        {selected ? (
-          /* Bot detail panel */
-          <div className="flex-1 overflow-y-auto p-4 space-y-4">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-xs font-bold text-white uppercase tracking-wider">{selected.display_name}</span>
-                <HealthDot health={selected.health} />
-              </div>
-              <p className="text-[10px] text-slate-400 leading-relaxed">{selected.strategy}</p>
-            </div>
+      {/* Right panel — carousel */}
+      <div className="w-[310px] flex-shrink-0 border-l border-slate-800/60 flex flex-col overflow-hidden">
 
-            {/* Radar chart */}
-            <div className="border border-slate-800/60 rounded-lg bg-slate-900/30 py-2">
-              <RadarChart bot={selected} />
-              <div className="flex justify-center gap-4 pb-1 text-[8px] text-slate-500 font-mono">
-                <span>WIN RATE · SCORE · GATE · ALLOC · P&L</span>
-              </div>
-            </div>
-
-            {/* Stats grid */}
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { label: 'Trades', value: selected.total_trades },
-                { label: 'Wins', value: selected.win_trades, cls: 'text-emerald-400' },
-                { label: 'Losses', value: selected.loss_trades, cls: 'text-red-400' },
-                { label: 'Cycles', value: selected.cycles_completed },
-                { label: 'Win Rate', value: `${selected.win_rate.toFixed(1)}%`, cls: selected.win_rate >= 55 ? 'text-emerald-400' : 'text-yellow-400' },
-                { label: 'Net PnL', value: `${selected.net_pnl_tao >= 0 ? '+' : ''}${selected.net_pnl_tao.toFixed(4)}τ`, cls: selected.net_pnl_tao >= 0 ? 'text-emerald-400' : 'text-red-400' },
-              ].map(({ label, value, cls }) => (
-                <div key={label} className="bg-slate-800/40 rounded p-2">
-                  <div className="text-[9px] text-slate-300 uppercase">{label}</div>
-                  <div className={clsx('text-xs font-bold mt-0.5', cls || 'text-slate-100')}>{value}</div>
-                </div>
+        {/* Slide tabs + arrow nav */}
+        <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/60 flex-shrink-0">
+          <div className="flex gap-1">
+            <button onClick={() => setSlide(0)}
+              className={clsx('px-2.5 py-1 rounded text-[10px] font-bold transition-colors', slide === 0
+                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                : 'text-slate-400 hover:text-slate-200')}>
+              ◈ Profile
+            </button>
+            <button onClick={() => setSlide(1)}
+              className={clsx('px-2.5 py-1 rounded text-[10px] font-bold transition-colors', slide === 1
+                ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                : 'text-slate-400 hover:text-slate-200')}>
+              ▦ Capital
+            </button>
+          </div>
+          <div className="flex items-center gap-1">
+            <button onClick={() => setSlide(s => Math.max(0, s - 1))}
+              className="p-1 text-slate-500 hover:text-slate-200 transition-colors disabled:opacity-20"
+              disabled={slide === 0}>
+              <ChevronLeft size={13} />
+            </button>
+            <div className="flex gap-1">
+              {[0, 1].map(i => (
+                <div key={i} onClick={() => setSlide(i)}
+                  className={clsx('w-1.5 h-1.5 rounded-full cursor-pointer transition-colors',
+                    slide === i ? 'bg-emerald-400' : 'bg-slate-600 hover:bg-slate-400')} />
               ))}
             </div>
+            <button onClick={() => setSlide(s => Math.min(1, s + 1))}
+              className="p-1 text-slate-500 hover:text-slate-200 transition-colors disabled:opacity-20"
+              disabled={slide === 1}>
+              <ChevronRight size={13} />
+            </button>
+          </div>
+        </div>
 
-            {/* Gate progress */}
-            <div>
-              <div className="text-[9px] text-slate-300 uppercase tracking-wider mb-2">Gate Progress</div>
-              <div className="space-y-2">
-                {[
-                  { label: 'Cycles ≥ 10', check: selected.gate.cycles },
-                  { label: 'Win Rate ≥ 55%', check: selected.gate.win_rate },
-                  { label: 'Win Margin ≥ 2', check: selected.gate.win_margin },
-                  { label: 'PnL > 0 TAO', check: selected.gate.pnl },
-                ].map(({ label, check }) => (
-                  <div key={label} className="flex items-center gap-2">
-                    {check.ok ? <CheckCircle2 size={11} className="text-emerald-400 flex-shrink-0" /> : <XCircle size={11} className="text-slate-300 flex-shrink-0" />}
-                    <span className={clsx('text-[10px]', check.ok ? 'text-emerald-400' : 'text-slate-300')}>{label}</span>
-                    <span className="ml-auto text-[9px] text-slate-300 font-mono">{check.value}/{check.required}</span>
+        {/* Sliding viewport */}
+        <div className="flex-1 overflow-hidden">
+          <div className="flex h-full transition-transform duration-300 ease-in-out"
+            style={{ transform: `translateX(-${slide * 100}%)` }}>
+
+            {/* ── Slide 0: Agent Profile (radar + detail) ── */}
+            <div className="min-w-full h-full overflow-y-auto">
+              {selected ? (
+                <div className="p-4 space-y-3">
+                  {/* Name + health */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white uppercase tracking-wider">{selected.display_name}</span>
+                    <HealthDot health={selected.health} />
                   </div>
-                ))}
-              </div>
-              {selected.gate.all_clear && (
-                <div className="mt-2 p-2 bg-purple-500/10 border border-purple-500/30 rounded text-[10px] text-purple-400 font-bold text-center">
-                  ✓ READY FOR LIVE PROMOTION
+                  <p className="text-[10px] text-slate-400 leading-relaxed -mt-1">{selected.strategy}</p>
+
+                  {/* Radar chart — fills width */}
+                  <div className="bg-slate-900/30 rounded-lg border border-slate-800/60 pt-3 pb-1">
+                    <RadarChart bot={selected} />
+                    <p className="text-center text-[8px] text-slate-600 font-mono pb-1">
+                      WIN RATE · SCORE · GATE · ALLOC · P&L
+                    </p>
+                  </div>
+
+                  {/* Stats grid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { label: 'Trades',   value: selected.total_trades },
+                      { label: 'Wins',     value: selected.win_trades,     cls: 'text-emerald-400' },
+                      { label: 'Losses',   value: selected.loss_trades,    cls: 'text-red-400' },
+                      { label: 'Cycles',   value: selected.cycles_completed },
+                      { label: 'Win Rate', value: `${selected.win_rate.toFixed(1)}%`, cls: selected.win_rate >= 55 ? 'text-emerald-400' : 'text-yellow-400' },
+                      { label: 'Net PnL',  value: `${selected.net_pnl_tao >= 0 ? '+' : ''}${selected.net_pnl_tao.toFixed(4)}τ`, cls: selected.net_pnl_tao >= 0 ? 'text-emerald-400' : 'text-red-400' },
+                    ].map(({ label, value, cls }) => (
+                      <div key={label} className="bg-slate-800/40 rounded p-2">
+                        <div className="text-[9px] text-slate-400 uppercase">{label}</div>
+                        <div className={clsx('text-xs font-bold mt-0.5', cls ?? 'text-slate-100')}>{value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Gate progress */}
+                  <div>
+                    <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-2">Gate Progress</div>
+                    <div className="space-y-1.5">
+                      {[
+                        { label: 'Cycles ≥ 10',    check: selected.gate.cycles },
+                        { label: 'Win Rate ≥ 55%', check: selected.gate.win_rate },
+                        { label: 'Win Margin ≥ 2', check: selected.gate.win_margin },
+                        { label: 'PnL > 0 TAO',    check: selected.gate.pnl },
+                      ].map(({ label, check }) => (
+                        <div key={label} className="flex items-center gap-2">
+                          {check.ok
+                            ? <CheckCircle2 size={11} className="text-emerald-400 flex-shrink-0" />
+                            : <XCircle size={11} className="text-slate-600 flex-shrink-0" />}
+                          <span className={clsx('text-[10px]', check.ok ? 'text-emerald-400' : 'text-slate-400')}>{label}</span>
+                          <span className="ml-auto text-[9px] text-slate-500 font-mono">{check.value}/{check.required}</span>
+                        </div>
+                      ))}
+                    </div>
+                    {selected.gate.all_clear && (
+                      <div className="mt-2 p-2 bg-purple-500/10 border border-purple-500/30 rounded text-[10px] text-purple-400 font-bold text-center">
+                        ✓ READY FOR LIVE PROMOTION
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Mode chip */}
+                  <div className="p-2 bg-slate-800/40 rounded flex items-center justify-between">
+                    <span className="text-[9px] text-slate-400 uppercase">Mode</span>
+                    <span className={clsx('text-xs font-bold', {
+                      'text-emerald-400': selected.mode === 'LIVE',
+                      'text-purple-400': selected.mode === 'APPROVED_FOR_LIVE',
+                      'text-yellow-400': selected.mode === 'PAPER_ONLY',
+                    })}>
+                      {selected.mode === 'PAPER_ONLY' ? 'PAPER' : selected.mode === 'APPROVED_FOR_LIVE' ? 'APPROVED' : 'LIVE'}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                /* No bot selected — empty radar */
+                <div className="flex flex-col items-center justify-center h-full gap-4 text-slate-600">
+                  <svg width="270" height="265" viewBox="0 0 270 265" className="overflow-visible opacity-25">
+                    {[0.25, 0.5, 0.75, 1].map(s => {
+                      const n = 5, cx = 135, cy = 132, r = 100
+                      const pts = Array.from({ length: n }, (_, i) => {
+                        const a = (i * 2 * Math.PI / n) - Math.PI / 2
+                        return `${(cx + r * s * Math.cos(a)).toFixed(1)},${(cy + r * s * Math.sin(a)).toFixed(1)}`
+                      }).join(' ')
+                      return <polygon key={s} points={pts} fill="none" stroke="rgba(148,163,184,0.3)" strokeWidth="1" />
+                    })}
+                  </svg>
+                  <p className="text-[11px] italic -mt-4">Select an agent to view profile</p>
                 </div>
               )}
             </div>
 
-            {/* Mode */}
-            <div className="p-2 bg-slate-800/40 rounded">
-              <div className="text-[9px] text-slate-300 uppercase">Current Mode</div>
-              <div className={clsx('text-xs font-bold mt-0.5', {
-                'text-emerald-400': selected.mode === 'LIVE',
-                'text-purple-400': selected.mode === 'APPROVED_FOR_LIVE',
-                'text-yellow-400': selected.mode === 'PAPER_ONLY',
-              })}>
-                {selected.mode.replace('_', ' ')}
+            {/* ── Slide 1: Capital Allocation ── */}
+            <div className="min-w-full h-full overflow-y-auto p-4">
+              <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-4 font-bold">
+                Capital Allocation %
               </div>
-            </div>
-          </div>
-        ) : (
-          /* Capital allocation chart */
-          <div className="flex-1 overflow-y-auto p-4">
-            <div className="text-[9px] text-slate-300 uppercase tracking-wider mb-3">Capital Allocation %</div>
-            <div className="space-y-2">
-              {bots.map(bot => (
-                <div key={bot.name} className="flex items-center gap-2">
-                  <div className="text-[9px] text-slate-300 w-20 truncate">{bot.name.replace('_', '\u200b')}</div>
-                  <div className="flex-1 h-2 bg-slate-800 rounded-full overflow-hidden">
-                    <div className="h-full bg-blue-500/70 rounded-full transition-all duration-500"
-                      style={{ width: `${(bot.capital_allocation_pct / maxAlloc) * 100}%` }} />
+              <div className="space-y-3">
+                {bots.map(bot => (
+                  <div key={bot.name}
+                    onClick={() => { setSelected(prev => prev?.name === bot.name ? null : bot); setSlide(0) }}
+                    className="cursor-pointer group">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-[10px] text-slate-300 group-hover:text-white transition-colors font-mono truncate max-w-[160px]">
+                        {bot.display_name}
+                      </span>
+                      <span className="text-[10px] text-slate-400 font-mono">{bot.capital_allocation_pct.toFixed(1)}%</span>
+                    </div>
+                    <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
+                      <div className={clsx(
+                        'h-full rounded-full transition-all duration-500',
+                        bot.health === 'GREEN' ? 'bg-emerald-500/70' : bot.health === 'YELLOW' ? 'bg-yellow-500/70' : 'bg-red-500/70'
+                      )} style={{ width: `${(bot.capital_allocation_pct / maxAlloc) * 100}%` }} />
+                    </div>
                   </div>
-                  <div className="text-[9px] text-slate-300 w-8 text-right">{bot.capital_allocation_pct.toFixed(0)}%</div>
-                </div>
-              ))}
+                ))}
+              </div>
+              <p className="text-center text-[9px] text-slate-600 italic mt-6">
+                Click a bar to open agent profile
+              </p>
             </div>
-            <div className="mt-6 text-center text-[10px] text-slate-700 italic">
-              Select an agent<br />to view details
-            </div>
+
           </div>
-        )}
+        </div>
       </div>
     </div>
   )
