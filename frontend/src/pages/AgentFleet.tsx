@@ -203,17 +203,14 @@ export default function AgentFleet() {
                 <span className="flex items-center gap-1.5 text-[11px]">
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   <span className="text-emerald-400 font-bold">{summary.green}</span>
-                  <span className="text-slate-300">GREEN</span>
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px]">
                   <span className="w-2 h-2 rounded-full bg-yellow-400" />
                   <span className="text-yellow-400 font-bold">{summary.yellow}</span>
-                  <span className="text-slate-300">YELLOW</span>
                 </span>
                 <span className="flex items-center gap-1.5 text-[11px]">
                   <span className="w-2 h-2 rounded-full bg-red-400" />
                   <span className="text-red-400 font-bold">{summary.red}</span>
-                  <span className="text-slate-300">RED</span>
                 </span>
               </>
             )}
