@@ -647,11 +647,114 @@ def section_openclaw():
         PageBreak(),
     ]
 
-# ─── Section 5: Core Services (renumbered) ───────────────────────────────────
+# ─── Section 5: Alerts Page Walkthrough ──────────────────────────────────────
+
+def section_alerts():
+    return [
+        *section_header("5. Page Walkthrough — Alert Inbox",
+                        "The mission log — every significant system event, timestamped and categorized"),
+
+        body(
+            "The Alert Inbox is the complete record of everything significant that happened "
+            "in the system. Nothing gets lost. Every gate promotion, consensus vote, regime "
+            "shift, strategy milestone, and risk event is captured here with full context."
+        ),
+
+        spacer(8),
+        h2("Page Layout"),
+        data_table(
+            ["Section", "What It Shows"],
+            [
+                ["Stats bar",      "Total alerts · Unread count · Level breakdown (INFO / WARNING / CRITICAL)"],
+                ["Filter bar",     "7 filters to cut straight to what matters"],
+                ["Alert cards",    "Color-coded by severity with title, message, strategy, timestamp"],
+                ["Mark All Read",  "Clears the sidebar badge count — doesn't delete anything"],
+            ],
+            col_widths=[1.5*inch, 4.9*inch]
+        ),
+
+        spacer(8),
+        h2("Alert Filters"),
+        data_table(
+            ["Filter", "Shows"],
+            [
+                ["ALL",       "Every alert in the system"],
+                ["GATE",      "Bot promotions and demotions — PAPER → APPROVED → LIVE (and back)"],
+                ["CONSENSUS", "Every OpenClaw vote result — approved and vetoed rounds"],
+                ["REGIME",    "II Agent regime shift detections (BULL/BEAR/SIDEWAYS/VOLATILE)"],
+                ["STRATEGY",  "HOT bot celebrations and STRUGGLING bot warnings"],
+                ["PNL",       "Fleet cumulative PnL milestone events"],
+                ["DRAWDOWN",  "Risk threshold breaches — these need attention"],
+            ],
+            col_widths=[1.2*inch, 5.2*inch]
+        ),
+
+        spacer(8),
+        h2("Alert Severity Levels — Corrected"),
+        body("The following level assignments ensure the color coding is semantically correct:"),
+        data_table(
+            ["Alert Type", "Level", "Color", "Logic"],
+            [
+                ["🚀 Bot goes LIVE",        "INFO",     "🔵 Blue",   "Good news — celebrate"],
+                ["✅ Consensus APPROVED",   "INFO",     "🔵 Blue",   "Good news — trade cleared"],
+                ["🏆 PnL Milestone",        "INFO",     "🔵 Blue",   "Good news — fleet growing"],
+                ["🔥 Strategy HOT",         "INFO",     "🔵 Blue",   "Good news — bot on a streak"],
+                ["🚫 Consensus VETOED",     "WARNING",  "🟡 Yellow", "Watch — trade blocked"],
+                ["⚠️ Regime Shift",         "WARNING",  "🟡 Yellow", "Watch — market changing"],
+                ["📉 Strategy Struggling",  "WARNING",  "🟡 Yellow", "Watch — bot underperforming"],
+                ["⬇️ Bot Demoted",          "WARNING",  "🟡 Yellow", "Watch — bot knocked back"],
+                ["💥 Drawdown Breach",      "CRITICAL", "🔴 Red",    "Act — risk threshold hit"],
+            ],
+            col_widths=[1.9*inch, 0.9*inch, 1.1*inch, 2.5*inch]
+        ),
+
+        spacer(8),
+        callout_box(
+            "Bug fixed during session: CONSENSUS_APPROVED, GATE_PROMOTION, and PNL_MILESTONE "
+            "were incorrectly set to CRITICAL level (red). Good news should never appear as "
+            "a red alert. All three corrected to INFO (blue). CRITICAL is now reserved "
+            "exclusively for events that require attention — drawdown breaches only.",
+            BLUE
+        ),
+
+        spacer(12),
+        h2("Toast Notifications"),
+        body(
+            "Alerts also surface as pop-up toasts in the top-right corner so you see "
+            "important events without having to check the inbox manually."
+        ),
+        data_table(
+            ["Scenario", "Toast Behaviour"],
+            [
+                ["New alert arrives",      "Toast pops in top-right, auto-dismisses after 4–7 seconds"],
+                ["CRITICAL alert",         "Toast stays visible for 7 seconds (longer = more urgent)"],
+                ["WARNING alert",          "Toast stays for 5 seconds"],
+                ["INFO alert",             "Toast stays for 4 seconds"],
+                ["Max simultaneous",       "4 toasts at once — oldest dismissed if new ones arrive"],
+                ["On page load",           "Existing alerts are silently seeded — no toast storm"],
+                ["Backend restart",        "localStorage reset detected — new alerts flow through normally"],
+            ],
+            col_widths=[2.0*inch, 4.4*inch]
+        ),
+
+        spacer(8),
+        callout_box(
+            "Bug fixed: After backend restart, alert IDs reset to 1 but the browser "
+            "remembered the old high ID from the previous session. New alerts (ID 1-10) "
+            "were silently ignored because they appeared 'already seen'. Fixed: on page "
+            "load, if stored ID > latest alert ID, the stored value is cleared and "
+            "alerts flow through normally again.",
+            YELLOW
+        ),
+
+        PageBreak(),
+    ]
+
+# ─── Section 6: Core Services (renumbered) ───────────────────────────────────
 
 def section_services():
     return [
-        *section_header("5. Core Intelligence Services", "The brains running autonomously in the background"),
+        *section_header("6. Core Intelligence Services", "The brains running autonomously in the background"),
 
         h2("🧠 II Agent — Master Orchestrator"),
         body(
@@ -957,14 +1060,30 @@ def section_next_steps():
         ),
 
         spacer(12),
+        h2("Completed This Session"),
+        data_table(
+            ["Feature", "Status", "Detail"],
+            [
+                ["Demotion system",          "✅ DONE", "Auto-demotes bots LIVE→APPROVED→PAPER when WR<45% AND PnL<0"],
+                ["Alert level corrections",  "✅ DONE", "APPROVED/GATE/PNL → INFO (blue), not CRITICAL (red)"],
+                ["Alert reset detection",    "✅ DONE", "localStorage cleared on backend restart — toasts work again"],
+                ["Wallet auto-load",         "✅ DONE", "Mnemonic loads from settings on every backend start"],
+                ["Bot status API fix",       "✅ DONE", "bittensor_service.wallet_loaded — no more 500 errors"],
+                ["UI lightening",            "✅ DONE", "Background +20% brighter, all text tiers lifted"],
+                ["Architecture banner",      "✅ DONE", "Option A pipeline with live stats + hover reveals"],
+            ],
+            col_widths=[2.0*inch, 1.0*inch, 3.4*inch]
+        ),
+
+        spacer(12),
         h2("Next Build Priorities"),
         data_table(
             ["Priority", "Feature", "Description"],
             [
-                ["HIGH",   "Demotion system",               "Auto-demote bots whose WR drops below gate threshold"],
                 ["HIGH",   "OpenClaw → live execution",     "Wire consensus APPROVED → bittensor_service.stake()"],
                 ["MED",    "Staking position display",      "Show per-subnet αTAO stake in Wallet page"],
                 ["MED",    "Validator weight queries",      "On-chain emission data per subnet for smarter routing"],
+                ["MED",    "Nav page order review",         "User to decide optimal sidebar page ordering"],
                 ["LOW",    "Performance decay alerts",      "Alert when a LIVE bot's WR starts trending down"],
                 ["LOW",    "Regime-based risk adjustment",  "Tighten/loosen position sizes based on BULL/BEAR/VOLATILE"],
             ],
@@ -1080,6 +1199,7 @@ def build():
     story += section_dashboard()
     story += section_fleet()
     story += section_openclaw()
+    story += section_alerts()
     story += section_services()
     story += section_conversations()
     story += section_next_steps()
