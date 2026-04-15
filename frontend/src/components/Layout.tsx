@@ -91,6 +91,25 @@ export default function Layout() {
           ))}
         </nav>
 
+        {/* II Agent Orb */}
+        <div className="px-4 py-4 border-t border-dark-600 flex flex-col items-center gap-2">
+          <div className="relative w-14 h-14">
+            <div className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-20" />
+            <div className="absolute inset-1 rounded-full border border-emerald-500/15" />
+            <div className="absolute inset-0 rounded-full flex items-center justify-center">
+              <div className="w-9 h-9 rounded-full bg-gradient-to-br from-emerald-500/25 to-blue-500/15 border border-emerald-500/35 flex items-center justify-center">
+                <div className="w-3.5 h-3.5 rounded-full bg-emerald-400 shadow-[0_0_14px_#34d399]" />
+              </div>
+            </div>
+            <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/20"
+              style={{ animation: 'spin 8s linear infinite' }} />
+          </div>
+          <div className="text-center">
+            <div className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase leading-none">II Agent</div>
+            <div className="text-[8px] text-slate-400 mt-0.5">Autonomous Mode</div>
+          </div>
+        </div>
+
         {/* Network indicator */}
         <div className="px-4 py-3 border-t border-dark-600">
           <div className="flex items-center gap-2">

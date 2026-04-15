@@ -195,6 +195,7 @@ export default function MissionControl() {
   const [selectedBot, setSelectedBot] = useState<FleetBot | null>(null)
   const [countdown, setCountdown] = useState(300) // 5 min cycle
   const [tick, setTick] = useState(0)
+  const [liveTime, setLiveTime] = useState(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
 
   const activityRef = useRef<HTMLDivElement>(null)
   const chatRef = useRef<HTMLDivElement>(null)
@@ -230,7 +231,7 @@ export default function MissionControl() {
     return () => { clearInterval(fleetTimer); clearInterval(actTimer) }
   }, [fetchFleet, fetchActivity])
 
-  // Countdown tick
+  // Countdown tick + live clock
   useEffect(() => {
     const t = setInterval(() => {
       setCountdown(c => {
@@ -238,6 +239,7 @@ export default function MissionControl() {
         return c - 1
       })
       setTick(t => t + 1)
+      setLiveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
     }, 1000)
     return () => clearInterval(t)
   }, [fetchFleet, fetchActivity])
@@ -313,6 +315,49 @@ export default function MissionControl() {
       </div>
 
       {/* ── MAIN: 3 columns — Left panel | Chat | Activity ───────────── */}
+      {/* ── SECONDARY STRIP: Next Cycle + Gate Summary horizontal ─────── */}
+      <div className="flex-shrink-0 flex border-b border-slate-800/60" style={{ height: 80 }}>
+
+        {/* Next Cycle box */}
+        <div className="flex-shrink-0 flex items-center gap-4 px-5 border-r border-slate-800/60 bg-slate-900/20" style={{ width: 220 }}>
+          <Clock size={16} className="text-blue-400 flex-shrink-0" />
+          <div>
+            <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-0.5">Next Cycle</div>
+            <div className="text-xl font-bold text-slate-100 font-mono tracking-widest">{fmtCountdown(countdown)}</div>
+            <div className="mt-1 h-0.5 bg-slate-700/60 rounded-full overflow-hidden" style={{ width: 120 }}>
+              <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-1000 rounded-full"
+                style={{ width: `${((300 - countdown) / 300) * 100}%` }} />
+            </div>
+          </div>
+        </div>
+
+        {/* Gate Summary horizontal */}
+        <div className="flex-1 flex flex-col justify-center px-4 min-w-0">
+          <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-2">Gate Summary</div>
+          <div className="flex gap-2 overflow-x-auto pb-1">
+            {fleet.map(bot => {
+              const passed = [bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok].filter(Boolean).length
+              const modeColor = bot.mode === 'LIVE' ? 'bg-emerald-500'
+                : bot.mode === 'APPROVED_FOR_LIVE' ? 'bg-purple-500' : 'bg-slate-600'
+              return (
+                <div key={bot.id} className="flex-shrink-0 flex items-center gap-1.5 bg-slate-800/50 border border-slate-700/40 rounded-md px-2 py-1">
+                  <div className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', modeColor)} />
+                  <span className="text-[9px] text-slate-300 whitespace-nowrap">{bot.display_name}</span>
+                  <div className="flex gap-0.5 ml-1">
+                    {[bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok].map((ok, i) => (
+                      <div key={i} className={clsx('w-1.5 h-1.5 rounded-full', ok ? 'bg-emerald-500' : 'bg-slate-700')} />
+                    ))}
+                  </div>
+                  <span className={clsx('text-[9px] font-mono font-bold ml-1',
+                    bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400'
+                  )}>{bot.win_rate.toFixed(0)}%</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      </div>
+
       {/* ── MAIN ROW ──────────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0">
 
@@ -323,17 +368,10 @@ export default function MissionControl() {
         <div className="w-52 flex-shrink-0 flex flex-col border-r border-slate-800/60 overflow-y-auto">
           <div className="flex flex-col gap-2 p-3">
 
-            {/* Next Cycle — card */}
+            {/* Live clock — top of left column */}
             <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 px-3 py-2.5">
-              <div className="flex items-center gap-1.5 mb-1.5">
-                <Clock size={10} className="text-slate-400" />
-                <span className="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Next Cycle</span>
-              </div>
-              <div className="text-2xl font-bold text-slate-100 tracking-widest">{fmtCountdown(countdown)}</div>
-              <div className="mt-2 h-1 bg-slate-700/60 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-1000 rounded-full"
-                  style={{ width: `${((300 - countdown) / 300) * 100}%` }} />
-              </div>
+              <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-1">Local Time</div>
+              <div className="text-xl font-bold text-slate-100 font-mono tracking-widest">{liveTime}</div>
             </div>
 
             {/* Market Intel — card */}
@@ -379,60 +417,6 @@ export default function MissionControl() {
                     <span className="text-[9px] text-slate-300 truncate">{label}</span>
                   </div>
                 ))}
-              </div>
-            </div>
-
-            {/* Gate Summary — card */}
-            <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 flex flex-col" style={{ maxHeight: 260 }}>
-              <div className="px-3 pt-2.5 pb-1.5 border-b border-slate-700/40 flex-shrink-0">
-                <span className="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Gate Summary</span>
-              </div>
-              <div className="overflow-y-auto px-2 py-2 space-y-1.5">
-                {fleet.map(bot => {
-                  const modeColor = bot.mode === 'LIVE' ? 'bg-emerald-500'
-                    : bot.mode === 'APPROVED_FOR_LIVE' ? 'bg-purple-500' : 'bg-slate-600'
-                  return (
-                    <div key={bot.id} className="rounded-md bg-slate-900/60 border border-slate-700/40 px-2.5 py-2">
-                      <div className="flex items-center gap-2 mb-1.5">
-                        <div className={clsx('rounded-full flex-shrink-0', modeColor)} style={{ width: 3, height: 18 }} />
-                        <span className="text-[10px] font-semibold text-slate-200 truncate flex-1">{bot.display_name}</span>
-                        <span className={clsx('text-[10px] font-bold font-mono',
-                          bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400'
-                        )}>{bot.win_rate.toFixed(0)}%</span>
-                      </div>
-                      <div className="flex gap-1">
-                        {['Cyc','WR','WM','PnL'].map((lbl, i) => {
-                          const ok = [bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok][i]
-                          return (
-                            <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                              <div className={clsx('w-full h-1.5 rounded-full', ok ? 'bg-emerald-500' : 'bg-slate-700')} />
-                              <span className="text-[7px] text-slate-400">{lbl}</span>
-                            </div>
-                          )
-                        })}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-
-            {/* II Agent Orb — card, just above lock guard */}
-            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 flex flex-col items-center gap-3">
-              <div className="relative w-16 h-16">
-                <div className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-25" />
-                <div className="absolute inset-1 rounded-full border border-emerald-500/20" />
-                <div className="absolute inset-0 rounded-full flex items-center justify-center">
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/30 to-blue-500/20 border border-emerald-500/40 flex items-center justify-center">
-                    <div className="w-4 h-4 rounded-full bg-emerald-400 shadow-[0_0_16px_#34d399]" />
-                  </div>
-                </div>
-                <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/20"
-                  style={{ animation: 'spin 8s linear infinite' }} />
-              </div>
-              <div className="text-center">
-                <div className="text-[11px] font-bold tracking-widest text-emerald-400 uppercase leading-none">II Agent</div>
-                <div className="text-[9px] text-slate-400 mt-1">Autonomous Mode</div>
               </div>
             </div>
 
