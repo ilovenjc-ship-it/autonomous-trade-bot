@@ -9,6 +9,7 @@ import {
   AlertTriangle, Trophy, TrendingDown, Cpu, Filter,
 } from 'lucide-react'
 import clsx from 'clsx'
+import api from '@/api/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -146,19 +147,15 @@ export default function AlertInbox() {
   const [lastRefresh, setLastRefresh] = useState(new Date())
 
   const load = useCallback(async () => {
-    try {
-      const [alertsRes, statsRes] = await Promise.all([
-        fetch('/api/alerts?limit=150'),
-        fetch('/api/alerts/stats'),
-      ])
-      const alertData = await alertsRes.json()
-      const statsData = await statsRes.json()
-      if (alertData.alerts) setAlerts(alertData.alerts)
-      setStats(statsData)
-      setLastRefresh(new Date())
-    } catch (e) {
-      console.error('AlertInbox load error', e)
-    }
+    const [alertsRes, statsRes] = await Promise.allSettled([
+      api.get('/alerts', { params: { limit: 150 } }),
+      api.get('/alerts/stats'),
+    ])
+    if (alertsRes.status === 'fulfilled' && alertsRes.value.data.alerts)
+      setAlerts(alertsRes.value.data.alerts)
+    if (statsRes.status === 'fulfilled')
+      setStats(statsRes.value.data)
+    setLastRefresh(new Date())
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -168,13 +165,13 @@ export default function AlertInbox() {
   }, [load])
 
   const handleMarkRead = async (id: number) => {
-    await fetch(`/api/alerts/${id}/read`, { method: 'POST' })
+    await api.post(`/alerts/${id}/read`)
     setAlerts(prev => prev.map(a => a.id === id ? { ...a, read: true } : a))
     setStats(prev => prev ? { ...prev, unread: Math.max(0, prev.unread - 1) } : prev)
   }
 
   const handleMarkAllRead = async () => {
-    await fetch('/api/alerts/read-all', { method: 'POST' })
+    await api.post('/alerts/read-all')
     setAlerts(prev => prev.map(a => ({ ...a, read: true })))
     setStats(prev => prev ? { ...prev, unread: 0 } : prev)
   }
@@ -315,7 +312,7 @@ export default function AlertInbox() {
             <p className="text-slate-300 text-sm font-mono">
               {unreadOnly ? 'No unread alerts.' : 'No alerts yet.'}
             </p>
-            <p className="text-slate-700 text-xs mt-1">
+            <p className="text-slate-400 text-xs mt-1">
               Alerts fire automatically when strategies are promoted,<br />
               OpenClaw votes, II Agent detects regime shifts, and more.
             </p>
