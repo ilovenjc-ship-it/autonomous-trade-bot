@@ -488,7 +488,27 @@ export default function MissionControl() {
               </div>
             )}
           </div>
-          <div className="px-3 py-2.5 border-t border-slate-800/40 flex-shrink-0">
+          {/* FAQ quick-prompt chips */}
+          <div className="px-3 pt-2 pb-1 border-t border-slate-800/40 flex flex-wrap gap-1.5">
+            {[
+              'Fleet win rate?',
+              'Who is closest to LIVE?',
+              'Next cycle ETA?',
+              'Gate status summary',
+              'Why is Mean Reversion PAPER?',
+              'What is TAO doing?',
+            ].map(q => (
+              <button
+                key={q}
+                onClick={() => { setChatInput(q); setTimeout(() => { const el = document.querySelector<HTMLInputElement>('input[placeholder="Ask II Agent…"]'); el?.focus() }, 0) }}
+                className="text-[9px] px-2 py-1 rounded-md bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-emerald-300 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors font-mono"
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+
+          <div className="px-3 py-2 border-t border-slate-800/40 flex-shrink-0">
             <div className="flex gap-2">
               <input
                 type="text"
