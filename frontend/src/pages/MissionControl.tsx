@@ -313,11 +313,15 @@ export default function MissionControl() {
       </div>
 
       {/* ── MAIN: 3 columns — Left panel | Chat | Activity ───────────── */}
+      {/* ── MAIN ROW ──────────────────────────────────────────────────── */}
       <div className="flex flex-1 min-h-0">
 
-        {/* ── LEFT: widget cards + orb ──────────────────────────────── */}
-        <div className="w-56 flex-shrink-0 flex flex-col border-r border-slate-800/60 overflow-y-auto">
-          <div className="flex flex-col gap-2 p-3 flex-1">
+      {/* ── LEFT HALF: widgets col + chat col ─────────────────────────── */}
+      <div className="flex border-r border-slate-800/60" style={{ width: '50%', flexShrink: 0 }}>
+
+        {/* Widget column */}
+        <div className="w-52 flex-shrink-0 flex flex-col border-r border-slate-800/60 overflow-y-auto">
+          <div className="flex flex-col gap-2 p-3">
 
             {/* Next Cycle — card */}
             <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 px-3 py-2.5">
@@ -378,16 +382,15 @@ export default function MissionControl() {
               </div>
             </div>
 
-            {/* Gate Summary — card, grows to fill remaining space */}
-            <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 flex flex-col min-h-0 flex-1">
-              <div className="px-3 pt-2.5 pb-1.5 border-b border-slate-700/40">
+            {/* Gate Summary — card */}
+            <div className="rounded-lg border border-slate-700/50 bg-slate-800/30 flex flex-col" style={{ maxHeight: 260 }}>
+              <div className="px-3 pt-2.5 pb-1.5 border-b border-slate-700/40 flex-shrink-0">
                 <span className="text-[9px] text-slate-400 uppercase tracking-wider font-bold">Gate Summary</span>
               </div>
-              <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1.5">
+              <div className="overflow-y-auto px-2 py-2 space-y-1.5">
                 {fleet.map(bot => {
                   const modeColor = bot.mode === 'LIVE' ? 'bg-emerald-500'
-                    : bot.mode === 'APPROVED_FOR_LIVE' ? 'bg-purple-500'
-                    : 'bg-slate-600'
+                    : bot.mode === 'APPROVED_FOR_LIVE' ? 'bg-purple-500' : 'bg-slate-600'
                   return (
                     <div key={bot.id} className="rounded-md bg-slate-900/60 border border-slate-700/40 px-2.5 py-2">
                       <div className="flex items-center gap-2 mb-1.5">
@@ -414,6 +417,25 @@ export default function MissionControl() {
               </div>
             </div>
 
+            {/* II Agent Orb — card, just above lock guard */}
+            <div className="rounded-lg border border-emerald-500/20 bg-emerald-500/5 px-4 py-4 flex flex-col items-center gap-3">
+              <div className="relative w-16 h-16">
+                <div className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-25" />
+                <div className="absolute inset-1 rounded-full border border-emerald-500/20" />
+                <div className="absolute inset-0 rounded-full flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/30 to-blue-500/20 border border-emerald-500/40 flex items-center justify-center">
+                    <div className="w-4 h-4 rounded-full bg-emerald-400 shadow-[0_0_16px_#34d399]" />
+                  </div>
+                </div>
+                <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/20"
+                  style={{ animation: 'spin 8s linear infinite' }} />
+              </div>
+              <div className="text-center">
+                <div className="text-[11px] font-bold tracking-widest text-emerald-400 uppercase leading-none">II Agent</div>
+                <div className="text-[9px] text-slate-400 mt-1">Autonomous Mode</div>
+              </div>
+            </div>
+
             {/* Lock guard */}
             <div className="flex items-center gap-2 bg-yellow-500/5 border border-yellow-500/20 rounded-lg px-2.5 py-1.5">
               <Lock size={10} className="text-yellow-400 flex-shrink-0" />
@@ -421,28 +443,10 @@ export default function MissionControl() {
             </div>
 
           </div>
-
-          {/* II Agent Orb — pinned bottom */}
-          <div className="flex-shrink-0 flex items-center gap-3 px-4 py-3 border-t border-slate-800/60 bg-slate-900/40">
-            <div className="relative w-10 h-10 flex-shrink-0">
-              <div className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-25" />
-              <div className="absolute inset-0 rounded-full flex items-center justify-center">
-                <div className="w-7 h-7 rounded-full bg-gradient-to-br from-emerald-500/30 to-blue-500/20 border border-emerald-500/40 flex items-center justify-center">
-                  <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_12px_#34d399]" />
-                </div>
-              </div>
-              <div className="absolute inset-0 rounded-full border border-dashed border-emerald-500/20"
-                style={{ animation: 'spin 8s linear infinite' }} />
-            </div>
-            <div>
-              <div className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase leading-none">II Agent</div>
-              <div className="text-[9px] text-slate-400 mt-0.5">Autonomous Mode</div>
-            </div>
-          </div>
         </div>
 
-        {/* ── CENTER: Chat ───────────────────────────────────────────── */}
-        <div className="flex-1 flex flex-col min-w-0 border-r border-slate-800/60">
+        {/* Chat column — beside widget col, inside left half */}
+        <div className="flex-1 flex flex-col min-w-0">
           <div className="px-4 py-2 border-b border-slate-800/40 flex items-center gap-2">
             <Cpu size={12} className="text-emerald-400" />
             <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>
@@ -456,7 +460,7 @@ export default function MissionControl() {
             {chat.map((entry, i) => (
               <div key={i} className={clsx('flex', entry.role === 'user' ? 'justify-end' : 'justify-start')}>
                 <div className={clsx(
-                  'max-w-[80%] px-3 py-2 rounded-lg text-[11px] leading-relaxed',
+                  'max-w-[85%] px-3 py-2 rounded-lg text-[11px] leading-relaxed',
                   entry.role === 'user'
                     ? 'bg-blue-500/20 text-blue-100 rounded-br-sm'
                     : 'bg-slate-800/80 text-slate-200 rounded-bl-sm border border-slate-700/50'
@@ -500,6 +504,8 @@ export default function MissionControl() {
             </div>
           </div>
         </div>
+
+      </div>{/* end LEFT HALF */}
 
         {/* ── RIGHT: Activity feed ───────────────────────────────────── */}
         <div className="flex-1 flex flex-col min-w-0 p-3 gap-2">
@@ -565,7 +571,7 @@ export default function MissionControl() {
           </div>
         </div>
 
-      </div>{/* end MAIN row */}
+      </div>{/* end MAIN ROW */}
     </div>
   )
 }
