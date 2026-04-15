@@ -27,9 +27,20 @@ const KIND_META: Record<string, { label: string; color: string; icon: React.Elem
 
 const ALL_KINDS = ['trade', 'signal', 'gate', 'system', 'alert']
 
+/** Format ISO timestamp as HH:MM:SS ET (24-hr military, Eastern time) */
 function ts(raw: string) {
   if (!raw) return ''
-  return raw.replace('T', ' ').slice(0, 19)
+  try {
+    return new Date(raw).toLocaleTimeString('en-US', {
+      timeZone: 'America/New_York',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false,
+    }) + ' ET'
+  } catch {
+    return raw.replace('T', ' ').slice(0, 19)
+  }
 }
 
 function KindBadge({ kind }: { kind: string }) {
@@ -112,7 +123,7 @@ export default function ActivityLog() {
                   : 'bg-dark-700 text-slate-300 border-dark-600'
               )}
             >
-              <span className={clsx('w-1.5 h-1.5 rounded-full', live ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
+              <span className={clsx('w-1.5 h-1.5 rounded-full', live ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
               {live ? 'LIVE' : 'PAUSED'}
             </button>
 
