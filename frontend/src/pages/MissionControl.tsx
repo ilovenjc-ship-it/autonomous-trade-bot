@@ -111,54 +111,51 @@ function BotCard({ bot, selected, onClick }: { bot: FleetBot; selected: boolean;
     <button
       onClick={onClick}
       className={clsx(
-        'w-full text-left px-3 py-3 rounded-lg border transition-all duration-200 group',
+        'flex-shrink-0 w-[148px] text-left px-3 py-2.5 rounded-lg border transition-all duration-200',
         selected
-          ? 'bg-blue-500/10 border-blue-500/40'
+          ? 'bg-blue-500/10 border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.15)]'
           : 'bg-slate-900/40 border-slate-700/40 hover:bg-slate-800/50 hover:border-slate-600/50'
       )}
     >
-      {/* Header row */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <div className={clsx(
-            'w-1.5 h-1.5 rounded-full flex-shrink-0',
-            bot.is_active ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-slate-600'
-          )} />
-          <span className="text-xs font-semibold text-slate-100 truncate max-w-[100px]">
-            {bot.display_name}
-          </span>
-        </div>
+      {/* Name + active dot */}
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <div className={clsx(
+          'w-1.5 h-1.5 rounded-full flex-shrink-0',
+          bot.is_active ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-slate-600'
+        )} />
+        <span className="text-[11px] font-semibold text-slate-100 truncate flex-1">
+          {bot.display_name}
+        </span>
+      </div>
+
+      {/* Mode badge */}
+      <div className="mb-2">
         <ModeBadge mode={bot.mode} />
       </div>
 
-      {/* Stats row */}
-      <div className="grid grid-cols-3 gap-1 mb-2">
-        <div className="text-center">
-          <div className={clsx('text-xs font-bold font-mono', bot.win_rate >= 55 ? 'text-emerald-400' : 'text-slate-300')}>
+      {/* Win rate + PnL side by side */}
+      <div className="flex items-end justify-between mb-2">
+        <div>
+          <div className={clsx('text-sm font-bold font-mono leading-none', bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400')}>
             {bot.win_rate.toFixed(0)}%
           </div>
-          <div className="text-[9px] text-slate-300">win rate</div>
+          <div className="text-[8px] text-slate-500 mt-0.5">win rate</div>
         </div>
-        <div className="text-center">
-          <div className={clsx('text-xs font-bold font-mono', bot.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-            {bot.total_pnl >= 0 ? '+' : ''}{bot.total_pnl.toFixed(3)}
+        <div className="text-right">
+          <div className={clsx('text-[11px] font-bold font-mono leading-none', bot.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+            {bot.total_pnl >= 0 ? '+' : ''}{bot.total_pnl.toFixed(3)}τ
           </div>
-          <div className="text-[9px] text-slate-300">PnL TAO</div>
-        </div>
-        <div className="text-center">
-          <div className="text-xs font-bold font-mono text-slate-300">{bot.total_trades}</div>
-          <div className="text-[9px] text-slate-300">trades</div>
+          <div className="text-[8px] text-slate-500 mt-0.5">{bot.total_trades} trades</div>
         </div>
       </div>
 
-      {/* Gate progress */}
+      {/* Gate dots */}
       <div className="flex items-center gap-1">
         {[bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok].map((ok, i) => (
-          <div key={i} className={clsx('w-2 h-2 rounded-full', ok ? 'bg-emerald-500' : 'bg-slate-700')} />
+          <div key={i} className={clsx('flex-1 h-1 rounded-full', ok ? 'bg-emerald-500' : 'bg-slate-700')} />
         ))}
-        <span className="text-[9px] text-slate-300 ml-1 font-mono">{gatesPassed}/4 gates</span>
         {bot.gate.all_clear && (
-          <span className="ml-auto text-[9px] text-purple-400 font-bold animate-pulse">READY</span>
+          <span className="text-[8px] text-purple-400 font-bold animate-pulse ml-1">✓</span>
         )}
       </div>
     </button>
@@ -276,38 +273,32 @@ export default function MissionControl() {
   const rsiTrend = (summary?.rsi ?? 50) > 60 ? 'Overbought' : (summary?.rsi ?? 50) < 40 ? 'Oversold' : 'Neutral'
 
   return (
-    <div className="flex h-full bg-[#080d18] text-slate-100 overflow-hidden font-mono">
+    <div className="flex flex-col h-full bg-[#080d18] text-slate-100 overflow-hidden font-mono">
 
-      {/* ── LEFT: Agent Fleet ─────────────────────────────────────────── */}
-      <div className="w-56 flex-shrink-0 border-r border-slate-800/60 flex flex-col">
-        {/* Header */}
-        <div className="px-3 py-3 border-b border-slate-800/60">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
-            <span className="text-[11px] font-bold tracking-widest text-slate-300 uppercase">Agent Fleet</span>
-          </div>
+      {/* ── TOP: Agent Fleet horizontal strip ─────────────────────────── */}
+      <div className="flex-shrink-0 border-b border-slate-800/60">
+        {/* Strip header */}
+        <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800/40">
+          <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse" />
+          <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Agent Fleet</span>
           {summary && (
-            <div className="mt-2 grid grid-cols-3 gap-1 text-center">
-              <div>
-                <div className="text-emerald-400 text-xs font-bold">{summary.live}</div>
-                <div className="text-[9px] text-slate-300">live</div>
-              </div>
-              <div>
-                <div className="text-yellow-400 text-xs font-bold">{summary.paper}</div>
-                <div className="text-[9px] text-slate-300">paper</div>
-              </div>
-              <div>
-                <div className="text-purple-400 text-xs font-bold">{summary.approved}</div>
-                <div className="text-[9px] text-slate-300">approved</div>
-              </div>
+            <div className="flex items-center gap-4 ml-2">
+              <span className="text-[10px] text-emerald-400 font-bold">{summary.live} live</span>
+              <span className="text-[10px] text-purple-400 font-bold">{summary.approved} approved</span>
+              <span className="text-[10px] text-yellow-400 font-bold">{summary.paper} paper</span>
+            </div>
+          )}
+          {summary && (
+            <div className={clsx('ml-auto text-[11px] font-bold', summary.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+              Fleet PnL: {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(4)} τ
             </div>
           )}
         </div>
 
-        {/* Bot cards */}
-        <div className="flex-1 overflow-y-auto px-2 py-2 space-y-1.5">
+        {/* Horizontal bot cards */}
+        <div className="flex gap-2 px-3 py-2 overflow-x-auto">
           {fleet.length === 0 ? (
-            <div className="text-center py-8 text-slate-300 text-xs">Loading fleet…</div>
+            <div className="text-slate-300 text-xs py-2">Loading fleet…</div>
           ) : (
             fleet.map(bot => (
               <BotCard
@@ -319,17 +310,10 @@ export default function MissionControl() {
             ))
           )}
         </div>
-
-        {/* Fleet PnL footer */}
-        {summary && (
-          <div className="px-3 py-2 border-t border-slate-800/60">
-            <div className="text-[9px] text-slate-300 uppercase tracking-wider">Fleet PnL</div>
-            <div className={clsx('text-sm font-bold', summary.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-              {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(4)} TAO
-            </div>
-          </div>
-        )}
       </div>
+
+      {/* ── MAIN: Activity + Chat | Command Panel ─────────────────────── */}
+      <div className="flex flex-1 min-h-0">
 
       {/* ── CENTER: Activity + Chat ───────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 border-r border-slate-800/60">
@@ -578,6 +562,8 @@ export default function MissionControl() {
           </div>
         </div>
       </div>
+
+      </div>{/* end MAIN row */}
     </div>
   )
 }
