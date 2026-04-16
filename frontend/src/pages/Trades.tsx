@@ -130,19 +130,35 @@ export default function Trades() {
         </button>
       </div>
 
-      {/* Paper trading disclosure */}
-      <div className="flex items-center gap-2.5 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/25 rounded-lg">
-        <span className="text-yellow-400 text-sm">📄</span>
-        <div className="flex flex-col gap-0.5">
-          <span className="text-[11px] font-bold text-yellow-400 font-mono uppercase tracking-wider">
-            Simulated Performance
-          </span>
-          <span className="text-[10px] text-yellow-400/70 font-mono">
-            These figures reflect paper trading only — no real TAO has moved. Volume and P&L are simulated.
-            Win rate = execution success rate (executed ÷ total), not PnL-based.
-          </span>
+      {/* Trading mode disclosure — updates dynamically */}
+      {isLive ? (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/25 rounded-lg">
+          <span className="text-emerald-400 text-sm">🟢</span>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-bold text-emerald-400 font-mono uppercase tracking-wider">
+              Live Trading — Real TAO
+            </span>
+            <span className="text-[10px] text-emerald-400/70 font-mono">
+              System is armed. Strategies with LIVE status fire real <code className="font-mono">add_stake()</code> calls on Finney mainnet.
+              Stats include both paper history and confirmed on-chain trades.
+              Win rate = execution success rate (executed ÷ total).
+            </span>
+          </div>
         </div>
-      </div>
+      ) : (
+        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/25 rounded-lg">
+          <span className="text-yellow-400 text-sm">📄</span>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[11px] font-bold text-yellow-400 font-mono uppercase tracking-wider">
+              Paper Trading — Simulated
+            </span>
+            <span className="text-[10px] text-yellow-400/70 font-mono">
+              These figures reflect paper trading only — no real TAO has moved. Volume and P&amp;L are simulated.
+              Win rate = execution success rate (executed ÷ total), not PnL-based.
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

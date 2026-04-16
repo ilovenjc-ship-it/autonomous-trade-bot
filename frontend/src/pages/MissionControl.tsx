@@ -456,7 +456,7 @@ export default function MissionControl() {
         </div>{/* end right strips */}
       </div>{/* end TOP SECTION */}
 
-      {/* ══ BOTTOM SECTION: Chat (wider) + Activity (narrower) ══ */}
+      {/* ══ BOTTOM SECTION: Chat | Activity Stream | Subnet Heat Map ══ */}
       <div className="flex flex-1 min-h-0">
 
         {/* II Agent Chat — wider */}
@@ -539,67 +539,72 @@ export default function MissionControl() {
           </div>
         </div>
 
-        {/* Activity feed — flex-1 (narrower, takes remaining width) */}
-        <div className="flex-1 flex flex-col min-w-0 p-3">
+        {/* Right side: activity stream (half) + heat map (half) */}
+        <div className="flex-1 flex min-w-0">
 
-          {/* Selected bot gate detail */}
-          {selectedBot && (
-            <div className="flex-shrink-0 mb-2 rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <BarChart3 size={13} className="text-blue-400" />
-                  <span className="text-xs font-bold text-blue-300">{selectedBot.display_name} — Gate Detail</span>
-                </div>
-                <ModeBadge mode={selectedBot.mode} />
-              </div>
-              <div className="grid grid-cols-4 gap-3">
-                <GateBar label="Cycles"     check={selectedBot.gate.cycles} />
-                <GateBar label="Win %"      check={selectedBot.gate.win_rate} />
-                <GateBar label="Win Margin" check={selectedBot.gate.win_margin} />
-                <GateBar label="PnL TAO"    check={selectedBot.gate.pnl} />
-              </div>
-              {selectedBot.gate.all_clear && (
-                <div className="mt-2 flex items-center gap-2 text-purple-400">
-                  <CheckCircle2 size={12} />
-                  <span className="text-[10px] font-bold tracking-wider">ALL GATES CLEAR — READY FOR LIVE PROMOTION</span>
-                </div>
-              )}
-            </div>
-          )}
+          {/* Activity stream — left half of right side */}
+          <div className="flex-1 flex flex-col min-w-0 p-3 border-r border-slate-800/60">
 
-          {/* Activity stream */}
-          <div className="flex-1 flex flex-col min-h-0 rounded-lg border border-slate-700/50 bg-slate-800/30">
-            <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-700/40 flex-shrink-0">
-              <Activity size={12} className="text-blue-400" />
-              <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Activity Stream</span>
-              <span className="ml-auto text-[9px] text-slate-400 font-mono">live</span>
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
-            </div>
-            <div ref={activityRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-              {events.length === 0 ? (
-                <div className="text-center py-6 text-slate-500 text-xs">Waiting for events…</div>
-              ) : (
-                events.map((ev, i) => (
-                  <div key={`${ev.id}-${i}`} className="flex items-start gap-2 py-1">
-                    <div className="mt-0.5 flex-shrink-0"><EventIcon kind={ev.kind} /></div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-[11px] text-slate-300 leading-tight">{ev.message}</div>
-                      {ev.detail && <div className="text-[9px] text-slate-400 truncate mt-0.5">{ev.detail}</div>}
-                    </div>
-                    <div className="text-[9px] text-slate-400 flex-shrink-0 font-mono">{fmtTime(ev.timestamp)}</div>
+            {/* Selected bot gate detail */}
+            {selectedBot && (
+              <div className="flex-shrink-0 mb-2 rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-3">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 size={13} className="text-blue-400" />
+                    <span className="text-xs font-bold text-blue-300">{selectedBot.display_name} — Gate Detail</span>
                   </div>
-                ))
-              )}
+                  <ModeBadge mode={selectedBot.mode} />
+                </div>
+                <div className="grid grid-cols-4 gap-3">
+                  <GateBar label="Cycles"     check={selectedBot.gate.cycles} />
+                  <GateBar label="Win %"      check={selectedBot.gate.win_rate} />
+                  <GateBar label="Win Margin" check={selectedBot.gate.win_margin} />
+                  <GateBar label="PnL TAO"    check={selectedBot.gate.pnl} />
+                </div>
+                {selectedBot.gate.all_clear && (
+                  <div className="mt-2 flex items-center gap-2 text-purple-400">
+                    <CheckCircle2 size={12} />
+                    <span className="text-[10px] font-bold tracking-wider">ALL GATES CLEAR — READY FOR LIVE PROMOTION</span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Activity stream — capped at 20 most-recent events */}
+            <div className="flex-1 flex flex-col min-h-0 rounded-lg border border-slate-700/50 bg-slate-800/30">
+              <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-700/40 flex-shrink-0">
+                <Activity size={12} className="text-blue-400" />
+                <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Activity Stream</span>
+                <span className="ml-auto text-[9px] text-slate-400 font-mono">live</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+              </div>
+              <div ref={activityRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
+                {events.length === 0 ? (
+                  <div className="text-center py-6 text-slate-500 text-xs">Waiting for events…</div>
+                ) : (
+                  events.slice(0, 20).map((ev, i) => (
+                    <div key={`${ev.id}-${i}`} className="flex items-start gap-2 py-1">
+                      <div className="mt-0.5 flex-shrink-0"><EventIcon kind={ev.kind} /></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[11px] text-slate-300 leading-tight">{ev.message}</div>
+                        {ev.detail && <div className="text-[9px] text-slate-400 truncate mt-0.5">{ev.detail}</div>}
+                      </div>
+                      <div className="text-[9px] text-slate-400 flex-shrink-0 font-mono">{fmtTime(ev.timestamp)}</div>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
+
+          </div>{/* end activity column */}
+
+          {/* Subnet Heat Map — right half of right side */}
+          <div className="flex-1 min-w-0 overflow-y-auto p-3">
+            <SubnetHeatMap />
           </div>
 
         </div>
       </div>{/* end BOTTOM SECTION */}
-
-      {/* ══ ZONE 3 — Full-width subnet heat map ══ */}
-      <div className="mt-4">
-        <SubnetHeatMap />
-      </div>
 
     </div>
   )

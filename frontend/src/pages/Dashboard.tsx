@@ -194,7 +194,7 @@ export default function Dashboard() {
             <Zap size={20} className="text-accent-green" /> Command Dashboard
           </h1>
           <p className="text-xs text-slate-300 mt-0.5 font-mono">
-            Finney Mainnet · Paper Trading · {isRunning ? `Cycle #${cycleN}` : 'Stopped'}
+            Finney Mainnet · {botStatus?.simulation_mode ? 'Paper Trading' : 'Live Trading'} · {isRunning ? `Cycle #${cycleN}` : 'Stopped'}
           </p>
         </div>
         <div className="flex items-center gap-2">
