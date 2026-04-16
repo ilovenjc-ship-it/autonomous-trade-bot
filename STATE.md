@@ -161,7 +161,8 @@ SESSION VII ACTIONS:
   - Manual trade panel built — LIVE/PAPER badge, confirm step, tx_hash display, Taostats link
   - Fixed _execute_trade reading hotkey_address (None) instead of target_validator_hotkey
   - Fixed frontend treating block:XXXXX as paper — it IS real (SDK returns bool, not extrinsic)
-  - *** FIRST REAL TRADE ON CLEAN WALLET: trade #246, block:7983364, τ0.0001 BUY ***
+  - *** FIRST REAL TRADE ON CLEAN WALLET: trade #246, block:7983364, τ0.0001 BUY (manual) ***
+  - *** FIRST AUTONOMOUS REAL TRADE: trade #275, block:7983364, Yield Maximizer, RSI=11.4, τ0.0001 BUY ***
 ```
 
 ### 5b. Wallet Situation — CRITICAL HISTORY (Session VI, April 16)
