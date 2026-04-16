@@ -135,7 +135,7 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 network_connected  :  True  ✅
 simulation_mode    :  False ✅
 wallet_connected   :  True  ✅
-wallet_address     :  5HMXmud5v6zUz84fm3azwLyENFpbtq5CFK6ZeShA4EqcECAT
+wallet_address     :  5DjztHVxtm4v8jtYvT1DGHzHT3DGbvnCQqzgRQLLr3Ft4Evs
 wallet_balance     :  0.227τ (~$54) — clean, zero history, funded this session
 Finney block       :  live (cycling ~12s)
 NightWatch         :  Running
@@ -182,7 +182,7 @@ SESSION VI ACTIONS (April 16, evening):
   - Paused all trading, wiped mnemonic
   - Built POST /api/wallet/generate endpoint — generates fresh BIP39 wallet
   - Rebuilt Wallet page: "Generate New Wallet" tab (primary) + "Restore Existing" tab
-  - Generated 5HMXmud...CAT — zero history, 0.227τ funded, clean slate
+  - Restored 5DjztH...4Evs — zero history, 0.227τ funded, clean slate (Session VI STATE.md had wrong address — was capturing generate_wallet() output, not the user-restored address)
   - Armed yield_maximizer (77.4% win rate) as sole LIVE strategy
   - overall_mode: LIVE ✅ — all 4 gates passing on clean wallet
 ```

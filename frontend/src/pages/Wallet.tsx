@@ -723,6 +723,10 @@ export default function WalletPage() {
                 </button>
               </div>
 
+              {/* Hidden dummy fields — trick browsers into targeting these instead of the real inputs */}
+              <input type="text"     name="username" style={{ display: 'none' }} readOnly tabIndex={-1} aria-hidden="true" />
+              <input type="password" name="password" style={{ display: 'none' }} readOnly tabIndex={-1} aria-hidden="true" />
+
               <div className="grid grid-cols-3 gap-2.5 mb-4 flex-1">
                 {words.map((w, i) => (
                   <div key={i} className="relative">
@@ -730,10 +734,21 @@ export default function WalletPage() {
                       {i + 1}.
                     </span>
                     <input
-                      type={showWords ? 'text' : 'password'}
-                      value={w}
+                      type="text"
+                      value={showWords ? w : w ? '•'.repeat(Math.max(4, w.length)) : ''}
                       onChange={e => handleWordChange(i, e.target.value)}
+                      onFocus={e => {
+                        // Reveal the actual value on focus so the user can see/edit it
+                        e.currentTarget.type = 'text'
+                      }}
                       placeholder={`word ${i + 1}`}
+                      autoComplete="off"
+                      autoCorrect="off"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      data-form-type="other"
+                      data-lpignore="true"
+                      name={`mnemonic-word-${i}`}
                       className="w-full h-full min-h-[42px] pl-7 pr-2 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs font-mono text-slate-200 placeholder-slate-700 focus:outline-none focus:border-accent-blue transition-colors"
                     />
                   </div>
