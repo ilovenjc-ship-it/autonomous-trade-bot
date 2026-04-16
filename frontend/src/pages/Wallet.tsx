@@ -84,8 +84,8 @@ function SubnetHeatMap() {
         </div>
       ) : (
         <div className="relative">
-          {/* Grid */}
-          <div className="grid gap-1" style={{ gridTemplateColumns: 'repeat(8, 1fr)' }}>
+          {/* Grid — 10 columns, full width */}
+          <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(10, 1fr)' }}>
             {subnets.map(s => {
               const n        = norm(s.score)
               const bg       = heatColor(n)
@@ -102,29 +102,32 @@ function SubnetHeatMap() {
                     setHoverPos({ x: el.left - rect.left, y: el.top - rect.top })
                   }}
                   onMouseLeave={() => setHovered(null)}
-                  className="relative cursor-default select-none rounded-md flex flex-col items-center justify-center transition-transform hover:scale-110 hover:z-10"
+                  className="relative cursor-default select-none rounded-lg flex flex-col items-center justify-center transition-transform hover:scale-105 hover:z-10"
                   style={{
                     background: bg,
-                    height: 52,
+                    height: 68,
                     outline: isTaoBot ? '2px solid #00e5a0' : 'none',
-                    outlineOffset: isTaoBot ? '1px' : undefined,
-                    boxShadow: isTaoBot ? '0 0 8px rgba(0,229,160,0.5)' : undefined,
+                    outlineOffset: '2px',
+                    boxShadow: isTaoBot ? '0 0 12px rgba(0,229,160,0.45)' : undefined,
                   }}
                 >
-                  <span className="text-[11px] font-black leading-none" style={{ color: txt }}>
+                  <span className="text-[12px] font-black leading-none tracking-tight" style={{ color: txt }}>
                     SN{s.uid}
                   </span>
-                  <span className="text-[8px] font-mono opacity-70 leading-none mt-0.5" style={{ color: txt }}>
-                    {s.apy.toFixed(0)}%
+                  <span className="text-[9px] font-mono leading-none mt-1 opacity-80" style={{ color: txt }}>
+                    {s.apy.toFixed(1)}%
+                  </span>
+                  <span className="text-[8px] font-mono leading-none mt-0.5 opacity-50 truncate max-w-full px-1 text-center" style={{ color: txt }}>
+                    {s.name.split(' ')[0]}
                   </span>
                   {isTaoBot && (
-                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-accent-green" />
+                    <span className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-accent-green shadow-sm" />
                   )}
                   {s.trend === 'up' && (
-                    <span className="absolute bottom-0.5 right-1 text-[7px] text-emerald-400 font-bold">▲</span>
+                    <span className="absolute bottom-1 right-1.5 text-[8px] text-emerald-400 font-bold leading-none">▲</span>
                   )}
                   {s.trend === 'down' && (
-                    <span className="absolute bottom-0.5 right-1 text-[7px] text-red-400 font-bold">▼</span>
+                    <span className="absolute bottom-1 right-1.5 text-[8px] text-red-400 font-bold leading-none">▼</span>
                   )}
                 </div>
               )
@@ -313,7 +316,7 @@ export default function WalletPage() {
   const usdValue      = taoPrice != null && balance ? balance * taoPrice : null
 
   return (
-    <div className="p-6 space-y-5 max-w-4xl">
+    <div className="p-6 space-y-5 max-w-5xl">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
@@ -347,219 +350,229 @@ export default function WalletPage() {
         <span className={isConnected ? 'text-emerald-400 font-semibold' : 'text-slate-300'}>
           {isConnected ? '⛓ FINNEY MAINNET CONNECTED' : '○ CHAIN OFFLINE'}
         </span>
-        {block && (
-          <><span className="text-slate-300">·</span>
-          <span className="text-slate-300">Block #{block.toLocaleString()}</span></>
-        )}
-        {balance != null && (
-          <><span className="text-slate-300">·</span>
-          <span className="text-indigo-400 font-bold">τ{balance.toFixed(6)}</span></>
-        )}
+        {block && (<><span className="text-slate-300">·</span>
+          <span className="text-slate-300">Block #{block.toLocaleString()}</span></>)}
+        {balance != null && (<><span className="text-slate-300">·</span>
+          <span className="text-indigo-400 font-bold">τ{balance.toFixed(6)}</span></>)}
         <span className="ml-auto text-slate-300">finney.opentensor.ai</span>
       </div>
 
-      {/* ── Coldkey address ────────────────────────────────────────────────── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <ShieldCheck size={15} className="text-accent-green" /> Coldkey Address
-          </h2>
-          <button
-            onClick={() => setShowAddr(v => !v)}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-mono transition-colors"
-          >
-            {showAddr ? <EyeOff size={12} /> : <Eye size={12} />}
-            {showAddr ? 'Hide' : 'Reveal'}
-          </button>
-        </div>
+      {/* ══════════════════════════════════════════════════════════════════════
+          ZONE 1 — Two-column: [Coldkey + Portfolio] | [Recovery Phrase]
+          ══════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-stretch">
 
-        <AddrBox label="Coldkey (SS58)" addr={displayAddr} show={showAddr} />
+        {/* LEFT — Coldkey address + Portfolio stacked */}
+        <div className="flex flex-col gap-5">
 
-        <div className="grid grid-cols-3 gap-3 text-xs">
-          <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-400 mb-0.5">TAO Balance</p>
-            <p className={clsx('font-mono font-bold', balance ? 'text-indigo-400' : 'text-slate-500')}>
-              {querying ? 'Querying…' : balance ? `τ${balance.toFixed(4)}` : '—'}
-            </p>
-          </div>
-          <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-400 mb-0.5">Block</p>
-            <p className="text-white font-mono">
-              {block ? `#${block.toLocaleString()}` : '—'}
-            </p>
-          </div>
-          <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
-            <p className="text-slate-400 mb-0.5">Chain Status</p>
-            <p className={clsx('font-mono font-semibold',
-              isConnected ? 'text-emerald-400' : 'text-amber-400')}>
-              {isConnected ? '⛓ Live' : '○ Cached'}
-            </p>
-          </div>
-        </div>
-
-        <a
-          href={`https://taostats.io/account/${displayAddr}`}
-          target="_blank" rel="noopener noreferrer"
-          className="flex items-center gap-1 text-xs text-accent-blue hover:underline font-mono"
-        >
-          <ExternalLink size={11} /> View on Taostats.io
-        </a>
-      </div>
-
-      {/* ── Portfolio ───────────────────────────────────────────────────────── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 space-y-4">
-        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-          <PieChart size={15} className="text-accent-blue" /> Portfolio
-        </h2>
-
-        {/* Top-line value cards */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1">TAO Balance</p>
-            <p className={clsx('text-2xl font-black font-mono', balance ? 'text-white' : 'text-slate-600')}>
-              {balance ? `τ ${balance.toFixed(4)}` : 'τ —'}
-            </p>
-            <p className="text-xs text-slate-500 mt-1 font-mono">Free · unstaked</p>
-          </div>
-          <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1">Est. USD Value</p>
-            <p className={clsx('text-2xl font-black font-mono', usdValue != null ? 'text-emerald-400' : 'text-slate-600')}>
-              {usdValue != null ? `$${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$ —'}
-            </p>
-            <p className="text-xs text-slate-500 mt-1 font-mono">
-              {taoPrice ? `@ $${taoPrice.toFixed(2)} / TAO` : 'Price unavailable'}
-            </p>
-          </div>
-        </div>
-
-        {/* Staking positions — placeholder until chain connected */}
-        <div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Staking Positions</p>
-            <span className="text-[10px] text-slate-600 font-mono">Per-subnet αTAO</span>
-          </div>
-          {isConnected ? (
-            <div className="text-xs text-slate-500 font-mono px-3 py-4 bg-dark-700/60 rounded-lg border border-dark-600 text-center">
-              Subnet staking data loading… connect wallet to see αTAO per subnet
+          {/* ── Coldkey address ─────────────────────────────────────────── */}
+          <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+                <ShieldCheck size={15} className="text-accent-green" /> Coldkey Address
+              </h2>
+              <button
+                onClick={() => setShowAddr(v => !v)}
+                className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-mono transition-colors"
+              >
+                {showAddr ? <EyeOff size={12} /> : <Eye size={12} />}
+                {showAddr ? 'Hide' : 'Reveal'}
+              </button>
             </div>
-          ) : (
-            <div className="space-y-1.5">
-              {[
-                { name: 'SN 1 — Apex', amt: null },
-                { name: 'SN 3 — MyShell', amt: null },
-                { name: 'SN 18 — Cortex', amt: null },
-              ].map(({ name }) => (
-                <div key={name} className="flex items-center justify-between px-3 py-2 bg-dark-700/60 rounded-lg border border-dark-600/50">
-                  <div className="flex items-center gap-2">
-                    <Layers size={11} className="text-slate-600" />
-                    <span className="text-xs text-slate-500 font-mono">{name}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-mono">
-                    <Lock size={10} />
-                    Chain offline
-                  </div>
+
+            <AddrBox label="Coldkey (SS58)" addr={displayAddr} show={showAddr} />
+
+            <div className="grid grid-cols-3 gap-3 text-xs">
+              <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
+                <p className="text-slate-400 mb-0.5">TAO Balance</p>
+                <p className={clsx('font-mono font-bold', balance ? 'text-indigo-400' : 'text-slate-500')}>
+                  {querying ? 'Querying…' : balance ? `τ${balance.toFixed(4)}` : '—'}
+                </p>
+              </div>
+              <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
+                <p className="text-slate-400 mb-0.5">Block</p>
+                <p className="text-white font-mono">
+                  {block ? `#${block.toLocaleString()}` : '—'}
+                </p>
+              </div>
+              <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
+                <p className="text-slate-400 mb-0.5">Chain Status</p>
+                <p className={clsx('font-mono font-semibold',
+                  isConnected ? 'text-emerald-400' : 'text-amber-400')}>
+                  {isConnected ? '⛓ Live' : '○ Cached'}
+                </p>
+              </div>
+            </div>
+
+            <a
+              href={`https://taostats.io/account/${displayAddr}`}
+              target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-1 text-xs text-accent-blue hover:underline font-mono"
+            >
+              <ExternalLink size={11} /> View on Taostats.io
+            </a>
+          </div>
+
+          {/* ── Portfolio ───────────────────────────────────────────────── */}
+          <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 space-y-4 flex-1">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <PieChart size={15} className="text-accent-blue" /> Portfolio
+            </h2>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1">TAO Balance</p>
+                <p className={clsx('text-2xl font-black font-mono', balance ? 'text-white' : 'text-slate-600')}>
+                  {balance ? `τ ${balance.toFixed(4)}` : 'τ —'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 font-mono">Free · unstaked</p>
+              </div>
+              <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1">Est. USD Value</p>
+                <p className={clsx('text-2xl font-black font-mono', usdValue != null ? 'text-emerald-400' : 'text-slate-600')}>
+                  {usdValue != null
+                    ? `$${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                    : '$ —'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 font-mono">
+                  {taoPrice ? `@ $${taoPrice.toFixed(2)} / TAO` : 'Price unavailable'}
+                </p>
+              </div>
+            </div>
+
+            {/* Staking positions */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Staking Positions</p>
+                <span className="text-[10px] text-slate-600 font-mono">Per-subnet αTAO</span>
+              </div>
+              {isConnected ? (
+                <div className="text-xs text-slate-500 font-mono px-3 py-4 bg-dark-700/60 rounded-lg border border-dark-600 text-center">
+                  Subnet staking data loading… connect wallet to see αTAO per subnet
                 </div>
-              ))}
-              <p className="text-[10px] text-slate-600 font-mono text-center pt-1">
-                Query chain to load real staking positions
-              </p>
+              ) : (
+                <div className="space-y-1.5">
+                  {['SN 1 — Apex', 'SN 8 — Taoshi PTN', 'SN 18 — Cortex.t', 'SN 64 — Chutes'].map(name => (
+                    <div key={name} className="flex items-center justify-between px-3 py-2 bg-dark-700/60 rounded-lg border border-dark-600/50">
+                      <div className="flex items-center gap-2">
+                        <Layers size={11} className="text-slate-600" />
+                        <span className="text-xs text-slate-500 font-mono">{name}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-mono">
+                        <Lock size={10} /> Chain offline
+                      </div>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-slate-600 font-mono text-center pt-1">
+                    Query chain to load real αTAO staking positions
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT — Recovery Phrase fills the full height of the left column */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl p-6 flex flex-col h-full">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <KeyRound size={15} className="text-accent-blue" /> Recovery Phrase
+            </h2>
+            <button
+              onClick={() => setShowWords(!showWords)}
+              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-mono transition-colors"
+            >
+              {showWords ? <EyeOff size={12} /> : <Eye size={12} />}
+              {showWords ? 'Hide' : 'Reveal'}
+            </button>
+          </div>
+
+          <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+            Manage and backup your recovery phrase. Enter your 12-word BIP39 phrase below —
+            paste the full phrase into the first box, or type word by word.
+            Stored locally only.
+          </p>
+
+          {/* Backup warning */}
+          <div className="flex items-start gap-2 px-3 py-3 bg-amber-500/8 border border-amber-500/20 rounded-lg mb-5">
+            <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
+            <p className="text-[11px] text-amber-400/80 leading-snug">
+              <span className="font-semibold text-amber-400">Never share your recovery phrase.</span>{' '}
+              Anyone with these 12 words has full access to your wallet and all funds.
+              Store them offline in a secure location.
+            </p>
+          </div>
+
+          {/* 12-word grid — 3 cols × 4 rows, inputs taller to fill space */}
+          <div className="grid grid-cols-3 gap-2.5 mb-5 flex-1">
+            {words.map((w, i) => (
+              <div key={i} className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 font-mono select-none">
+                  {i + 1}.
+                </span>
+                <input
+                  type={showWords ? 'text' : 'password'}
+                  value={w}
+                  onChange={e => handleWordChange(i, e.target.value)}
+                  placeholder={`word ${i + 1}`}
+                  className="w-full h-full min-h-[42px] pl-7 pr-2 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs font-mono text-slate-200 placeholder-slate-700 focus:outline-none focus:border-accent-blue transition-colors"
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Progress bar */}
+          <div className="flex items-center gap-3 mb-5">
+            <div className="flex-1 h-1.5 bg-dark-700 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-accent-blue rounded-full transition-all duration-300"
+                style={{ width: `${(wordCount / 12) * 100}%` }}
+              />
+            </div>
+            <span className="text-xs font-mono text-slate-400 tabular-nums">{wordCount} / 12</span>
+          </div>
+
+          {/* Action buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={handleSaveMnemonic}
+              disabled={!mnemonicOk || busy || saved}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all border flex-1',
+                mnemonicOk && !saved
+                  ? 'bg-accent-green/15 text-accent-green border-accent-green/30 hover:bg-accent-green/25'
+                  : 'bg-dark-700 text-slate-500 border-dark-600 cursor-not-allowed'
+              )}
+            >
+              {saved
+                ? <CheckCircle2 size={14} />
+                : busy
+                  ? <RefreshCw size={14} className="animate-spin" />
+                  : <KeyRound size={14} />}
+              {saved ? 'Mnemonic Saved' : busy ? 'Saving…' : 'Save Mnemonic'}
+            </button>
+            <button
+              onClick={clearWords}
+              className="px-4 py-2.5 rounded-lg text-xs text-slate-400 border border-dark-600 hover:text-white hover:border-dark-500 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+
+          {saved && (
+            <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-accent-green/10 border border-accent-green/20 rounded-lg text-xs text-accent-green font-mono">
+              <CheckCircle2 size={12} />
+              Mnemonic stored — loaded automatically on next backend start.
             </div>
           )}
         </div>
       </div>
 
-      {/* ── Subnet Heat Map ────────────────────────────────────────────────── */}
+      {/* ══════════════════════════════════════════════════════════════════════
+          ZONE 2 — Full-width subnet heat map
+          ══════════════════════════════════════════════════════════════════ */}
       <SubnetHeatMap />
 
-      {/* ── Recovery Phrase ────────────────────────────────────────────────── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-        <div className="flex items-center justify-between mb-1">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <KeyRound size={15} className="text-accent-blue" /> Recovery Phrase
-          </h2>
-          <button
-            onClick={() => setShowWords(!showWords)}
-            className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-mono transition-colors"
-          >
-            {showWords ? <EyeOff size={12} /> : <Eye size={12} />}
-            {showWords ? 'Hide' : 'Reveal'}
-          </button>
-        </div>
-        <p className="text-xs text-slate-500 mb-4">
-          Manage and backup your recovery phrase. Enter your 12-word BIP39 phrase below —
-          paste the full phrase into the first box or type word by word.
-          Stored encrypted, used locally only.
-        </p>
-
-        {/* Backup reminder */}
-        <div className="flex items-start gap-2 px-3 py-2.5 bg-amber-500/8 border border-amber-500/20 rounded-lg mb-4">
-          <AlertTriangle size={12} className="text-amber-400 flex-shrink-0 mt-0.5" />
-          <p className="text-[11px] text-amber-400/80 leading-snug">
-            <span className="font-semibold text-amber-400">Never share your recovery phrase.</span>{' '}
-            Anyone with these 12 words has full access to your wallet and all funds.
-            Store them offline in a secure location.
-          </p>
-        </div>
-
-        {/* 12-word grid */}
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-4">
-          {words.map((w, i) => (
-            <div key={i} className="relative">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-300 font-mono select-none">
-                {i + 1}.
-              </span>
-              <input
-                type={showWords ? 'text' : 'password'}
-                value={w}
-                onChange={e => handleWordChange(i, e.target.value)}
-                placeholder={`word ${i + 1}`}
-                className="w-full pl-6 pr-2 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs font-mono text-slate-300 placeholder-slate-700 focus:outline-none focus:border-accent-blue"
-              />
-            </div>
-          ))}
-        </div>
-
-        {/* Progress */}
-        <div className="flex items-center gap-3 mb-4">
-          <div className="flex-1 h-1 bg-dark-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-accent-blue rounded-full transition-all"
-              style={{ width: `${(wordCount / 12) * 100}%` }}
-            />
-          </div>
-          <span className="text-xs font-mono text-slate-300">{wordCount}/12</span>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={handleSaveMnemonic}
-            disabled={!mnemonicOk || busy || saved}
-            className={clsx(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all border flex-1',
-              mnemonicOk && !saved
-                ? 'bg-accent-green/15 text-accent-green border-accent-green/30 hover:bg-accent-green/30'
-                : 'bg-dark-700 text-slate-300 border-dark-600 cursor-not-allowed'
-            )}
-          >
-            {saved ? <CheckCircle2 size={14} /> : busy ? <RefreshCw size={14} className="animate-spin" /> : <KeyRound size={14} />}
-            {saved ? 'Mnemonic Saved' : busy ? 'Saving…' : 'Save Mnemonic'}
-          </button>
-          <button
-            onClick={clearWords}
-            className="px-3 py-2 rounded-lg text-xs text-slate-300 border border-dark-600 hover:text-white hover:border-dark-400 transition-colors"
-          >
-            Clear
-          </button>
-        </div>
-
-        {saved && (
-          <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-accent-green/10 border border-accent-green/20 rounded-lg text-xs text-accent-green font-mono">
-            <CheckCircle2 size={12} />
-            Mnemonic stored. Will be loaded automatically when Bittensor library is installed.
-          </div>
-        )}
-      </div>
-
-      </div>
+    </div>
   )
 }
