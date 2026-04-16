@@ -136,8 +136,9 @@ network_connected  :  True  ✅
 simulation_mode    :  False ✅
 wallet_connected   :  True  ✅
 wallet_loaded      :  True  ✅  (mnemonic sourced from BT_MNEMONIC env var)
-wallet_address     :  5DjztHVxtm4v8jtYvT1DGHzHT3DGbvnCQqzgRQLLr3Ft4Evs
-wallet_balance     :  0.227τ (~$55) — clean, funded, zero history
+wallet_address     :  5HMXmud5v6zUz84fm3azwLyENFpbtq5CFK6ZeShA4EqcECAT  ← CORRECT (Session VI generated, funded τ0.227)
+wallet_balance     :  0.227τ (~$55) — confirmed live on-chain, clean, zero history
+NOTE: 5DjztH...4Evs was user's personal wallet — has 0 TAO, never used for bot trading
 Finney block       :  7,983,057  (live, ~12s)
 NightWatch         :  Running
 Bot cycle          :  18 (running)

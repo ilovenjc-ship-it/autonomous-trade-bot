@@ -10,7 +10,7 @@
 
 | Item | Value |
 |------|-------|
-| **Bot wallet (coldkey)** | `5DjztHVxtm4v8jtYvT1DGHzHT3DGbvnCQqzgRQLLr3Ft4Evs` |
+| **Bot wallet (coldkey)** | `5HMXmud5v6zUz84fm3azwLyENFpbtq5CFK6ZeShA4EqcECAT` |
 | **Mnemonic env key** | `BT_MNEMONIC` |
 | **Backend port** | `8001` |
 | **Frontend port** | `3004` |
