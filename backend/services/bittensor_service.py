@@ -22,7 +22,7 @@ from typing import Optional, Dict, Any, List
 warnings.filterwarnings("ignore")
 logger = logging.getLogger(__name__)
 
-TARGET_WALLET = "5GgRojEFh5aCFNLKuSWb6WtrM5nBDB6GrRpqaqreBLcg4e7L"
+TARGET_WALLET = "5HMXmud5v6zUz84fm3azwLyENFpbtq5CFK6ZeShA4EqcECAT"  # Session VI — clean bot wallet
 NETWORK       = "finney"
 
 # ── Mnemonic storage (in-memory + env file) ──────────────────────────────────

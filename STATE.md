@@ -133,19 +133,21 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 ### 5a. System Status
 ```
 network_connected  :  True  ✅
-simulation_mode    :  True  (ALL strategies PAPER_ONLY — intentional)
-wallet_connected   :  False (mnemonic wiped — no wallet loaded)
-wallet_address     :  TBD — fresh wallet to be generated via UI
+simulation_mode    :  False ✅
+wallet_connected   :  True  ✅
+wallet_address     :  5HMXmud5v6zUz84fm3azwLyENFpbtq5CFK6ZeShA4EqcECAT
+wallet_balance     :  0.227τ (~$54) — clean, zero history, funded this session
 Finney block       :  live (cycling ~12s)
 NightWatch         :  Running
 
-TRADING MODE GATES:
-  chain_connected       :  True  ✅
-  validator_configured  :  True  ✅
-  validator_in_memory   :  True  ✅
-  live_strategies       :  0     ← all set to PAPER_ONLY (intentional)
+TRADING MODE GATES (all passing ✅):
+  chain_connected       :  True
+  validator_configured  :  True  (5E2LP6EnZ54m3wS8s1yPvD5c3xo71kQroBw7aUVK32TKeZ5u)
+  validator_in_memory   :  True
+  live_strategies       :  1     (yield_maximizer — 77.4% win rate)
 
-overall_mode          :  PAPER ← CORRECT. Safe until new wallet funded.
+overall_mode          :  LIVE ✅
+trade_amount          :  0.0001τ
 ```
 
 ### 5b. Wallet Situation — CRITICAL HISTORY (Session VI, April 16)
@@ -170,17 +172,19 @@ WALLET ARCHITECTURE DECISION (D-09):
 
 ### 5c. Trading Status
 ```
-Total trades logged  :  3,720+
-Real trades (tx_hash):  24  ← fired from unknown wallet, 0.0001τ each, now stopped
-Paper trades         :  3,696+
+Total trades logged  :  3,816+
+Real trades (tx_hash):  26  (first 26 = old unknown wallet, now irrelevant)
+Paper trades         :  3,790+
+New wallet real trades:  0  ← first real tx_hash on clean wallet is next
 
 SESSION VI ACTIONS (April 16, evening):
   - Discovered 5GgR...e7L wallet had $9k staking history — not a clean bot wallet
   - Paused all trading, wiped mnemonic
   - Built POST /api/wallet/generate endpoint — generates fresh BIP39 wallet
   - Rebuilt Wallet page: "Generate New Wallet" tab (primary) + "Restore Existing" tab
-  - Generate flow: 12-word display → backup confirmation checkbox → fund address shown
-  - Removed hardcoded TARGET_ADDRESS constant from frontend
+  - Generated 5HMXmud...CAT — zero history, 0.227τ funded, clean slate
+  - Armed yield_maximizer (77.4% win rate) as sole LIVE strategy
+  - overall_mode: LIVE ✅ — all 4 gates passing on clean wallet
 ```
 
 ### 5d. All Strategies (all PAPER_ONLY)
@@ -227,11 +231,9 @@ SESSION VI ACTIONS (April 16, evening):
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| **Generate new bot wallet** | 🔴 HIGH | Go to Wallet page → Generate New Wallet tab → generate → back up 12 words → fund address |
-| **Fund new wallet** | 🔴 HIGH | Owner to send only what they're willing to risk — $25 or less recommended to start |
-| **Arm first strategy for LIVE** | 🔴 HIGH | After wallet funded, go to Agent Fleet, promote one strategy to LIVE |
+| First real tx_hash on clean wallet | Autonomous | Yield Maximizer armed, 0.227τ balance, next OpenClaw signal fires it |
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
-| Manual trade panel | Medium | One button to fire a test trade directly |
+| Manual trade panel | Medium | One button to fire a test trade to confirm full chain end-to-end |
 | Agent Fleet bugs | Low | Toggle no-refetch, Promote CTA, demotion indicator |
 | PDF: Session VI brief | Low | The Unknown Wallet incident — another brief for The Archives |
 
