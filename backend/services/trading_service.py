@@ -183,8 +183,10 @@ class TradingService:
             error_msg = None
 
             # Resolve the validator hotkey for staking
+            # NOTE: hotkey_address = bot's own hotkey (unused)
+            #       target_validator_hotkey = the validator we stake WITH — this is what we need
             cfg = await self._get_config()
-            hotkey = cfg.hotkey_address if cfg else None
+            hotkey = cfg.target_validator_hotkey if cfg else None
 
             if bittensor_service.connected and bittensor_service.wallet_loaded and hotkey:
                 if action == Signal.BUY:
