@@ -154,11 +154,14 @@ overall_mode          :  LIVE ✅
 trade_amount          :  0.0001τ
 
 SESSION VII ACTIONS:
-  - Confirmed wallet address (5DjztH…4Evs) is correct — Sessions VI+VII aligned
-  - Fixed React error #185 (hydration root) — frontend now error-free
-  - BT_MNEMONIC written to /app/.user_env.sh — persists across sandbox resets
+  - Wallet corrected: 5HMXmud…CAT (τ0.227 funded, confirmed on-chain) — 5DjztH was wrong
+  - BT_MNEMONIC written to /app/.user_env.sh — persists across sandbox resets, auto-loads
   - RECOVERY.md created — cold clone → fully armed in under 10 minutes
   - STATE.md updated with mid-session checkpoint protocol (Section 11)
+  - Manual trade panel built — LIVE/PAPER badge, confirm step, tx_hash display, Taostats link
+  - Fixed _execute_trade reading hotkey_address (None) instead of target_validator_hotkey
+  - Fixed frontend treating block:XXXXX as paper — it IS real (SDK returns bool, not extrinsic)
+  - *** FIRST REAL TRADE ON CLEAN WALLET: trade #246, block:7983364, τ0.0001 BUY ***
 ```
 
 ### 5b. Wallet Situation — CRITICAL HISTORY (Session VI, April 16)
@@ -242,7 +245,7 @@ SESSION VI ACTIONS (April 16, evening):
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| First real tx_hash on clean wallet | Autonomous | Yield Maximizer armed, 0.227τ balance, next OpenClaw signal fires it |
+| ~~First real tx_hash on clean wallet~~ | ✅ DONE | Trade #246, block:7983364, 2026-04-16 Session VII |
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
 | Manual trade panel | Medium | One button to fire a test trade to confirm full chain end-to-end |
 | Agent Fleet bugs | Low | Toggle no-refetch, Promote CTA, demotion indicator |
