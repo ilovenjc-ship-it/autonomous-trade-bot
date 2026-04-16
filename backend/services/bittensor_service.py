@@ -259,26 +259,59 @@ class BittensorService:
         """
         Stake TAO to a hotkey on a subnet.
         Requires mnemonic to be loaded (signing key).
+        Returns tx_hash / block_hash so the trade can be marked as real.
         """
         if not self._mnemonic_set or not self._keypair:
             return {"success": False, "error": "Mnemonic not loaded — restore wallet first"}
+
+        # Guard: don't attempt if amount clearly exceeds cached balance
+        if self._last_balance is not None and amount_tao > self._last_balance:
+            return {
+                "success": False,
+                "error": f"Insufficient balance: have {self._last_balance:.6f}τ, need {amount_tao:.6f}τ"
+            }
+
         try:
             import bittensor as bt
-            from bittensor_wallet import Wallet
             async with await self._subtensor() as sub:
                 result = await sub.add_stake(
-                    wallet          = self._keypair,
-                    hotkey_ss58     = hotkey_address,
-                    amount          = bt.Balance.from_tao(amount_tao),
-                    netuid          = netuid,
+                    wallet                 = self._keypair,
+                    hotkey_ss58            = hotkey_address,
+                    amount                 = bt.Balance.from_tao(amount_tao),
+                    netuid                 = netuid,
                     wait_for_inclusion     = True,
                     wait_for_finalization  = False,
                 )
+                # result may be bool, extrinsic, or dict depending on SDK version
+                success = bool(result)
+
+                # Try to extract a block hash / tx hash from the result
+                tx_hash = None
+                if hasattr(result, "block_hash"):
+                    tx_hash = result.block_hash
+                elif hasattr(result, "extrinsic_hash"):
+                    tx_hash = result.extrinsic_hash
+                elif isinstance(result, dict):
+                    tx_hash = result.get("block_hash") or result.get("tx_hash")
+
+                # If no hash returned but call succeeded, record the current block
+                if success and not tx_hash:
+                    try:
+                        tx_hash = f"block:{self._last_block}" if self._last_block else "confirmed"
+                    except Exception:
+                        tx_hash = "confirmed"
+
+                logger.info(
+                    f"add_stake {'SUCCESS' if success else 'FAILED'} — "
+                    f"{amount_tao}τ → {hotkey_address[:16]}… SN{netuid} | hash={tx_hash}"
+                )
                 return {
-                    "success": bool(result),
-                    "amount":  amount_tao,
-                    "netuid":  netuid,
-                    "hotkey":  hotkey_address,
+                    "success":    success,
+                    "tx_hash":    tx_hash if success else None,
+                    "block_hash": tx_hash if success else None,
+                    "amount":     amount_tao,
+                    "netuid":     netuid,
+                    "hotkey":     hotkey_address,
                 }
         except Exception as e:
             logger.error(f"add_stake error: {e}")

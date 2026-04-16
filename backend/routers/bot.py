@@ -297,3 +297,97 @@ async def get_network_info(db: AsyncSession = Depends(get_db)):
     block = await bittensor_service.get_current_block()
     subnet = await bittensor_service.get_subnet_info(config.netuid)
     return {"connected": True, "network": config.network, "block": block, "subnet": subnet}
+
+
+@router.get("/trading-mode")
+async def get_trading_mode(db: AsyncSession = Depends(get_db)):
+    """
+    Returns a comprehensive, human-readable breakdown of whether the bot
+    is executing LIVE on-chain trades or running paper simulation.
+    Every gate is checked and reported individually.
+    """
+    from services.subnet_router import get_router_status
+    from models.strategy import Strategy
+    from models.trade import Trade
+    from sqlalchemy import func
+
+    config = await get_or_create_config(db)
+    router_st = get_router_status()
+
+    # ── Gate checks ──────────────────────────────────────────────────────────
+    chain_connected   = bittensor_service.connected
+    validator_hotkey  = config.target_validator_hotkey
+    validator_set     = bool(validator_hotkey)
+    primary_in_memory = router_st.get("primary_validator") is not None
+
+    # Count LIVE-mode strategies
+    result = await db.execute(
+        select(Strategy).where(Strategy.mode == "LIVE", Strategy.is_active == True)
+    )
+    live_strategies = result.scalars().all()
+    live_count = len(live_strategies)
+
+    # Trade counts from DB
+    total_q = await db.execute(select(func.count(Trade.id)))
+    total_trades = total_q.scalar() or 0
+
+    real_q = await db.execute(
+        select(func.count(Trade.id)).where(
+            Trade.tx_hash.isnot(None),
+            Trade.tx_hash != ""
+        )
+    )
+    real_trades = real_q.scalar() or 0
+    paper_trades = total_trades - real_trades
+
+    # ── Determine overall mode + blocking reason ─────────────────────────────
+    gates_passing = {
+        "chain_connected":       chain_connected,
+        "validator_configured":  validator_set,
+        "validator_in_memory":   primary_in_memory,
+        "live_strategies_exist": live_count > 0,
+    }
+    all_gates_pass = all(gates_passing.values())
+
+    if all_gates_pass:
+        overall_mode = "LIVE"
+        blocking_reason = None
+        status_message = (
+            f"{live_count} strategy{'s' if live_count != 1 else ''} armed — "
+            f"real stake() fires on next OpenClaw signal"
+        )
+    else:
+        overall_mode = "PAPER"
+        failed = [k for k, v in gates_passing.items() if not v]
+        reason_map = {
+            "chain_connected":       "Finney mainnet not connected",
+            "validator_configured":  "No validator hotkey set in config",
+            "validator_in_memory":   "Validator hotkey not loaded into subnet router",
+            "live_strategies_exist": "No strategies in LIVE mode",
+        }
+        blocking_reason = " · ".join(reason_map[k] for k in failed)
+        status_message = f"Blocked by: {blocking_reason}"
+
+    return {
+        "overall_mode":      overall_mode,
+        "status_message":    status_message,
+        "blocking_reason":   blocking_reason,
+        "gates": {
+            "chain_connected":      chain_connected,
+            "validator_configured": validator_set,
+            "validator_in_memory":  primary_in_memory,
+            "live_strategies":      live_count,
+        },
+        "live_strategies": [
+            {"name": s.name, "display_name": s.display_name, "mode": s.mode}
+            for s in live_strategies
+        ],
+        "trade_summary": {
+            "total":  total_trades,
+            "real":   real_trades,
+            "paper":  paper_trades,
+        },
+        "validator_hotkey":    validator_hotkey,
+        "wallet_balance_tao":  bittensor_service._last_balance or 0.0,
+        "network":             "finney",
+    }

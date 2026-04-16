@@ -9,6 +9,7 @@ import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
 import api from '@/api/client'
 import clsx from 'clsx'
+import TradingModeBanner from '@/components/TradingModeBanner'
 
 const navItems = [
   { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
@@ -315,8 +316,11 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto">
-        <Outlet />
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        <TradingModeBanner />
+        <div className="flex-1">
+          <Outlet />
+        </div>
       </main>
     </div>
   )
