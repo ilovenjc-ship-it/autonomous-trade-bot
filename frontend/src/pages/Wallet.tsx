@@ -84,8 +84,8 @@ function SubnetHeatMap() {
         </div>
       ) : (
         <div className="relative">
-          {/* Grid — 10 columns, full width */}
-          <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(10, 1fr)' }}>
+          {/* Grid — 16 columns × 4 rows, full width */}
+          <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(16, 1fr)' }}>
             {subnets.map(s => {
               const n        = norm(s.score)
               const bg       = heatColor(n)
@@ -316,7 +316,7 @@ export default function WalletPage() {
   const usdValue      = taoPrice != null && balance ? balance * taoPrice : null
 
   return (
-    <div className="p-6 space-y-5 max-w-5xl">
+    <div className="p-6 space-y-5 w-full">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
