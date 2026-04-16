@@ -111,6 +111,31 @@ class BittensorService:
             logger.error(f"Failed to restore keypair: {e}")
             return False
 
+    def generate_wallet(self) -> Dict[str, Any]:
+        """
+        Generate a brand-new wallet from scratch.
+        Creates a fresh 12-word mnemonic, derives the keypair, saves to .env.
+        The mnemonic is returned ONCE — the caller must display it to the user
+        and the user must write it down. It will not be returned again.
+        """
+        try:
+            from bittensor_wallet import Keypair
+            mnemonic = Keypair.generate_mnemonic()
+            ok = self._restore_keypair(mnemonic)
+            if ok:
+                _save_mnemonic_to_env(mnemonic)
+                logger.info(f"New wallet generated: {self._coldkey_addr}")
+                return {
+                    "success":  True,
+                    "mnemonic": mnemonic,
+                    "address":  self._coldkey_addr,
+                    "message":  "New wallet generated. Save the mnemonic — it will not be shown again.",
+                }
+            return {"success": False, "error": "Keypair derivation failed"}
+        except Exception as e:
+            logger.error(f"generate_wallet error: {e}")
+            return {"success": False, "error": str(e)}
+
     def set_mnemonic(self, mnemonic: str) -> Dict[str, Any]:
         """Restore wallet from 12-word mnemonic. Persists to .env."""
         words = mnemonic.strip().split()

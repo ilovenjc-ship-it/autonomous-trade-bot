@@ -116,6 +116,11 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 **Decision:** 64 subnets displayed in a 16×4 grid on the Wallet page.  
 **Why:** 64 subnets ÷ 16 columns = exactly 4 clean rows. No partial rows. Maximum information density.
 
+### D-09 — Dedicated isolated bot wallet only
+**Decision:** The bot must only ever hold keys for a wallet created specifically for the bot, with no other history or holdings.  
+**Why:** Session VI discovered the bot had signing authority over a wallet with $9,037 in pre-existing staking positions — the owner had entered a mnemonic via the UI without realising the wallet's history. A dedicated wallet means total losses are bounded by exactly what was intentionally funded.  
+**Rule:** Never load a personal wallet mnemonic into the bot. Generate → back up → fund → arm. Always in that order.
+
 ### D-08 — No paid APIs
 **Decision:** Free tiers only — Finney public RPC + CoinGecko free.  
 **Why:** At current wallet scale (0.000451 τ), paid infrastructure would dwarf the portfolio value. Revisit when balance grows.
@@ -128,51 +133,71 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 ### 5a. System Status
 ```
 network_connected  :  True  ✅
-simulation_mode    :  False ✅
-wallet_connected   :  True  ✅
-wallet_balance     :  0.000450917 τ
-wallet_address     :  5GgRojEFh5aCFNLKuSWb6WtrM5nBDB6GrRpqaqreBLcg4e7L
+simulation_mode    :  True  (ALL strategies PAPER_ONLY — intentional)
+wallet_connected   :  False (mnemonic wiped — no wallet loaded)
+wallet_address     :  TBD — fresh wallet to be generated via UI
 Finney block       :  live (cycling ~12s)
 NightWatch         :  Running
 
-TRADING MODE GATES (all passing ✅):
-  chain_connected       :  True
-  validator_configured  :  True  (5E2LP6EnZ54m3wS8s1yPvD5c3xo71kQroBw7aUVK32TKeZ5u)
-  validator_in_memory   :  True  (loaded at startup from bot_config)
-  live_strategies       :  1     (momentum_cascade)
+TRADING MODE GATES:
+  chain_connected       :  True  ✅
+  validator_configured  :  True  ✅
+  validator_in_memory   :  True  ✅
+  live_strategies       :  0     ← all set to PAPER_ONLY (intentional)
 
-trade_amount          :  0.0001 τ  (calibrated to wallet balance — was 0.1 τ)
+overall_mode          :  PAPER ← CORRECT. Safe until new wallet funded.
 ```
 
-### 5b. Trading Status
+### 5b. Wallet Situation — CRITICAL HISTORY (Session VI, April 16)
 ```
-Total trades logged  :  3,562+
-Real trades (tx_hash):  0  ← stake() now calibrated, tx_hash capture fixed
-Paper trades         :  3,562+
-Trade period         :  April 12–16, 2025+
+INCIDENT SUMMARY:
+  - Session V confirmed LIVE mode with wallet 5GgRojEFh5aCFNLKuSWb6WtrM5nBDB6GrRpqaqreBLcg4e7L
+  - That wallet was discovered to have 37.97τ (~$9,037) in staking positions
+  - Owner confirmed sending $25 there but does NOT recognise the $9k staking history
+  - The mnemonic entered via the Wallet page UI gave the bot signing authority over this wallet
+  - 24 real add_stake() calls fired (0.0001τ each) before discovery
+  - ACTIONS TAKEN:
+      1. All strategies set to PAPER_ONLY in DB
+      2. Mnemonic wiped from backend/.env
+      3. Backend restarted — wallet_loaded=False confirmed
+      4. overall_mode = PAPER confirmed
 
-SESSION V FIXES (April 16, afternoon):
-  - /api/bot/trading-mode endpoint: 4-gate check, LIVE|PAPER status
-  - TradingModeBanner: green/amber strip on every page — impossible to miss
-  - add_stake() now returns tx_hash/block_hash — real trades will be recorded
-  - add_stake() balance guard: won't attempt if amount > wallet balance
-  - trade_amount lowered: 0.1 τ → 0.0001 τ (wallet can cover this)
-  - Root cause of paper: trade_amount (0.1τ) exceeded wallet (0.000451τ) every cycle
+WALLET ARCHITECTURE DECISION (D-09):
+  - The bot must ONLY ever hold keys for a dedicated, isolated trading wallet
+  - Personal wallets / wallets with unknown history = NEVER load into the bot
+  - New wallet flow: Generate → back up 12 words → fund only what you risk → arm strategies
 ```
 
-### 5c. Live Strategies (7 armed, executing real trades)
-| Strategy | Focus |
-|----------|-------|
-| Yield Maximizer | Highest emission-rate subnets |
-| Emission Momentum | Accelerating emission curves |
-| Balanced Risk | Equal-weight top-tier subnets |
-| Liquidity Hunter | High-depth alpha pools |
-| dTAO Flow Momentum | Institutional stake inflows |
-| Contrarian Flow | Fading overcrowded subnets |
-| Momentum Cascade | Multi-subnet momentum breaks |
+### 5c. Trading Status
+```
+Total trades logged  :  3,720+
+Real trades (tx_hash):  24  ← fired from unknown wallet, 0.0001τ each, now stopped
+Paper trades         :  3,696+
 
-### 5d. The Fleet (12 bots total)
-5 additional bots are on PAPER status — not yet promoted to LIVE.
+SESSION VI ACTIONS (April 16, evening):
+  - Discovered 5GgR...e7L wallet had $9k staking history — not a clean bot wallet
+  - Paused all trading, wiped mnemonic
+  - Built POST /api/wallet/generate endpoint — generates fresh BIP39 wallet
+  - Rebuilt Wallet page: "Generate New Wallet" tab (primary) + "Restore Existing" tab
+  - Generate flow: 12-word display → backup confirmation checkbox → fund address shown
+  - Removed hardcoded TARGET_ADDRESS constant from frontend
+```
+
+### 5d. All Strategies (all PAPER_ONLY)
+| Strategy | Mode | Win Rate |
+|----------|------|----------|
+| momentum_cascade | PAPER_ONLY | 59.6% |
+| dtao_flow_momentum | PAPER_ONLY | 65.2% |
+| liquidity_hunter | PAPER_ONLY | 64.5% |
+| emission_momentum | PAPER_ONLY | 72.7% |
+| balanced_risk | PAPER_ONLY | 68.0% |
+| mean_reversion | PAPER_ONLY | 39.4% |
+| volatility_arb | PAPER_ONLY | 55.2% |
+| sentiment_surge | PAPER_ONLY | 45.6% |
+| macro_correlation | PAPER_ONLY | 51.1% |
+| breakout_hunter | PAPER_ONLY | 58.2% |
+| yield_maximizer | PAPER_ONLY | 77.4% |
+| contrarian_flow | PAPER_ONLY | 60.2% |
 
 ### 5e. External Dependencies
 | Service | URL | Cost | Status |
@@ -202,11 +227,13 @@ SESSION V FIXES (April 16, afternoon):
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| First real `tx_hash` | Autonomous | All 4 gates passing, 0.0001τ calibrated — next cycle fires |
-| Manual trade panel | Medium | "Can the human trade too?" — one button away |
+| **Generate new bot wallet** | 🔴 HIGH | Go to Wallet page → Generate New Wallet tab → generate → back up 12 words → fund address |
+| **Fund new wallet** | 🔴 HIGH | Owner to send only what they're willing to risk — $25 or less recommended to start |
+| **Arm first strategy for LIVE** | 🔴 HIGH | After wallet funded, go to Agent Fleet, promote one strategy to LIVE |
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
+| Manual trade panel | Medium | One button to fire a test trade directly |
 | Agent Fleet bugs | Low | Toggle no-refetch, Promote CTA, demotion indicator |
-| PDF sections: Strategies, Trades | Low | Additional report sections not yet written |
+| PDF: Session VI brief | Low | The Unknown Wallet incident — another brief for The Archives |
 
 ---
 

@@ -3,6 +3,7 @@ import {
   Wallet as WalletIcon, Copy, ExternalLink, ShieldCheck,
   KeyRound, CheckCircle2, RefreshCw, Eye, EyeOff,
   PieChart, Lock, AlertTriangle, Layers, Flame,
+  Sparkles, RotateCcw, Send,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
@@ -183,8 +184,6 @@ function SubnetHeatMap() {
   )
 }
 
-const TARGET_ADDRESS = '5GgRojEFh5aCFNLKuSWb6WtrM5nBDB6GrRpqaqreBLcg4e7L'
-
 /** Masks an SS58 address: first 6 chars + bullets + last 4 chars */
 function maskAddr(addr: string): string {
   if (!addr || addr.length < 12) return '••••••••••••••••••'
@@ -225,15 +224,30 @@ function AddrBox({ label, addr, show }: { label: string; addr: string; show: boo
   )
 }
 
+type WalletTab = 'generate' | 'restore'
+
+interface GeneratedWallet {
+  mnemonic: string
+  address:  string
+}
+
 export default function WalletPage() {
   const [chainInfo,  setChainInfo]  = useState<ChainInfo | null>(null)
   const [words,      setWords]      = useState<string[]>(Array(12).fill(''))
   const [showWords,  setShowWords]  = useState(false)
-  const [showAddr,   setShowAddr]   = useState(false)   // address hidden by default
+  const [showAddr,   setShowAddr]   = useState(false)
   const [busy,       setBusy]       = useState(false)
   const [saved,      setSaved]      = useState(false)
   const [querying,   setQuerying]   = useState(false)
   const [taoPrice,   setTaoPrice]   = useState<number | null>(null)
+
+  // Generate wallet flow
+  const [walletTab,    setWalletTab]    = useState<WalletTab>('generate')
+  const [generating,   setGenerating]   = useState(false)
+  const [generated,    setGenerated]    = useState<GeneratedWallet | null>(null)
+  const [showGenWords, setShowGenWords] = useState(true)
+  const [backedUp,     setBackedUp]     = useState(false)
+  const [showNewAddr,  setShowNewAddr]  = useState(false)
 
   // Load cached wallet status — auto-refresh every 30 s (cached, not live chain)
   const loadStatus = useCallback(async () => {
@@ -309,10 +323,49 @@ export default function WalletPage() {
 
   const clearWords = () => { setWords(Array(12).fill('')); setSaved(false) }
 
+  const handleGenerate = async () => {
+    setGenerating(true)
+    setGenerated(null)
+    setBackedUp(false)
+    setShowGenWords(true)
+    setShowNewAddr(false)
+    try {
+      const { data } = await api.post<{ success: boolean; mnemonic?: string; address?: string; error?: string }>(
+        '/wallet/generate', {}
+      )
+      if (data.success && data.mnemonic && data.address) {
+        setGenerated({ mnemonic: data.mnemonic, address: data.address })
+        // Refresh chain info to pick up new address
+        api.get<ChainInfo>('/wallet/status').then(r => setChainInfo(r.data)).catch(() => {})
+        toast.success('New wallet generated — write down your 12 words now!')
+      } else {
+        toast.error(data.error ?? 'Wallet generation failed')
+      }
+    } catch {
+      toast.error('Failed to generate wallet')
+    } finally {
+      setGenerating(false)
+    }
+  }
+
+  const copyGenMnemonic = () => {
+    if (generated) {
+      navigator.clipboard.writeText(generated.mnemonic)
+      toast.success('12 words copied — paste into your password manager or write offline')
+    }
+  }
+
+  const copyGenAddress = () => {
+    if (generated) {
+      navigator.clipboard.writeText(generated.address)
+      toast.success('Address copied!')
+    }
+  }
+
   const isConnected   = chainInfo?.connected ?? false
   const balance       = chainInfo?.balance_tao ?? 0
   const block         = chainInfo?.block
-  const displayAddr   = chainInfo?.address || TARGET_ADDRESS
+  const displayAddr   = chainInfo?.address || generated?.address || '—'
   const usdValue      = taoPrice != null && balance ? balance * taoPrice : null
 
   return (
@@ -472,97 +525,256 @@ export default function WalletPage() {
           </div>
         </div>
 
-        {/* RIGHT — Recovery Phrase fills the full height of the left column */}
+        {/* RIGHT — Bot Wallet Setup */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl p-6 flex flex-col h-full">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <KeyRound size={15} className="text-accent-blue" /> Recovery Phrase
-            </h2>
+
+          {/* Tab bar */}
+          <div className="flex gap-1 mb-5 bg-dark-900 rounded-lg p-1">
             <button
-              onClick={() => setShowWords(!showWords)}
-              className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-mono transition-colors"
-            >
-              {showWords ? <EyeOff size={12} /> : <Eye size={12} />}
-              {showWords ? 'Hide' : 'Reveal'}
-            </button>
-          </div>
-
-          <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-            Manage and backup your recovery phrase. Enter your 12-word BIP39 phrase below —
-            paste the full phrase into the first box, or type word by word.
-            Stored locally only.
-          </p>
-
-          {/* Backup warning */}
-          <div className="flex items-start gap-2 px-3 py-3 bg-amber-500/8 border border-amber-500/20 rounded-lg mb-5">
-            <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
-            <p className="text-[11px] text-amber-400/80 leading-snug">
-              <span className="font-semibold text-amber-400">Never share your recovery phrase.</span>{' '}
-              Anyone with these 12 words has full access to your wallet and all funds.
-              Store them offline in a secure location.
-            </p>
-          </div>
-
-          {/* 12-word grid — 3 cols × 4 rows, inputs taller to fill space */}
-          <div className="grid grid-cols-3 gap-2.5 mb-5 flex-1">
-            {words.map((w, i) => (
-              <div key={i} className="relative">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 font-mono select-none">
-                  {i + 1}.
-                </span>
-                <input
-                  type={showWords ? 'text' : 'password'}
-                  value={w}
-                  onChange={e => handleWordChange(i, e.target.value)}
-                  placeholder={`word ${i + 1}`}
-                  className="w-full h-full min-h-[42px] pl-7 pr-2 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs font-mono text-slate-200 placeholder-slate-700 focus:outline-none focus:border-accent-blue transition-colors"
-                />
-              </div>
-            ))}
-          </div>
-
-          {/* Progress bar */}
-          <div className="flex items-center gap-3 mb-5">
-            <div className="flex-1 h-1.5 bg-dark-700 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-accent-blue rounded-full transition-all duration-300"
-                style={{ width: `${(wordCount / 12) * 100}%` }}
-              />
-            </div>
-            <span className="text-xs font-mono text-slate-400 tabular-nums">{wordCount} / 12</span>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex gap-2">
-            <button
-              onClick={handleSaveMnemonic}
-              disabled={!mnemonicOk || busy || saved}
+              onClick={() => setWalletTab('generate')}
               className={clsx(
-                'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all border flex-1',
-                mnemonicOk && !saved
-                  ? 'bg-accent-green/15 text-accent-green border-accent-green/30 hover:bg-accent-green/25'
-                  : 'bg-dark-700 text-slate-500 border-dark-600 cursor-not-allowed'
+                'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-semibold transition-all',
+                walletTab === 'generate'
+                  ? 'bg-accent-green/15 text-accent-green border border-accent-green/30'
+                  : 'text-slate-500 hover:text-slate-300'
               )}
             >
-              {saved
-                ? <CheckCircle2 size={14} />
-                : busy
-                  ? <RefreshCw size={14} className="animate-spin" />
-                  : <KeyRound size={14} />}
-              {saved ? 'Mnemonic Saved' : busy ? 'Saving…' : 'Save Mnemonic'}
+              <Sparkles size={12} /> Generate New Wallet
             </button>
             <button
-              onClick={clearWords}
-              className="px-4 py-2.5 rounded-lg text-xs text-slate-400 border border-dark-600 hover:text-white hover:border-dark-500 transition-colors"
+              onClick={() => setWalletTab('restore')}
+              className={clsx(
+                'flex-1 flex items-center justify-center gap-1.5 py-2 rounded-md text-xs font-semibold transition-all',
+                walletTab === 'restore'
+                  ? 'bg-accent-blue/15 text-accent-blue border border-accent-blue/30'
+                  : 'text-slate-500 hover:text-slate-300'
+              )}
             >
-              Clear
+              <RotateCcw size={12} /> Restore Existing
             </button>
           </div>
 
-          {saved && (
-            <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-accent-green/10 border border-accent-green/20 rounded-lg text-xs text-accent-green font-mono">
-              <CheckCircle2 size={12} />
-              Mnemonic stored — loaded automatically on next backend start.
+          {/* ── TAB: Generate New Wallet ──────────────────────────────────── */}
+          {walletTab === 'generate' && (
+            <div className="flex flex-col flex-1 gap-4">
+              {!generated ? (
+                <>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    Creates a <span className="text-white font-semibold">brand-new wallet</span> from scratch — 
+                    no history, no other funds. Only fund it with what you're willing to trade. 
+                    The bot gets these keys and only these keys.
+                  </p>
+
+                  <div className="flex items-start gap-2 px-3 py-3 bg-amber-500/8 border border-amber-500/20 rounded-lg">
+                    <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-amber-300/90 leading-snug">
+                      The 12-word recovery phrase is shown <span className="font-bold text-amber-300">exactly once</span>.
+                      Write it down offline before continuing. It cannot be recovered if lost.
+                    </p>
+                  </div>
+
+                  <div className="flex-1" />
+
+                  <button
+                    onClick={handleGenerate}
+                    disabled={generating}
+                    className="flex items-center justify-center gap-2 w-full py-4 rounded-xl bg-accent-green/15 border border-accent-green/40 text-accent-green font-bold text-sm hover:bg-accent-green/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {generating
+                      ? <><RefreshCw size={15} className="animate-spin" /> Generating…</>
+                      : <><Sparkles size={15} /> Generate New Bot Wallet</>}
+                  </button>
+                </>
+              ) : (
+                <>
+                  {/* ── Success: show the 12 words ── */}
+                  <div className="flex items-start gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/30 rounded-lg">
+                    <AlertTriangle size={13} className="text-red-400 flex-shrink-0 mt-0.5" />
+                    <p className="text-[11px] text-red-300 leading-snug font-semibold">
+                      Write these 12 words down NOW — this is the only time they will be shown.
+                    </p>
+                  </div>
+
+                  {/* Word grid — read-only */}
+                  <div className="grid grid-cols-3 gap-2">
+                    {generated.mnemonic.split(' ').map((word, i) => (
+                      <div key={i} className="relative bg-dark-700 border border-dark-500 rounded-lg px-2 py-2 flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-500 font-mono w-4 flex-shrink-0">{i + 1}.</span>
+                        <span className={clsx('text-xs font-mono font-semibold text-slate-100 transition-all', !showGenWords && 'blur-sm select-none')}>
+                          {word}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Word controls */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowGenWords(v => !v)}
+                      className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-mono transition-colors"
+                    >
+                      {showGenWords ? <EyeOff size={12} /> : <Eye size={12} />}
+                      {showGenWords ? 'Hide words' : 'Reveal words'}
+                    </button>
+                    <button
+                      onClick={copyGenMnemonic}
+                      className="flex items-center gap-1.5 text-xs text-accent-blue hover:text-blue-300 font-mono transition-colors ml-auto"
+                    >
+                      <Copy size={12} /> Copy all 12 words
+                    </button>
+                  </div>
+
+                  {/* Backup confirmation checkbox */}
+                  <label className={clsx(
+                    'flex items-start gap-3 px-3 py-3 rounded-lg border cursor-pointer transition-all',
+                    backedUp
+                      ? 'bg-accent-green/10 border-accent-green/30'
+                      : 'bg-dark-700 border-dark-500 hover:border-slate-500'
+                  )}>
+                    <input
+                      type="checkbox"
+                      checked={backedUp}
+                      onChange={e => { setBackedUp(e.target.checked); if (e.target.checked) setShowNewAddr(true) }}
+                      className="mt-0.5 accent-emerald-400"
+                    />
+                    <span className={clsx('text-xs leading-snug', backedUp ? 'text-accent-green' : 'text-slate-300')}>
+                      I have safely written down all 12 words and stored them offline.
+                    </span>
+                  </label>
+
+                  {/* Fund address — shown after backup confirmed */}
+                  {backedUp && (
+                    <div className="bg-dark-700 border border-accent-green/20 rounded-xl p-4 space-y-3">
+                      <div className="flex items-center gap-2 text-accent-green text-xs font-semibold">
+                        <CheckCircle2 size={13} />
+                        New bot wallet is live and ready to fund
+                      </div>
+
+                      <div>
+                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1.5">
+                          Send TAO to this address
+                        </p>
+                        <div className="flex items-center gap-2 bg-dark-900 rounded-lg px-3 py-2.5 border border-dark-500">
+                          <code className={clsx(
+                            'text-xs font-mono flex-1 transition-all',
+                            showNewAddr ? 'text-slate-100' : 'text-slate-500 tracking-widest'
+                          )}>
+                            {showNewAddr ? generated.address : maskAddr(generated.address)}
+                          </code>
+                          <button onClick={() => setShowNewAddr(v => !v)} className="text-slate-500 hover:text-white transition-colors">
+                            {showNewAddr ? <EyeOff size={11} /> : <Eye size={11} />}
+                          </button>
+                          <button onClick={copyGenAddress} className="text-slate-500 hover:text-accent-blue transition-colors">
+                            <Copy size={11} />
+                          </button>
+                          <a
+                            href={`https://taostats.io/account/${generated.address}`}
+                            target="_blank" rel="noopener noreferrer"
+                            className="text-slate-500 hover:text-accent-blue transition-colors"
+                          >
+                            <ExternalLink size={11} />
+                          </a>
+                        </div>
+                      </div>
+
+                      <div className="flex items-start gap-2 text-[11px] text-slate-400 font-mono">
+                        <Send size={11} className="mt-0.5 text-slate-500 flex-shrink-0" />
+                        Fund this address with TAO. Once funded, enable strategies in the Agent Fleet to begin live trading.
+                      </div>
+
+                      <button
+                        onClick={() => { setGenerated(null); setBackedUp(false) }}
+                        className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 font-mono transition-colors"
+                      >
+                        <RotateCcw size={10} /> Generate a different wallet
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          )}
+
+          {/* ── TAB: Restore Existing ─────────────────────────────────────── */}
+          {walletTab === 'restore' && (
+            <div className="flex flex-col flex-1">
+              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+                Restore a previously generated bot wallet using its 12-word phrase.
+                Paste the full phrase into the first box, or type word by word.
+              </p>
+
+              <div className="flex items-start gap-2 px-3 py-3 bg-amber-500/8 border border-amber-500/20 rounded-lg mb-4">
+                <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
+                <p className="text-[11px] text-amber-400/80 leading-snug">
+                  <span className="font-semibold text-amber-400">Only restore the dedicated bot wallet.</span>{' '}
+                  Never enter your personal wallet's phrase here.
+                </p>
+              </div>
+
+              {/* Reveal toggle */}
+              <div className="flex items-center justify-between mb-3">
+                <span className="text-xs text-slate-400 font-mono">{wordCount} / 12 words entered</span>
+                <button
+                  onClick={() => setShowWords(!showWords)}
+                  className="flex items-center gap-1.5 text-xs text-slate-400 hover:text-white font-mono transition-colors"
+                >
+                  {showWords ? <EyeOff size={12} /> : <Eye size={12} />}
+                  {showWords ? 'Hide' : 'Reveal'}
+                </button>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2.5 mb-4 flex-1">
+                {words.map((w, i) => (
+                  <div key={i} className="relative">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 font-mono select-none">
+                      {i + 1}.
+                    </span>
+                    <input
+                      type={showWords ? 'text' : 'password'}
+                      value={w}
+                      onChange={e => handleWordChange(i, e.target.value)}
+                      placeholder={`word ${i + 1}`}
+                      className="w-full h-full min-h-[42px] pl-7 pr-2 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs font-mono text-slate-200 placeholder-slate-700 focus:outline-none focus:border-accent-blue transition-colors"
+                    />
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="flex-1 h-1.5 bg-dark-700 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-accent-blue rounded-full transition-all duration-300"
+                    style={{ width: `${(wordCount / 12) * 100}%` }}
+                  />
+                </div>
+                <span className="text-xs font-mono text-slate-400 tabular-nums">{wordCount} / 12</span>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveMnemonic}
+                  disabled={!mnemonicOk || busy || saved}
+                  className={clsx(
+                    'flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-all border flex-1',
+                    mnemonicOk && !saved
+                      ? 'bg-accent-green/15 text-accent-green border-accent-green/30 hover:bg-accent-green/25'
+                      : 'bg-dark-700 text-slate-500 border-dark-600 cursor-not-allowed'
+                  )}
+                >
+                  {saved ? <CheckCircle2 size={14} /> : busy ? <RefreshCw size={14} className="animate-spin" /> : <KeyRound size={14} />}
+                  {saved ? 'Wallet Restored' : busy ? 'Restoring…' : 'Restore Wallet'}
+                </button>
+                <button onClick={clearWords} className="px-4 py-2.5 rounded-lg text-xs text-slate-400 border border-dark-600 hover:text-white hover:border-dark-500 transition-colors">
+                  Clear
+                </button>
+              </div>
+
+              {saved && (
+                <div className="mt-3 flex items-center gap-2 px-3 py-2 bg-accent-green/10 border border-accent-green/20 rounded-lg text-xs text-accent-green font-mono">
+                  <CheckCircle2 size={12} />
+                  Wallet restored — loaded automatically on next backend start.
+                </div>
+              )}
             </div>
           )}
         </div>

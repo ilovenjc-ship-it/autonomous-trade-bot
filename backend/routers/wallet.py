@@ -50,6 +50,18 @@ async def subnet_prices(limit: int = 20):
     return {"prices": prices, "count": len(prices)}
 
 
+@router.post("/generate")
+async def generate_new_wallet():
+    """
+    Generate a brand-new bot wallet from scratch.
+    Returns the 12-word mnemonic ONCE — the user must write it down.
+    The keypair is saved to .env and loaded into memory immediately.
+    Previous wallet / mnemonic is replaced.
+    """
+    result = bittensor_service.generate_wallet()
+    return result
+
+
 @router.post("/mnemonic")
 async def restore_from_mnemonic(body: MnemonicRequest):
     """
