@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** April 16, 2025  
-**Status:** LIVE — real on-chain trading armed, first tx_hash pending  
+**Last updated:** April 16, 2025 (Session V)
+**Status:** LIVE — all 4 gates passing, stake() calibrated, first tx_hash imminent  
 **Maintained by:** II Agent + Owner  
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -132,16 +132,32 @@ simulation_mode    :  False ✅
 wallet_connected   :  True  ✅
 wallet_balance     :  0.000450917 τ
 wallet_address     :  5GgRojEFh5aCFNLKuSWb6WtrM5nBDB6GrRpqaqreBLcg4e7L
-Finney block       :  #7,977,756 (as of April 16)
-NightWatch         :  Running — PID 63675
+Finney block       :  live (cycling ~12s)
+NightWatch         :  Running
+
+TRADING MODE GATES (all passing ✅):
+  chain_connected       :  True
+  validator_configured  :  True  (5E2LP6EnZ54m3wS8s1yPvD5c3xo71kQroBw7aUVK32TKeZ5u)
+  validator_in_memory   :  True  (loaded at startup from bot_config)
+  live_strategies       :  1     (momentum_cascade)
+
+trade_amount          :  0.0001 τ  (calibrated to wallet balance — was 0.1 τ)
 ```
 
 ### 5b. Trading Status
 ```
-Total trades logged  :  2,856
-Real trades (tx_hash):  0  ← first one is pending (next LIVE signal + OpenClaw pass)
-Paper trades         :  2,856
-Trade period         :  April 12–16, 2025
+Total trades logged  :  3,562+
+Real trades (tx_hash):  0  ← stake() now calibrated, tx_hash capture fixed
+Paper trades         :  3,562+
+Trade period         :  April 12–16, 2025+
+
+SESSION V FIXES (April 16, afternoon):
+  - /api/bot/trading-mode endpoint: 4-gate check, LIVE|PAPER status
+  - TradingModeBanner: green/amber strip on every page — impossible to miss
+  - add_stake() now returns tx_hash/block_hash — real trades will be recorded
+  - add_stake() balance guard: won't attempt if amount > wallet balance
+  - trade_amount lowered: 0.1 τ → 0.0001 τ (wallet can cover this)
+  - Root cause of paper: trade_amount (0.1τ) exceeded wallet (0.000451τ) every cycle
 ```
 
 ### 5c. Live Strategies (7 armed, executing real trades)
@@ -186,7 +202,7 @@ Trade period         :  April 12–16, 2025
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| First real `tx_hash` | Autonomous | Gate is open — next LIVE signal + OpenClaw → it fires |
+| First real `tx_hash` | Autonomous | All 4 gates passing, 0.0001τ calibrated — next cycle fires |
 | Manual trade panel | Medium | "Can the human trade too?" — one button away |
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
 | Agent Fleet bugs | Low | Toggle no-refetch, Promote CTA, demotion indicator |
