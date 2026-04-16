@@ -52,7 +52,7 @@ export default function TradingModeBanner() {
   const [expanded, setExpanded] = useState(false)
   const [loading,  setLoading]  = useState(true)
 
-  const fetch = useCallback(async () => {
+  const poll = useCallback(async () => {
     try {
       const res = await api.get<TradingMode>('/bot/trading-mode')
       setData(res.data)
@@ -64,10 +64,10 @@ export default function TradingModeBanner() {
   }, [])
 
   useEffect(() => {
-    fetch()
-    const t = setInterval(fetch, 20_000)
+    poll()
+    const t = setInterval(poll, 20_000)
     return () => clearInterval(t)
-  }, [fetch])
+  }, [poll])
 
   if (loading && !data) {
     return (

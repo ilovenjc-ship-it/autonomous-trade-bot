@@ -197,8 +197,9 @@ export default function MissionControl() {
   const [tick, setTick] = useState(0)
   const [liveTime, setLiveTime] = useState(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
 
-  const activityRef = useRef<HTMLDivElement>(null)
-  const chatRef = useRef<HTMLDivElement>(null)
+  const activityRef    = useRef<HTMLDivElement>(null)
+  const chatRef        = useRef<HTMLDivElement>(null)
+  const countdownRef   = useRef(300)   // tracks real value synchronously — avoids setState-in-updater
 
   // Fetch fleet status
   const fetchFleet = useCallback(async () => {
@@ -232,12 +233,18 @@ export default function MissionControl() {
   }, [fetchFleet, fetchActivity])
 
   // Countdown tick + live clock
+  // Uses a ref for the actual counter so we never call async side-effects
+  // inside a setState updater — that pattern violates React's pure-updater
+  // contract and is the root cause of error #185 in this component.
   useEffect(() => {
     const t = setInterval(() => {
-      setCountdown(c => {
-        if (c <= 1) { fetchFleet(); fetchActivity(); return 300 }
-        return c - 1
-      })
+      countdownRef.current -= 1
+      if (countdownRef.current <= 0) {
+        countdownRef.current = 300
+        fetchFleet()
+        fetchActivity()
+      }
+      setCountdown(countdownRef.current)
       setTick(t => t + 1)
       setLiveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
     }, 1000)
