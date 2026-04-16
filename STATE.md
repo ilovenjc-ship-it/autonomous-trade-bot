@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** April 16, 2025 (Session V)
-**Status:** LIVE — all 4 gates passing, stake() calibrated, first tx_hash imminent  
+**Last updated:** 2026-04-16 (Session VII)
+**Status:** LIVE — wallet loaded (5DjztH…4Evs), balance 0.227 TAO, bot running cycle 18, BT_MNEMONIC persisted to /app/.user_env.sh  
 **Maintained by:** II Agent + Owner  
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -31,7 +31,7 @@ This is not a demo. Not a prototype. It is a live system with a real funded wall
 ## 2. THE STACK
 
 ```
-Frontend:   React + Vite + TailwindCSS  →  port 3002
+Frontend:   React + Vite + TailwindCSS  →  port 3004
 Backend:    Python + FastAPI + uvicorn  →  port 8001
 Database:   SQLite (local)  →  backend/tao_bot.db
 Chain:      Bittensor Finney mainnet via bt.AsyncSubtensor
@@ -130,24 +130,34 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 ## 5. CURRENT STATE
 *(Update this section at the end of every session)*
 
-### 5a. System Status
+### 5a. System Status — Session VII (2026-04-16)
 ```
 network_connected  :  True  ✅
 simulation_mode    :  False ✅
 wallet_connected   :  True  ✅
+wallet_loaded      :  True  ✅  (mnemonic sourced from BT_MNEMONIC env var)
 wallet_address     :  5DjztHVxtm4v8jtYvT1DGHzHT3DGbvnCQqzgRQLLr3Ft4Evs
-wallet_balance     :  0.227τ (~$54) — clean, zero history, funded this session
-Finney block       :  live (cycling ~12s)
+wallet_balance     :  0.227τ (~$55) — clean, funded, zero history
+Finney block       :  7,983,057  (live, ~12s)
 NightWatch         :  Running
+Bot cycle          :  18 (running)
+TAO/USD price      :  $243.54
 
-TRADING MODE GATES (all passing ✅):
-  chain_connected       :  True
-  validator_configured  :  True  (5E2LP6EnZ54m3wS8s1yPvD5c3xo71kQroBw7aUVK32TKeZ5u)
-  validator_in_memory   :  True
+TRADING MODE GATES:
+  chain_connected       :  True  ✅
+  validator_configured  :  True  ✅  (5E2LP6EnZ54m3wS8s1yPvD5c3xo71kQroBw7aUVK32TKeZ5u)
+  validator_in_memory   :  True  ✅
   live_strategies       :  1     (yield_maximizer — 77.4% win rate)
 
 overall_mode          :  LIVE ✅
 trade_amount          :  0.0001τ
+
+SESSION VII ACTIONS:
+  - Confirmed wallet address (5DjztH…4Evs) is correct — Sessions VI+VII aligned
+  - Fixed React error #185 (hydration root) — frontend now error-free
+  - BT_MNEMONIC written to /app/.user_env.sh — persists across sandbox resets
+  - RECOVERY.md created — cold clone → fully armed in under 10 minutes
+  - STATE.md updated with mid-session checkpoint protocol (Section 11)
 ```
 
 ### 5b. Wallet Situation — CRITICAL HISTORY (Session VI, April 16)
@@ -235,7 +245,8 @@ SESSION VI ACTIONS (April 16, evening):
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
 | Manual trade panel | Medium | One button to fire a test trade to confirm full chain end-to-end |
 | Agent Fleet bugs | Low | Toggle no-refetch, Promote CTA, demotion indicator |
-| PDF: Session VI brief | Low | The Unknown Wallet incident — another brief for The Archives |
+| PDF: Session VII brief | Low | Mnemonic persistence, RECOVERY.md, React #185 fix — Archives entry |
+| Push to GitHub | High | `git push` — current HEAD is d6c86cf, needs Session VII commit pushed |
 
 ---
 
@@ -271,6 +282,59 @@ Read this before anything else. Do these steps in order.
 - [ ] Check `ps aux | grep uvicorn` and `ps aux | grep vite` — confirm servers
 - [ ] Read Section 7 (Pending Items) — pick up from there
 - [ ] Do not introduce new patterns without checking Section 4 (Decision Log)
+
+---
+
+## 11. MID-SESSION CHECKPOINT PROTOCOL
+
+> **Do this any time you're about to step away, before the sandbox sleeps,
+> or whenever you reach a stable milestone mid-session.**
+
+### The 3-minute checkpoint
+
+```bash
+# 1. From the repo root
+cd /workspace/autonomous-trade-bot
+
+# 2. Stage everything
+git add -A
+
+# 3. Commit with a meaningful message
+git commit -m "checkpoint: $(date '+%Y-%m-%d %H:%M') — <one-line summary>"
+
+# 4. Push to remote (if remote is configured)
+git push
+
+# 5. Confirm NightWatch is still running
+tail -5 nightwatch.log
+```
+
+### What to summarise in the commit message
+
+Use one of these patterns:
+- `checkpoint: 2026-04-16 14:30 — wallet loaded, yield_maximizer armed`
+- `checkpoint: 2026-04-16 21:00 — fixed Fleet toggle bug, 3 trades fired`
+- `checkpoint: 2026-04-16 23:45 — all systems nominal, nightwatch running`
+
+### When STATE.md must be updated (not just committed)
+
+Update **Section 5a** and **Section 7** when:
+- A major bug is fixed
+- A new feature is shipped
+- The wallet situation changes (balance, mnemonic, strategies)
+- The session is ending (every time, no exceptions)
+
+### Recovery shortcut
+
+If the sandbox resets before you could checkpoint:
+
+```bash
+# The repo is on GitHub — clone it back
+git clone <YOUR_REMOTE_URL> /workspace/autonomous-trade-bot
+
+# Then follow RECOVERY.md to restore mnemonic + restart servers
+cat /workspace/autonomous-trade-bot/RECOVERY.md
+```
 
 ---
 
