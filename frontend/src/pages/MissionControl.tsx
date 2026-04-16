@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import SubnetHeatMap from '@/components/SubnetHeatMap'
 import {
   Activity, Send, Zap, Radio, Shield, TrendingUp,
   TrendingDown, ChevronRight, AlertTriangle, CheckCircle2,
@@ -594,6 +595,12 @@ export default function MissionControl() {
 
         </div>
       </div>{/* end BOTTOM SECTION */}
+
+      {/* ══ ZONE 3 — Full-width subnet heat map ══ */}
+      <div className="mt-4">
+        <SubnetHeatMap />
+      </div>
+
     </div>
   )
 }
