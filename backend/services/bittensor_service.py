@@ -169,36 +169,45 @@ class BittensorService:
             return self._last_block
 
     async def get_chain_info(self) -> Dict[str, Any]:
-        """Fetch balance + block in one connection."""
+        """Fetch balance + block in one connection.
+        Block query is the connectivity proof — balance is best-effort.
+        connected = True as long as the block query succeeds.
+        """
         try:
             async with await self._subtensor() as sub:
-                balance, block = await asyncio.gather(
-                    sub.get_balance(self._coldkey_addr),
-                    sub.get_current_block(),
-                )
-                self._last_balance  = float(balance)
+                # Block query proves connectivity; balance is best-effort
+                block = await sub.get_current_block()
                 self._last_block    = block
                 self._last_chain_at = datetime.now(timezone.utc).isoformat()
-                self.connected      = True
+                self.connected      = True   # chain is reachable
+
+                # Balance — independent best-effort
+                if self._coldkey_addr:
+                    try:
+                        bal = await sub.get_balance(self._coldkey_addr)
+                        self._last_balance = float(bal)
+                    except Exception as _be:
+                        logger.debug(f"Balance query failed (non-fatal): {_be}")
+
                 return {
-                    "address":     self._coldkey_addr,
-                    "balance_tao": self._last_balance,
-                    "block":       self._last_block,
-                    "network":     NETWORK,
-                    "connected":   True,
-                    "timestamp":   self._last_chain_at,
+                    "address":       self._coldkey_addr,
+                    "balance_tao":   self._last_balance,
+                    "block":         self._last_block,
+                    "network":       NETWORK,
+                    "connected":     True,
+                    "timestamp":     self._last_chain_at,
                     "wallet_loaded": self._mnemonic_set,
                 }
         except Exception as e:
             logger.warning(f"get_chain_info error: {e}")
             self.connected = False
             return {
-                "address":     self._coldkey_addr,
-                "balance_tao": self._last_balance,
-                "block":       self._last_block,
-                "network":     NETWORK,
-                "connected":   False,
-                "error":       str(e),
+                "address":       self._coldkey_addr,
+                "balance_tao":   self._last_balance,
+                "block":         self._last_block,
+                "network":       NETWORK,
+                "connected":     False,
+                "error":         str(e),
                 "wallet_loaded": self._mnemonic_set,
             }
 

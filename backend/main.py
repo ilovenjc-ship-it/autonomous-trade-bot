@@ -60,6 +60,24 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to load primary validator from config: {e}")
 
+    # Attempt initial Finney mainnet connection (non-blocking background task)
+    # Sets bittensor_service.connected = True so the first LIVE cycle can fire.
+    import asyncio as _aio
+    async def _connect():
+        try:
+            info = await bittensor_service.get_chain_info()
+            if info.get("connected"):
+                logger.info(
+                    f"Finney connected at startup — block #{info.get('block')} "
+                    f"balance τ{info.get('balance_tao', 0):.4f}"
+                )
+            else:
+                logger.warning("Finney connection attempted at startup but not yet reachable — "
+                               "cycle_service will retry each cycle.")
+        except Exception as _e:
+            logger.warning(f"Startup Finney connect failed: {_e} — will retry each cycle.")
+    _aio.create_task(_connect())
+
     # Start price feed
     await price_service.start()
     logger.info("Price feed started")

@@ -132,6 +132,17 @@ async def _run_one_cycle() -> None:
         cfg_result = await db.execute(select(BotConfig).where(BotConfig.id == 1))
         config = cfg_result.scalar_one_or_none()
 
+        # ── Auto-reconnect to Finney once per cycle if needed ─────────────
+        # If the chain connection dropped or was never established, attempt
+        # to reconnect before the strategy loop so LIVE trades can fire.
+        if not bittensor_service.connected:
+            try:
+                await bittensor_service.get_chain_info()
+                if bittensor_service.connected:
+                    logger.info("Chain reconnected on cycle — LIVE execution armed.")
+            except Exception as _e:
+                logger.debug(f"Chain reconnect attempt failed: {_e}")
+
         # Keep consensus service in sync with current bot modes
         mode_map = {s.name: (s.mode or "PAPER_ONLY") for s in strategies}
         consensus_service.update_bot_modes(mode_map)
