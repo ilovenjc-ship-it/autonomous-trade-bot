@@ -100,7 +100,10 @@ export default function Trades() {
       const { data } = await api.post<{ success: boolean; message: string; tx_hash: string | null; price: number; amount: number }>(
         '/trades/manual', { action: manualAction, amount, reason: 'Manual — user initiated' }
       )
-      const isReal = !!data.tx_hash && !data.tx_hash.startsWith('block:')
+      // block:XXXXX  = add_stake() returned True — stake confirmed included in that block
+      // extrinsic:XX = proper extrinsic hash from SDK
+      // null / undefined = genuine paper trade (wallet not loaded / hotkey missing)
+      const isReal = !!data.tx_hash
       setTradeResult({ ...data, is_real: isReal })
       if (data.success) {
         if (isReal) toast.success('🟢 REAL trade fired — tx_hash captured!')
@@ -312,7 +315,11 @@ export default function Trades() {
                 'text-xs font-bold',
                 tradeResult.is_real ? 'text-emerald-300' : 'text-slate-300'
               )}>
-                {tradeResult.is_real ? '🟢 REAL TRADE EXECUTED ON-CHAIN' : '🟡 Paper trade simulated'}
+                {tradeResult.is_real
+                  ? tradeResult.tx_hash?.startsWith('block:')
+                    ? `🟢 REAL STAKE CONFIRMED — Block #${tradeResult.tx_hash.replace('block:', '')}`
+                    : '🟢 REAL TRADE EXECUTED ON-CHAIN'
+                  : '🟡 Paper trade simulated'}
               </span>
               <span className="ml-auto text-[10px] font-mono text-slate-500">
                 τ{tradeResult.amount} @ ${tradeResult.price?.toFixed(2)}
@@ -332,17 +339,22 @@ export default function Trades() {
                 >
                   <Copy size={11} />
                 </button>
-                {tradeResult.is_real && (
-                  <a
-                    href={`https://taostats.io/extrinsic/${tradeResult.tx_hash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-400 hover:text-emerald-300 transition-colors"
-                    title="View on Taostats"
-                  >
-                    <ExternalLink size={11} />
-                  </a>
-                )}
+                {tradeResult.is_real && (() => {
+                  const hash = tradeResult.tx_hash!
+                  const isBlockRef = hash.startsWith('block:')
+                  const blockNum   = isBlockRef ? hash.replace('block:', '') : null
+                  const url = isBlockRef
+                    ? `https://taostats.io/block/${blockNum}`
+                    : `https://taostats.io/extrinsic/${hash}`
+                  return (
+                    <a href={url} target="_blank" rel="noopener noreferrer"
+                      className="text-emerald-400 hover:text-emerald-300 transition-colors"
+                      title={isBlockRef ? `View block #${blockNum} on Taostats` : 'View extrinsic on Taostats'}
+                    >
+                      <ExternalLink size={11} />
+                    </a>
+                  )
+                })()}
               </div>
             )}
 
