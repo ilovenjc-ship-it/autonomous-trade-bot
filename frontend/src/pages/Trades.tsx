@@ -1,11 +1,31 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBotStore } from '@/store/botStore'
-import { ArrowUpDown, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw, ChevronLeft, ChevronRight, ExternalLink } from 'lucide-react'
+import { ArrowUpDown, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw,
+         ChevronLeft, ChevronRight, ExternalLink, Zap, AlertTriangle,
+         CheckCircle2, Copy, ShieldAlert, Activity } from 'lucide-react'
 import { format } from 'date-fns'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
+import api from '@/api/client'
 import StatCard from '@/components/StatCard'
+
+interface TradingMode {
+  overall_mode: 'LIVE' | 'PAPER'
+  blocking_reason: string | null
+  gates: { chain_connected: boolean; validator_configured: boolean; validator_in_memory: boolean; live_strategies: boolean }
+  wallet_balance_tao: number
+  validator_hotkey: string | null
+}
+
+interface TradeResult {
+  success: boolean
+  message: string
+  tx_hash: string | null
+  price: number
+  amount: number
+  is_real: boolean
+}
 
 const STRATEGY_LABELS: Record<string, string> = {
   momentum_cascade:   'Momentum Cascade',
@@ -29,28 +49,71 @@ export default function Trades() {
   const { trades, tradeStats, tradeTotal, fetchTrades, fetchTradeStats, manualTrade, status } = useBotStore()
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState<'all' | 'buy' | 'sell'>('all')
-  const [manualAction, setManualAction] = useState<'buy' | 'sell'>('buy')
-  const [manualAmount, setManualAmount] = useState('0.1')
-  const [manualBusy, setManualBusy] = useState(false)
+
+  // Manual trade panel state
+  const [manualAction, setManualAction]   = useState<'buy' | 'sell'>('buy')
+  const [manualAmount, setManualAmount]   = useState('0.0001')
+  const [manualBusy,   setManualBusy]     = useState(false)
+  const [confirming,   setConfirming]     = useState(false)
+  const [tradeResult,  setTradeResult]    = useState<TradeResult | null>(null)
+  const [tradingMode,  setTradingMode]    = useState<TradingMode | null>(null)
 
   const pages = Math.max(1, Math.ceil((tradeTotal ?? 0) / PAGE_SIZE))
+
+  // Load trading mode (LIVE vs PAPER) — needed to show real-trade warning
+  const loadTradingMode = useCallback(async () => {
+    try {
+      const { data } = await api.get<TradingMode>('/bot/trading-mode')
+      setTradingMode(data)
+    } catch {}
+  }, [])
 
   useEffect(() => {
     fetchTrades(page)
     fetchTradeStats()
   }, [page])
 
-  // Reset to page 1 when filter changes
   useEffect(() => { setPage(1) }, [filter])
 
-  const handleManualTrade = async () => {
+  useEffect(() => {
+    loadTradingMode()
+    const t = setInterval(loadTradingMode, 20_000)
+    return () => clearInterval(t)
+  }, [loadTradingMode])
+
+  const isLive = tradingMode?.overall_mode === 'LIVE'
+
+  // Step 1: show confirm for LIVE trades
+  const handleFireClick = () => {
     const amount = parseFloat(manualAmount)
-    if (isNaN(amount) || amount <= 0) return toast.error('Enter a valid amount')
+    if (isNaN(amount) || amount <= 0) { toast.error('Enter a valid amount'); return }
+    if (isLive) { setConfirming(true) } else { executeManualTrade() }
+  }
+
+  // Step 2: actually execute
+  const executeManualTrade = async () => {
+    setConfirming(false)
+    const amount = parseFloat(manualAmount)
     setManualBusy(true)
-    const result = await manualTrade(manualAction, amount)
-    if (result.success) toast.success(`${manualAction.toUpperCase()} executed @ $${status?.current_price?.toFixed(2)}`)
-    else toast.error(result.message)
-    setManualBusy(false)
+    setTradeResult(null)
+    try {
+      const { data } = await api.post<{ success: boolean; message: string; tx_hash: string | null; price: number; amount: number }>(
+        '/trades/manual', { action: manualAction, amount, reason: 'Manual — user initiated' }
+      )
+      const isReal = !!data.tx_hash && !data.tx_hash.startsWith('block:')
+      setTradeResult({ ...data, is_real: isReal })
+      if (data.success) {
+        if (isReal) toast.success('🟢 REAL trade fired — tx_hash captured!')
+        else toast.success(`Paper ${manualAction.toUpperCase()} simulated`)
+        fetchTrades(1); fetchTradeStats()
+      } else {
+        toast.error(data.message)
+      }
+    } catch {
+      toast.error('Trade request failed')
+    } finally {
+      setManualBusy(false)
+    }
   }
 
   const filtered = filter === 'all' ? trades : trades.filter((t) => t.trade_type === filter)
@@ -99,55 +162,194 @@ export default function Trades() {
         />
       </div>
 
-      {/* Manual trade panel */}
-      <div className="card p-4">
-        <h2 className="text-sm font-semibold text-white mb-3">Manual Trade</h2>
-        <div className="flex items-end gap-3 flex-wrap">
-          <div className="flex gap-1">
-            {(['buy', 'sell'] as const).map((a) => (
-              <button
-                key={a}
-                onClick={() => setManualAction(a)}
-                className={clsx(
-                  'px-4 py-2 rounded-lg text-sm font-semibold transition-all',
-                  manualAction === a && a === 'buy' && 'bg-accent-green text-dark-900',
-                  manualAction === a && a === 'sell' && 'bg-accent-red text-white',
-                  manualAction !== a && 'bg-dark-700 text-slate-300 hover:text-white'
-                )}
-              >
-                {a.toUpperCase()}
-              </button>
-            ))}
+      {/* ── Manual Trade Panel ────────────────────────────────────────────────── */}
+      <div className={clsx(
+        'rounded-xl border p-5 space-y-4',
+        isLive
+          ? 'bg-emerald-500/5 border-emerald-500/25'
+          : 'bg-dark-800 border-dark-600'
+      )}>
+        {/* Header row */}
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-white flex items-center gap-2">
+            <Zap size={14} className={isLive ? 'text-emerald-400' : 'text-slate-500'} />
+            Manual Trade
+          </h2>
+          <div className={clsx(
+            'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider border',
+            isLive
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
+              : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+          )}>
+            <span className={clsx('w-1.5 h-1.5 rounded-full', isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400')} />
+            {isLive ? 'LIVE — REAL STAKE' : 'PAPER — SIMULATED'}
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-xs text-slate-300">Amount (TAO)</label>
+        </div>
+
+        {/* LIVE warning */}
+        {isLive && (
+          <div className="flex items-start gap-2 px-3 py-2.5 bg-emerald-500/8 border border-emerald-500/20 rounded-lg">
+            <ShieldAlert size={13} className="text-emerald-400 flex-shrink-0 mt-0.5" />
+            <p className="text-[11px] text-emerald-300/90 leading-snug">
+              System is <span className="font-bold text-emerald-300">LIVE</span>. This fires a real{' '}
+              <code className="text-emerald-200 font-mono text-[10px]">add_stake()</code> on Finney mainnet.
+              {tradingMode?.validator_hotkey && (
+                <> Validator: <code className="text-emerald-200 font-mono text-[10px]">{tradingMode.validator_hotkey.slice(0, 12)}…</code></>
+              )}
+              {' '}Balance: <span className="font-bold text-emerald-300">τ{tradingMode?.wallet_balance_tao?.toFixed(4)}</span>
+            </p>
+          </div>
+        )}
+
+        {/* Controls row */}
+        <div className="flex items-end gap-3 flex-wrap">
+          {/* BUY / SELL toggle */}
+          <div>
+            <label className="block text-[10px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">Action</label>
+            <div className="flex gap-1">
+              {(['buy', 'sell'] as const).map((a) => (
+                <button
+                  key={a}
+                  onClick={() => { setManualAction(a); setTradeResult(null); setConfirming(false) }}
+                  className={clsx(
+                    'px-5 py-2 rounded-lg text-sm font-bold transition-all',
+                    manualAction === a && a === 'buy'  && 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40',
+                    manualAction === a && a === 'sell' && 'bg-red-500/20 text-red-400 border border-red-500/40',
+                    manualAction !== a && 'bg-dark-700 text-slate-500 border border-dark-600 hover:text-slate-300'
+                  )}
+                >
+                  {a === 'buy' ? '▲ BUY' : '▼ SELL'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Amount */}
+          <div>
+            <label className="block text-[10px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">Amount (TAO)</label>
             <input
               type="number"
               value={manualAmount}
-              onChange={(e) => setManualAmount(e.target.value)}
-              step="0.01"
-              min="0.001"
-              className="input w-36"
+              onChange={(e) => { setManualAmount(e.target.value); setTradeResult(null); setConfirming(false) }}
+              step="0.0001"
+              min="0.0001"
+              className="input w-36 font-mono"
             />
           </div>
+
+          {/* USD estimate */}
           {status?.current_price && (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-slate-300">Estimated Value</label>
-              <div className="input w-36 text-slate-300 bg-dark-700">
-                ${(parseFloat(manualAmount || '0') * status.current_price).toFixed(2)}
+            <div>
+              <label className="block text-[10px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">≈ USD</label>
+              <div className="w-28 h-9 flex items-center px-3 bg-dark-700 border border-dark-600 rounded-lg text-sm font-mono text-slate-400">
+                ${(parseFloat(manualAmount || '0') * (status.current_price ?? 0)).toFixed(4)}
               </div>
             </div>
           )}
+
+          {/* Fire button */}
           <button
-            onClick={handleManualTrade}
-            disabled={manualBusy}
-            className={manualAction === 'buy' ? 'btn-primary' : 'btn-danger'}
+            onClick={handleFireClick}
+            disabled={manualBusy || confirming}
+            className={clsx(
+              'h-9 px-6 rounded-lg text-sm font-bold transition-all flex items-center gap-2 border',
+              manualAction === 'buy'
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 hover:bg-emerald-500/30'
+                : 'bg-red-500/20 text-red-400 border-red-500/40 hover:bg-red-500/30',
+              (manualBusy || confirming) && 'opacity-50 cursor-not-allowed'
+            )}
           >
-            {manualBusy ? 'Executing…' : `Execute ${manualAction.toUpperCase()}`}
+            {manualBusy
+              ? <><RefreshCw size={13} className="animate-spin" /> Executing…</>
+              : <><Zap size={13} /> {manualAction === 'buy' ? 'Buy' : 'Sell'} {manualAmount} TAO</>
+            }
           </button>
         </div>
-        {status?.simulation_mode && (
-          <p className="mt-2 text-xs text-yellow-400/70">⚠ Simulation mode — trade will not execute on-chain</p>
+
+        {/* Confirm step — only for LIVE */}
+        {confirming && (
+          <div className="flex items-center gap-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-xl">
+            <AlertTriangle size={15} className="text-amber-400 flex-shrink-0" />
+            <div className="flex-1">
+              <p className="text-xs font-bold text-amber-300">Confirm real on-chain trade</p>
+              <p className="text-[10px] text-amber-400/80 mt-0.5">
+                {manualAction.toUpperCase()} τ{manualAmount} ≈ $
+                {(parseFloat(manualAmount || '0') * (status?.current_price ?? 0)).toFixed(4)} —
+                this will fire <code className="font-mono">add_stake()</code> on Finney mainnet
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setConfirming(false)}
+                className="px-3 py-1.5 rounded-lg text-xs text-slate-400 border border-dark-500 hover:text-white transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={executeManualTrade}
+                className="px-3 py-1.5 rounded-lg text-xs font-bold text-white bg-emerald-600/80 border border-emerald-500/50 hover:bg-emerald-600 transition-colors"
+              >
+                Confirm — Fire Trade
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Result panel */}
+        {tradeResult && (
+          <div className={clsx(
+            'rounded-xl border px-4 py-3 space-y-2',
+            tradeResult.is_real
+              ? 'bg-emerald-500/10 border-emerald-500/30'
+              : 'bg-dark-700 border-dark-600'
+          )}>
+            <div className="flex items-center gap-2">
+              {tradeResult.success
+                ? <CheckCircle2 size={14} className={tradeResult.is_real ? 'text-emerald-400' : 'text-slate-400'} />
+                : <AlertTriangle size={14} className="text-red-400" />
+              }
+              <span className={clsx(
+                'text-xs font-bold',
+                tradeResult.is_real ? 'text-emerald-300' : 'text-slate-300'
+              )}>
+                {tradeResult.is_real ? '🟢 REAL TRADE EXECUTED ON-CHAIN' : '🟡 Paper trade simulated'}
+              </span>
+              <span className="ml-auto text-[10px] font-mono text-slate-500">
+                τ{tradeResult.amount} @ ${tradeResult.price?.toFixed(2)}
+              </span>
+            </div>
+
+            {/* tx_hash — the money shot */}
+            {tradeResult.tx_hash && (
+              <div className="flex items-center gap-2 bg-dark-900 rounded-lg px-3 py-2 border border-dark-500">
+                <Activity size={11} className={tradeResult.is_real ? 'text-emerald-400' : 'text-slate-500'} />
+                <code className="text-[10px] font-mono text-slate-300 flex-1 truncate">
+                  {tradeResult.tx_hash}
+                </code>
+                <button
+                  onClick={() => { navigator.clipboard.writeText(tradeResult.tx_hash!); toast.success('Copied!') }}
+                  className="text-slate-500 hover:text-white transition-colors"
+                >
+                  <Copy size={11} />
+                </button>
+                {tradeResult.is_real && (
+                  <a
+                    href={`https://taostats.io/extrinsic/${tradeResult.tx_hash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-400 hover:text-emerald-300 transition-colors"
+                    title="View on Taostats"
+                  >
+                    <ExternalLink size={11} />
+                  </a>
+                )}
+              </div>
+            )}
+
+            {!tradeResult.success && (
+              <p className="text-[11px] text-red-400 font-mono">{tradeResult.message}</p>
+            )}
+          </div>
         )}
       </div>
 
