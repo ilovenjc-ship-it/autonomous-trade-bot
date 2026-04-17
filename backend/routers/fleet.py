@@ -368,6 +368,93 @@ async def fleet_bots(db: AsyncSession = Depends(get_db)):
     }
 
 
+@router.post("/rebalance")
+async def rebalance_capital(db: AsyncSession = Depends(get_db)):
+    """
+    Recalculate capital allocation % for all 12 bots based on live performance scores.
+
+    Algorithm:
+      - Every bot gets a guaranteed floor of 2 %
+      - Remaining pool (100 % - 12*2 % = 76 %) is distributed proportionally
+        to each bot's performance score (win_rate*0.6 + pnl_norm*0.4)
+      - Hard cap of 30 % per bot (excess redistributed to rest)
+      - Results written back into the in-memory _ALLOCATION_DEFAULTS dict
+        so the next /bots call reflects the new values immediately
+    """
+    result = await db.execute(select(Strategy).order_by(Strategy.id))
+    strategies = result.scalars().all()
+
+    FLOOR   = 2.0    # % every bot guaranteed
+    CAP     = 30.0   # % max any single bot can hold
+    TOTAL   = 100.0
+
+    # Step 1 — compute raw performance scores
+    max_pnl = max((abs(s.total_pnl or 0) for s in strategies), default=0.001) or 0.001
+    scores: dict[str, float] = {}
+    for s in strategies:
+        pnl = s.total_pnl or 0
+        wr  = s.win_rate  or 0
+        raw = (wr * 0.6 + (pnl / max_pnl * 100) * 0.4) if (wr > 0 or pnl != 0) else 50.0
+        scores[s.name] = max(0.1, min(100, raw))   # clamp, never zero
+
+    names       = [s.name for s in strategies]
+    n           = len(names)
+    floor_pool  = FLOOR * n                         # 24 % reserved as floors
+    merit_pool  = TOTAL - floor_pool                 # 76 % merit-based
+
+    total_score = sum(scores[nm] for nm in names)
+    new_alloc: dict[str, float] = {}
+
+    # Step 2 — proportional merit slice
+    for nm in names:
+        merit_slice = (scores[nm] / total_score) * merit_pool
+        new_alloc[nm] = FLOOR + merit_slice
+
+    # Step 3 — enforce CAP; bleed excess back to the uncapped pool
+    for _ in range(10):                             # iterate until convergence
+        capped   = {nm for nm, v in new_alloc.items() if v >= CAP}
+        uncapped = [nm for nm in names if nm not in capped]
+        if not uncapped:
+            break
+        excess = sum(new_alloc[nm] - CAP for nm in capped)
+        for nm in capped:
+            new_alloc[nm] = CAP
+        if excess < 0.001:
+            break
+        uncap_score = sum(scores[nm] for nm in uncapped)
+        for nm in uncapped:
+            new_alloc[nm] += (scores[nm] / uncap_score) * excess
+
+    # Step 4 — round and normalise to exactly 100 %
+    for nm in names:
+        new_alloc[nm] = round(new_alloc[nm], 1)
+    diff = round(TOTAL - sum(new_alloc.values()), 1)
+    if diff != 0:
+        # add rounding residual to the highest scorer
+        top = max(names, key=lambda nm: scores[nm])
+        new_alloc[top] = round(new_alloc[top] + diff, 1)
+
+    # Step 5 — update in-memory dict so /bots reflects this immediately
+    _ALLOCATION_DEFAULTS.update(new_alloc)
+
+    # Step 6 — build a readable summary and push activity event
+    top3 = sorted(names, key=lambda nm: new_alloc[nm], reverse=True)[:3]
+    summary = ", ".join(f"{nm.replace('_',' ').title()} {new_alloc[nm]:.1f}%" for nm in top3)
+    _push_event(
+        "system",
+        f"Capital rebalanced — top 3: {summary}",
+        detail=f"Score-weighted across {n} bots · floor 2% · cap 30%",
+    )
+
+    return {
+        "success": True,
+        "message": f"Capital rebalanced across {n} strategies",
+        "allocations": new_alloc,
+        "total": round(sum(new_alloc.values()), 1),
+        "top": top3,
+    }
+
+
 @router.post("/bots/{bot_name}/activate")
 async def activate_bot(bot_name: str, db: AsyncSession = Depends(get_db)):
     from sqlalchemy import update

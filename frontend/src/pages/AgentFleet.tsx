@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { RefreshCw, BarChart2, CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
 import clsx from 'clsx'
+import toast from 'react-hot-toast'
 import api from '@/api/client'
 
 interface GateCheck { value: number; required: number; ok: boolean }
@@ -164,6 +165,7 @@ export default function AgentFleet() {
   const [summary, setSummary] = useState<Summary | null>(null)
   const [selected, setSelected] = useState<Bot | null>(null)
   const [loading, setLoading] = useState(false)
+  const [rebalancing, setRebalancing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<string>('')
   const [slide, setSlide] = useState(0) // 0 = radar profile, 1 = capital allocation
 
@@ -180,6 +182,23 @@ export default function AgentFleet() {
       setLoading(false)
     }
   }, [])
+
+  const handleRebalance = useCallback(async () => {
+    setRebalancing(true)
+    try {
+      const { data } = await api.post('/fleet/rebalance')
+      if (data.success) {
+        toast.success(`Capital rebalanced — top: ${(data.top as string[]).map(n => n.replace(/_/g, ' ')).join(', ')}`)
+        await fetchBots() // refresh bars immediately
+      } else {
+        toast.error('Rebalance failed')
+      }
+    } catch {
+      toast.error('Rebalance request failed')
+    } finally {
+      setRebalancing(false)
+    }
+  }, [fetchBots])
 
   useEffect(() => {
     fetchBots()
@@ -266,9 +285,15 @@ export default function AgentFleet() {
               {bots.length} Specialized Trading Bot Sub-Agents · Ranked by Performance
             </p>
           </div>
-          <button className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded text-blue-400 text-[11px] font-bold hover:bg-blue-500/20 transition-colors">
-            <BarChart2 size={12} />
-            Rebalance Capital
+          <button
+            onClick={handleRebalance}
+            disabled={rebalancing || loading}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded text-blue-400 text-[11px] font-bold hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+          >
+            {rebalancing
+              ? <><RefreshCw size={12} className="animate-spin" /> Rebalancing…</>
+              : <><BarChart2 size={12} /> Rebalance Capital</>
+            }
           </button>
         </div>
 
