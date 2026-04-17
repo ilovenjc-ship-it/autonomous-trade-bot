@@ -10,6 +10,7 @@ import { useAlerts } from '@/hooks/useAlerts'
 import api from '@/api/client'
 import clsx from 'clsx'
 import TradingModeBanner from '@/components/TradingModeBanner'
+import NotificationBell from '@/components/NotificationBell'
 
 const navItems = [
   { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
@@ -317,6 +318,18 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto flex flex-col">
+        {/* Top bar — notification bell + live status */}
+        <div className="flex-shrink-0 flex items-center justify-end gap-3 px-4 py-2 bg-dark-900 border-b border-dark-700/50">
+          <div className="flex items-center gap-2 mr-auto">
+            {status?.network_connected && (
+              <span className="text-[10px] font-mono text-emerald-400/70 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                Finney mainnet · LIVE
+              </span>
+            )}
+          </div>
+          <NotificationBell unreadCount={unreadCount} />
+        </div>
         <TradingModeBanner />
         <div className="flex-1">
           <Outlet />

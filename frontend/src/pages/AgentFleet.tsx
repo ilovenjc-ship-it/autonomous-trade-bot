@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { RefreshCw, BarChart2, CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus, ExternalLink, ChevronLeft, ChevronRight } from 'lucide-react'
+import { RefreshCw, BarChart2, CheckCircle2, XCircle, TrendingUp, TrendingDown, Minus, ExternalLink, ChevronLeft, ChevronRight, Zap } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
@@ -17,7 +17,12 @@ interface Bot {
   performance_score: number; consecutive_losses: number; gate_passed: boolean
   gate: Gate; cycles_completed: number
 }
-interface Summary { total: number; live: number; paper: number; approved: number; green: number; yellow: number; red: number }
+interface Summary {
+  total: number; live: number; paper: number; approved: number
+  green: number; yellow: number; red: number
+  last_rebalanced_at: string | null
+  promotions_this_session: number
+}
 
 function HealthDot({ health }: { health: string }) {
   return (
@@ -285,16 +290,37 @@ export default function AgentFleet() {
               {bots.length} Specialized Trading Bot Sub-Agents · Ranked by Performance
             </p>
           </div>
-          <button
-            onClick={handleRebalance}
-            disabled={rebalancing || loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded text-blue-400 text-[11px] font-bold hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-          >
-            {rebalancing
-              ? <><RefreshCw size={12} className="animate-spin" /> Rebalancing…</>
-              : <><BarChart2 size={12} /> Rebalance Capital</>
-            }
-          </button>
+          <div className="flex flex-col items-end gap-1">
+            <button
+              onClick={handleRebalance}
+              disabled={rebalancing || loading}
+              className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded text-blue-400 text-[11px] font-bold hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+            >
+              {rebalancing
+                ? <><RefreshCw size={12} className="animate-spin" /> Rebalancing…</>
+                : <><BarChart2 size={12} /> Rebalance Capital</>
+              }
+            </button>
+            {/* Autonomous engine status */}
+            <div className="flex items-center gap-3 text-[9px] font-mono">
+              <span className="flex items-center gap-1 text-emerald-400/70">
+                <Zap size={9} />
+                Auto-engine active
+              </span>
+              {summary?.last_rebalanced_at ? (
+                <span className="text-slate-500">
+                  Last rebalanced: {new Date(summary.last_rebalanced_at).toLocaleTimeString()}
+                </span>
+              ) : (
+                <span className="text-slate-600">Next rebalance: 24h cycle</span>
+              )}
+              {summary && summary.promotions_this_session > 0 && (
+                <span className="text-amber-400/70">
+                  {summary.promotions_this_session} promoted
+                </span>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Table */}

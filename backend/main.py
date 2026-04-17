@@ -16,6 +16,7 @@ from services.cycle_service import cycle_service
 from services.agent_service import agent_service
 from services.bittensor_service import bittensor_service
 from services.subnet_router import set_primary_validator
+from services.promotion_service import promotion_service
 from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent, alerts, wallet
 
 logging.basicConfig(
@@ -92,10 +93,15 @@ async def lifespan(app: FastAPI):
     await agent_service.start(interval=300)
     logger.info("II Agent orchestrator started (300s interval)")
 
+    # Start Autonomous Promotion Engine (checks gates every 5 min, rebalances every 24h)
+    await promotion_service.start()
+    logger.info("Autonomous promotion engine started (gate check 300s, rebalance 86400s)")
+
     yield
 
     # Shutdown
     logger.info("Shutting down…")
+    await promotion_service.stop()
     await agent_service.stop()
     await cycle_service.stop()
     await price_service.stop()

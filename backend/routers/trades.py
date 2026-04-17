@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc
+from sqlalchemy import select, func, desc, text
 from pydantic import BaseModel
 from typing import Optional
 from datetime import datetime
@@ -75,6 +75,34 @@ async def list_trades(
             }
             for t in rows
         ],
+    }
+
+
+@router.get("/archive/stats")
+async def archive_stats(db: AsyncSession = Depends(get_db)):
+    """Return count of archived paper trades and real on-chain trade stats."""
+    # Count archived paper trades (separate table)
+    try:
+        result = await db.execute(text("SELECT COUNT(*) FROM paper_trades"))
+        archived_count = result.scalar() or 0
+    except Exception:
+        archived_count = 0
+
+    # Count real on-chain trades in main table
+    real_result = await db.execute(
+        select(func.count()).select_from(Trade).where(Trade.tx_hash.isnot(None))
+    )
+    real_count = real_result.scalar() or 0
+
+    # Total in main table
+    total_result = await db.execute(select(func.count()).select_from(Trade))
+    total_count = total_result.scalar() or 0
+
+    return {
+        "real_on_chain": real_count,
+        "paper_in_main": total_count - real_count,
+        "archived_paper": archived_count,
+        "total_historical": real_count + archived_count,
     }
 
 

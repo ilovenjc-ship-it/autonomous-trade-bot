@@ -32,5 +32,11 @@ class Strategy(Base):
     last_cycle_at = Column(DateTime(timezone=True), nullable=True)
     current_cycle_pnl = Column(Float, default=0.0)
 
+    # Capital allocation (%) — persisted by the rebalance engine
+    allocation_pct = Column(Float, nullable=True)
+
+    # Autonomous promotion tracking
+    last_promoted_at = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

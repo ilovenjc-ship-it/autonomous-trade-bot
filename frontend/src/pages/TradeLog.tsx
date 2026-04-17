@@ -121,9 +121,10 @@ export default function TradeLog() {
   const [typeFilter,  setTypeFilter]  = useState<string>('')    // '' | 'buy' | 'sell'
   const [resultFilt,  setResultFilt]  = useState<string>('')    // '' | 'win' | 'loss'
   const [stratFilter, setStratFilter] = useState<string>('')
-  const [realOnly,    setRealOnly]    = useState(false)
+  const [realOnly,    setRealOnly]    = useState(true)
   const [search,      setSearch]      = useState('')
   const [realCount,   setRealCount]   = useState<number | null>(null)
+  const [archivedCount, setArchivedCount] = useState<number | null>(null)
   const PAGE_SIZE = 25
 
   const load = useCallback(async () => {
@@ -143,10 +144,13 @@ export default function TradeLog() {
     }
   }, [page, typeFilter, resultFilt, stratFilter, realOnly])
 
-  // Fetch real trade count once on mount for the banner
+  // Fetch real trade count + archive stats once on mount for the banner
   useEffect(() => {
     api.get('/trades', { params: { real_only: true, page_size: 1, page: 1 } })
       .then(r => setRealCount(r.data.total ?? 0))
+      .catch(() => {})
+    api.get('/trades/archive/stats')
+      .then(r => setArchivedCount(r.data.archived_paper ?? 0))
       .catch(() => {})
   }, [])
 
@@ -191,9 +195,11 @@ export default function TradeLog() {
                 <span className="text-xs font-mono text-emerald-400 font-bold">
                   {realCount} real on-chain
                 </span>
-                <span className="text-[10px] text-emerald-400/60 font-mono">
-                  · {total - realCount} paper
-                </span>
+                {archivedCount !== null && archivedCount > 0 && (
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    · {archivedCount.toLocaleString()} archived
+                  </span>
+                )}
               </div>
             )}
             <button

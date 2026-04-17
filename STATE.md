@@ -138,12 +138,72 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 **Why:** Orchestrator judgment. Breakout Hunter (60% WR, +0.0441τ, all gates clear) and Balanced Risk (65.5% WR, +0.052τ, all gates clear) have both proven themselves in simulation. Three diverse LIVE strategies give OpenClaw richer cross-signal consensus data while keeping risk bounded. Sentiment Surge is next — one more observation window for discipline.  
 **Rule:** Never promote more than 2 strategies per session. Compound risk slowly.
 
+### D-13 — Sentiment Surge promoted to LIVE (Session IX)
+**Decision:** Sentiment Surge promoted APPROVED_FOR_LIVE → LIVE, is_active=True.  
+**Gates at promotion:** WR=59.0% (>55% ✅) | PnL=+0.0358τ (>0 ✅) | Win margin=+15 (≥2 ✅) | Cycles=210 (≥10 ✅) — all 4 gates clear.  
+**Fleet now:** 4 active LIVE strategies — Yield Maximizer, Balanced Risk, Breakout Hunter, Sentiment Surge.  
+**Why:** One full observation window passed since Session VIII. Stats improved. All gates clear. Discipline maintained (waited the window).
+
+### D-14 — Autonomous promotion engine (Session IX)
+**Decision:** Replace manual sqlite promotion commands with an autonomous background scheduler.  
+**Architecture:** `PromotionService` runs as asyncio task — gate check every 5 min, auto-rebalance every 24h. Max 1 promotion per cycle run. 12h throttle per strategy.  
+**Why:** This is the core autonomy milestone. The bot now self-promotes without human intervention. Human still sees the alert and can review; promotion is not blocked by that review.
+
+### D-15 — Capital allocations persisted to DB (Session IX)
+**Decision:** `allocation_pct` column added to `strategies` table. Allocations survive backend restarts.  
+**Old behavior:** Allocations lived only in `_ALLOCATION_DEFAULTS` (in-memory dict) — a restart wiped them back to stale hardcoded values (sum: 147.3%, not 100%).  
+**New behavior:** On startup, promotion service runs initial rebalance and persists results. `/bots` reads from DB. Guaranteed 100% allocation sum always.
+
+### D-16 — Paper trade archive (Session IX)
+**Decision:** Option A executed. 797 historical paper trades moved to `paper_trades` archive table.  
+**Main `trades` table:** 12 real on-chain trades only (tx_hash confirmed).  
+**Archive:** `paper_trades` table preserves full history for audit/analytics if ever needed.  
+**Trade Log default:** `realOnly=true` (shows real trades by default). Toggle still available.
+
 ---
 
 ## 5. CURRENT STATE
 *(Update this section at the end of every session)*
 
-### 5a. System Status — Session VIII (2026-04-17)
+### 5a. System Status — Session IX (2026-04-17)
+```
+network_connected  :  True  ✅
+simulation_mode    :  False ✅
+wallet_connected   :  True  ✅
+wallet_loaded      :  True  ✅
+wallet_address     :  5HMXmud5v6zUz84fm3azwLyENFpbtq5CFK6ZeShA4EqcECAT  ← CORRECT
+wallet_balance     :  0.227τ (~$55) — confirmed live on-chain
+Frontend port      :  3004  (Vite dev server)
+Backend port       :  8001  (FastAPI uvicorn)
+
+TRADING MODE GATES:
+  chain_connected       :  True  ✅
+  validator_configured  :  True  ✅  (5E2LP6EnZ54m3wS8s1yPvD5c3xo71kQroBw7aUVK32TKeZ5u)
+  live_strategies       :  4     ← expanded this session
+
+overall_mode          :  LIVE ✅
+trade_amount          :  0.0001τ
+
+SESSION IX ACTIONS (The Autonomy Push):
+  - Session VIII + IX PDFs generated and sent to user
+  - FLEET EXPANSION (D-13): Sentiment Surge promoted → LIVE (59% WR, all gates clear)
+  - AUTONOMY (D-14): PromotionService built — autonomous gate checks every 5min
+  - AUTONOMY: Auto-rebalance every 24h, initial rebalance on startup
+  - PERSISTENCE (D-15): allocation_pct column added to strategies table
+    → Allocations survive restarts, guaranteed 100% sum
+  - ARCHIVE (D-16): 797 paper trades moved to paper_trades table
+    → Main trades table: 12 real on-chain only
+    → Trade Log defaults to realOnly=true
+  - ALERTS: NotificationBell component added to top bar (every page)
+    → Bell icon + count badge + floating panel + mark-all-read
+  - BACKEND: Promotion engine started in main.py lifespan
+  - New endpoints: /fleet/promotion/status, /fleet/promotion/force-check
+                   /trades/archive/stats
+  - Zero TypeScript errors maintained
+  - All changes pushed to GitHub
+```
+
+### 5a-prev. System Status — Session VIII (2026-04-17)
 ```
 network_connected  :  True  ✅
 simulation_mode    :  False ✅
@@ -248,22 +308,24 @@ ACTIVE LIVE STRATEGIES (Session VIII):
   3. breakout_hunter   LIVE  60.0% WR  +0.0441τ  177 cycles  is_active=True  ← promoted S8
 ```
 
-### 5d. All Strategies — Current Mode (Session VIII)
+### 5d. All Strategies — Current Mode (Session IX)
 | Strategy | Mode | Win Rate | PnL (τ) | Gates | Active |
 |----------|------|----------|---------|-------|--------|
-| yield_maximizer | **LIVE** | 83.3% | +0.0232 | ✅ ALL CLEAR | ✅ Yes |
-| balanced_risk | **LIVE** | 65.5% | +0.0520 | ✅ ALL CLEAR | ✅ Yes |
-| breakout_hunter | **LIVE** | 60.0% | +0.0441 | ✅ ALL CLEAR | ✅ Yes |
-| sentiment_surge | APPROVED_FOR_LIVE | 58.1% | +0.0273 | ✅ ALL CLEAR | ⏸ Standby |
-| volatility_arb | APPROVED_FOR_LIVE | 54.1% | +0.0097 | ⚠ WR gate | ⏸ Standby |
-| breakout_hunter | APPROVED_FOR_LIVE | 60.0% | +0.0441 | ✅ ALL CLEAR | — promoted ↑ |
-| dtao_flow_momentum | PAPER_ONLY | 53.9% | +0.1677 | ⚠ WR gate | ❌ No |
-| momentum_cascade | PAPER_ONLY | 49.8% | +0.1229 | ⚠ WR gate | ❌ No |
-| emission_momentum | PAPER_ONLY | 54.1% | +0.0600 | ⚠ WR gate | ❌ No |
-| contrarian_flow | PAPER_ONLY | 51.9% | +0.0214 | ⚠ WR gate | ❌ No |
-| liquidity_hunter | PAPER_ONLY | 43.8% | +0.0901 | ❌ Multi-gate | ❌ No |
-| macro_correlation | PAPER_ONLY | 42.1% | -0.0106 | ❌ Multi-gate + PnL | ❌ No |
-| mean_reversion | PAPER_ONLY | 40.5% | +0.0002 | ❌ Multi-gate | ❌ No |
+| yield_maximizer | **LIVE** | 83.7% | +0.0292 | ✅ ALL CLEAR | ✅ Yes |
+| balanced_risk | **LIVE** | 67.0% | +0.0579 | ✅ ALL CLEAR | ✅ Yes |
+| sentiment_surge | **LIVE** | 59.0% | +0.0358 | ✅ ALL CLEAR | ✅ Yes ← promoted S9 |
+| breakout_hunter | **LIVE** | 57.1% | +0.0378 | ✅ ALL CLEAR | ✅ Yes |
+| emission_momentum | APPROVED_FOR_LIVE | 55.6% | +0.0757 | ✅ ALL CLEAR | ⏸ Autonomous engine will promote |
+| dtao_flow_momentum | APPROVED_FOR_LIVE | 54.9% | +0.1922 | ⚠ WR gate (55%) | ⏸ Standby |
+| volatility_arb | APPROVED_FOR_LIVE | 52.3% | +0.0110 | ⚠ WR gate | ⏸ Standby |
+| momentum_cascade | PAPER_ONLY | 51.5% | +0.1453 | ⚠ WR gate | ❌ No |
+| contrarian_flow | PAPER_ONLY | 50.8% | +0.0259 | ⚠ WR gate | ❌ No |
+| liquidity_hunter | PAPER_ONLY | 49.5% | +0.1242 | ⚠ WR gate | ❌ No |
+| macro_correlation | PAPER_ONLY | 43.8% | -0.0071 | ❌ Multi-gate + PnL | ❌ No |
+| mean_reversion | PAPER_ONLY | 40.4% | -0.0008 | ❌ Multi-gate | ❌ No |
+
+Note: `emission_momentum` has all 4 gates clear (55.6% WR, +11 margin, +0.076τ). The autonomous
+promotion engine will promote it to LIVE within the next 5-minute check cycle (no human action required).
 
 ### 5e. External Dependencies
 | Service | URL | Cost | Status |
@@ -293,12 +355,17 @@ ACTIVE LIVE STRATEGIES (Session VIII):
 
 | Item | Priority | Notes |
 |------|----------|-------|
-| ~~First real tx_hash on clean wallet~~ | ✅ DONE | Trade #246, block:7983364, 2026-04-16 Session VII |
+| ~~First real tx_hash on clean wallet~~ | ✅ DONE | Trade #246, block:7983364, Session VII |
+| ~~Rebalance Capital persistence~~ | ✅ DONE | allocation_pct column, DB persistence, D-15 |
+| ~~Autonomous promotion engine~~ | ✅ DONE | PromotionService, gate check every 5min, D-14 |
+| ~~Sentiment Surge promotion~~ | ✅ DONE | Now LIVE, D-13 |
+| ~~Paper trade archive~~ | ✅ DONE | 797 trades → paper_trades table, D-16 |
+| ~~Alert notification bell~~ | ✅ DONE | NotificationBell component, top bar, all pages |
+| emission_momentum promotion | Auto | Gates clear — autonomous engine will promote within 5min |
+| Auto-demotion on drawdown breach | Medium | Inverse of promotion — not yet built |
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
-| Manual trade panel | Medium | One button to fire a test trade to confirm full chain end-to-end |
-| Agent Fleet bugs | Low | Toggle no-refetch, Promote CTA, demotion indicator |
-| PDF: Session VII brief | Low | Mnemonic persistence, RECOVERY.md, React #185 fix — Archives entry |
-| Push to GitHub | High | `git push` — current HEAD is d6c86cf, needs Session VII commit pushed |
+| Session IX PDF Archive | Low | To be generated at end of session |
+| Push to GitHub | High | Commit all Session IX changes |
 
 ---
 

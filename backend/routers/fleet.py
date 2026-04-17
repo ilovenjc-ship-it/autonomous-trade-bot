@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 from typing import List, Optional
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, update as sa_update
 from pydantic import BaseModel
 
 from db.database import get_db
@@ -322,6 +322,9 @@ async def fleet_bots(db: AsyncSession = Depends(get_db)):
         if (s.total_trades or 0) == 0:
             health = "YELLOW"
 
+        # Allocation: prefer DB-persisted value, fall back to in-memory default
+        alloc = s.allocation_pct if s.allocation_pct is not None else _ALLOCATION_DEFAULTS.get(s.name, 11.9)
+
         bots.append({
             "name": s.name,
             "display_name": s.display_name,
@@ -335,12 +338,14 @@ async def fleet_bots(db: AsyncSession = Depends(get_db)):
             "loss_trades": s.loss_trades or 0,
             "win_rate": round(wr, 1),
             "net_pnl_tao": round(pnl, 4),
-            "capital_allocation_pct": _ALLOCATION_DEFAULTS.get(s.name, 11.9),
+            "capital_allocation_pct": round(alloc, 1),
             "performance_score": round(score, 1),
             "consecutive_losses": max(0, (s.loss_trades or 0) - (s.win_trades or 0)),
             "gate_passed": gate["all_clear"],
             "gate": gate,
             "cycles_completed": s.cycles_completed or 0,
+            "last_promoted_at": s.last_promoted_at if isinstance(s.last_promoted_at, str)
+                                else (s.last_promoted_at.isoformat() + "Z" if s.last_promoted_at else None),
         })
 
     # Sort by performance_score descending, assign rank
@@ -353,6 +358,9 @@ async def fleet_bots(db: AsyncSession = Depends(get_db)):
     approved_count = sum(1 for b in bots if b["mode"] == "APPROVED_FOR_LIVE")
     total_allocation = sum(b["capital_allocation_pct"] for b in bots)
 
+    # Import here to avoid circular import
+    from services.promotion_service import promotion_service as _ps
+
     return {
         "bots": bots,
         "summary": {
@@ -364,6 +372,8 @@ async def fleet_bots(db: AsyncSession = Depends(get_db)):
             "yellow": sum(1 for b in bots if b["health"] == "YELLOW"),
             "red": sum(1 for b in bots if b["health"] == "RED"),
             "total_allocation": round(total_allocation, 1),
+            "last_rebalanced_at": _ps.last_rebalanced_at,
+            "promotions_this_session": len(_ps.promotions_this_session),
         },
     }
 
@@ -437,22 +447,71 @@ async def rebalance_capital(db: AsyncSession = Depends(get_db)):
     # Step 5 — update in-memory dict so /bots reflects this immediately
     _ALLOCATION_DEFAULTS.update(new_alloc)
 
+    # Step 5b — persist allocations to DB (survives backend restarts)
+    for s in strategies:
+        if s.name in new_alloc:
+            await db.execute(
+                sa_update(Strategy)
+                .where(Strategy.id == s.id)
+                .values(allocation_pct=new_alloc[s.name])
+            )
+    await db.commit()
+
+    # Step 5c — update promotion_service's last_rebalanced_at timestamp
+    from services.promotion_service import promotion_service as _ps
+    from datetime import timezone as _tz
+    _ps._last_rebalanced_at = datetime.now(_tz.utc)
+
     # Step 6 — build a readable summary and push activity event
     top3 = sorted(names, key=lambda nm: new_alloc[nm], reverse=True)[:3]
     summary = ", ".join(f"{nm.replace('_',' ').title()} {new_alloc[nm]:.1f}%" for nm in top3)
     _push_event(
         "system",
         f"Capital rebalanced — top 3: {summary}",
-        detail=f"Score-weighted across {n} bots · floor 2% · cap 30%",
+        detail=f"Score-weighted across {n} bots · floor 2% · cap 30% · persisted to DB",
+    )
+
+    from services.alert_service import alert_service as _as
+    _as.system_alert(
+        title="⚖️ Capital Rebalanced",
+        message=f"Manual rebalance: {summary}. Allocations persisted to DB.",
+        level="INFO",
     )
 
     return {
         "success": True,
-        "message": f"Capital rebalanced across {n} strategies",
+        "message": f"Capital rebalanced across {n} strategies — persisted to DB",
         "allocations": new_alloc,
         "total": round(sum(new_alloc.values()), 1),
         "top": top3,
+        "last_rebalanced_at": _ps.last_rebalanced_at,
     }
+
+
+@router.get("/promotion/status")
+async def promotion_status():
+    """Status of the autonomous promotion engine and auto-rebalance scheduler."""
+    from services.promotion_service import promotion_service as _ps
+    return {
+        "engine_running": _ps.is_running,
+        "last_rebalanced_at": _ps.last_rebalanced_at,
+        "next_rebalance_in_hours": None if _ps._last_rebalanced_at is None else round(
+            max(0, (86400 - (datetime.utcnow().replace(tzinfo=None) -
+                             _ps._last_rebalanced_at.replace(tzinfo=None)).total_seconds()) / 3600), 1
+        ),
+        "check_interval_seconds": 300,
+        "rebalance_interval_hours": 24,
+        "promotions_this_session": _ps.promotions_this_session,
+        "total_promotions_this_session": len(_ps.promotions_this_session),
+    }
+
+
+@router.post("/promotion/force-check")
+async def force_promotion_check():
+    """Immediately run a promotion gate check (skips throttle window)."""
+    from services.promotion_service import promotion_service as _ps
+    await _ps.force_check_promotions()
+    return {"success": True, "message": "Promotion check completed"}
 
 
 @router.post("/bots/{bot_name}/activate")
