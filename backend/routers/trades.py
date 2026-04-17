@@ -25,7 +25,8 @@ async def list_trades(
     trade_type: Optional[str] = None,
     status: Optional[str] = None,
     strategy: Optional[str] = None,
-    result: Optional[str] = None,     # "win" | "loss"
+    result: Optional[str] = None,       # "win" | "loss"
+    real_only: bool = Query(False),     # True → only on-chain confirmed trades
     db: AsyncSession = Depends(get_db),
 ):
     q = select(Trade)
@@ -39,6 +40,8 @@ async def list_trades(
         q = q.where(Trade.pnl > 0)
     elif result == "loss":
         q = q.where(Trade.pnl <= 0)
+    if real_only:
+        q = q.where(Trade.tx_hash.isnot(None))
     q = q.order_by(desc(Trade.created_at))
 
     # Count

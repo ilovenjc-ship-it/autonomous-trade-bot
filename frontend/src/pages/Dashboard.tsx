@@ -237,7 +237,7 @@ export default function Dashboard() {
             <Clock size={11} className="text-slate-300" />
             <span className="text-slate-300">Next cycle in {secToNext}s</span>
             <span className="text-slate-300">·</span>
-            <span className="text-slate-300">12 strategies active</span>
+            <span className="text-slate-300">{summary?.active_strategies ?? 0} strategies active</span>
           </>
         )}
         <span className="ml-auto text-slate-300 font-mono text-[10px]">
@@ -337,10 +337,24 @@ export default function Dashboard() {
 
         {/* Equity curve — 2/3 width */}
         <div className="xl:col-span-2 bg-dark-800 border border-dark-600 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-4">
-            <TrendingUp size={14} className="text-accent-green" />
-            Cumulative PnL — {equity.length} points
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <TrendingUp size={14} className="text-accent-green" />
+              Equity Curve
+              <span className="text-[10px] text-slate-500 font-mono font-normal">cumulative PnL over time</span>
+            </h2>
+            {equity.length > 1 && summary && (
+              <div className="flex items-center gap-3">
+                <span className={clsx(
+                  'text-sm font-bold font-mono',
+                  summary.total_pnl >= 0 ? 'text-accent-green' : 'text-red-400'
+                )}>
+                  {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(4)} τ
+                </span>
+                <span className="text-[10px] text-slate-500 font-mono">{equity.length} pts</span>
+              </div>
+            )}
+          </div>
           {equity.length > 1 ? (
             <ResponsiveContainer width="100%" height={220}>
               <AreaChart data={equity} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>

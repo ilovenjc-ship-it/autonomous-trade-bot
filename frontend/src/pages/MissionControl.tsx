@@ -459,8 +459,8 @@ export default function MissionControl() {
       {/* ══ BOTTOM SECTION: Chat | Activity Stream | Subnet Heat Map ══ */}
       <div className="flex flex-1 min-h-0">
 
-        {/* II Agent Chat — wider */}
-        <div className="w-[520px] flex-shrink-0 border-r border-slate-800/60 flex flex-col">
+        {/* II Agent Chat — fixed width, narrowed to give activity+heatmap more room */}
+        <div className="w-[340px] flex-shrink-0 border-r border-slate-800/60 flex flex-col">
           <div className="px-4 py-2.5 border-b border-slate-800/40 flex items-center gap-2 flex-shrink-0">
             <Cpu size={12} className="text-emerald-400" />
             <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>

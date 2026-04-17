@@ -263,19 +263,29 @@ export default function Analytics() {
         </div>
       )}
 
+      {/* ── Data context note ──────────────────────────────────────────────── */}
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-800/60 border border-slate-700/40 rounded-lg text-[11px] font-mono text-slate-400">
+        <span className="text-blue-400 font-bold flex-shrink-0">ℹ DATA CONTEXT</span>
+        <span>
+          Stats include <span className="text-slate-300">full trade history</span> (paper + real on-chain).
+          Paper trades are simulation — they establish the win-rate and PnL baselines used for gate promotions.
+          Real on-chain trades are a small subset — filter by <span className="text-emerald-400">⛓ Real Only</span> in Trade Log for the confirmed subset.
+        </span>
+      </div>
+
       {/* ── KPI row ────────────────────────────────────────────────────────── */}
       {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
           <KPI
             label="Total PnL"
             value={`${fmt(summary.total_pnl, 4)} τ`}
-            sub={`${summary.total_trades} trades`}
+            sub={`${summary.total_trades.toLocaleString()} trades`}
             color={summary.total_pnl >= 0 ? 'text-accent-green' : 'text-red-400'}
           />
           <KPI
             label="Win Rate"
             value={pct(summary.win_rate)}
-            sub={`${summary.wins}W / ${summary.losses}L`}
+            sub={`${summary.wins.toLocaleString()}W / ${summary.losses.toLocaleString()}L`}
             color={summary.win_rate >= 55 ? 'text-accent-green' : 'text-yellow-400'}
           />
           <KPI
@@ -287,6 +297,12 @@ export default function Analytics() {
             label="Worst Trade"
             value={`${fmt(summary.worst_trade, 4)} τ`}
             color="text-red-400"
+          />
+          <KPI
+            label="Live Strategies"
+            value={`${summary.active_strategies}`}
+            sub="firing real trades"
+            color="text-emerald-400"
           />
         </div>
       )}

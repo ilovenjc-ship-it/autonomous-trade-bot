@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   ArrowLeftRight, RefreshCw, Filter, ChevronLeft,
   ChevronRight, TrendingUp, TrendingDown, CheckCircle2, XCircle,
-  Search,
+  Search, Zap,
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
@@ -121,16 +121,19 @@ export default function TradeLog() {
   const [typeFilter,  setTypeFilter]  = useState<string>('')    // '' | 'buy' | 'sell'
   const [resultFilt,  setResultFilt]  = useState<string>('')    // '' | 'win' | 'loss'
   const [stratFilter, setStratFilter] = useState<string>('')
+  const [realOnly,    setRealOnly]    = useState(false)
   const [search,      setSearch]      = useState('')
+  const [realCount,   setRealCount]   = useState<number | null>(null)
   const PAGE_SIZE = 25
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const params: Record<string, string | number> = { page, page_size: PAGE_SIZE }
+      const params: Record<string, string | number | boolean> = { page, page_size: PAGE_SIZE }
       if (typeFilter)  params.trade_type = typeFilter
       if (resultFilt)  params.result     = resultFilt
       if (stratFilter) params.strategy   = stratFilter
+      if (realOnly)    params.real_only  = true
       const res = await api.get('/trades', { params })
       setData(res.data)
     } catch (e) {
@@ -138,12 +141,19 @@ export default function TradeLog() {
     } finally {
       setLoading(false)
     }
-  }, [page, typeFilter, resultFilt, stratFilter])
+  }, [page, typeFilter, resultFilt, stratFilter, realOnly])
+
+  // Fetch real trade count once on mount for the banner
+  useEffect(() => {
+    api.get('/trades', { params: { real_only: true, page_size: 1, page: 1 } })
+      .then(r => setRealCount(r.data.total ?? 0))
+      .catch(() => {})
+  }, [])
 
   useEffect(() => { load() }, [load])
 
   // reset page when filters change
-  useEffect(() => { setPage(1) }, [typeFilter, resultFilt, stratFilter])
+  useEffect(() => { setPage(1) }, [typeFilter, resultFilt, stratFilter, realOnly])
 
   const trades = data?.trades ?? []
   const total  = data?.total  ?? 0
@@ -163,23 +173,37 @@ export default function TradeLog() {
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-dark-600">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-2xl font-bold text-white flex items-center gap-2">
               <ArrowLeftRight size={22} className="text-accent-green" />
               Trade Log
             </h1>
             <p className="text-sm text-slate-300 mt-0.5">
-              {total} trades total · page {page}/{pages}
+              {total.toLocaleString()} trades · page {page}/{pages}
             </p>
           </div>
-          <button
-            onClick={load}
-            className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
-          >
-            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-            Refresh
-          </button>
+          <div className="flex items-center gap-3">
+            {/* On-chain confirmation badge */}
+            {realCount !== null && (
+              <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/8 border border-emerald-500/25 rounded-lg">
+                <Zap size={12} className="text-emerald-400" />
+                <span className="text-xs font-mono text-emerald-400 font-bold">
+                  {realCount} real on-chain
+                </span>
+                <span className="text-[10px] text-emerald-400/60 font-mono">
+                  · {total - realCount} paper
+                </span>
+              </div>
+            )}
+            <button
+              onClick={load}
+              className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
+            >
+              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+              Refresh
+            </button>
+          </div>
         </div>
 
         {/* Filter row */}
@@ -215,6 +239,22 @@ export default function TradeLog() {
               <option key={s} value={s}>{STRATEGY_LABELS[s] || s}</option>
             ))}
           </select>
+
+          <span className="text-dark-600 text-sm">|</span>
+
+          {/* Real trades only toggle */}
+          <button
+            onClick={() => setRealOnly(v => !v)}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all',
+              realOnly
+                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_10px_rgba(52,211,153,0.2)]'
+                : 'text-slate-400 border-dark-600 hover:text-emerald-400 hover:border-emerald-500/30'
+            )}
+          >
+            <Zap size={11} className={realOnly ? 'text-emerald-400' : ''} />
+            {realOnly ? '⛓ Real Only' : 'Real Only'}
+          </button>
 
           {/* Search */}
           <div className="ml-auto flex items-center gap-1.5 bg-dark-700 border border-dark-600 rounded-lg px-2.5 py-1.5">
@@ -334,9 +374,9 @@ export default function TradeLog() {
       {/* ── Pagination ─────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 py-3 border-t border-dark-600 flex items-center justify-between">
         <p className="text-xs text-slate-300 font-mono">
-          Showing {visible.length} of {total} trades
-          {typeFilter || resultFilt || stratFilter
-            ? ` (filtered)`
+          Showing {visible.length} of {total.toLocaleString()} trades
+          {(typeFilter || resultFilt || stratFilter || realOnly)
+            ? <span className="text-emerald-400 ml-1">(filtered{realOnly ? ' · ⛓ real only' : ''})</span>
             : ''}
         </p>
 
