@@ -291,11 +291,11 @@ export default function MissionControl() {
         {/* Left panel: Lock Guard → Clock → Market Intel → System */}
         <div className="w-56 flex-shrink-0 border-r border-slate-800/60 flex flex-col overflow-hidden">
 
-          {/* Lock guard — top of column */}
+          {/* Lock guard — top of column (compact) */}
           <div className="flex-shrink-0 border-b border-slate-800/50 px-3 py-2">
-            <div className="flex items-center gap-2 bg-yellow-500/5 border border-yellow-500/20 rounded-lg px-2.5 py-1.5">
-              <Lock size={10} className="text-yellow-400 flex-shrink-0" />
-              <span className="text-[9px] text-yellow-400/90 leading-tight">Gate enforced — paper required</span>
+            <div className="flex items-center gap-1.5">
+              <Lock size={9} className="text-yellow-400 flex-shrink-0" />
+              <span className="text-[9px] text-yellow-400/70 font-mono">Gate enforced</span>
             </div>
           </div>
 
@@ -378,10 +378,13 @@ export default function MissionControl() {
               <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse flex-shrink-0" />
               <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Agent Fleet</span>
               {summary && (
-                <div className="flex items-center gap-4 ml-1">
-                  <span className="text-[10px] text-emerald-400 font-bold">{summary.live} live</span>
-                  <span className="text-[10px] text-purple-400 font-bold">{summary.approved} approved</span>
-                  <span className="text-[10px] text-yellow-400 font-bold">{summary.paper} paper</span>
+                <div className="flex items-center gap-2 ml-1">
+                  <span className="px-2 py-0.5 rounded border text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border-emerald-500/30">{summary.live} LIVE</span>
+                  <span className="px-2 py-0.5 rounded border text-[10px] font-bold bg-purple-500/15 text-purple-400 border-purple-500/30">{summary.approved} APPROVED</span>
+                  <span className="px-2 py-0.5 rounded border text-[10px] font-bold bg-yellow-500/15 text-yellow-400 border-yellow-500/30">{summary.paper} PAPER</span>
+                  <span className="px-2 py-0.5 rounded border text-[10px] font-bold bg-yellow-500/10 text-yellow-400/80 border-yellow-500/25 flex items-center gap-1">
+                    <Lock size={8} />Gate enforced
+                  </span>
                 </div>
               )}
               {summary && (
@@ -459,28 +462,28 @@ export default function MissionControl() {
       {/* ══ BOTTOM SECTION: Chat | Activity Stream | Subnet Heat Map ══ */}
       <div className="flex flex-1 min-h-0">
 
-        {/* II Agent Chat — fixed width, narrowed to give activity+heatmap more room */}
-        <div className="w-[340px] flex-shrink-0 border-r border-slate-800/60 flex flex-col">
+        {/* II Agent Chat — wider for better readability */}
+        <div className="w-[460px] flex-shrink-0 border-r border-slate-800/60 flex flex-col">
           <div className="px-4 py-2.5 border-b border-slate-800/40 flex items-center gap-2 flex-shrink-0">
             <Cpu size={12} className="text-emerald-400" />
             <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>
           </div>
           <div ref={chatRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
             {chat.length === 0 && (
-              <div className="text-[11px] text-slate-400 italic mt-1">
+              <div className="text-[13px] text-slate-400 italic mt-1">
                 Ask II Agent about strategy status, win rates, next cycle…
               </div>
             )}
             {chat.map((entry, i) => (
               <div key={i} className={clsx('flex', entry.role === 'user' ? 'justify-end' : 'justify-start')}>
                 <div className={clsx(
-                  'max-w-[88%] px-3 py-2 rounded-lg text-[11px] leading-relaxed',
+                  'max-w-[88%] px-3 py-2 rounded-lg text-[13px] leading-relaxed',
                   entry.role === 'user'
                     ? 'bg-blue-500/20 text-blue-100 rounded-br-sm'
                     : 'bg-slate-800/80 text-slate-200 rounded-bl-sm border border-slate-700/50'
                 )}>
                   {entry.role === 'agent' && (
-                    <div className="text-[9px] text-emerald-400 mb-1 font-bold tracking-wider">II AGENT</div>
+                    <div className="text-[10px] text-emerald-400 mb-1 font-bold tracking-wider">II AGENT</div>
                   )}
                   {entry.content}
                 </div>
@@ -526,7 +529,7 @@ export default function MissionControl() {
                 onChange={e => setChatInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendChat()}
                 placeholder="Ask II Agent…"
-                className="flex-1 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-1.5 text-[11px] text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500/40 transition-colors"
+                className="flex-1 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-1.5 text-[13px] text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500/40 transition-colors"
               />
               <button
                 onClick={sendChat}
@@ -542,8 +545,8 @@ export default function MissionControl() {
         {/* Right side: activity stream (half) + heat map (half) */}
         <div className="flex-1 flex min-w-0">
 
-          {/* Activity stream — left half of right side */}
-          <div className="flex-1 flex flex-col min-w-0 p-3 border-r border-slate-800/60">
+          {/* Activity stream — fixed narrow width so stream text runs tight to timestamp */}
+          <div className="w-[260px] flex-shrink-0 flex flex-col min-w-0 p-3 border-r border-slate-800/60">
 
             {/* Selected bot gate detail */}
             {selectedBot && (
@@ -583,13 +586,12 @@ export default function MissionControl() {
                   <div className="text-center py-6 text-slate-500 text-xs">Waiting for events…</div>
                 ) : (
                   events.slice(0, 20).map((ev, i) => (
-                    <div key={`${ev.id}-${i}`} className="flex items-start gap-2 py-1">
-                      <div className="mt-0.5 flex-shrink-0"><EventIcon kind={ev.kind} /></div>
+                    <div key={`${ev.id}-${i}`} className="flex items-center gap-1.5 py-0.5">
+                      <div className="flex-shrink-0"><EventIcon kind={ev.kind} /></div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[11px] text-slate-300 leading-tight">{ev.message}</div>
-                        {ev.detail && <div className="text-[9px] text-slate-400 truncate mt-0.5">{ev.detail}</div>}
+                        <div className="text-[10px] text-slate-300 leading-tight truncate">{ev.message}</div>
                       </div>
-                      <div className="text-[9px] text-slate-400 flex-shrink-0 font-mono">{fmtTime(ev.timestamp)}</div>
+                      <div className="text-[9px] text-slate-500 flex-shrink-0 font-mono">{fmtTime(ev.timestamp)}</div>
                     </div>
                   ))
                 )}

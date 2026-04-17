@@ -112,6 +112,7 @@ export default function Dashboard() {
   const [consensusStats, setConsensusStats] = useState<ConsensusStats | null>(null)
   const [walletStatus,   setWalletStatus]   = useState<WalletStatus | null>(null)
   const [unreadAlerts,   setUnreadAlerts]   = useState(0)
+  const [streamHeight,   setStreamHeight]   = useState(230)  // px, controlled by slider
 
   const load = useCallback(async () => {
     try {
@@ -456,28 +457,40 @@ export default function Dashboard() {
           <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
             <Activity size={14} className="text-accent-blue" /> Live Activity
             <span className="ml-auto text-[10px] text-slate-300 font-mono">auto-refresh 15s</span>
+            {/* Height slider */}
+            <div className="flex items-center gap-2 ml-3">
+              <span className="text-[9px] text-slate-500 font-mono hidden sm:inline">height</span>
+              <input
+                type="range" min={140} max={520} step={20}
+                value={streamHeight}
+                onChange={e => setStreamHeight(Number(e.target.value))}
+                className="w-20 h-1 accent-blue-500 cursor-pointer"
+                title="Drag to resize stream"
+              />
+            </div>
           </h2>
-          <div className="space-y-1.5 max-h-[230px] overflow-y-auto">
-            {activity.slice(0, 10).map((ev, i) => {
+          <div className="space-y-2 overflow-y-auto transition-all duration-200"
+            style={{ maxHeight: streamHeight }}>
+            {activity.slice(0, 20).map((ev, i) => {
               const colors: Record<string, string> = {
                 trade: 'text-accent-green', signal: 'text-accent-blue',
                 gate: 'text-yellow-400', system: 'text-slate-300', alert: 'text-red-400',
               }
               return (
-                <div key={`${ev.id}-${i}`} className="flex items-start gap-2 text-xs">
-                  <span className={clsx('font-mono font-bold flex-shrink-0 text-[10px] mt-0.5',
+                <div key={`${ev.id}-${i}`} className="flex items-start gap-2">
+                  <span className={clsx('font-mono font-bold flex-shrink-0 text-[11px] mt-0.5 w-10',
                     colors[ev.kind] ?? 'text-slate-300')}>
                     {ev.kind.toUpperCase().slice(0, 3)}
                   </span>
-                  <span className="text-slate-300 font-mono truncate">{ev.message}</span>
+                  <span className="text-slate-200 font-mono text-[12px] truncate leading-relaxed">{ev.message}</span>
                   {ev.strategy && (
-                    <span className="text-slate-300 text-[10px] ml-auto flex-shrink-0">{ev.strategy.slice(0, 8)}</span>
+                    <span className="text-slate-400 text-[11px] ml-auto flex-shrink-0 font-mono">{ev.strategy.slice(0, 10)}</span>
                   )}
                 </div>
               )
             })}
             {activity.length === 0 && (
-              <p className="text-slate-300 text-xs font-mono text-center py-4">No activity yet</p>
+              <p className="text-slate-300 text-[12px] font-mono text-center py-4">No activity yet</p>
             )}
           </div>
         </div>

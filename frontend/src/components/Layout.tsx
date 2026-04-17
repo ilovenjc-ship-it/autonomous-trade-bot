@@ -100,17 +100,10 @@ export default function Layout() {
     <div className="flex h-screen overflow-hidden bg-dark-900">
       {/* Sidebar */}
       <aside className="w-56 flex-shrink-0 bg-dark-800 border-r border-dark-600 flex flex-col">
-        {/* Bot status badge — top of sidebar */}
+        {/* TAO price — top of sidebar */}
         <div className="px-4 py-3 border-b border-dark-600">
-          <div className={clsx(
-            'flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-mono',
-            isRunning ? 'bg-accent-green/10 text-accent-green' : 'bg-dark-700 text-slate-300'
-          )}>
-            <span className={clsx('w-2 h-2 rounded-full', isRunning ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
-            {isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
-          </div>
           {price && (
-            <p className="mt-2 text-xs text-slate-300 font-mono px-1">
+            <p className="text-xs text-slate-300 font-mono px-1">
               TAO <span className="text-white font-semibold">${price.toFixed(2)}</span>
             </p>
           )}
@@ -318,8 +311,9 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto flex flex-col">
-        {/* Top bar — notification bell + live status */}
+        {/* Top bar — bot status pill + notification bell */}
         <div className="flex-shrink-0 flex items-center justify-end gap-3 px-4 py-2 bg-dark-900 border-b border-dark-700/50">
+          {/* Left: Finney network status */}
           <div className="flex items-center gap-2 mr-auto">
             {status?.network_connected && (
               <span className="text-[10px] font-mono text-emerald-400/70 flex items-center gap-1">
@@ -327,6 +321,17 @@ export default function Layout() {
                 Finney mainnet · LIVE
               </span>
             )}
+          </div>
+          {/* Bot running/stopped pill — moved from sidebar */}
+          <div className={clsx(
+            'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold border',
+            isRunning
+              ? 'bg-accent-green/10 text-accent-green border-accent-green/25'
+              : 'bg-dark-700 text-slate-400 border-dark-600'
+          )}>
+            <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0',
+              isRunning ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
+            {isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
           </div>
           <NotificationBell unreadCount={unreadCount} />
         </div>

@@ -77,7 +77,7 @@ export default function SubnetHeatMap() {
         </div>
       ) : (
         <div className="relative">
-          <div className="grid gap-1.5" style={{ gridTemplateColumns: 'repeat(16, 1fr)' }}>
+          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(16, 1fr)' }}>
             {subnets.map(s => {
               const n        = norm(s.score)
               const bg       = heatColor(n)
@@ -94,22 +94,22 @@ export default function SubnetHeatMap() {
                     setHoverPos({ x: el.left - rect.left, y: el.top - rect.top })
                   }}
                   onMouseLeave={() => setHovered(null)}
-                  className="relative cursor-default select-none rounded-lg flex flex-col items-center justify-center transition-transform hover:scale-105 hover:z-10"
+                  className="relative cursor-default select-none rounded-xl flex flex-col items-center justify-center transition-transform hover:scale-105 hover:z-10"
                   style={{
                     background: bg,
-                    height: 68,
+                    height: 92,
                     outline:      isTaoBot ? '2px solid #00e5a0' : 'none',
                     outlineOffset: '2px',
-                    boxShadow:    isTaoBot ? '0 0 12px rgba(0,229,160,0.45)' : undefined,
+                    boxShadow:    isTaoBot ? '0 0 14px rgba(0,229,160,0.50)' : undefined,
                   }}
                 >
-                  <span className="text-[12px] font-black leading-none tracking-tight" style={{ color: txt }}>
+                  <span className="text-[13px] font-black leading-none tracking-tight" style={{ color: txt }}>
                     SN{s.uid}
                   </span>
-                  <span className="text-[9px] font-mono leading-none mt-1 opacity-80" style={{ color: txt }}>
+                  <span className="text-[10px] font-mono leading-none mt-1.5 opacity-85" style={{ color: txt }}>
                     {s.apy.toFixed(1)}%
                   </span>
-                  <span className="text-[8px] font-mono leading-none mt-0.5 opacity-50 truncate max-w-full px-1 text-center" style={{ color: txt }}>
+                  <span className="text-[9px] font-mono leading-none mt-1 opacity-60 truncate max-w-full px-1 text-center" style={{ color: txt }}>
                     {s.name.split(' ')[0]}
                   </span>
                   {isTaoBot && (
