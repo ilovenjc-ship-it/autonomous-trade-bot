@@ -65,8 +65,7 @@ const LEGEND_ITEMS: { kind: string; desc: string }[] = [
 
 function LegendBar() {
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5
-                    bg-dark-800/60 border border-dark-600/60 rounded-xl">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 px-6 py-2">
       <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest pr-1">
         Legend
       </span>
@@ -132,7 +131,7 @@ export default function ActivityLog() {
   }, {})
 
   return (
-    <div className="flex flex-col h-screen bg-dark-900">
+    <div className="flex flex-col flex-1 bg-dark-900">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-dark-600">
@@ -211,12 +210,8 @@ export default function ActivityLog() {
             className="ml-auto px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 placeholder-slate-600 font-mono focus:outline-none focus:border-accent-blue w-48"
           />
         </div>
-      </div>
 
-      {/* ── Legend ─────────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-6 pt-3 pb-3">
-        <LegendBar />
-      </div>
+        </div>
 
       {/* ── Event stream ───────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-6 py-3 space-y-1.5">
