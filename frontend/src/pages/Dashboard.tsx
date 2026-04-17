@@ -112,7 +112,7 @@ export default function Dashboard() {
   const [consensusStats, setConsensusStats] = useState<ConsensusStats | null>(null)
   const [walletStatus,   setWalletStatus]   = useState<WalletStatus | null>(null)
   const [unreadAlerts,   setUnreadAlerts]   = useState(0)
-  const [streamHeight,   setStreamHeight]   = useState(230)  // px, controlled by slider
+  
 
   const load = useCallback(async () => {
     try {
@@ -203,6 +203,17 @@ export default function Dashboard() {
             className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white transition-colors">
             <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
           </button>
+          {/* Bot status pill — same size as Stop Bot button */}
+          <div className={clsx(
+            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border',
+            isRunning
+              ? 'bg-accent-green/10 text-accent-green border-accent-green/25'
+              : 'bg-dark-700 text-slate-400 border-dark-600'
+          )}>
+            <span className={clsx('w-2 h-2 rounded-full flex-shrink-0',
+              isRunning ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
+            {isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
+          </div>
           <button
             onClick={handleToggle}
             disabled={botBusy}
@@ -457,20 +468,8 @@ export default function Dashboard() {
           <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
             <Activity size={14} className="text-accent-blue" /> Live Activity
             <span className="ml-auto text-[10px] text-slate-300 font-mono">auto-refresh 15s</span>
-            {/* Height slider */}
-            <div className="flex items-center gap-2 ml-3">
-              <span className="text-[9px] text-slate-500 font-mono hidden sm:inline">height</span>
-              <input
-                type="range" min={140} max={520} step={20}
-                value={streamHeight}
-                onChange={e => setStreamHeight(Number(e.target.value))}
-                className="w-20 h-1 accent-blue-500 cursor-pointer"
-                title="Drag to resize stream"
-              />
-            </div>
           </h2>
-          <div className="space-y-2 overflow-y-auto transition-all duration-200"
-            style={{ maxHeight: streamHeight }}>
+          <div className="space-y-2 overflow-y-auto max-h-[230px]">
             {activity.slice(0, 20).map((ev, i) => {
               const colors: Record<string, string> = {
                 trade: 'text-accent-green', signal: 'text-accent-blue',

@@ -322,21 +322,10 @@ export default function Layout() {
               </span>
             )}
           </div>
-          {/* Bot running/stopped pill — moved from sidebar */}
-          <div className={clsx(
-            'flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-mono font-bold border',
-            isRunning
-              ? 'bg-accent-green/10 text-accent-green border-accent-green/25'
-              : 'bg-dark-700 text-slate-400 border-dark-600'
-          )}>
-            <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0',
-              isRunning ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
-            {isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
-          </div>
           <NotificationBell unreadCount={unreadCount} />
         </div>
         <TradingModeBanner />
-        <div className="flex-1">
+        <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
           <Outlet />
         </div>
       </main>

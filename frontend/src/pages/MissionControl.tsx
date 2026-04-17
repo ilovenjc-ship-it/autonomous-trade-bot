@@ -283,21 +283,13 @@ export default function MissionControl() {
   const rsiTrend = (summary?.rsi ?? 50) > 60 ? 'Overbought' : (summary?.rsi ?? 50) < 40 ? 'Oversold' : 'Neutral'
 
   return (
-    <div className="flex flex-col h-full bg-[#080d18] text-slate-100 overflow-hidden font-mono">
+    <div className="flex-1 flex flex-col bg-[#080d18] text-slate-100 overflow-hidden font-mono">
 
       {/* ══ TOP SECTION: left info panel + right strips (h = 2 × 162px) ══ */}
       <div className="flex flex-shrink-0 h-[324px] border-b border-slate-800/60">
 
         {/* Left panel: Lock Guard → Clock → Market Intel → System */}
         <div className="w-56 flex-shrink-0 border-r border-slate-800/60 flex flex-col overflow-hidden">
-
-          {/* Lock guard — top of column (compact) */}
-          <div className="flex-shrink-0 border-b border-slate-800/50 px-3 py-2">
-            <div className="flex items-center gap-1.5">
-              <Lock size={9} className="text-yellow-400 flex-shrink-0" />
-              <span className="text-[9px] text-yellow-400/70 font-mono">Gate enforced</span>
-            </div>
-          </div>
 
           {/* Clock + Next Cycle */}
           <div className="flex-shrink-0 border-b border-slate-800/50 px-4 py-3 bg-slate-900/50">
@@ -374,26 +366,26 @@ export default function MissionControl() {
 
           {/* Fleet strip */}
           <div className="h-[162px] flex flex-col border-b border-slate-800/60">
-            <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800/40 flex-shrink-0">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse flex-shrink-0" />
-              <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Agent Fleet</span>
+            <div className="flex items-center gap-4 px-4 py-3 border-b border-slate-800/40 flex-shrink-0">
+              {/* Agent Fleet label — large */}
+              <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse flex-shrink-0" />
+              <span className="text-base font-bold tracking-wide text-white uppercase">Agent Fleet</span>
+
+              {/* Primary badges — LIVE + APPROVED, large and prominent */}
               {summary && (
-                <div className="flex items-center gap-2 ml-1">
-                  <span className="px-2 py-0.5 rounded border text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border-emerald-500/30">{summary.live} LIVE</span>
-                  <span className="px-2 py-0.5 rounded border text-[10px] font-bold bg-purple-500/15 text-purple-400 border-purple-500/30">{summary.approved} APPROVED</span>
-                  <span className="px-2 py-0.5 rounded border text-[10px] font-bold bg-yellow-500/15 text-yellow-400 border-yellow-500/30">{summary.paper} PAPER</span>
-                  <span className="px-2 py-0.5 rounded border text-[10px] font-bold bg-yellow-500/10 text-yellow-400/80 border-yellow-500/25 flex items-center gap-1">
-                    <Lock size={8} />Gate enforced
+                <div className="flex items-center gap-3 ml-2">
+                  <span className="px-4 py-1.5 rounded-lg border text-sm font-bold bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_12px_rgba(52,211,153,0.15)]">
+                    {summary.live} LIVE
+                  </span>
+                  <span className="px-4 py-1.5 rounded-lg border text-sm font-bold bg-purple-500/20 text-purple-400 border-purple-500/40 shadow-[0_0_12px_rgba(167,139,250,0.15)]">
+                    {summary.approved} APPROVED
                   </span>
                 </div>
               )}
-              {summary && (
-                <div className={clsx('ml-auto text-[11px] font-bold', summary.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                  Fleet PnL: {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(4)} τ
-                </div>
-              )}
+
+              
             </div>
-            <div className="flex gap-2 px-3 py-2 overflow-x-auto flex-1">
+            <div className="flex gap-2 px-3 py-2 overflow-x-hidden flex-1">
               {fleet.length === 0 ? (
                 <div className="text-slate-300 text-xs py-2">Loading fleet…</div>
               ) : (
@@ -402,6 +394,14 @@ export default function MissionControl() {
                     selected={selectedBot?.id === bot.id}
                     onClick={() => setSelectedBot(prev => prev?.id === bot.id ? null : bot)} />
                 ))
+              )}
+              {/* Paper Trading info card — same size as BotCard */}
+              {summary && (
+                <div className="flex-shrink-0 w-[148px] px-3 py-2.5 rounded-lg border bg-yellow-500/5 border-yellow-500/25 flex flex-col justify-center gap-1">
+                  <div className="text-[9px] text-yellow-400/60 uppercase tracking-wider font-bold">Paper Trading</div>
+                  <div className="text-xl font-bold text-yellow-400 font-mono">{summary.paper}</div>
+                  <div className="text-[9px] text-yellow-400/50">strategies in simulation</div>
+                </div>
               )}
             </div>
           </div>
@@ -414,7 +414,7 @@ export default function MissionControl() {
               <span className="ml-auto text-[9px] text-slate-400">Cyc · WR · WM · PnL</span>
             </div>
             {/* flex-1 row — chips use h-full to fill the remaining 126px */}
-            <div className="flex gap-2 px-3 py-2 overflow-x-auto flex-1">
+            <div className="flex gap-2 px-3 py-2 overflow-x-hidden flex-1">
               {fleet.map(bot => {
                 const modeColor = bot.mode === 'LIVE' ? 'bg-emerald-500'
                   : bot.mode === 'APPROVED_FOR_LIVE' ? 'bg-purple-500' : 'bg-slate-600'
@@ -453,6 +453,44 @@ export default function MissionControl() {
                   </div>
                 )
               })}
+              {/* Gate Enforced + Fleet PnL — same chip style as gate summary cards */}
+              {summary && (
+                <>
+                  <div className="flex-shrink-0 flex flex-col bg-yellow-500/5 border border-yellow-500/20 border-l-2 border-l-yellow-500/40 rounded-md px-2.5 py-2 min-w-[130px] h-full justify-between">
+                    <div className="flex items-center gap-1 mb-1">
+                      <Lock size={8} className="text-yellow-400 flex-shrink-0" />
+                      <div className="text-[10px] text-yellow-400 font-semibold">Gate Enforced</div>
+                    </div>
+                    <div className="space-y-1 flex-1">
+                      {[
+                        { label: 'Cycles', val: '100+' },
+                        { label: 'Win %',  val: '55%'  },
+                        { label: 'Margin', val: '> 0'  },
+                        { label: 'PnL',    val: '> 0τ' },
+                      ].map(({ label, val }) => (
+                        <div key={label} className="flex items-center gap-1.5">
+                          <div className="w-8 h-1 rounded-full flex-shrink-0 bg-yellow-500/40" />
+                          <span className="text-[8px] text-slate-500 w-8 flex-shrink-0">{label}</span>
+                          <span className="text-[8px] font-mono ml-auto text-yellow-400/70">{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="text-[10px] text-yellow-400/50 font-mono mt-1.5">min threshold</div>
+                  </div>
+                  <div className="flex-shrink-0 flex flex-col bg-slate-800/50 border border-slate-700/40 border-l-2 border-l-emerald-500/60 rounded-md px-2.5 py-2 min-w-[130px] h-full justify-between">
+                    <div className="text-[10px] text-slate-200 font-semibold mb-1">Fleet PnL</div>
+                    <div className="space-y-1 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-8 h-1 rounded-full flex-shrink-0 bg-emerald-500" />
+                        <span className="text-[8px] text-slate-500">Total</span>
+                      </div>
+                    </div>
+                    <div className={clsx('text-[15px] font-bold font-mono mt-1.5 leading-none', summary.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                      {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(4)} τ
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
@@ -462,8 +500,8 @@ export default function MissionControl() {
       {/* ══ BOTTOM SECTION: Chat | Activity Stream | Subnet Heat Map ══ */}
       <div className="flex flex-1 min-h-0">
 
-        {/* II Agent Chat — wider for better readability */}
-        <div className="w-[460px] flex-shrink-0 border-r border-slate-800/60 flex flex-col">
+        {/* II Agent Chat — wider by ~1 inch */}
+        <div className="w-[560px] flex-shrink-0 border-r border-slate-800/60 flex flex-col">
           <div className="px-4 py-2.5 border-b border-slate-800/40 flex items-center gap-2 flex-shrink-0">
             <Cpu size={12} className="text-emerald-400" />
             <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>
@@ -542,11 +580,11 @@ export default function MissionControl() {
           </div>
         </div>
 
-        {/* Right side: activity stream (half) + heat map (half) */}
-        <div className="flex-1 flex min-w-0">
+        {/* Right side: activity stream (half) + heat map (half) — equal split */}
+        <div className="flex-1 flex min-w-0 min-h-0">
 
-          {/* Activity stream — fixed narrow width so stream text runs tight to timestamp */}
-          <div className="w-[260px] flex-shrink-0 flex flex-col min-w-0 p-3 border-r border-slate-800/60">
+          {/* Activity stream — equal width, content capped + contained */}
+          <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden p-3 border-r border-slate-800/60">
 
             {/* Selected bot gate detail */}
             {selectedBot && (
@@ -573,7 +611,7 @@ export default function MissionControl() {
               </div>
             )}
 
-            {/* Activity stream — capped at 20 most-recent events */}
+            {/* Activity stream — 50 most-recent events, scrolls inside box */}
             <div className="flex-1 flex flex-col min-h-0 rounded-lg border border-slate-700/50 bg-slate-800/30">
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-700/40 flex-shrink-0">
                 <Activity size={12} className="text-blue-400" />
@@ -585,13 +623,13 @@ export default function MissionControl() {
                 {events.length === 0 ? (
                   <div className="text-center py-6 text-slate-500 text-xs">Waiting for events…</div>
                 ) : (
-                  events.slice(0, 20).map((ev, i) => (
+                  events.slice(0, 50).map((ev, i) => (
                     <div key={`${ev.id}-${i}`} className="flex items-center gap-1.5 py-0.5">
                       <div className="flex-shrink-0"><EventIcon kind={ev.kind} /></div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[10px] text-slate-300 leading-tight truncate">{ev.message}</div>
+                        <div className="text-[12px] text-slate-300 leading-tight truncate">{ev.message}</div>
                       </div>
-                      <div className="text-[9px] text-slate-500 flex-shrink-0 font-mono">{fmtTime(ev.timestamp)}</div>
+                      <div className="text-[11px] text-slate-500 flex-shrink-0 font-mono">{fmtTime(ev.timestamp)}</div>
                     </div>
                   ))
                 )}
@@ -600,8 +638,8 @@ export default function MissionControl() {
 
           </div>{/* end activity column */}
 
-          {/* Subnet Heat Map — right half of right side */}
-          <div className="flex-1 min-w-0 overflow-y-auto p-3">
+          {/* Subnet Heat Map — equal width, fills box */}
+          <div className="flex-1 overflow-hidden p-3 flex flex-col">
             <SubnetHeatMap />
           </div>
 

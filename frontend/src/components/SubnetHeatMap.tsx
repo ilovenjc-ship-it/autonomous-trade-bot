@@ -50,7 +50,7 @@ export default function SubnetHeatMap() {
   const norm   = (s: number) => maxS === minS ? 0.5 : (s - minS) / (maxS - minS)
 
   return (
-    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 h-full flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
@@ -75,9 +75,15 @@ export default function SubnetHeatMap() {
         <div className="flex items-center justify-center h-32 text-slate-500 text-xs font-mono">
           Loading subnet data…
         </div>
-      ) : (
-        <div className="relative">
-          <div className="grid gap-2" style={{ gridTemplateColumns: 'repeat(16, 1fr)' }}>
+      ) : (() => {
+        const cols = Math.ceil(Math.sqrt(subnets.length))
+        const rows = Math.ceil(subnets.length / cols)
+        return (
+        <div className="flex-1 relative min-h-0">
+          <div className="h-full grid gap-1.5" style={{
+            gridTemplateColumns: `repeat(${cols}, 1fr)`,
+            gridTemplateRows:    `repeat(${rows}, 1fr)`,
+          }}>
             {subnets.map(s => {
               const n        = norm(s.score)
               const bg       = heatColor(n)
@@ -97,7 +103,6 @@ export default function SubnetHeatMap() {
                   className="relative cursor-default select-none rounded-xl flex flex-col items-center justify-center transition-transform hover:scale-105 hover:z-10"
                   style={{
                     background: bg,
-                    height: 92,
                     outline:      isTaoBot ? '2px solid #00e5a0' : 'none',
                     outlineOffset: '2px',
                     boxShadow:    isTaoBot ? '0 0 14px rgba(0,229,160,0.50)' : undefined,
@@ -156,9 +161,10 @@ export default function SubnetHeatMap() {
             </div>
           )}
         </div>
-      )}
+        )
+      })()}
 
-      <div className="mt-3 flex items-center gap-4 text-[10px] font-mono text-slate-500">
+      <div className="mt-3 flex-shrink-0 flex items-center gap-4 text-[10px] font-mono text-slate-500">
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-accent-green inline-block" />
           TaoBot validator active
