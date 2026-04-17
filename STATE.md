@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-04-16 (Session VII)
-**Status:** LIVE — wallet loaded (5DjztH…4Evs), balance 0.227 TAO, bot running cycle 18, BT_MNEMONIC persisted to /app/.user_env.sh  
+**Last updated:** 2026-04-17 (Session VIII)
+**Status:** LIVE — 3 active LIVE strategies (Yield Maximizer, Balanced Risk, Breakout Hunter), wallet τ0.227, BT_MNEMONIC persisted  
 **Maintained by:** II Agent + Owner  
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -125,12 +125,60 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 **Decision:** Free tiers only — Finney public RPC + CoinGecko free.  
 **Why:** At current wallet scale (0.000451 τ), paid infrastructure would dwarf the portfolio value. Revisit when balance grows.
 
+### D-10 — Mission Control is the situational awareness hub (Session VIII)
+**Decision:** Network Heat Map moved from Wallet page to Mission Control, placed side-by-side with Activity Stream.  
+**Why:** The Wallet page is for wallet management only (coldkey, balance, restore). Mission Control is the ops centre — fleet status, market state, and network heat should all live there. Activity stream capped at 20 events to prevent infinite scroll.
+
+### D-11 — LIVE/PAPER disclosure must be dynamic (Session VIII)
+**Decision:** All UI banners that declare "paper trading" or "live trading" must read from `overall_mode` at runtime — never hardcoded.  
+**Why:** Hardcoded "Paper Trading" labels across Dashboard and Trades page were factually wrong once the system went LIVE. A user should never have to doubt whether real money is moving.
+
+### D-12 — Fleet expansion: 3 active LIVE strategies (Session VIII)
+**Decision:** Promoted Breakout Hunter (PAPER_ONLY → LIVE) and activated Balanced Risk (LIVE-armed → is_active=True). Sentiment Surge held at APPROVED for one more observation window.  
+**Why:** Orchestrator judgment. Breakout Hunter (60% WR, +0.0441τ, all gates clear) and Balanced Risk (65.5% WR, +0.052τ, all gates clear) have both proven themselves in simulation. Three diverse LIVE strategies give OpenClaw richer cross-signal consensus data while keeping risk bounded. Sentiment Surge is next — one more observation window for discipline.  
+**Rule:** Never promote more than 2 strategies per session. Compound risk slowly.
+
 ---
 
 ## 5. CURRENT STATE
 *(Update this section at the end of every session)*
 
-### 5a. System Status — Session VII (2026-04-16)
+### 5a. System Status — Session VIII (2026-04-17)
+```
+network_connected  :  True  ✅
+simulation_mode    :  False ✅
+wallet_connected   :  True  ✅
+wallet_loaded      :  True  ✅  (mnemonic sourced from BT_MNEMONIC env var — auto-loads)
+wallet_address     :  5HMXmud5v6zUz84fm3azwLyENFpbtq5CFK6ZeShA4EqcECAT  ← CORRECT
+wallet_balance     :  0.227τ (~$55) — confirmed live on-chain
+Frontend port      :  3005  (Vite dev server — may increment each session)
+Backend port       :  8001  (FastAPI uvicorn — may increment each session)
+TAO/USD price      :  $254.71
+RSI-14             :  46.2  (Neutral)
+
+TRADING MODE GATES:
+  chain_connected       :  True  ✅
+  validator_configured  :  True  ✅  (5E2LP6EnZ54m3wS8s1yPvD5c3xo71kQroBw7aUVK32TKeZ5u)
+  validator_in_memory   :  True  ✅
+  live_strategies       :  3     ← expanded this session
+
+overall_mode          :  LIVE ✅
+trade_amount          :  0.0001τ
+
+SESSION VIII ACTIONS:
+  - Full UI walkthrough completed across all 12 pages
+  - Mission Control: activity stream split to half-width, heatmap placed side-by-side
+  - Activity stream capped at 20 events (was 60, unbounded)
+  - Trades page: disclosure banner now dynamic — green LIVE / yellow PAPER based on state
+  - Dashboard: "Paper Trading" subtitle replaced with live botStatus.simulation_mode read
+  - FLEET EXPANSION (Orchestrator decision):
+      * Breakout Hunter  → promoted PAPER_ONLY → LIVE + activated  (60.0% WR, +0.0441τ)
+      * Balanced Risk    → activated (was already LIVE mode, is_active flipped true)  (65.5% WR)
+      * Sentiment Surge  → held at APPROVED_FOR_LIVE (one more observation window)
+  - Fleet now: 3 LIVE active, 1 APPROVED standby, 8 PAPER gated
+```
+
+### 5a-prev. System Status — Session VII (2026-04-16)
 ```
 network_connected  :  True  ✅
 simulation_mode    :  False ✅
@@ -187,36 +235,35 @@ WALLET ARCHITECTURE DECISION (D-09):
 
 ### 5c. Trading Status
 ```
-Total trades logged  :  3,816+
-Real trades (tx_hash):  26  (first 26 = old unknown wallet, now irrelevant)
-Paper trades         :  3,790+
-New wallet real trades:  0  ← first real tx_hash on clean wallet is next
+Total trades logged  :  3,900+
+Real trades (tx_hash):  3   (all on clean wallet 5HMXmud…CAT)
+  - Trade #228  :  block:7983364  manual BUY  τ0.0001  (pre-fix — was displaying as paper)
+  - Trade #246  :  block:7983364  manual BUY  τ0.0001  (first confirmed manual real trade)
+  - Trade #275  :  block:7983364  Yield Maximizer  τ0.0001  (first autonomous real trade, RSI=11.4)
+Paper trades     :  3,897+  (3,500+ are pre-clean-wallet historical, pending archive decision)
 
-SESSION VI ACTIONS (April 16, evening):
-  - Discovered 5GgR...e7L wallet had $9k staking history — not a clean bot wallet
-  - Paused all trading, wiped mnemonic
-  - Built POST /api/wallet/generate endpoint — generates fresh BIP39 wallet
-  - Rebuilt Wallet page: "Generate New Wallet" tab (primary) + "Restore Existing" tab
-  - Restored 5DjztH...4Evs — zero history, 0.227τ funded, clean slate (Session VI STATE.md had wrong address — was capturing generate_wallet() output, not the user-restored address)
-  - Armed yield_maximizer (77.4% win rate) as sole LIVE strategy
-  - overall_mode: LIVE ✅ — all 4 gates passing on clean wallet
+ACTIVE LIVE STRATEGIES (Session VIII):
+  1. yield_maximizer   LIVE  83.3% WR  +0.0232τ  177 cycles  is_active=True
+  2. balanced_risk     LIVE  65.5% WR  +0.0520τ  177 cycles  is_active=True  ← activated S8
+  3. breakout_hunter   LIVE  60.0% WR  +0.0441τ  177 cycles  is_active=True  ← promoted S8
 ```
 
-### 5d. All Strategies (all PAPER_ONLY)
-| Strategy | Mode | Win Rate |
-|----------|------|----------|
-| momentum_cascade | PAPER_ONLY | 59.6% |
-| dtao_flow_momentum | PAPER_ONLY | 65.2% |
-| liquidity_hunter | PAPER_ONLY | 64.5% |
-| emission_momentum | PAPER_ONLY | 72.7% |
-| balanced_risk | PAPER_ONLY | 68.0% |
-| mean_reversion | PAPER_ONLY | 39.4% |
-| volatility_arb | PAPER_ONLY | 55.2% |
-| sentiment_surge | PAPER_ONLY | 45.6% |
-| macro_correlation | PAPER_ONLY | 51.1% |
-| breakout_hunter | PAPER_ONLY | 58.2% |
-| yield_maximizer | PAPER_ONLY | 77.4% |
-| contrarian_flow | PAPER_ONLY | 60.2% |
+### 5d. All Strategies — Current Mode (Session VIII)
+| Strategy | Mode | Win Rate | PnL (τ) | Gates | Active |
+|----------|------|----------|---------|-------|--------|
+| yield_maximizer | **LIVE** | 83.3% | +0.0232 | ✅ ALL CLEAR | ✅ Yes |
+| balanced_risk | **LIVE** | 65.5% | +0.0520 | ✅ ALL CLEAR | ✅ Yes |
+| breakout_hunter | **LIVE** | 60.0% | +0.0441 | ✅ ALL CLEAR | ✅ Yes |
+| sentiment_surge | APPROVED_FOR_LIVE | 58.1% | +0.0273 | ✅ ALL CLEAR | ⏸ Standby |
+| volatility_arb | APPROVED_FOR_LIVE | 54.1% | +0.0097 | ⚠ WR gate | ⏸ Standby |
+| breakout_hunter | APPROVED_FOR_LIVE | 60.0% | +0.0441 | ✅ ALL CLEAR | — promoted ↑ |
+| dtao_flow_momentum | PAPER_ONLY | 53.9% | +0.1677 | ⚠ WR gate | ❌ No |
+| momentum_cascade | PAPER_ONLY | 49.8% | +0.1229 | ⚠ WR gate | ❌ No |
+| emission_momentum | PAPER_ONLY | 54.1% | +0.0600 | ⚠ WR gate | ❌ No |
+| contrarian_flow | PAPER_ONLY | 51.9% | +0.0214 | ⚠ WR gate | ❌ No |
+| liquidity_hunter | PAPER_ONLY | 43.8% | +0.0901 | ❌ Multi-gate | ❌ No |
+| macro_correlation | PAPER_ONLY | 42.1% | -0.0106 | ❌ Multi-gate + PnL | ❌ No |
+| mean_reversion | PAPER_ONLY | 40.5% | +0.0002 | ❌ Multi-gate | ❌ No |
 
 ### 5e. External Dependencies
 | Service | URL | Cost | Status |
