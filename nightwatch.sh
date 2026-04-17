@@ -14,6 +14,7 @@
 
 FRONTEND_PORT=3004
 BACKEND_PORT=8001
+TUNNEL_URL="https://3004-i016jda98v65cspsvnnna.e2b.app"
 LOG="/workspace/autonomous-trade-bot/nightwatch.log"
 FRONTEND_DIR="/workspace/autonomous-trade-bot/frontend"
 BACKEND_DIR="/workspace/autonomous-trade-bot/backend"
@@ -71,14 +72,19 @@ while true; do
     fi
   fi
 
-  # ── 2. Check frontend vite process ───────────────────────────────────────
+  # ── 2. Ping external tunnel URL (keeps e2b tunnel from closing) ──────────
+  if [ -n "$TUNNEL_URL" ]; then
+    curl -sf --max-time 8 "$TUNNEL_URL" -o /dev/null 2>/dev/null || true
+  fi
+
+  # ── 3. Check frontend vite process ───────────────────────────────────────
   if ! pgrep -f "vite" > /dev/null 2>&1; then
     echo "[$(date '+%H:%M:%S ET')] ❌ Frontend (vite) down — restarting…" >> "$LOG"
     start_frontend
     sleep 5
   fi
 
-  # ── 3. Heartbeat log every ~5 minutes (silent otherwise) ─────────────────
+  # ── 4. Heartbeat log every ~5 minutes (silent otherwise) ─────────────────
   MINUTE=$(date '+%M')
   if [ "$MINUTE" = "00" ] || [ "$MINUTE" = "05" ] || [ "$MINUTE" = "10" ] || \
      [ "$MINUTE" = "15" ] || [ "$MINUTE" = "20" ] || [ "$MINUTE" = "25" ] || \
