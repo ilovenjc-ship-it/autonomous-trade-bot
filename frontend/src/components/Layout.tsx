@@ -31,10 +31,18 @@ const navItems = [
 ]
 
 export default function Layout() {
-  const status = useBotStore((s) => s.status)
-  const isRunning = status?.is_running ?? false
-  const price = status?.current_price
+  const status      = useBotStore((s) => s.status)
+  const fetchStatus = useBotStore((s) => s.fetchStatus)
+  const isRunning   = status?.is_running ?? false
+  const price       = status?.current_price
   const { unreadCount } = useAlerts()
+
+  // ── Global status poller — keeps data alive on every page ─────────
+  useEffect(() => {
+    fetchStatus()                                    // immediate on mount
+    const id = setInterval(fetchStatus, 15_000)      // refresh every 15 s
+    return () => clearInterval(id)
+  }, [fetchStatus])
 
   // ── Orb toggle + floating chat state ─────────────────────────────
   const [orbOpen,     setOrbOpen]     = useState(false)
