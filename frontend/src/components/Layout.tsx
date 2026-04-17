@@ -3,7 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
   Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
-  Mic, Send, ChevronDown,
+  Mic, Send, ChevronDown, DollarSign,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -20,6 +20,7 @@ const navItems = [
   { to: '/openclaw',         icon: Vote,            label: 'OpenClaw BFT'    },
   { to: '/alerts',           icon: Bell,            label: 'Alerts',         badge: true },
   { to: '/analytics',        icon: BarChart2,       label: 'Analytics'       },
+  { to: '/pnl',              icon: DollarSign,      label: 'P&L Summary'     },
   { to: '/trades',           icon: ArrowLeftRight,  label: 'Trades'          },
   { to: '/trade-log',        icon: BookOpen,        label: 'Trade Log'       },
   { to: '/market',           icon: Globe,           label: 'Market Data'     },

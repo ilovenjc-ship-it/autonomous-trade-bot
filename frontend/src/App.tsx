@@ -17,6 +17,7 @@ import StrategyDetail from './pages/StrategyDetail'
 import OpenClaw from './pages/OpenClaw'
 import IIAgent from './pages/IIAgent'
 import AlertInbox from './pages/AlertInbox'
+import PnLSummary from './pages/PnLSummary'
 
 export default function App() {
   return (
@@ -45,6 +46,7 @@ export default function App() {
           <Route path="/fleet"           element={<AgentFleet />}     />
           <Route path="/risk"            element={<RiskConfig />}     />
           <Route path="/analytics"       element={<Analytics />}      />
+          <Route path="/pnl"             element={<PnLSummary />}     />
           <Route path="/activity"        element={<ActivityLog />}    />
           <Route path="/trade-log"       element={<TradeLog />}       />
           <Route path="/market"          element={<MarketData />}     />

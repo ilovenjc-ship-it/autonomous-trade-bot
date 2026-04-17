@@ -17,7 +17,7 @@ from services.agent_service import agent_service
 from services.bittensor_service import bittensor_service
 from services.subnet_router import set_primary_validator
 from services.promotion_service import promotion_service
-from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent, alerts, wallet
+from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent, alerts, wallet, pnl
 
 logging.basicConfig(
     level=logging.INFO,
@@ -168,6 +168,7 @@ app.include_router(consensus.router)
 app.include_router(agent.router)
 app.include_router(alerts.router)
 app.include_router(wallet.router)
+app.include_router(pnl.router)
 
 
 @app.get("/")
