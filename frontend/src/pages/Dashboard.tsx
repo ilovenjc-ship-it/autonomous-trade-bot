@@ -2,11 +2,12 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   Play, Square, RefreshCw, TrendingUp, TrendingDown,
   Activity, Zap, Bot, Shield, BarChart2, Clock, Award, Radio,
-  Brain, Vote, Bell, Wallet,
+  Brain, Vote, Bell, Wallet, ArrowUp, ArrowDown, Minus,
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
+  ComposedChart, Bar,
 } from 'recharts'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
@@ -57,12 +58,242 @@ interface ActivityEvent {
   strategy?: string; timestamp: string
 }
 
+interface PricePoint {
+  timestamp: number
+  price: number
+  volume: number
+  time: string   // formatted label
+}
+
+interface Subnet {
+  uid: number
+  name: string
+  ticker: string
+  stake_tao: number
+  stake_usd: number
+  emission: number
+  apy: number
+  miners: number
+  trend: 'up' | 'down' | 'neutral'
+  score: number
+}
+
+type PriceRange = '1H' | '6H' | '24H' | '7D'
+
 // ── helpers ───────────────────────────────────────────────────────────────────
 function fmt(n: number, d = 4) {
   const s = Math.abs(n).toFixed(d)
   return n >= 0 ? `+${s}` : `-${s}`
 }
 
+// ── TAO price chart ───────────────────────────────────────────────────────────
+const RANGE_LABELS: PriceRange[] = ['1H', '6H', '24H', '7D']
+const RANGE_HOURS: Record<PriceRange, number> = { '1H': 1, '6H': 6, '24H': 24, '7D': 168 }
+
+function fmtPriceTime(ts: number, range: PriceRange): string {
+  const d = new Date(ts)
+  if (range === '7D') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
+}
+
+function TaoPriceChart({ data, range, onRange }: {
+  data: PricePoint[]; range: PriceRange; onRange: (r: PriceRange) => void
+}) {
+  const prices = data.map(d => d.price)
+  const high   = prices.length ? Math.max(...prices) : 0
+  const low    = prices.length ? Math.min(...prices) : 0
+  const first  = data[0]?.price ?? 0
+  const last   = data[data.length - 1]?.price ?? 0
+  const pctChg = first ? ((last - first) / first) * 100 : 0
+  const up     = pctChg >= 0
+
+  return (
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
+      {/* header */}
+      <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+        <div className="flex items-center gap-4">
+          <div>
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">TAO / USD</p>
+            <div className="flex items-baseline gap-2 mt-0.5">
+              <span className="text-2xl font-bold font-mono text-white">
+                ${last ? last.toFixed(2) : '—'}
+              </span>
+              {data.length > 1 && (
+                <span className={clsx('text-sm font-mono font-bold', up ? 'text-accent-green' : 'text-red-400')}>
+                  {up ? '+' : ''}{pctChg.toFixed(2)}%
+                </span>
+              )}
+            </div>
+          </div>
+          {data.length > 1 && (
+            <div className="flex gap-4 text-xs font-mono hidden sm:flex">
+              <div>
+                <p className="text-slate-500">High</p>
+                <p className="text-accent-green font-bold">${high.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-slate-500">Low</p>
+                <p className="text-red-400 font-bold">${low.toFixed(2)}</p>
+              </div>
+              <div>
+                <p className="text-slate-500">Range</p>
+                <p className="text-slate-300 font-bold">${(high - low).toFixed(2)}</p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* range selector */}
+        <div className="flex items-center gap-1 bg-dark-900 border border-dark-600 rounded-lg p-1">
+          {RANGE_LABELS.map(r => (
+            <button key={r} onClick={() => onRange(r)}
+              className={clsx(
+                'px-3 py-1 rounded text-xs font-mono font-bold transition-all',
+                range === r
+                  ? up ? 'bg-accent-green/20 text-accent-green border border-accent-green/30'
+                       : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                  : 'text-slate-500 hover:text-slate-300'
+              )}
+            >{r}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* chart */}
+      {data.length > 1 ? (
+        <ResponsiveContainer width="100%" height={180}>
+          <ComposedChart data={data} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
+            <defs>
+              <linearGradient id="taoGr" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor={up ? '#34d399' : '#f87171'} stopOpacity={0.25} />
+                <stop offset="95%" stopColor={up ? '#34d399' : '#f87171'} stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+            <XAxis dataKey="time" tick={{ fill: '#475569', fontSize: 9 }}
+              tickLine={false} axisLine={false} interval="preserveStartEnd" />
+            <YAxis
+              domain={['auto', 'auto']}
+              tick={{ fill: '#475569', fontSize: 9 }}
+              tickLine={false} axisLine={false}
+              tickFormatter={v => `$${v.toFixed(0)}`}
+              width={52}
+            />
+            <Tooltip
+              contentStyle={{ background: '#0d1117', border: '1px solid #1e293b', borderRadius: 8, fontSize: 11, fontFamily: 'monospace' }}
+              formatter={(v: any, name: string) => [
+                name === 'price' ? `$${(v as number).toFixed(2)}` : `$${((v as number) / 1e6).toFixed(1)}M`,
+                name === 'price' ? 'TAO Price' : 'Volume',
+              ]}
+              labelFormatter={label => `Time: ${label}`}
+            />
+            <Bar dataKey="volume" fill={up ? '#34d399' : '#f87171'} fillOpacity={0.12} yAxisId={0} />
+            <Area dataKey="price" stroke={up ? '#34d399' : '#f87171'} strokeWidth={2}
+              fill="url(#taoGr)" dot={false} />
+          </ComposedChart>
+        </ResponsiveContainer>
+      ) : (
+        <div className="h-[180px] flex items-center justify-center text-slate-500 font-mono text-sm">
+          Loading price data…
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── subnet mini cards ─────────────────────────────────────────────────────────
+function TrendIcon({ trend }: { trend: string }) {
+  if (trend === 'up')   return <ArrowUp size={11} className="text-accent-green" />
+  if (trend === 'down') return <ArrowDown size={11} className="text-red-400" />
+  return <Minus size={11} className="text-slate-500" />
+}
+
+function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
+  const stakePct = maxStake ? (s.stake_tao / maxStake) * 100 : 0
+  const trendColor = s.trend === 'up' ? 'text-accent-green' : s.trend === 'down' ? 'text-red-400' : 'text-slate-500'
+  const scoreColor = s.score >= 90 ? '#34d399' : s.score >= 70 ? '#60a5fa' : s.score >= 50 ? '#fbbf24' : '#f87171'
+
+  return (
+    <div className="flex-shrink-0 w-[168px] bg-dark-900 border border-dark-600 rounded-xl p-3 hover:border-dark-500 transition-colors">
+      {/* name + trend */}
+      <div className="flex items-start justify-between mb-2">
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold text-white truncate">{s.name}</p>
+          <p className="text-[9px] text-slate-500 font-mono uppercase">{s.ticker}</p>
+        </div>
+        <div className="flex items-center gap-0.5 flex-shrink-0 ml-1">
+          <TrendIcon trend={s.trend} />
+          <span className={clsx('text-[9px] font-mono font-bold', trendColor)}>
+            {s.trend.toUpperCase()}
+          </span>
+        </div>
+      </div>
+
+      {/* stake bar */}
+      <div className="mb-2">
+        <div className="flex justify-between text-[9px] font-mono mb-1">
+          <span className="text-slate-500">Stake</span>
+          <span className="text-slate-300">{(s.stake_tao / 1e6).toFixed(2)}M τ</span>
+        </div>
+        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
+          <div className="h-full bg-accent-blue/60 rounded-full transition-all"
+            style={{ width: `${stakePct}%` }} />
+        </div>
+      </div>
+
+      {/* stats row */}
+      <div className="grid grid-cols-2 gap-1.5 mb-2">
+        <div className="bg-dark-800 rounded px-2 py-1 text-center">
+          <p className="text-[9px] text-slate-500 font-mono">APY</p>
+          <p className="text-[11px] font-bold text-accent-green font-mono">{s.apy.toFixed(1)}%</p>
+        </div>
+        <div className="bg-dark-800 rounded px-2 py-1 text-center">
+          <p className="text-[9px] text-slate-500 font-mono">Emit</p>
+          <p className="text-[11px] font-bold text-yellow-400 font-mono">{(s.emission * 100).toFixed(2)}%</p>
+        </div>
+      </div>
+
+      {/* score gauge */}
+      <div>
+        <div className="flex justify-between text-[9px] font-mono mb-1">
+          <span className="text-slate-500">Score</span>
+          <span className="font-bold" style={{ color: scoreColor }}>{s.score.toFixed(1)}</span>
+        </div>
+        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
+          <div className="h-full rounded-full transition-all"
+            style={{ width: `${Math.min(100, s.score)}%`, background: scoreColor }} />
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function SubnetMiniRow({ subnets }: { subnets: Subnet[] }) {
+  const maxStake = subnets.length ? Math.max(...subnets.map(s => s.stake_tao)) : 1
+  return (
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+          <BarChart2 size={14} className="text-accent-blue" />
+          Top Subnets
+          <span className="text-[10px] text-slate-500 font-mono font-normal">by stake · live</span>
+        </h2>
+        <span className="text-[10px] text-slate-500 font-mono">{subnets.length} subnets</span>
+      </div>
+      {subnets.length > 0 ? (
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
+          {subnets.map(s => <SubnetCard key={s.uid} s={s} maxStake={maxStake} />)}
+        </div>
+      ) : (
+        <div className="h-[120px] flex items-center justify-center text-slate-500 font-mono text-sm">
+          Loading subnet data…
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── KPI ───────────────────────────────────────────────────────────────────────
 function KPI({ label, value, sub, color, icon: Icon }: {
   label: string; value: string; sub?: string; color?: string; icon: React.ElementType
 }) {
@@ -112,7 +343,39 @@ export default function Dashboard() {
   const [consensusStats, setConsensusStats] = useState<ConsensusStats | null>(null)
   const [walletStatus,   setWalletStatus]   = useState<WalletStatus | null>(null)
   const [unreadAlerts,   setUnreadAlerts]   = useState(0)
+  // Charts
+  const [priceHistory,   setPriceHistory]   = useState<PricePoint[]>([])
+  const [priceRange,     setPriceRange]     = useState<PriceRange>('24H')
+  const [subnets,        setSubnets]        = useState<Subnet[]>([])
   
+
+  const loadCharts = useCallback(async (range: PriceRange) => {
+    try {
+      const days = range === '7D' ? 7 : 1
+      const [priceRes, subnetRes] = await Promise.all([
+        fetch(`/api/price/history?days=${days}`).then(r => r.json()).catch(() => null),
+        fetch('/api/market/subnets?limit=8').then(r => r.json()).catch(() => null),
+      ])
+      if (priceRes?.data) {
+        // Filter to the requested range
+        const cutoffMs = Date.now() - RANGE_HOURS[range] * 3600 * 1000
+        const raw: PricePoint[] = priceRes.data
+          .filter((p: any) => p.timestamp >= cutoffMs)
+          .map((p: any) => ({
+            timestamp: p.timestamp,
+            price: p.price,
+            volume: p.volume ?? 0,
+            time: fmtPriceTime(p.timestamp, range),
+          }))
+        // Downsample to max 120 points for perf
+        const stride = Math.max(1, Math.floor(raw.length / 120))
+        setPriceHistory(raw.filter((_, i) => i % stride === 0))
+      }
+      if (subnetRes?.subnets) setSubnets(subnetRes.subnets)
+    } catch (e) {
+      console.error('Chart load error', e)
+    }
+  }, [])
 
   const load = useCallback(async () => {
     try {
@@ -147,13 +410,15 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => { load() }, [load])
+  useEffect(() => { loadCharts(priceRange) }, [loadCharts, priceRange])
 
   // refresh every 15s, tick every second for cycle countdown
   useEffect(() => {
     const refresh = setInterval(load, 15_000)
+    const chartRefresh = setInterval(() => loadCharts(priceRange), 60_000)
     const countdown = setInterval(() => setTick(t => t + 1), 1_000)
-    return () => { clearInterval(refresh); clearInterval(countdown) }
-  }, [load])
+    return () => { clearInterval(refresh); clearInterval(chartRefresh); clearInterval(countdown) }
+  }, [load, loadCharts, priceRange])
 
   const handleToggle = async () => {
     setBotBusy(true)
@@ -353,6 +618,16 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* ── TAO Price Chart ──────────────────────────────────────────────────── */}
+      <TaoPriceChart
+        data={priceHistory}
+        range={priceRange}
+        onRange={r => setPriceRange(r)}
+      />
+
+      {/* ── Subnet Mini Charts ───────────────────────────────────────────────── */}
+      <SubnetMiniRow subnets={subnets} />
 
       {/* ── Main 2-col ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
