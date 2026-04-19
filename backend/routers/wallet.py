@@ -20,8 +20,27 @@ class MnemonicRequest(BaseModel):
 
 @router.get("/status")
 async def wallet_status():
-    """Return cached wallet status (no chain call — instant)."""
-    return bittensor_service.get_status()
+    """
+    Return wallet status with a fresh chain balance if cached data
+    is older than 30 seconds — otherwise return cached instantly.
+    """
+    import time, datetime
+    status = bittensor_service.get_status()
+    # Check if cached balance is stale (> 30 seconds old)
+    last_at = status.get("last_chain_at")
+    stale = True
+    if last_at:
+        try:
+            ts = datetime.datetime.fromisoformat(str(last_at).replace("Z", "+00:00"))
+            age = time.time() - ts.timestamp()
+            stale = age > 30
+        except Exception:
+            stale = True
+    if stale and bittensor_service.connected:
+        # Refresh balance from chain in background — don't block response
+        import asyncio
+        asyncio.create_task(bittensor_service.get_chain_info())
+    return status
 
 
 @router.get("/chain")

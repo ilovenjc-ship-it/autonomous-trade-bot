@@ -260,7 +260,17 @@ export default function Dashboard() {
       </div>
 
       {/* ── KPI row ──────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        {/* Account Balance — live from Finney chain */}
+        <KPI label="Account Balance" icon={Wallet}
+          value={walletStatus?.balance_cached != null
+            ? `τ${walletStatus.balance_cached.toFixed(4)}`
+            : '—'}
+          sub={walletStatus?.balance_cached != null && price
+            ? `$${(walletStatus.balance_cached * price).toFixed(2)} USD`
+            : walletStatus?.connected ? 'Querying chain…' : 'Offline'}
+          color="text-indigo-400"
+        />
         <KPI label="TAO Price" icon={TrendingUp}
           value={price ? `$${price.toFixed(2)}` : '—'}
           sub={change24h != null ? `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}% 24h` : undefined}
