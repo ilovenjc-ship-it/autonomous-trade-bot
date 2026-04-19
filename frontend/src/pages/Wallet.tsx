@@ -3,11 +3,209 @@ import {
   Wallet as WalletIcon, Copy, ExternalLink, ShieldCheck,
   KeyRound, CheckCircle2, RefreshCw, Eye, EyeOff,
   PieChart, Lock, AlertTriangle, Layers,
-  Sparkles, RotateCcw, Send,
+  Sparkles, RotateCcw, Send, Target, Edit3, Trophy,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
+
+// ── Recovery Tracker ──────────────────────────────────────────────────────────
+const TARGET_STORAGE_KEY = 'tao_recovery_target'
+const DEFAULT_TARGET = 1.0
+
+function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPrice: number | null }) {
+  const [target,    setTarget]    = useState<number>(() => {
+    const stored = localStorage.getItem(TARGET_STORAGE_KEY)
+    return stored ? parseFloat(stored) : DEFAULT_TARGET
+  })
+  const [editing,   setEditing]   = useState(false)
+  const [editVal,   setEditVal]   = useState(String(target))
+
+  const pct        = balance != null ? Math.min(100, (balance / target) * 100) : 0
+  const remaining  = balance != null ? Math.max(0, target - balance) : null
+  const usdRemain  = remaining != null && taoPrice ? remaining * taoPrice : null
+  const usdTarget  = taoPrice ? target * taoPrice : null
+  const achieved   = balance != null && balance >= target
+
+  // bar color by progress
+  const barColor =
+    pct >= 100 ? '#34d399' :   // green — achieved
+    pct >= 75  ? '#34d399' :   // green — almost there
+    pct >= 50  ? '#60a5fa' :   // blue  — halfway
+    pct >= 25  ? '#fbbf24' :   // yellow — getting started
+                 '#6366f1'     // indigo — early
+
+  const glowColor =
+    pct >= 75  ? 'rgba(52,211,153,0.35)' :
+    pct >= 50  ? 'rgba(96,165,250,0.35)' :
+    pct >= 25  ? 'rgba(251,191,36,0.35)' :
+                 'rgba(99,102,241,0.35)'
+
+  function saveTarget() {
+    const v = parseFloat(editVal)
+    if (!v || v <= 0) { toast.error('Enter a valid target'); return }
+    setTarget(v)
+    localStorage.setItem(TARGET_STORAGE_KEY, String(v))
+    setEditing(false)
+    toast.success(`Target updated to τ${v}`)
+  }
+
+  const MILESTONES = [0.25, 0.5, 0.75, 1.0].map(f => ({
+    pct: f * 100,
+    val: (target * f).toFixed(3),
+    reached: pct >= f * 100,
+  }))
+
+  return (
+    <div className={clsx(
+      'rounded-xl border p-5 transition-all',
+      achieved
+        ? 'bg-accent-green/8 border-accent-green/40 shadow-[0_0_24px_rgba(52,211,153,0.15)]'
+        : 'bg-dark-800 border-dark-600'
+    )}>
+
+      {/* header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          {achieved
+            ? <Trophy size={16} className="text-yellow-400" />
+            : <Target size={16} className="text-accent-blue" />}
+          <h2 className="text-sm font-semibold text-white">
+            {achieved ? 'Target Achieved 🎉' : 'Recovery Tracker'}
+          </h2>
+          <span className="text-[10px] text-slate-500 font-mono ml-1">
+            {achieved ? 'Next milestone?' : `toward τ${target.toFixed(3)}`}
+          </span>
+        </div>
+
+        {/* edit target */}
+        {!editing ? (
+          <button
+            onClick={() => { setEditVal(String(target)); setEditing(true) }}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-mono text-slate-400
+                       border border-dark-600 hover:text-white hover:border-dark-500 transition-colors"
+          >
+            <Edit3 size={10} /> Edit Target
+          </button>
+        ) : (
+          <div className="flex items-center gap-2">
+            <input
+              type="number" min="0.001" step="0.1"
+              value={editVal}
+              onChange={e => setEditVal(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && saveTarget()}
+              className="w-24 bg-dark-900 border border-accent-blue/40 rounded-lg px-2 py-1
+                         text-xs font-mono text-white focus:outline-none"
+              autoFocus
+            />
+            <button onClick={saveTarget}
+              className="px-2.5 py-1 rounded-lg text-[10px] font-mono bg-accent-blue/15
+                         text-accent-blue border border-accent-blue/30 hover:bg-accent-blue/25 transition-colors">
+              Set
+            </button>
+            <button onClick={() => setEditing(false)}
+              className="text-[10px] text-slate-500 hover:text-slate-300 font-mono transition-colors">
+              Cancel
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* big progress bar */}
+      <div className="relative mb-2">
+        <div className="h-5 bg-dark-700 rounded-full overflow-hidden border border-dark-600">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{
+              width: `${Math.max(pct, balance != null ? 1 : 0)}%`,
+              background: barColor,
+              boxShadow: pct > 0 ? `0 0 12px ${glowColor}` : 'none',
+            }}
+          />
+        </div>
+
+        {/* milestone dots */}
+        {MILESTONES.map(m => (
+          <div
+            key={m.pct}
+            className="absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 transition-all"
+            style={{
+              left: `calc(${m.pct}% - 5px)`,
+              borderColor: m.reached ? barColor : '#334155',
+              background: m.reached ? barColor : '#1e293b',
+              boxShadow: m.reached ? `0 0 6px ${glowColor}` : 'none',
+            }}
+          />
+        ))}
+      </div>
+
+      {/* milestone labels */}
+      <div className="relative h-5 mb-4">
+        {MILESTONES.map(m => (
+          <div
+            key={m.pct}
+            className="absolute flex flex-col items-center"
+            style={{ left: `calc(${m.pct}% - 20px)`, width: 40 }}
+          >
+            <span className={clsx(
+              'text-[9px] font-mono leading-tight text-center',
+              m.reached ? 'text-slate-300' : 'text-slate-600'
+            )}>
+              τ{m.val}
+            </span>
+          </div>
+        ))}
+      </div>
+
+      {/* stats row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {/* current */}
+        <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
+          <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono mb-1">Current</p>
+          <p className={clsx('text-lg font-black font-mono', balance != null ? 'text-white' : 'text-slate-600')}>
+            {balance != null ? `τ${balance.toFixed(4)}` : '—'}
+          </p>
+          {balance != null && taoPrice && (
+            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+              ${(balance * taoPrice).toFixed(2)}
+            </p>
+          )}
+        </div>
+
+        {/* target */}
+        <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
+          <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono mb-1">Target</p>
+          <p className="text-lg font-black font-mono text-accent-blue">τ{target.toFixed(3)}</p>
+          {usdTarget && (
+            <p className="text-[10px] text-slate-400 font-mono mt-0.5">${usdTarget.toFixed(2)}</p>
+          )}
+        </div>
+
+        {/* remaining */}
+        <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
+          <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono mb-1">Remaining</p>
+          <p className={clsx('text-lg font-black font-mono', achieved ? 'text-accent-green' : 'text-yellow-400')}>
+            {achieved ? '✓ Done' : remaining != null ? `τ${remaining.toFixed(4)}` : '—'}
+          </p>
+          {!achieved && usdRemain != null && (
+            <p className="text-[10px] text-slate-400 font-mono mt-0.5">${usdRemain.toFixed(2)} to go</p>
+          )}
+        </div>
+
+        {/* progress % */}
+        <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
+          <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono mb-1">Progress</p>
+          <p className="text-lg font-black font-mono" style={{ color: barColor }}>
+            {balance != null ? `${pct.toFixed(1)}%` : '—'}
+          </p>
+          <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+            {pct >= 75 ? 'Almost there' : pct >= 50 ? 'Halfway' : pct >= 25 ? 'Building' : 'Starting'}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 
 
@@ -236,6 +434,12 @@ export default function WalletPage() {
           <span className="text-indigo-400 font-bold">τ{balance.toFixed(6)}</span></>)}
         <span className="ml-auto text-slate-300">finney.opentensor.ai</span>
       </div>
+
+      {/* ── Recovery Tracker ────────────────────────────────────────────────── */}
+      <RecoveryTracker
+        balance={chainInfo?.balance_tao ?? null}
+        taoPrice={taoPrice}
+      />
 
       {/* ══════════════════════════════════════════════════════════════════════
           ZONE 1 — Two-column: [Coldkey + Portfolio] | [Recovery Phrase]
