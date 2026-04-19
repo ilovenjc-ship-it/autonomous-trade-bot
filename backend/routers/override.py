@@ -44,6 +44,77 @@ def _push(kind: str, message: str, strategy: Optional[str] = None):
         pass   # never block a command because the activity stream failed
 
 
+async def _auto_rebalance(reason: str) -> None:
+    """
+    Trigger a capital rebalance automatically after a promote/demote.
+    Called internally — never exposed as a direct human button.
+    Runs the same fleet rebalance algorithm but sourced from within the process
+    to avoid an HTTP round-trip.
+    """
+    try:
+        from db.database import AsyncSessionLocal
+        from sqlalchemy import select as _select
+        from models.strategy import Strategy as _Strategy
+        from services.promotion_service import promotion_service as _ps
+        from datetime import timezone as _tz
+
+        async with AsyncSessionLocal() as db:
+            result = await db.execute(_select(_Strategy).order_by(_Strategy.id))
+            strategies = result.scalars().all()
+
+        FLOOR, CAP, TOTAL = 2.0, 30.0, 100.0
+        n = len(strategies)
+        if n == 0:
+            return
+
+        max_pnl = max((abs(s.total_pnl or 0) for s in strategies), default=0.001) or 0.001
+        scores: dict[str, float] = {}
+        for s in strategies:
+            pnl = s.total_pnl or 0
+            wr  = s.win_rate  or 0
+            raw = (wr * 0.6 + (pnl / max_pnl * 100) * 0.4) if (wr > 0 or pnl != 0) else 50.0
+            scores[s.name] = max(0.1, min(100, raw))
+
+        names      = [s.name for s in strategies]
+        floor_pool = FLOOR * n
+        free_pool  = TOTAL - floor_pool
+        total_score = sum(scores.values())
+        raw_alloc   = {nm: FLOOR + (scores[nm] / total_score) * free_pool for nm in names}
+
+        # cap redistribution
+        capped: dict[str, float] = {}
+        overflow = 0.0
+        uncapped_score = 0.0
+        for nm in names:
+            if raw_alloc[nm] > CAP:
+                overflow += raw_alloc[nm] - CAP
+                capped[nm] = CAP
+            else:
+                capped[nm] = raw_alloc[nm]
+                uncapped_score += scores[nm]
+        if overflow > 0 and uncapped_score > 0:
+            for nm in names:
+                if capped[nm] < CAP:
+                    capped[nm] += (scores[nm] / uncapped_score) * overflow
+
+        new_alloc = {nm: round(capped[nm], 2) for nm in names}
+
+        # persist to DB
+        async with AsyncSessionLocal() as db:
+            result2 = await db.execute(_select(_Strategy).order_by(_Strategy.id))
+            strats2 = result2.scalars().all()
+            for s_obj in strats2:
+                alloc = new_alloc.get(s_obj.name, FLOOR)
+                s_obj.allocation_pct = alloc
+            await db.commit()
+
+        _ps._last_rebalanced_at = datetime.now(_tz.utc)
+        _push("system", f"⚖️ Auto-rebalance triggered by {reason}")
+
+    except Exception as e:
+        _push("error", f"Auto-rebalance failed after {reason}: {e}")
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Schemas
 # ─────────────────────────────────────────────────────────────────────────────
@@ -140,9 +211,12 @@ async def promote_strategy(name: str, db: AsyncSession = Depends(get_db)):
     _push("promotion", msg, strategy=name)
     alert_service.system_alert(
         title=f"⬆️ {s.display_name} promoted to {_MODE_LABEL[new_mode]}",
-        message=f"Human override — bypassed gate check. Previous: {_MODE_LABEL[current_mode]}.",
+        message=f"Human override — bypassed gate check. Previous: {_MODE_LABEL[current_mode]}. Capital rebalancing now.",
         level="INFO",
     )
+
+    # Auto-trigger rebalance so capital immediately reflects the mode change
+    await _auto_rebalance(f"promotion of {s.display_name} to {new_mode}")
 
     return {
         "success": True,
@@ -181,9 +255,12 @@ async def demote_strategy(name: str, db: AsyncSession = Depends(get_db)):
     _push("system", msg, strategy=name)
     alert_service.system_alert(
         title=f"⬇️ {s.display_name} demoted to {_MODE_LABEL[new_mode]}",
-        message=f"Human override. Previous: {_MODE_LABEL[current_mode]}.",
+        message=f"Human override. Previous: {_MODE_LABEL[current_mode]}. Capital rebalancing now.",
         level="WARN",
     )
+
+    # Auto-trigger rebalance so capital immediately reflects the mode change
+    await _auto_rebalance(f"demotion of {s.display_name} to {new_mode}")
 
     return {
         "success": True,

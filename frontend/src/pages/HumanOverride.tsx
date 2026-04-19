@@ -79,7 +79,6 @@ export default function HumanOverride() {
   const [loading,     setLoading]     = useState(true)
   const [halting,     setHalting]     = useState(false)
   const [resuming,    setResuming]    = useState(false)
-  const [rebalancing, setRebalancing] = useState(false)
   const [promoCheck,  setPromoCheck]  = useState(false)
 
   // manual trade form
@@ -181,16 +180,6 @@ export default function HumanOverride() {
       }
     } catch { toast.error('Demotion failed') }
     finally { setOpPending(null) }
-  }
-
-  async function doRebalance() {
-    setRebalancing(true)
-    try {
-      const res = await api.post('/override/rebalance')
-      if (res.data.success) toast.success('⚖️ Capital rebalanced')
-      else toast.error(res.data.message || 'Rebalance failed')
-    } catch { toast.error('Rebalance request failed') }
-    finally { setRebalancing(false) }
   }
 
   async function doForcePromoCheck() {
@@ -338,18 +327,6 @@ export default function HumanOverride() {
             </h2>
 
             <button
-              onClick={doRebalance}
-              disabled={rebalancing}
-              className="w-full flex items-center justify-between px-4 py-3 bg-dark-900 border border-dark-600 rounded-lg hover:border-accent-blue/40 hover:bg-accent-blue/5 transition-all text-sm font-mono text-slate-300 hover:text-white"
-            >
-              <span className="flex items-center gap-2">
-                <RefreshCw size={13} className={clsx('text-accent-blue', rebalancing && 'animate-spin')} />
-                Force Capital Rebalance
-              </span>
-              <ChevronRight size={13} className="text-slate-500" />
-            </button>
-
-            <button
               onClick={doForcePromoCheck}
               disabled={promoCheck}
               className="w-full flex items-center justify-between px-4 py-3 bg-dark-900 border border-dark-600 rounded-lg hover:border-yellow-400/40 hover:bg-yellow-400/5 transition-all text-sm font-mono text-slate-300 hover:text-white"
@@ -362,7 +339,7 @@ export default function HumanOverride() {
             </button>
 
             <p className="text-[10px] text-slate-500 font-mono">
-              Rebalance redistributes capital based on current win rates. Gate check evaluates all 12 strategies for promotion eligibility now.
+              Gate check evaluates all 12 strategies for promotion eligibility right now, bypassing the 5-minute throttle. Capital rebalances automatically every 24h and on every promote/demote.
             </p>
           </div>
 
