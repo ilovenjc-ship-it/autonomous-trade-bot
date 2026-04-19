@@ -89,10 +89,34 @@ function ResultBadge({ pnl }: { pnl: number }) {
   )
 }
 
-function ModeBadge({ txHash }: { txHash: string | null }) {
-  return txHash
-    ? <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">● LIVE</span>
-    : <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">◌ PAPER</span>
+function ModeBadge({ mode, txHash }: { mode: string | undefined; txHash: string | null }) {
+  const onChain = txHash && !txHash.startsWith('block:sim')
+
+  if (mode === 'LIVE') return (
+    <span className="inline-flex items-center gap-1">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+        ● LIVE
+      </span>
+      {onChain && (
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded font-mono text-[9px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+          ⛓ chain
+        </span>
+      )}
+    </span>
+  )
+
+  if (mode === 'APPROVED_FOR_LIVE') return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+      ✅ APPROVED
+    </span>
+  )
+
+  // PAPER_ONLY or unknown
+  return (
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">
+      ◌ PAPER
+    </span>
+  )
 }
 
 function FilterBtn({ active, onClick, children }: {
@@ -125,6 +149,8 @@ export default function TradeLog() {
   const [search,      setSearch]      = useState('')
   const [realCount,   setRealCount]   = useState<number | null>(null)
   const [archivedCount, setArchivedCount] = useState<number | null>(null)
+  // strategy mode map — name → 'LIVE' | 'APPROVED_FOR_LIVE' | 'PAPER_ONLY'
+  const [strategyModes, setStrategyModes] = useState<Record<string, string>>({})
   const PAGE_SIZE = 25
 
   const load = useCallback(async () => {
@@ -152,6 +178,16 @@ export default function TradeLog() {
     api.get('/trades/archive/stats')
       .then(r => setArchivedCount(r.data.archived_paper ?? 0))
       .catch(() => {})
+    // Load strategy modes — refreshed every 30s so promotions show instantly
+    const loadModes = () =>
+      api.get('/strategies').then(r => {
+        const map: Record<string, string> = {}
+        for (const s of r.data ?? []) map[s.name] = s.mode
+        setStrategyModes(map)
+      }).catch(() => {})
+    loadModes()
+    const t = setInterval(loadModes, 30_000)
+    return () => clearInterval(t)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -330,7 +366,9 @@ export default function TradeLog() {
                 <td className="px-4 py-2.5"><TypeBadge type={t.trade_type} /></td>
 
                 {/* Mode */}
-                <td className="px-4 py-2.5"><ModeBadge txHash={t.tx_hash} /></td>
+                <td className="px-4 py-2.5">
+                  <ModeBadge mode={strategyModes[t.strategy ?? '']} txHash={t.tx_hash} />
+                </td>
 
                 {/* Strategy */}
                 <td className="px-4 py-2.5">

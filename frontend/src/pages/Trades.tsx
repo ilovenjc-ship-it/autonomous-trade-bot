@@ -57,6 +57,7 @@ export default function Trades() {
   const [confirming,   setConfirming]     = useState(false)
   const [tradeResult,  setTradeResult]    = useState<TradeResult | null>(null)
   const [tradingMode,  setTradingMode]    = useState<TradingMode | null>(null)
+  const [strategyModes, setStrategyModes] = useState<Record<string, string>>({})
 
   const pages = Math.max(1, Math.ceil((tradeTotal ?? 0) / PAGE_SIZE))
 
@@ -80,6 +81,19 @@ export default function Trades() {
     const t = setInterval(loadTradingMode, 20_000)
     return () => clearInterval(t)
   }, [loadTradingMode])
+
+  // Load strategy modes so per-trade badges reflect current mode not just tx_hash
+  useEffect(() => {
+    const loadModes = () =>
+      api.get('/strategies').then(r => {
+        const map: Record<string, string> = {}
+        for (const s of r.data ?? []) map[s.name] = s.mode
+        setStrategyModes(map)
+      }).catch(() => {})
+    loadModes()
+    const t = setInterval(loadModes, 30_000)
+    return () => clearInterval(t)
+  }, [])
 
   const isLive = tradingMode?.overall_mode === 'LIVE'
 
@@ -458,10 +472,22 @@ export default function Trades() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      {t.tx_hash
-                        ? <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">● LIVE</span>
-                        : <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">◌ PAPER</span>
-                      }
+                      {(() => {
+                        const mode = strategyModes[t.strategy ?? '']
+                        const onChain = t.tx_hash && !t.tx_hash.startsWith('block:sim')
+                        if (mode === 'LIVE') return (
+                          <span className="inline-flex items-center gap-1">
+                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">● LIVE</span>
+                            {onChain && <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">⛓</span>}
+                          </span>
+                        )
+                        if (mode === 'APPROVED_FOR_LIVE') return (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">✅ APPROVED</span>
+                        )
+                        return (
+                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">◌ PAPER</span>
+                        )
+                      })()}
                     </td>
                     <td className="px-4 py-3 font-mono text-white">{t.amount} TAO</td>
                     <td className="px-4 py-3 font-mono">${t.price_at_trade?.toFixed(2)}</td>
