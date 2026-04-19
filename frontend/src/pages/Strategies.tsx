@@ -3,22 +3,48 @@ import { useNavigate } from 'react-router-dom'
 import { useBotStore } from '@/store/botStore'
 import {
   TrendingUp, TrendingDown, ExternalLink, RefreshCw,
-  ArrowUpDown, Shield, Activity, Layers,
+  ArrowUpDown, Shield, Activity, Layers, Zap, BarChart2,
 } from 'lucide-react'
 import clsx from 'clsx'
 import type { Strategy } from '@/types'
 
-// ── mode badge ────────────────────────────────────────────────────────────────
-const MODE_META: Record<string, { label: string; dot: string; badge: string }> = {
-  LIVE:              { label: 'LIVE',     dot: 'bg-accent-green',  badge: 'bg-accent-green/10 text-accent-green border-accent-green/30' },
-  APPROVED_FOR_LIVE: { label: 'APPROVED', dot: 'bg-yellow-400',    badge: 'bg-yellow-400/10 text-yellow-400 border-yellow-400/30' },
-  PAPER_ONLY:        { label: 'PAPER',    dot: 'bg-slate-400',     badge: 'bg-slate-700/60 text-slate-300 border-slate-600' },
+// ── performance tier engine ───────────────────────────────────────────────────
+type Tier = 'elite' | 'solid' | 'neutral' | 'weak' | 'failing'
+
+interface TierMeta {
+  label: string
+  emoji: string
+  multiplier: string
+  multiplierNum: number
+  badgeClass: string
+  allocClass: string
+  barClass: string
+  minWr: number
 }
 
-function healthDot(wr: number) {
-  if (wr >= 55) return 'bg-accent-green'
-  if (wr >= 40) return 'bg-yellow-400'
-  return 'bg-red-400'
+const TIERS: Record<Tier, TierMeta> = {
+  elite:   { label: 'ELITE',   emoji: '🏆', multiplier: '3×', multiplierNum: 3,   minWr: 65, badgeClass: 'bg-yellow-400/15 text-yellow-300 border-yellow-400/40',  allocClass: 'text-yellow-300', barClass: 'bg-yellow-400' },
+  solid:   { label: 'SOLID',   emoji: '✅', multiplier: '1.5×', multiplierNum: 1.5, minWr: 55, badgeClass: 'bg-accent-green/15 text-accent-green border-accent-green/40', allocClass: 'text-accent-green', barClass: 'bg-accent-green' },
+  neutral: { label: 'NEUTRAL', emoji: '⚖️', multiplier: '1×',  multiplierNum: 1,   minWr: 45, badgeClass: 'bg-slate-700/60 text-slate-300 border-slate-600',          allocClass: 'text-slate-300',   barClass: 'bg-accent-blue' },
+  weak:    { label: 'WEAK',    emoji: '⚠️', multiplier: '0.5×', multiplierNum: 0.5, minWr: 35, badgeClass: 'bg-yellow-600/15 text-yellow-500 border-yellow-600/40',    allocClass: 'text-yellow-500', barClass: 'bg-yellow-500' },
+  failing: { label: 'FAILING', emoji: '❌', multiplier: 'SUSP', multiplierNum: 0,   minWr: 0,  badgeClass: 'bg-red-500/15 text-red-400 border-red-500/40',             allocClass: 'text-red-400',    barClass: 'bg-red-500' },
+}
+
+function getTier(winRate: number, totalTrades: number): Tier {
+  // Strategies with < 5 trades don't have enough data — treat as neutral
+  if (totalTrades < 5) return 'neutral'
+  if (winRate >= 65) return 'elite'
+  if (winRate >= 55) return 'solid'
+  if (winRate >= 45) return 'neutral'
+  if (winRate >= 35) return 'weak'
+  return 'failing'
+}
+
+// ── mode badge ────────────────────────────────────────────────────────────────
+const MODE_META: Record<string, { label: string; badge: string; prefix: string }> = {
+  LIVE:              { label: 'LIVE',     prefix: '●', badge: 'bg-accent-green/10 text-accent-green border-accent-green/30' },
+  APPROVED_FOR_LIVE: { label: 'APPROVED', prefix: '◑', badge: 'bg-yellow-400/10 text-yellow-400 border-yellow-400/30' },
+  PAPER_ONLY:        { label: 'PAPER',    prefix: '◌', badge: 'bg-slate-700/60 text-slate-300 border-slate-600' },
 }
 
 function fmt(n: number) {
@@ -27,9 +53,10 @@ function fmt(n: number) {
 }
 
 // ── sort / filter types ───────────────────────────────────────────────────────
-type SortKey  = 'pnl' | 'win_rate' | 'trades' | 'cycles'
-type SortDir  = 'desc' | 'asc'
+type SortKey    = 'pnl' | 'win_rate' | 'trades' | 'cycles' | 'tier'
+type SortDir    = 'desc' | 'asc'
 type ModeFilter = 'all' | 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'LIVE'
+type TierFilter = 'all' | Tier
 
 // ── fleet summary bar ─────────────────────────────────────────────────────────
 function FleetSummary({ strategies }: { strategies: Strategy[] }) {
@@ -40,23 +67,53 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
   const live     = strategies.filter(s => s.mode === 'LIVE').length
   const approved = strategies.filter(s => s.mode === 'APPROVED_FOR_LIVE').length
 
+  // tier counts
+  const tierCounts = strategies.reduce<Record<Tier, number>>(
+    (acc, s) => { const t = getTier(s.win_rate, s.total_trades); acc[t]++; return acc },
+    { elite: 0, solid: 0, neutral: 0, weak: 0, failing: 0 }
+  )
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-      {[
-        { label: 'Strategies',  value: String(n),              color: 'text-white',        icon: <Layers size={12} className="text-accent-blue" /> },
-        { label: 'Fleet Trades', value: String(trades),         color: 'text-white',        icon: <Activity size={12} className="text-accent-blue" /> },
-        { label: 'Avg Win Rate', value: `${winRate.toFixed(1)}%`, color: winRate >= 55 ? 'text-accent-green' : 'text-yellow-400', icon: <TrendingUp size={12} className="text-accent-green" /> },
-        { label: 'Fleet PnL',   value: fmt(pnl),               color: pnl >= 0 ? 'text-accent-green' : 'text-red-400', icon: pnl >= 0 ? <TrendingUp size={12} className="text-accent-green" /> : <TrendingDown size={12} className="text-red-400" /> },
-        { label: 'Live / Approved', value: `${live} / ${approved}`, color: 'text-accent-green', icon: <Shield size={12} className="text-yellow-400" /> },
-      ].map(({ label, value, color, icon }) => (
-        <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex flex-col gap-1">
-          <div className="flex items-center gap-1.5">
-            {icon}
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">{label}</p>
+    <div className="space-y-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+        {[
+          { label: 'Strategies',      value: String(n),                 color: 'text-white',        icon: <Layers size={12} className="text-accent-blue" /> },
+          { label: 'Fleet Trades',    value: trades.toLocaleString(),   color: 'text-white',        icon: <Activity size={12} className="text-accent-blue" /> },
+          { label: 'Avg Win Rate',    value: `${winRate.toFixed(1)}%`,  color: winRate >= 55 ? 'text-accent-green' : 'text-yellow-400', icon: <TrendingUp size={12} className="text-accent-green" /> },
+          { label: 'Fleet PnL (τ)',   value: fmt(pnl),                  color: pnl >= 0 ? 'text-accent-green' : 'text-red-400', icon: pnl >= 0 ? <TrendingUp size={12} className="text-accent-green" /> : <TrendingDown size={12} className="text-red-400" /> },
+          { label: 'Live / Approved', value: `${live} / ${approved}`,   color: 'text-accent-green', icon: <Shield size={12} className="text-yellow-400" /> },
+        ].map(({ label, value, color, icon }) => (
+          <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex flex-col gap-1">
+            <div className="flex items-center gap-1.5">
+              {icon}
+              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">{label}</p>
+            </div>
+            <p className={clsx('text-lg font-bold font-mono', color)}>{value}</p>
           </div>
-          <p className={clsx('text-lg font-bold font-mono', color)}>{value}</p>
+        ))}
+      </div>
+
+      {/* tier distribution bar */}
+      <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-1.5">
+            <BarChart2 size={12} className="text-accent-blue" />
+            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Capital Allocation Tiers</p>
+          </div>
+          <p className="text-[10px] text-slate-500 font-mono">performance-weighted · auto-rebalanced</p>
         </div>
-      ))}
+        <div className="flex items-center gap-4 flex-wrap">
+          {(Object.entries(tierCounts) as [Tier, number][]).map(([tier, count]) => (
+            <div key={tier} className="flex items-center gap-1.5">
+              <span className={clsx('px-1.5 py-0.5 rounded border text-[10px] font-mono font-bold', TIERS[tier].badgeClass)}>
+                {TIERS[tier].emoji} {TIERS[tier].label}
+              </span>
+              <span className="text-sm font-bold font-mono text-white">{count}</span>
+              <span className={clsx('text-[10px] font-mono', TIERS[tier].allocClass)}>{TIERS[tier].multiplier} capital</span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -65,17 +122,24 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
 function StrategyCard({ s }: { s: Strategy }) {
   const navigate = useNavigate()
   const mode     = MODE_META[s.mode] ?? MODE_META.PAPER_ONLY
+  const tier     = getTier(s.win_rate, s.total_trades)
+  const tierMeta = TIERS[tier]
   const gateMax  = 10
   const gatePct  = Math.min(100, Math.round((s.cycles_completed / gateMax) * 100))
+  const isSuspended = tier === 'failing'
 
   return (
-    <div className="card p-5 transition-all hover:border-dark-500 group animate-slide-up flex flex-col">
+    <div className={clsx(
+      'card p-5 transition-all hover:border-dark-500 group animate-slide-up flex flex-col',
+      isSuspended && 'opacity-60',
+      tier === 'elite' && 'border-yellow-400/20 shadow-[0_0_12px_rgba(250,204,21,0.06)]',
+    )}>
 
       {/* ── card header ─────────────────────────────────── */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          {/* health dot */}
-          <span className={clsx('w-2 h-2 rounded-full flex-shrink-0 mt-0.5', healthDot(s.win_rate))} />
+          {/* win-rate colored dot */}
+          <span className={clsx('w-2 h-2 rounded-full flex-shrink-0 mt-0.5', tierMeta.barClass)} />
           <div className="min-w-0">
             <h3 className="text-sm font-semibold text-white leading-tight truncate">
               {s.display_name}
@@ -84,13 +148,14 @@ function StrategyCard({ s }: { s: Strategy }) {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+        <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
+          {/* tier badge */}
+          <span className={clsx('px-2 py-0.5 rounded border text-[10px] font-mono font-bold whitespace-nowrap', tierMeta.badgeClass)}>
+            {tierMeta.emoji} {tierMeta.label}
+          </span>
           {/* mode badge */}
-          <span className={clsx(
-            'px-2 py-0.5 rounded border text-[10px] font-mono font-semibold whitespace-nowrap',
-            mode.badge,
-          )}>
-            {mode.label}
+          <span className={clsx('px-2 py-0.5 rounded border text-[10px] font-mono font-semibold whitespace-nowrap', mode.badge)}>
+            {mode.prefix} {mode.label}
           </span>
           {/* detail link */}
           <button
@@ -106,32 +171,14 @@ function StrategyCard({ s }: { s: Strategy }) {
       {/* description */}
       <p className="text-xs text-slate-400 mb-4 leading-relaxed line-clamp-2">{s.description || '—'}</p>
 
-      {/* ── parameters ──────────────────────────────────── */}
-      {Object.keys(s.parameters || {}).length > 0 && (
-        <div className="bg-dark-900 rounded-lg p-3 mb-4">
-          <p className="text-[9px] text-slate-500 uppercase tracking-widest mb-2">Parameters</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            {Object.entries(s.parameters).map(([k, v]) => (
-              <div key={k} className="flex justify-between text-[11px]">
-                <span className="text-slate-400 truncate">{k}</span>
-                <span className="font-mono text-slate-300 ml-2">{String(v)}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* ── stats row ───────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="text-center">
-          <p className="text-sm font-mono font-semibold text-white">{s.total_trades}</p>
+          <p className="text-sm font-mono font-semibold text-white">{s.total_trades.toLocaleString()}</p>
           <p className="text-[10px] text-slate-500 mt-0.5">Trades</p>
         </div>
         <div className="text-center">
-          <p className={clsx(
-            'text-sm font-mono font-semibold',
-            s.win_rate >= 55 ? 'text-accent-green' : s.win_rate >= 40 ? 'text-yellow-400' : 'text-red-400',
-          )}>
+          <p className={clsx('text-sm font-mono font-semibold', tierMeta.allocClass)}>
             {s.win_rate.toFixed(1)}%
           </p>
           <p className="text-[10px] text-slate-500 mt-0.5">Win Rate</p>
@@ -143,26 +190,39 @@ function StrategyCard({ s }: { s: Strategy }) {
           )}>
             {fmt(s.total_pnl)}
           </p>
-          <p className="text-[10px] text-slate-500 mt-0.5">P&amp;L</p>
+          <p className="text-[10px] text-slate-500 mt-0.5">PnL (τ)</p>
         </div>
+      </div>
+
+      {/* ── capital allocation indicator ─────────────────── */}
+      <div className={clsx(
+        'flex items-center justify-between rounded-lg px-3 py-2 mb-4 border',
+        isSuspended
+          ? 'bg-red-500/8 border-red-500/20'
+          : tier === 'elite'
+          ? 'bg-yellow-400/8 border-yellow-400/20'
+          : 'bg-dark-900 border-dark-600',
+      )}>
+        <div className="flex items-center gap-1.5">
+          <Zap size={11} className={tierMeta.allocClass} />
+          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">Capital Multiplier</span>
+        </div>
+        <span className={clsx('text-sm font-bold font-mono', tierMeta.allocClass)}>
+          {isSuspended ? 'SUSPENDED' : tierMeta.multiplier + ' base'}
+        </span>
       </div>
 
       {/* ── gate progress bar (cycles toward live) ──────── */}
       <div className="mt-auto">
         <div className="flex justify-between text-[10px] font-mono mb-1">
-          <span className="text-slate-500">Gate progress</span>
-          <span className={clsx(
-            s.cycles_completed >= gateMax ? 'text-accent-green' : 'text-slate-400',
-          )}>
+          <span className="text-slate-500">Promotion gate</span>
+          <span className={clsx(s.cycles_completed >= gateMax ? 'text-accent-green' : 'text-slate-400')}>
             {s.cycles_completed}/{gateMax} cycles
           </span>
         </div>
         <div className="h-1 bg-dark-600 rounded-full overflow-hidden">
           <div
-            className={clsx(
-              'h-full rounded-full transition-all',
-              s.cycles_completed >= gateMax ? 'bg-accent-green' : 'bg-accent-blue',
-            )}
+            className={clsx('h-full rounded-full transition-all', tierMeta.barClass)}
             style={{ width: `${gatePct}%` }}
           />
         </div>
@@ -175,9 +235,10 @@ function StrategyCard({ s }: { s: Strategy }) {
 // ═════════════════════════════════════════════════════════════════════════════
 export default function Strategies() {
   const { strategies, fetchStrategies } = useBotStore()
-  const [sortKey, setSortKey]   = useState<SortKey>('pnl')
-  const [sortDir, setSortDir]   = useState<SortDir>('desc')
+  const [sortKey,    setSortKey]    = useState<SortKey>('win_rate')
+  const [sortDir,    setSortDir]    = useState<SortDir>('desc')
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all')
+  const [tierFilter, setTierFilter] = useState<TierFilter>('all')
 
   useEffect(() => { fetchStrategies() }, [fetchStrategies])
 
@@ -186,10 +247,12 @@ export default function Strategies() {
     else { setSortKey(key); setSortDir('desc') }
   }
 
+  const TIER_ORDER: Record<Tier, number> = { elite: 0, solid: 1, neutral: 2, weak: 3, failing: 4 }
+
   const sorted = useMemo(() => {
-    let list = modeFilter === 'all'
-      ? [...strategies]
-      : strategies.filter(s => s.mode === modeFilter)
+    let list = [...strategies]
+    if (modeFilter !== 'all') list = list.filter(s => s.mode === modeFilter)
+    if (tierFilter !== 'all') list = list.filter(s => getTier(s.win_rate, s.total_trades) === tierFilter)
 
     list.sort((a, b) => {
       let av = 0, bv = 0
@@ -197,23 +260,34 @@ export default function Strategies() {
       if (sortKey === 'win_rate') { av = a.win_rate;     bv = b.win_rate }
       if (sortKey === 'trades')   { av = a.total_trades; bv = b.total_trades }
       if (sortKey === 'cycles')   { av = a.cycles_completed; bv = b.cycles_completed }
+      if (sortKey === 'tier')     { av = TIER_ORDER[getTier(a.win_rate, a.total_trades)]; bv = TIER_ORDER[getTier(b.win_rate, b.total_trades)] }
       return sortDir === 'desc' ? bv - av : av - bv
     })
     return list
-  }, [strategies, sortKey, sortDir, modeFilter])
+  }, [strategies, sortKey, sortDir, modeFilter, tierFilter])
 
   const SORT_BTNS: { key: SortKey; label: string }[] = [
-    { key: 'pnl',      label: 'P&L' },
+    { key: 'tier',     label: 'Tier' },
     { key: 'win_rate', label: 'Win %' },
-    { key: 'trades',   label: 'Trades' },
-    { key: 'cycles',   label: 'Cycles' },
+    { key: 'pnl',     label: 'PnL' },
+    { key: 'trades',  label: 'Trades' },
+    { key: 'cycles',  label: 'Cycles' },
   ]
 
   const MODE_FILTERS: { key: ModeFilter; label: string }[] = [
-    { key: 'all',              label: 'All' },
-    { key: 'PAPER_ONLY',        label: 'Paper' },
-    { key: 'APPROVED_FOR_LIVE', label: 'Approved' },
-    { key: 'LIVE',              label: 'Live' },
+    { key: 'all',               label: 'All Modes' },
+    { key: 'PAPER_ONLY',        label: '◌ Paper' },
+    { key: 'APPROVED_FOR_LIVE', label: '◑ Approved' },
+    { key: 'LIVE',              label: '● Live' },
+  ]
+
+  const TIER_FILTERS: { key: TierFilter; label: string }[] = [
+    { key: 'all',     label: 'All Tiers' },
+    { key: 'elite',   label: '🏆 Elite' },
+    { key: 'solid',   label: '✅ Solid' },
+    { key: 'neutral', label: '⚖️ Neutral' },
+    { key: 'weak',    label: '⚠️ Weak' },
+    { key: 'failing', label: '❌ Failing' },
   ]
 
   return (
@@ -222,9 +296,9 @@ export default function Strategies() {
       {/* ── page header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-white">Strategies</h1>
+          <h1 className="text-xl font-semibold text-white">Strategy Fleet</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            {strategies.length} strategies · all running simultaneously
+            {strategies.length} strategies · performance-weighted capital allocation · all running simultaneously
           </p>
         </div>
         <button
@@ -250,6 +324,24 @@ export default function Strategies() {
               className={clsx(
                 'px-3 py-1 rounded text-xs font-mono font-semibold transition-all',
                 modeFilter === key
+                  ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
+                  : 'text-slate-400 hover:text-white',
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* tier filter */}
+        <div className="flex items-center gap-1 bg-dark-800 border border-dark-600 rounded-lg p-1">
+          {TIER_FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              onClick={() => setTierFilter(key)}
+              className={clsx(
+                'px-3 py-1 rounded text-xs font-mono font-semibold transition-all',
+                tierFilter === key
                   ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
                   : 'text-slate-400 hover:text-white',
               )}
@@ -293,28 +385,57 @@ export default function Strategies() {
         </div>
       )}
 
-      {/* ── gate legend ─────────────────────────────────────────────────────── */}
-      <div className="card p-4">
-        <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
-          <Shield size={13} className="text-yellow-400" /> Promotion Gate
-        </h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 text-xs text-slate-400">
-          {[
-            { n: '① Cycles ≥ 10',    desc: 'Strategy must complete ≥ 10 full evaluation cycles' },
-            { n: '② Win Rate ≥ 55%', desc: 'Must sustain >55% win rate across all cycles' },
-            { n: '③ Win Margin ≥ 2', desc: 'Wins must exceed losses by at least 2' },
-            { n: '④ PnL > 0 τ',      desc: 'Cumulative realised P&L must be positive' },
-          ].map(({ n, desc }) => (
-            <div key={n} className="space-y-1">
-              <p className="text-white font-mono text-[11px]">{n}</p>
-              <p className="leading-relaxed">{desc}</p>
-            </div>
-          ))}
+      {/* ── allocation model legend ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* tier key */}
+        <div className="card p-4">
+          <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
+            <BarChart2 size={13} className="text-accent-blue" /> Allocation Tier Key
+          </h2>
+          <div className="space-y-2">
+            {(Object.entries(TIERS) as [Tier, TierMeta][]).map(([, t]) => (
+              <div key={t.label} className="flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2">
+                  <span className={clsx('px-1.5 py-0.5 rounded border text-[10px] font-mono font-bold', t.badgeClass)}>
+                    {t.emoji} {t.label}
+                  </span>
+                  <span className="text-slate-400">Win rate ≥ {t.minWr}%</span>
+                </div>
+                <span className={clsx('font-mono font-bold text-sm', t.allocClass)}>
+                  {t.multiplier === 'SUSP' ? 'Suspended' : t.multiplier + ' capital'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-500 mt-3">
+            Capital from suspended strategies flows up to elite performers automatically.
+          </p>
         </div>
-        <p className="text-[10px] text-slate-500 mt-3">
-          Strategies that pass all four gates are promoted to <span className="text-yellow-400">APPROVED</span>.
-          Operator review required before elevation to <span className="text-accent-green">LIVE</span>.
-        </p>
+
+        {/* promotion gate */}
+        <div className="card p-4">
+          <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
+            <Shield size={13} className="text-yellow-400" /> Promotion Gate
+          </h2>
+          <div className="grid grid-cols-2 gap-3 text-xs text-slate-400">
+            {[
+              { n: '① Cycles ≥ 10',    desc: 'Must complete ≥ 10 full evaluation cycles' },
+              { n: '② Win Rate ≥ 55%', desc: 'Must sustain >55% win rate across cycles' },
+              { n: '③ Win Margin ≥ 2', desc: 'Wins must exceed losses by ≥ 2' },
+              { n: '④ PnL > 0 τ',      desc: 'Cumulative realised PnL must be positive' },
+            ].map(({ n, desc }) => (
+              <div key={n} className="space-y-0.5">
+                <p className="text-white font-mono text-[11px]">{n}</p>
+                <p className="leading-relaxed text-[11px]">{desc}</p>
+              </div>
+            ))}
+          </div>
+          <p className="text-[10px] text-slate-500 mt-3">
+            Gate pass → <span className="text-yellow-400">APPROVED</span>.
+            Operator confirms → <span className="text-accent-green">LIVE</span>.
+          </p>
+        </div>
       </div>
 
     </div>
