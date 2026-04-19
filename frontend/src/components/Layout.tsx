@@ -16,7 +16,6 @@ import TickerTape from '@/components/TickerTape'
 const navItems = [
   { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
   { to: '/mission-control',  icon: Radio,           label: 'Mission Control' },
-  { to: '/override',         icon: ShieldOff,       label: 'Human Override', danger: true },
   { to: '/fleet',            icon: Bot,             label: 'Agent Fleet'     },
   { to: '/ii-agent',         icon: Brain,           label: 'II Agent'        },
   { to: '/openclaw',         icon: Vote,            label: 'OpenClaw BFT'    },
@@ -31,6 +30,7 @@ const navItems = [
   { to: '/risk',             icon: Shield,          label: 'Risk Config'     },
   { to: '/wallet',           icon: Wallet,          label: 'Wallet'          },
   { to: '/settings',         icon: Settings,        label: 'Settings'        },
+  { to: '/override',         icon: ShieldOff,       label: 'Human Override', danger: true },
 ]
 
 export default function Layout() {
