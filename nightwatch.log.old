@@ -21550,3 +21550,1092 @@ FROM bot_config
 WHERE bot_config.id = ?
 2026-04-19 06:09:24,157 | INFO | sqlalchemy.engine.Engine | [cached since 1.349e+04s ago] (1,)
 2026-04-19 06:09:24,162 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:09:44,226 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:09:44,227 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:09:44,227 | INFO | sqlalchemy.engine.Engine | [cached since 1.351e+04s ago] (1,)
+2026-04-19 06:09:44,231 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:09:52,982 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:09:52,983 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:09:52,983 | INFO | sqlalchemy.engine.Engine | [cached since 1.351e+04s ago] ()
+2026-04-19 06:09:52,984 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:09:52,984 | INFO | sqlalchemy.engine.Engine | [cached since 1.351e+04s ago] (1,)
+2026-04-19 06:09:52,985 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:09:52,985 | INFO | sqlalchemy.engine.Engine | [cached since 1.351e+04s ago] (276, 160, 0.29381, 58.0, 0.001065, 211, '2026-04-19 06:09:52.985641', 0.001197, 1)
+2026-04-19 06:09:52,986 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:09:52,986 | INFO | sqlalchemy.engine.Engine | [cached since 1.351e+04s ago] ('buy', 'executed', 0.0231, 241.32, 5.574491999999999, 0.0, 0.001197, 0.021472808643370554, 'momentum_cascade', 'Momentum Cascade: RSI=23.9, EMA9=241.325, EMA21=241.544, MACD_hist=-0.01628', None, 1, 'finney', '2026-04-19 06:09:52.985517', None)
+2026-04-19 06:09:52,990 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:09:52,990 | INFO | sqlalchemy.engine.Engine | [cached since 1.351e+04s ago] (211, 2)
+2026-04-19 06:09:52,991 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:09:52,991 | INFO | sqlalchemy.engine.Engine | [cached since 1.351e+04s ago] (211, 3)
+2026-04-19 06:09:52,994 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:09:52,994 | INFO | sqlalchemy.engine.Engine | [cached since 1.351e+04s ago] (211, 4)
+2026-04-19 06:10:04,932 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:10:04,932 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:10:04,932 | INFO | sqlalchemy.engine.Engine | [cached since 1.352e+04s ago] ()
+2026-04-19 06:10:04,933 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:10:04,934 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:10:04,934 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (1,)
+2026-04-19 06:10:04,938 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:10:04,939 | INFO | sqlalchemy.engine.Engine | SELECT COUNT(*) FROM trades WHERE executed_at > datetime('now', '-1 hour')
+2026-04-19 06:10:04,940 | INFO | sqlalchemy.engine.Engine | [cached since 1.351e+04s ago] ()
+2026-04-19 06:10:04,940 | INFO | sqlalchemy.engine.Engine | ROLLBACK
+2026-04-19 06:10:08,554 | ERROR | bittensor | [red]Subtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[/red]
+[34m2026-04-19 06:10:08.554[39m | [1m[31m ERROR  [0m | [31mSubtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[0m
+2026-04-19 06:10:08,638 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:10:08,639 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (35, 29, 0.079501, 82.9, 0.002271, 211, '2026-04-19 06:10:08.638527', 0.001709, 5)
+2026-04-19 06:10:08,640 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:10:08,640 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] ('sell', 'executed', 0.0001, 241.32, 0.024132, 0.0, 0.001709, 7.0818829769600535, 'balanced_risk', 'Balanced Risk: RSI=23.9, EMA9=241.325, EMA21=241.544, MACD_hist=-0.01628', None, 1, 'finney', '2026-04-19 06:10:08.638333', None)
+2026-04-19 06:10:08,640 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:10:08,641 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (211, 6)
+2026-04-19 06:10:08,641 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:10:08,641 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (38, 15, 0.020005, 60.5, 0.000526, 211, '2026-04-19 06:10:08.641633', -0.0004, 7)
+2026-04-19 06:10:08,642 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:10:08,642 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] ('sell', 'executed', 0.0109, 241.32, 2.630388, 0.0, -0.0004, -0.015206882026529929, 'volatility_arb', 'Volatility Arb: RSI=23.9, EMA9=241.325, EMA21=241.544, MACD_hist=-0.01628', None, 1, 'finney', '2026-04-19 06:10:08.641534', None)
+2026-04-19 06:10:08,643 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:10:08,643 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (211, 8)
+2026-04-19 06:10:08,643 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:10:08,643 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (211, 9)
+2026-04-19 06:10:10,323 | ERROR | bittensor | [red]Subtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[/red]
+[34m2026-04-19 06:10:10.323[39m | [1m[31m ERROR  [0m | [31mSubtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[0m
+2026-04-19 06:10:10,389 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:10:10,389 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (23, 15, 0.065504, 65.2, 0.002848, 211, '2026-04-19 06:10:10.388766', 0.001731, 10)
+2026-04-19 06:10:10,390 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:10:10,390 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] ('sell', 'executed', 0.0001, 241.32, 0.024132, 0.0, 0.001731, 7.173048234709099, 'breakout_hunter', 'Breakout Hunter: RSI=23.9, EMA9=241.325, EMA21=241.544, MACD_hist=-0.01628', None, 1, 'finney', '2026-04-19 06:10:10.388563', None)
+2026-04-19 06:10:10,391 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:10:10,391 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (211, 11)
+2026-04-19 06:10:10,392 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:10:10,392 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (211, 12)
+2026-04-19 06:10:10,392 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:10:11,580 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:10:11,581 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:10:11,581 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (1,)
+2026-04-19 06:10:11,583 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:10:11,583 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:10:11,583 | INFO | sqlalchemy.engine.Engine | [cached since 1.353e+04s ago] (1,)
+2026-04-19 06:10:11,587 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:10:11,587 | INFO | sqlalchemy.engine.Engine | [cached since 5701s ago] ('LIVE',)
+2026-04-19 06:10:11,591 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:10:11,593 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:10:11,593 | INFO | sqlalchemy.engine.Engine | [cached since 5701s ago] ()
+2026-04-19 06:10:11,594 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:10:11,594 | INFO | sqlalchemy.engine.Engine | [cached since 5701s ago] ('',)
+2026-04-19 06:10:11,595 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:10:12,490 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:10:12,490 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode != ?
+2026-04-19 06:10:12,490 | INFO | sqlalchemy.engine.Engine | [cached since 1.35e+04s ago] ('LIVE',)
+2026-04-19 06:10:12,491 | INFO | sqlalchemy.engine.Engine | ROLLBACK
+2026-04-19 06:10:12,492 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:10:12,493 | INFO | sqlalchemy.engine.Engine | ROLLBACK
+2026-04-19 06:10:25,010 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:10:25,011 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:10:25,011 | INFO | sqlalchemy.engine.Engine | [cached since 1.355e+04s ago] (1,)
+2026-04-19 06:10:25,018 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:10:45,099 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:10:45,099 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:10:45,099 | INFO | sqlalchemy.engine.Engine | [cached since 1.357e+04s ago] (1,)
+2026-04-19 06:10:45,105 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:11:05,202 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:11:05,202 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:11:05,202 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (1,)
+2026-04-19 06:11:05,214 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:11:10,398 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:11:10,399 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:11:10,399 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] ()
+2026-04-19 06:11:10,400 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:11:10,400 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (1,)
+2026-04-19 06:11:10,401 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,401 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 1)
+2026-04-19 06:11:10,402 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,402 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 2)
+2026-04-19 06:11:10,403 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,403 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 3)
+2026-04-19 06:11:10,403 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,403 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 4)
+2026-04-19 06:11:10,407 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,407 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 5)
+2026-04-19 06:11:10,408 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,408 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (54, 31, -0.006402, 42.6, -0.000119, 212, '2026-04-19 06:11:10.408018', -0.000181, 6)
+2026-04-19 06:11:10,408 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:11:10,408 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] ('buy', 'executed', 0.033, 241.24, 7.960920000000001, 0.0, -0.000181, -0.0022736065680850955, 'mean_reversion', 'Mean Reversion: RSI=14.8, EMA9=241.294, EMA21=241.492, MACD_hist=-0.00101', None, 1, 'finney', '2026-04-19 06:11:10.407908', None)
+2026-04-19 06:11:10,409 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,409 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 7)
+2026-04-19 06:11:10,410 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,410 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 8)
+2026-04-19 06:11:10,410 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,411 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 9)
+2026-04-19 06:11:10,411 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,411 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 10)
+2026-04-19 06:11:10,412 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,412 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 11)
+2026-04-19 06:11:10,412 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:11:10,412 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (212, 12)
+2026-04-19 06:11:10,413 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:11:11,594 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:11:11,595 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:11:11,595 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (1,)
+2026-04-19 06:11:11,597 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:11:11,597 | INFO | sqlalchemy.engine.Engine | [cached since 5761s ago] ('LIVE',)
+2026-04-19 06:11:11,598 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:11:11,598 | INFO | sqlalchemy.engine.Engine | [cached since 5761s ago] ()
+2026-04-19 06:11:11,599 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:11:11,599 | INFO | sqlalchemy.engine.Engine | [cached since 5761s ago] ('',)
+2026-04-19 06:11:11,600 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:11:11,793 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:11:11,794 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:11:11,794 | INFO | sqlalchemy.engine.Engine | [cached since 1.359e+04s ago] (1,)
+2026-04-19 06:11:11,801 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:11:25,279 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:11:25,280 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:11:25,280 | INFO | sqlalchemy.engine.Engine | [cached since 1.361e+04s ago] (1,)
+2026-04-19 06:11:25,286 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:11:45,357 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:11:45,357 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:11:45,357 | INFO | sqlalchemy.engine.Engine | [cached since 1.363e+04s ago] (1,)
+2026-04-19 06:11:45,362 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:12:05,423 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:12:05,423 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:12:05,423 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (1,)
+2026-04-19 06:12:05,428 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:12:10,418 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:12:10,419 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:12:10,419 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] ()
+2026-04-19 06:12:10,420 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:12:10,420 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (1,)
+2026-04-19 06:12:10,422 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:10,422 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (277, 117, 0.29167, 57.8, 0.001053, 213, '2026-04-19 06:12:10.421845', -0.00214, 1)
+2026-04-19 06:12:10,422 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:12:10,423 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] ('sell', 'executed', 0.0347, 241.03, 8.363741000000001, 0.0, -0.00214, -0.02558663641066838, 'momentum_cascade', 'Momentum Cascade: RSI=12.3, EMA9=241.199, EMA21=241.412, MACD_hist=-0.00960', None, 1, 'finney', '2026-04-19 06:12:10.421693', None)
+2026-04-19 06:12:10,426 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:10,427 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (213, 2)
+2026-04-19 06:12:10,427 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:10,427 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (213, 3)
+2026-04-19 06:12:10,428 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:10,428 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (213, 4)
+2026-04-19 06:12:11,817 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:12:11,818 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:12:11,818 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (1,)
+2026-04-19 06:12:11,819 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:12:11,819 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:12:11,819 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (1,)
+2026-04-19 06:12:11,831 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:12:11,831 | INFO | sqlalchemy.engine.Engine | [cached since 5822s ago] ('LIVE',)
+2026-04-19 06:12:11,835 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:12:11,837 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:12:11,837 | INFO | sqlalchemy.engine.Engine | [cached since 5822s ago] ()
+2026-04-19 06:12:11,838 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:12:11,838 | INFO | sqlalchemy.engine.Engine | [cached since 5822s ago] ('',)
+2026-04-19 06:12:11,838 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:12:12,098 | ERROR | bittensor | [red]Subtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[/red]
+[34m2026-04-19 06:12:12.098[39m | [1m[31m ERROR  [0m | [31mSubtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[0m
+2026-04-19 06:12:12,164 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:12,164 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (36, 7, 0.079202, 80.6, 0.0022, 213, '2026-04-19 06:12:12.164240', -0.000299, 5)
+2026-04-19 06:12:12,165 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:12:12,165 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] ('buy', 'executed', 0.0001, 241.03, 0.024103000000000003, 0.0, -0.000299, -1.2405094801476992, 'balanced_risk', 'Balanced Risk: RSI=12.3, EMA9=241.199, EMA21=241.412, MACD_hist=-0.00960', 'block:8000600', 0, 'finney', '2026-04-19 06:12:12.164055', None)
+2026-04-19 06:12:12,166 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:12,166 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (213, 6)
+2026-04-19 06:12:12,167 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:12,167 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (213, 7)
+2026-04-19 06:12:12,167 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:12,167 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (213, 8)
+2026-04-19 06:12:12,168 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:12,168 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (213, 9)
+2026-04-19 06:12:13,812 | ERROR | bittensor | [red]Subtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[/red]
+[34m2026-04-19 06:12:13.812[39m | [1m[31m ERROR  [0m | [31mSubtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[0m
+2026-04-19 06:12:13,877 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:13,878 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (24, 16, 0.067618, 66.7, 0.002817, 213, '2026-04-19 06:12:13.877434', 0.002114, 10)
+2026-04-19 06:12:13,878 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:12:13,879 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] ('buy', 'executed', 0.0001, 241.03, 0.024103000000000003, 0.0, 0.002114, 8.770692444923869, 'breakout_hunter', 'Breakout Hunter: RSI=12.3, EMA9=241.199, EMA21=241.412, MACD_hist=-0.00960', 'block:8000600', 0, 'finney', '2026-04-19 06:12:13.877245', None)
+2026-04-19 06:12:13,879 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:13,880 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (213, 11)
+2026-04-19 06:12:13,880 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:12:13,880 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] (48, 27, 0.084249, 56.2, 0.001755, 213, '2026-04-19 06:12:13.880601', 0.002063, 12)
+2026-04-19 06:12:13,881 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:12:13,881 | INFO | sqlalchemy.engine.Engine | [cached since 1.365e+04s ago] ('sell', 'executed', 0.0377, 241.03, 9.086831, 0.0, 0.002063, 0.022703184421499642, 'contrarian_flow', 'Contrarian Flow: RSI=12.3, EMA9=241.199, EMA21=241.412, MACD_hist=-0.00960', None, 1, 'finney', '2026-04-19 06:12:13.880506', None)
+2026-04-19 06:12:13,882 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:12:25,517 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:12:25,517 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:12:25,517 | INFO | sqlalchemy.engine.Engine | [cached since 1.367e+04s ago] (1,)
+2026-04-19 06:12:25,524 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:12:45,597 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:12:45,598 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:12:45,598 | INFO | sqlalchemy.engine.Engine | [cached since 1.369e+04s ago] (1,)
+2026-04-19 06:12:45,602 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:13:05,676 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:13:05,676 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:13:05,676 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (1,)
+2026-04-19 06:13:05,681 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:13:11,587 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:13:11,588 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:13:11,588 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (1,)
+2026-04-19 06:13:11,588 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:13:11,588 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:13:11,589 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (1,)
+2026-04-19 06:13:11,603 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:13:11,604 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:13:11,604 | INFO | sqlalchemy.engine.Engine | [cached since 5881s ago] ('LIVE',)
+2026-04-19 06:13:11,605 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:13:11,605 | INFO | sqlalchemy.engine.Engine | [cached since 5881s ago] ()
+2026-04-19 06:13:11,606 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:13:11,606 | INFO | sqlalchemy.engine.Engine | [cached since 5881s ago] ('',)
+2026-04-19 06:13:11,607 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:13:13,887 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:13:13,887 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:13:13,887 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] ()
+2026-04-19 06:13:13,889 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:13:13,889 | INFO | sqlalchemy.engine.Engine | [cached since 1.372e+04s ago] (1,)
+2026-04-19 06:13:13,890 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,890 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (278, 118, 0.289006, 57.6, 0.00104, 214, '2026-04-19 06:13:13.890268', -0.002664, 1)
+2026-04-19 06:13:13,891 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:13:13,892 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] ('buy', 'executed', 0.0254, 241.01, 6.1216539999999995, 0.0, -0.002664, -0.043517650621874425, 'momentum_cascade', 'Momentum Cascade: RSI=20.6, EMA9=241.131, EMA21=241.342, MACD_hist=-0.00691', None, 1, 'finney', '2026-04-19 06:13:13.890139', None)
+2026-04-19 06:13:13,894 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,894 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 2)
+2026-04-19 06:13:13,895 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,895 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 3)
+2026-04-19 06:13:13,897 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,897 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 4)
+2026-04-19 06:13:13,899 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,899 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 5)
+2026-04-19 06:13:13,901 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,901 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 6)
+2026-04-19 06:13:13,904 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,904 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 7)
+2026-04-19 06:13:13,907 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,907 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 8)
+2026-04-19 06:13:13,907 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,907 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 9)
+2026-04-19 06:13:13,908 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,908 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 10)
+2026-04-19 06:13:13,909 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,909 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 11)
+2026-04-19 06:13:13,910 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:13:13,910 | INFO | sqlalchemy.engine.Engine | [cached since 1.371e+04s ago] (214, 12)
+2026-04-19 06:13:13,910 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:13:25,755 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:13:25,755 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:13:25,756 | INFO | sqlalchemy.engine.Engine | [cached since 1.373e+04s ago] (1,)
+2026-04-19 06:13:25,762 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:13:45,832 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:13:45,832 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:13:45,832 | INFO | sqlalchemy.engine.Engine | [cached since 1.375e+04s ago] (1,)
+2026-04-19 06:13:45,836 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:14:05,904 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:14:05,905 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:14:05,905 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (1,)
+2026-04-19 06:14:05,909 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:14:11,635 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:14:11,635 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:14:11,635 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (1,)
+2026-04-19 06:14:11,636 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:14:11,636 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:14:11,636 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (1,)
+2026-04-19 06:14:11,646 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:14:11,647 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:14:11,647 | INFO | sqlalchemy.engine.Engine | [cached since 5942s ago] ('LIVE',)
+2026-04-19 06:14:11,649 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:14:11,649 | INFO | sqlalchemy.engine.Engine | [cached since 5942s ago] ()
+2026-04-19 06:14:11,650 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:14:11,650 | INFO | sqlalchemy.engine.Engine | [cached since 5942s ago] ('',)
+2026-04-19 06:14:11,651 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:14:13,918 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:14:13,919 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:14:13,919 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] ()
+2026-04-19 06:14:13,921 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:14:13,921 | INFO | sqlalchemy.engine.Engine | [cached since 1.378e+04s ago] (1,)
+2026-04-19 06:14:13,923 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,923 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (279, 161, 0.289715, 57.7, 0.001038, 215, '2026-04-19 06:14:13.922795', 0.000709, 1)
+2026-04-19 06:14:13,924 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:14:13,924 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] ('buy', 'executed', 0.0216, 240.92, 5.203872, 0.0, 0.000709, 0.013624470394352512, 'momentum_cascade', 'Momentum Cascade: RSI=24.1, EMA9=241.055, EMA21=241.269, MACD_hist=-0.00715', None, 1, 'finney', '2026-04-19 06:14:13.922610', None)
+2026-04-19 06:14:13,925 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,925 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (215, 2)
+2026-04-19 06:14:13,926 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,926 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (215, 3)
+2026-04-19 06:14:13,927 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,927 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (215, 4)
+2026-04-19 06:14:13,933 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,933 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (215, 5)
+2026-04-19 06:14:13,934 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,934 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (215, 6)
+2026-04-19 06:14:13,935 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,935 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (215, 7)
+2026-04-19 06:14:13,935 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,935 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (215, 8)
+2026-04-19 06:14:13,937 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,937 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (59, 28, 0.038841, 52.5, 0.000658, 215, '2026-04-19 06:14:13.936857', -0.000508, 9)
+2026-04-19 06:14:13,937 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:14:13,938 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] ('sell', 'executed', 0.0186, 240.92, 4.4811119999999995, 0.0, -0.000508, -0.011336471840025423, 'macro_correlation', 'Macro Correlation: RSI=24.1, EMA9=241.055, EMA21=241.269, MACD_hist=-0.00715', None, 1, 'finney', '2026-04-19 06:14:13.936691', None)
+2026-04-19 06:14:13,939 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,939 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (215, 10)
+2026-04-19 06:14:13,940 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,940 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (215, 11)
+2026-04-19 06:14:13,940 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:14:13,941 | INFO | sqlalchemy.engine.Engine | [cached since 1.377e+04s ago] (215, 12)
+2026-04-19 06:14:13,941 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:14:25,989 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:14:25,990 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:14:25,990 | INFO | sqlalchemy.engine.Engine | [cached since 1.379e+04s ago] (1,)
+2026-04-19 06:14:25,994 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:14:46,063 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:14:46,064 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:14:46,064 | INFO | sqlalchemy.engine.Engine | [cached since 1.381e+04s ago] (1,)
+2026-04-19 06:14:46,071 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:15:04,945 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:15:04,945 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:15:04,945 | INFO | sqlalchemy.engine.Engine | [cached since 1.382e+04s ago] ()
+2026-04-19 06:15:04,946 | INFO | sqlalchemy.engine.Engine | SELECT COUNT(*) FROM trades WHERE executed_at > datetime('now', '-1 hour')
+2026-04-19 06:15:04,946 | INFO | sqlalchemy.engine.Engine | [cached since 1.381e+04s ago] ()
+2026-04-19 06:15:04,947 | INFO | sqlalchemy.engine.Engine | ROLLBACK
+2026-04-19 06:15:06,154 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:15:06,154 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:15:06,154 | INFO | sqlalchemy.engine.Engine | [cached since 1.383e+04s ago] (1,)
+2026-04-19 06:15:06,159 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:15:11,574 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:15:11,575 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:15:11,575 | INFO | sqlalchemy.engine.Engine | [cached since 1.383e+04s ago] (1,)
+2026-04-19 06:15:11,575 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:15:11,576 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:15:11,576 | INFO | sqlalchemy.engine.Engine | [cached since 1.383e+04s ago] (1,)
+2026-04-19 06:15:11,578 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:15:11,578 | INFO | sqlalchemy.engine.Engine | [cached since 6001s ago] ('LIVE',)
+2026-04-19 06:15:11,582 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:15:11,583 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:15:11,583 | INFO | sqlalchemy.engine.Engine | [cached since 6001s ago] ()
+2026-04-19 06:15:11,584 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:15:11,584 | INFO | sqlalchemy.engine.Engine | [cached since 6001s ago] ('',)
+2026-04-19 06:15:11,585 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:15:12,494 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:15:12,494 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode != ?
+2026-04-19 06:15:12,494 | INFO | sqlalchemy.engine.Engine | [cached since 1.38e+04s ago] ('LIVE',)
+2026-04-19 06:15:12,495 | INFO | sqlalchemy.engine.Engine | ROLLBACK
+2026-04-19 06:15:12,496 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:15:12,497 | INFO | sqlalchemy.engine.Engine | ROLLBACK
+2026-04-19 06:15:13,947 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:15:13,947 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:15:13,947 | INFO | sqlalchemy.engine.Engine | [cached since 1.383e+04s ago] ()
+2026-04-19 06:15:13,949 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:15:13,949 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] (1,)
+2026-04-19 06:15:13,950 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:13,950 | INFO | sqlalchemy.engine.Engine | [cached since 1.383e+04s ago] (216, 1)
+2026-04-19 06:15:13,954 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:13,954 | INFO | sqlalchemy.engine.Engine | [cached since 1.383e+04s ago] (216, 2)
+2026-04-19 06:15:13,955 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:13,955 | INFO | sqlalchemy.engine.Engine | [cached since 1.383e+04s ago] (216, 3)
+2026-04-19 06:15:13,955 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:13,955 | INFO | sqlalchemy.engine.Engine | [cached since 1.383e+04s ago] (216, 4)
+2026-04-19 06:15:23,121 | ERROR | bittensor | [red]Subtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[/red]
+[34m2026-04-19 06:15:23.121[39m | [1m[31m ERROR  [0m | [31mSubtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[0m
+2026-04-19 06:15:23,186 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:23,186 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] (37, 30, 0.080341, 81.1, 0.002171, 216, '2026-04-19 06:15:23.186100', 0.001139, 5)
+2026-04-19 06:15:23,187 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:15:23,187 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] ('buy', 'executed', 0.0001, 240.62, 0.024062, 0.0, 0.001139, 4.733604854126839, 'balanced_risk', 'Balanced Risk: RSI=15.7, EMA9=240.898, EMA21=241.156, MACD_hist=-0.02946', 'block:8000600', 0, 'finney', '2026-04-19 06:15:23.185910', None)
+2026-04-19 06:15:23,188 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:23,188 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] (55, 24, -0.002341, 43.6, -4.3e-05, 216, '2026-04-19 06:15:23.188547', 0.004061, 6)
+2026-04-19 06:15:23,189 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:15:23,189 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] ('sell', 'executed', 0.0299, 240.62, 7.194538, 0.0, 0.004061, 0.056445598035620916, 'mean_reversion', 'Mean Reversion: RSI=15.7, EMA9=240.898, EMA21=241.156, MACD_hist=-0.02946', None, 1, 'finney', '2026-04-19 06:15:23.188460', None)
+2026-04-19 06:15:23,190 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:23,190 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] (216, 7)
+2026-04-19 06:15:23,190 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:23,190 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] (216, 8)
+2026-04-19 06:15:23,191 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:23,191 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] (60, 29, 0.038827, 51.7, 0.000647, 216, '2026-04-19 06:15:23.191294', -1.4e-05, 9)
+2026-04-19 06:15:23,192 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:15:23,192 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] ('buy', 'executed', 0.0346, 240.62, 8.325452, 0.0, -1.4e-05, -0.00016815903809186576, 'macro_correlation', 'Macro Correlation: RSI=15.7, EMA9=240.898, EMA21=241.156, MACD_hist=-0.02946', None, 1, 'finney', '2026-04-19 06:15:23.191214', None)
+2026-04-19 06:15:23,195 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:23,195 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] (216, 10)
+2026-04-19 06:15:23,196 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:23,196 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] (216, 11)
+2026-04-19 06:15:23,197 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:15:23,197 | INFO | sqlalchemy.engine.Engine | [cached since 1.384e+04s ago] (216, 12)
+2026-04-19 06:15:23,197 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:15:26,250 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:15:26,250 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:15:26,250 | INFO | sqlalchemy.engine.Engine | [cached since 1.385e+04s ago] (1,)
+2026-04-19 06:15:26,257 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:15:46,353 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:15:46,353 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:15:46,353 | INFO | sqlalchemy.engine.Engine | [cached since 1.387e+04s ago] (1,)
+2026-04-19 06:15:46,360 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:16:06,431 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:16:06,431 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:16:06,431 | INFO | sqlalchemy.engine.Engine | [cached since 1.389e+04s ago] (1,)
+2026-04-19 06:16:06,435 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:16:11,572 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:16:11,572 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:16:11,572 | INFO | sqlalchemy.engine.Engine | [cached since 1.389e+04s ago] (1,)
+2026-04-19 06:16:11,573 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:16:11,573 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:16:11,573 | INFO | sqlalchemy.engine.Engine | [cached since 1.389e+04s ago] (1,)
+2026-04-19 06:16:11,578 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:16:11,578 | INFO | sqlalchemy.engine.Engine | [cached since 6061s ago] ('LIVE',)
+2026-04-19 06:16:11,582 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:16:11,584 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:16:11,584 | INFO | sqlalchemy.engine.Engine | [cached since 6061s ago] ()
+2026-04-19 06:16:11,585 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:16:11,585 | INFO | sqlalchemy.engine.Engine | [cached since 6061s ago] ('',)
+2026-04-19 06:16:11,586 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:16:23,203 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:16:23,203 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:16:23,203 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] ()
+2026-04-19 06:16:23,205 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:16:23,205 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (1,)
+2026-04-19 06:16:23,206 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:23,206 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (217, 1)
+2026-04-19 06:16:23,207 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:23,207 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (217, 2)
+2026-04-19 06:16:23,208 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:23,208 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (217, 3)
+2026-04-19 06:16:23,209 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:23,209 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (217, 4)
+2026-04-19 06:16:25,086 | ERROR | bittensor | [red]Subtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[/red]
+[34m2026-04-19 06:16:25.086[39m | [1m[31m ERROR  [0m | [31mSubtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[0m
+2026-04-19 06:16:25,153 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:25,153 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (38, 31, 0.082722, 81.6, 0.002177, 217, '2026-04-19 06:16:25.152561', 0.002381, 5)
+2026-04-19 06:16:25,154 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:16:25,154 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] ('sell', 'executed', 0.0001, 240.54, 0.024054, 0.0, 0.002381, 9.89856156980128, 'balanced_risk', 'Balanced Risk: EMA9=240.741, EMA21=241.012, MACD_hist=-0.02639', None, 1, 'finney', '2026-04-19 06:16:25.152371', None)
+2026-04-19 06:16:25,155 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:25,155 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (56, 32, -0.004888, 42.9, -8.7e-05, 217, '2026-04-19 06:16:25.155087', -0.002547, 6)
+2026-04-19 06:16:25,155 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:16:25,155 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] ('buy', 'executed', 0.0498, 240.54, 11.978891999999998, 0.0, -0.002547, -0.021262400562589594, 'mean_reversion', 'Mean Reversion: EMA9=240.741, EMA21=241.012, MACD_hist=-0.02639', None, 1, 'finney', '2026-04-19 06:16:25.154957', None)
+2026-04-19 06:16:25,156 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:25,156 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (217, 7)
+2026-04-19 06:16:25,157 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:25,157 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (217, 8)
+2026-04-19 06:16:25,159 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:25,159 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (61, 32, 0.039245, 52.5, 0.000643, 217, '2026-04-19 06:16:25.157844', 0.000418, 9)
+2026-04-19 06:16:25,159 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:16:25,159 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] ('sell', 'executed', 0.0178, 240.54, 4.281612, 0.0, 0.000418, 0.009762678168876583, 'macro_correlation', 'Macro Correlation: EMA9=240.741, EMA21=241.012, MACD_hist=-0.02639', None, 1, 'finney', '2026-04-19 06:16:25.157760', None)
+2026-04-19 06:16:25,163 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:25,164 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (217, 10)
+2026-04-19 06:16:26,585 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:16:26,586 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:16:26,586 | INFO | sqlalchemy.engine.Engine | [cached since 1.391e+04s ago] (1,)
+2026-04-19 06:16:26,590 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:16:26,863 | ERROR | bittensor | [red]Subtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[/red]
+[34m2026-04-19 06:16:26.863[39m | [1m[31m ERROR  [0m | [31mSubtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[0m
+2026-04-19 06:16:26,929 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:26,929 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (88, 8, 0.055387, 78.4, 0.001497, 217, '2026-04-19 06:16:26.928707', -0.001292, 11)
+2026-04-19 06:16:26,930 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:16:26,930 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] ('sell', 'executed', 0.0001, 240.54, 0.024054, 0.0, -0.001292, -5.371248025276461, 'yield_maximizer', 'Yield Maximizer: EMA9=240.741, EMA21=241.012, MACD_hist=-0.02639', None, 1, 'finney', '2026-04-19 06:16:26.928514', None)
+2026-04-19 06:16:26,931 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:16:26,931 | INFO | sqlalchemy.engine.Engine | [cached since 1.39e+04s ago] (217, 12)
+2026-04-19 06:16:26,932 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:16:46,690 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:16:46,691 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:16:46,691 | INFO | sqlalchemy.engine.Engine | [cached since 1.393e+04s ago] (1,)
+2026-04-19 06:16:46,695 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:17:06,777 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:17:06,777 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:17:06,778 | INFO | sqlalchemy.engine.Engine | [cached since 1.395e+04s ago] (1,)
+2026-04-19 06:17:06,785 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:17:11,579 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:17:11,579 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:17:11,579 | INFO | sqlalchemy.engine.Engine | [cached since 1.395e+04s ago] (1,)
+2026-04-19 06:17:11,580 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:17:11,580 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:17:11,580 | INFO | sqlalchemy.engine.Engine | [cached since 1.395e+04s ago] (1,)
+2026-04-19 06:17:11,582 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:17:11,582 | INFO | sqlalchemy.engine.Engine | [cached since 6121s ago] ('LIVE',)
+2026-04-19 06:17:11,589 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:17:11,591 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:17:11,592 | INFO | sqlalchemy.engine.Engine | [cached since 6121s ago] ()
+2026-04-19 06:17:11,593 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:17:11,593 | INFO | sqlalchemy.engine.Engine | [cached since 6121s ago] ('',)
+2026-04-19 06:17:11,594 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:17:26,880 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:17:26,880 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:17:26,880 | INFO | sqlalchemy.engine.Engine | [cached since 1.397e+04s ago] (1,)
+2026-04-19 06:17:26,885 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:17:26,938 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:17:26,938 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:17:26,938 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] ()
+2026-04-19 06:17:26,940 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:17:26,940 | INFO | sqlalchemy.engine.Engine | [cached since 1.397e+04s ago] (1,)
+2026-04-19 06:17:26,941 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,941 | INFO | sqlalchemy.engine.Engine | [cached since 1.157e+04s ago] (280, 162, 0.290635, 57.9, 218, '2026-04-19 06:17:26.941421', 0.00092, 1)
+2026-04-19 06:17:26,942 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:17:26,942 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] ('sell', 'executed', 0.0229, 240.57, 5.509053, 0.0, 0.00092, 0.016699784881358013, 'momentum_cascade', 'Momentum Cascade: RSI=4.1, EMA9=240.675, EMA21=240.933, MACD_hist=-0.01290', None, 1, 'finney', '2026-04-19 06:17:26.941263', None)
+2026-04-19 06:17:26,943 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,943 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 2)
+2026-04-19 06:17:26,944 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,944 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 3)
+2026-04-19 06:17:26,944 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,944 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 4)
+2026-04-19 06:17:26,945 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,945 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 5)
+2026-04-19 06:17:26,946 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,946 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 6)
+2026-04-19 06:17:26,946 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,946 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 7)
+2026-04-19 06:17:26,947 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,947 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 8)
+2026-04-19 06:17:26,947 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,947 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 9)
+2026-04-19 06:17:26,951 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,951 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 10)
+2026-04-19 06:17:26,952 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,952 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 11)
+2026-04-19 06:17:26,952 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:17:26,952 | INFO | sqlalchemy.engine.Engine | [cached since 1.396e+04s ago] (218, 12)
+2026-04-19 06:17:26,953 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:17:46,949 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:17:46,949 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:17:46,949 | INFO | sqlalchemy.engine.Engine | [cached since 1.399e+04s ago] (1,)
+2026-04-19 06:17:46,954 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:18:07,034 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:18:07,034 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:18:07,034 | INFO | sqlalchemy.engine.Engine | [cached since 1.401e+04s ago] (1,)
+2026-04-19 06:18:07,039 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:18:11,567 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:18:11,568 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:18:11,568 | INFO | sqlalchemy.engine.Engine | [cached since 1.401e+04s ago] (1,)
+2026-04-19 06:18:11,571 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:18:11,572 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:18:11,572 | INFO | sqlalchemy.engine.Engine | [cached since 1.401e+04s ago] (1,)
+2026-04-19 06:18:11,584 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:18:11,585 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:18:11,586 | INFO | sqlalchemy.engine.Engine | [cached since 6181s ago] ('LIVE',)
+2026-04-19 06:18:11,587 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:18:11,587 | INFO | sqlalchemy.engine.Engine | [cached since 6181s ago] ()
+2026-04-19 06:18:11,588 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:18:11,588 | INFO | sqlalchemy.engine.Engine | [cached since 6181s ago] ('',)
+2026-04-19 06:18:11,590 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:18:26,961 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:18:26,961 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:18:26,961 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] ()
+2026-04-19 06:18:26,963 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:18:26,963 | INFO | sqlalchemy.engine.Engine | [cached since 1.403e+04s ago] (1,)
+2026-04-19 06:18:26,965 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,965 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (219, 1)
+2026-04-19 06:18:26,966 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,966 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (219, 2)
+2026-04-19 06:18:26,967 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,967 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (219, 3)
+2026-04-19 06:18:26,968 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,968 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (219, 4)
+2026-04-19 06:18:26,968 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,969 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (219, 5)
+2026-04-19 06:18:26,970 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,970 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (57, 33, -0.006659, 42.1, -0.000117, 219, '2026-04-19 06:18:26.969806', -0.001771, 6)
+2026-04-19 06:18:26,970 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:18:26,971 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] ('buy', 'executed', 0.0216, 240.89, 5.203224, 0.0, -0.001771, -0.03403658962212659, 'mean_reversion', 'Mean Reversion: RSI=41.7, EMA9=240.701, EMA21=240.899, MACD_hist=0.02413', None, 1, 'finney', '2026-04-19 06:18:26.969587', None)
+2026-04-19 06:18:26,972 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,972 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (39, 16, 0.01992, 59.0, 0.000511, 219, '2026-04-19 06:18:26.972210', -8.5e-05, 7)
+2026-04-19 06:18:26,973 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:18:26,973 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] ('buy', 'executed', 0.0356, 240.89, 8.575683999999999, 0.0, -8.5e-05, -0.0009911745815260919, 'volatility_arb', 'Volatility Arb: RSI=41.7, EMA9=240.701, EMA21=240.899, MACD_hist=0.02413', None, 1, 'finney', '2026-04-19 06:18:26.972074', None)
+2026-04-19 06:18:26,974 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,974 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (219, 8)
+2026-04-19 06:18:26,975 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,975 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (62, 33, 0.041071, 53.2, 0.000662, 219, '2026-04-19 06:18:26.975186', 0.001826, 9)
+2026-04-19 06:18:26,976 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:18:26,976 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] ('buy', 'executed', 0.0133, 240.89, 3.2038369999999996, 0.0, 0.001826, 0.056994160439498016, 'macro_correlation', 'Macro Correlation: RSI=41.7, EMA9=240.701, EMA21=240.899, MACD_hist=0.02413', None, 1, 'finney', '2026-04-19 06:18:26.975062', None)
+2026-04-19 06:18:26,977 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,977 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (219, 10)
+2026-04-19 06:18:26,978 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,978 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (219, 11)
+2026-04-19 06:18:26,979 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:18:26,979 | INFO | sqlalchemy.engine.Engine | [cached since 1.402e+04s ago] (219, 12)
+2026-04-19 06:18:26,979 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:18:27,109 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:18:27,109 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:18:27,110 | INFO | sqlalchemy.engine.Engine | [cached since 1.403e+04s ago] (1,)
+2026-04-19 06:18:27,116 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:18:47,193 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:18:47,194 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:18:47,194 | INFO | sqlalchemy.engine.Engine | [cached since 1.405e+04s ago] (1,)
+2026-04-19 06:18:47,198 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:19:07,265 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:19:07,266 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:19:07,266 | INFO | sqlalchemy.engine.Engine | [cached since 1.407e+04s ago] (1,)
+2026-04-19 06:19:07,270 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:19:11,580 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:19:11,581 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:19:11,581 | INFO | sqlalchemy.engine.Engine | [cached since 1.407e+04s ago] (1,)
+2026-04-19 06:19:11,587 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:19:11,780 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:19:11,780 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:19:11,780 | INFO | sqlalchemy.engine.Engine | [cached since 1.407e+04s ago] (1,)
+2026-04-19 06:19:11,782 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:19:11,782 | INFO | sqlalchemy.engine.Engine | [cached since 6242s ago] ('LIVE',)
+2026-04-19 06:19:11,783 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:19:11,783 | INFO | sqlalchemy.engine.Engine | [cached since 6242s ago] ()
+2026-04-19 06:19:11,785 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:19:11,785 | INFO | sqlalchemy.engine.Engine | [cached since 6242s ago] ('',)
+2026-04-19 06:19:11,786 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:19:26,987 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:19:26,988 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:19:26,988 | INFO | sqlalchemy.engine.Engine | [cached since 1.408e+04s ago] ()
+2026-04-19 06:19:26,990 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:19:26,990 | INFO | sqlalchemy.engine.Engine | [cached since 1.409e+04s ago] (1,)
+2026-04-19 06:19:26,992 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:26,992 | INFO | sqlalchemy.engine.Engine | [cached since 1.408e+04s ago] (281, 163, 0.29678, 58.0, 0.001056, 220, '2026-04-19 06:19:26.991598', 0.006145, 1)
+2026-04-19 06:19:26,993 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:19:26,993 | INFO | sqlalchemy.engine.Engine | [cached since 1.408e+04s ago] ('sell', 'executed', 0.0459, 240.74, 11.049966000000001, 0.0, 0.006145, 0.055611030839370905, 'momentum_cascade', 'Momentum Cascade: RSI=36.1, EMA9=240.739, EMA21=240.884, MACD_hist=0.04559', None, 1, 'finney', '2026-04-19 06:19:26.991407', None)
+2026-04-19 06:19:26,994 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:26,994 | INFO | sqlalchemy.engine.Engine | [cached since 1.408e+04s ago] (220, 2)
+2026-04-19 06:19:26,995 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:26,995 | INFO | sqlalchemy.engine.Engine | [cached since 1.408e+04s ago] (220, 3)
+2026-04-19 06:19:27,000 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:27,001 | INFO | sqlalchemy.engine.Engine | [cached since 1.408e+04s ago] (220, 4)
+2026-04-19 06:19:27,006 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:27,006 | INFO | sqlalchemy.engine.Engine | [cached since 1.408e+04s ago] (220, 5)
+2026-04-19 06:19:27,007 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:27,007 | INFO | sqlalchemy.engine.Engine | [cached since 1.408e+04s ago] (58, 25, -0.00571, 43.1, -9.8e-05, 220, '2026-04-19 06:19:27.007304', 0.000949, 6)
+2026-04-19 06:19:27,008 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:19:27,008 | INFO | sqlalchemy.engine.Engine | [cached since 1.408e+04s ago] ('buy', 'executed', 0.0414, 240.74, 9.966636, 0.0, 0.000949, 0.009521768428183794, 'mean_reversion', 'Mean Reversion: RSI=36.1, EMA9=240.739, EMA21=240.884, MACD_hist=0.04559', None, 1, 'finney', '2026-04-19 06:19:27.007135', None)
+2026-04-19 06:19:27,009 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:27,009 | INFO | sqlalchemy.engine.Engine | [cached since 1.408e+04s ago] (220, 7)
+2026-04-19 06:19:28,472 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:19:28,472 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:19:28,472 | INFO | sqlalchemy.engine.Engine | [cached since 1.409e+04s ago] (1,)
+2026-04-19 06:19:28,477 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:19:28,751 | ERROR | bittensor | [red]Subtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[/red]
+[34m2026-04-19 06:19:28.751[39m | [1m[31m ERROR  [0m | [31mSubtensor returned: 'builtins.Keypair' object has no attribute 'unlock_coldkey'[0m
+2026-04-19 06:19:28,816 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:28,816 | INFO | sqlalchemy.engine.Engine | [cached since 1.409e+04s ago] (28, 14, 0.026914, 50.0, 0.000961, 220, '2026-04-19 06:19:28.815940', 0.000881, 8)
+2026-04-19 06:19:28,817 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:19:28,817 | INFO | sqlalchemy.engine.Engine | [cached since 1.409e+04s ago] ('sell', 'executed', 0.0001, 240.74, 0.024074, 0.0, 0.000881, 3.659549721691451, 'sentiment_surge', 'Sentiment Surge: RSI=36.1, EMA9=240.739, EMA21=240.884, MACD_hist=0.04559', None, 1, 'finney', '2026-04-19 06:19:28.815757', None)
+2026-04-19 06:19:28,818 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:28,818 | INFO | sqlalchemy.engine.Engine | [cached since 1.409e+04s ago] (220, 9)
+2026-04-19 06:19:28,819 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:28,819 | INFO | sqlalchemy.engine.Engine | [cached since 1.409e+04s ago] (220, 10)
+2026-04-19 06:19:28,823 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:28,823 | INFO | sqlalchemy.engine.Engine | [cached since 1.409e+04s ago] (220, 11)
+2026-04-19 06:19:28,824 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:19:28,824 | INFO | sqlalchemy.engine.Engine | [cached since 1.409e+04s ago] (220, 12)
+2026-04-19 06:19:28,824 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:19:48,535 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:19:48,535 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:19:48,535 | INFO | sqlalchemy.engine.Engine | [cached since 1.411e+04s ago] (1,)
+2026-04-19 06:19:48,540 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:20:04,951 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:20:04,951 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:20:04,951 | INFO | sqlalchemy.engine.Engine | [cached since 1.412e+04s ago] ()
+2026-04-19 06:20:04,952 | INFO | sqlalchemy.engine.Engine | SELECT COUNT(*) FROM trades WHERE executed_at > datetime('now', '-1 hour')
+2026-04-19 06:20:04,952 | INFO | sqlalchemy.engine.Engine | [cached since 1.411e+04s ago] ()
+2026-04-19 06:20:04,953 | INFO | sqlalchemy.engine.Engine | ROLLBACK
+2026-04-19 06:20:08,594 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:20:08,594 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:20:08,594 | INFO | sqlalchemy.engine.Engine | [cached since 1.413e+04s ago] (1,)
+2026-04-19 06:20:08,599 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:20:11,627 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:20:11,628 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:20:11,628 | INFO | sqlalchemy.engine.Engine | [cached since 1.413e+04s ago] (1,)
+2026-04-19 06:20:11,631 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:20:11,631 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:20:11,631 | INFO | sqlalchemy.engine.Engine | [cached since 1.413e+04s ago] (1,)
+2026-04-19 06:20:11,632 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:20:11,633 | INFO | sqlalchemy.engine.Engine | [cached since 6302s ago] ('LIVE',)
+2026-04-19 06:20:11,643 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:20:11,643 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:20:11,644 | INFO | sqlalchemy.engine.Engine | [cached since 6302s ago] ()
+2026-04-19 06:20:11,645 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:20:11,645 | INFO | sqlalchemy.engine.Engine | [cached since 6301s ago] ('',)
+2026-04-19 06:20:11,646 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:20:12,498 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:20:12,499 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode != ?
+2026-04-19 06:20:12,499 | INFO | sqlalchemy.engine.Engine | [cached since 1.41e+04s ago] ('LIVE',)
+2026-04-19 06:20:12,500 | INFO | sqlalchemy.engine.Engine | ROLLBACK
+2026-04-19 06:20:12,501 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:20:12,501 | INFO | sqlalchemy.engine.Engine | ROLLBACK
+2026-04-19 06:20:28,677 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:20:28,677 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:20:28,677 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (1,)
+2026-04-19 06:20:28,682 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:20:28,830 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:20:28,830 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:20:28,830 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] ()
+2026-04-19 06:20:28,832 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:20:28,832 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (1,)
+2026-04-19 06:20:28,833 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,833 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 1)
+2026-04-19 06:20:28,838 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,838 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 2)
+2026-04-19 06:20:28,839 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,839 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 3)
+2026-04-19 06:20:28,839 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,839 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 4)
+2026-04-19 06:20:28,840 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,840 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 5)
+2026-04-19 06:20:28,840 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,840 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 6)
+2026-04-19 06:20:28,841 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,841 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 7)
+2026-04-19 06:20:28,844 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,844 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 8)
+2026-04-19 06:20:28,845 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,845 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 9)
+2026-04-19 06:20:28,845 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,845 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 10)
+2026-04-19 06:20:28,846 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,846 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 11)
+2026-04-19 06:20:28,846 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:20:28,847 | INFO | sqlalchemy.engine.Engine | [cached since 1.415e+04s ago] (221, 12)
+2026-04-19 06:20:28,847 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:20:48,807 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:20:48,808 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:20:48,808 | INFO | sqlalchemy.engine.Engine | [cached since 1.417e+04s ago] (1,)
+2026-04-19 06:20:48,812 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:21:08,896 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:21:08,896 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:21:08,896 | INFO | sqlalchemy.engine.Engine | [cached since 1.419e+04s ago] (1,)
+2026-04-19 06:21:08,903 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:21:11,568 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:21:11,569 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:21:11,569 | INFO | sqlalchemy.engine.Engine | [cached since 1.419e+04s ago] (1,)
+2026-04-19 06:21:11,570 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:21:11,570 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:21:11,570 | INFO | sqlalchemy.engine.Engine | [cached since 1.419e+04s ago] (1,)
+2026-04-19 06:21:11,574 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:21:11,575 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:21:11,575 | INFO | sqlalchemy.engine.Engine | [cached since 6361s ago] ('LIVE',)
+2026-04-19 06:21:11,577 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:21:11,577 | INFO | sqlalchemy.engine.Engine | [cached since 6361s ago] ()
+2026-04-19 06:21:11,577 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:21:11,577 | INFO | sqlalchemy.engine.Engine | [cached since 6361s ago] ('',)
+2026-04-19 06:21:11,578 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:21:28,853 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:21:28,853 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:21:28,853 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] ()
+2026-04-19 06:21:28,855 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:21:28,855 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (1,)
+2026-04-19 06:21:28,856 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,856 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 1)
+2026-04-19 06:21:28,856 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,857 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 2)
+2026-04-19 06:21:28,857 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,857 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 3)
+2026-04-19 06:21:28,858 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,858 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 4)
+2026-04-19 06:21:28,858 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,858 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 5)
+2026-04-19 06:21:28,859 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,859 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 6)
+2026-04-19 06:21:28,859 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,860 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 7)
+2026-04-19 06:21:28,863 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,863 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 8)
+2026-04-19 06:21:28,864 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,864 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 9)
+2026-04-19 06:21:28,867 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,867 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 10)
+2026-04-19 06:21:28,871 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,871 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (222, 11)
+2026-04-19 06:21:28,872 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:21:28,872 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (49, 22, 0.082687, 55.1, 0.001687, 222, '2026-04-19 06:21:28.871901', -0.001562, 12)
+2026-04-19 06:21:28,872 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:21:28,872 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] ('sell', 'executed', 0.044, 241.01, 10.604439999999999, 0.0, -0.001562, -0.014729679266420484, 'contrarian_flow', 'Contrarian Flow: RSI=72.9, EMA9=240.802, EMA21=240.868, MACD_hist=0.06552', None, 1, 'finney', '2026-04-19 06:21:28.871756', None)
+2026-04-19 06:21:28,873 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:21:28,979 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:21:28,979 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:21:28,979 | INFO | sqlalchemy.engine.Engine | [cached since 1.421e+04s ago] (1,)
+2026-04-19 06:21:28,983 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:21:49,099 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:21:49,100 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:21:49,100 | INFO | sqlalchemy.engine.Engine | [cached since 1.423e+04s ago] (1,)
+2026-04-19 06:21:49,104 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:22:09,187 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:22:09,188 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:22:09,188 | INFO | sqlalchemy.engine.Engine | [cached since 1.425e+04s ago] (1,)
+2026-04-19 06:22:09,194 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:22:11,575 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:22:11,575 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:22:11,575 | INFO | sqlalchemy.engine.Engine | [cached since 1.425e+04s ago] (1,)
+2026-04-19 06:22:11,576 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:22:11,579 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:22:11,581 | INFO | sqlalchemy.engine.Engine | [cached since 1.425e+04s ago] (1,)
+2026-04-19 06:22:11,582 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies 
+WHERE strategies.mode = ? AND strategies.is_active = 1
+2026-04-19 06:22:11,582 | INFO | sqlalchemy.engine.Engine | [cached since 6421s ago] ('LIVE',)
+2026-04-19 06:22:11,587 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:22:11,589 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades
+2026-04-19 06:22:11,589 | INFO | sqlalchemy.engine.Engine | [cached since 6421s ago] ()
+2026-04-19 06:22:11,590 | INFO | sqlalchemy.engine.Engine | SELECT count(trades.id) AS count_1 
+FROM trades 
+WHERE trades.tx_hash IS NOT NULL AND trades.tx_hash != ?
+2026-04-19 06:22:11,590 | INFO | sqlalchemy.engine.Engine | [cached since 6421s ago] ('',)
+2026-04-19 06:22:11,591 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:22:28,879 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:22:28,880 | INFO | sqlalchemy.engine.Engine | SELECT strategies.id, strategies.name, strategies.display_name, strategies.description, strategies.is_active, strategies.is_enabled, strategies.mode, strategies.parameters, strategies.total_trades, strategies.win_trades, strategies.loss_trades, strategies.total_pnl, strategies.win_rate, strategies.avg_return, strategies.cycles_completed, strategies.last_cycle_at, strategies.current_cycle_pnl, strategies.allocation_pct, strategies.last_promoted_at, strategies.created_at, strategies.updated_at 
+FROM strategies
+2026-04-19 06:22:28,880 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] ()
+2026-04-19 06:22:28,881 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:22:28,881 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (1,)
+2026-04-19 06:22:28,883 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, loss_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,883 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (282, 119, 0.296112, 57.8, 0.00105, 223, '2026-04-19 06:22:28.882730', -0.000668, 1)
+2026-04-19 06:22:28,883 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:22:28,883 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] ('buy', 'executed', 0.0162, 241.25, 3.90825, 0.0, -0.000668, -0.01709204887097806, 'momentum_cascade', 'Momentum Cascade: RSI=80.4, EMA9=240.925, EMA21=240.914, MACD_hist=0.09131', None, 1, 'finney', '2026-04-19 06:22:28.882598', None)
+2026-04-19 06:22:28,887 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,887 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (223, 2)
+2026-04-19 06:22:28,888 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,888 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (106, 46, 0.183871, 43.4, 0.001735, 223, '2026-04-19 06:22:28.888616', 0.00456, 3)
+2026-04-19 06:22:28,889 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:22:28,889 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] ('sell', 'executed', 0.0425, 241.25, 10.253125, 0.0, 0.00456, 0.04447424565681195, 'liquidity_hunter', 'Liquidity Hunter: RSI=80.4, EMA9=240.925, EMA21=240.914, MACD_hist=0.09131', None, 1, 'finney', '2026-04-19 06:22:28.888510', None)
+2026-04-19 06:22:28,890 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,890 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (223, 4)
+2026-04-19 06:22:28,891 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,891 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (223, 5)
+2026-04-19 06:22:28,891 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,891 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (223, 6)
+2026-04-19 06:22:28,892 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,892 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (223, 7)
+2026-04-19 06:22:28,893 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,893 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (223, 8)
+2026-04-19 06:22:28,893 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,893 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (223, 9)
+2026-04-19 06:22:28,894 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,894 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (223, 10)
+2026-04-19 06:22:28,895 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET cycles_completed=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,895 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (223, 11)
+2026-04-19 06:22:28,895 | INFO | sqlalchemy.engine.Engine | UPDATE strategies SET total_trades=?, win_trades=?, total_pnl=?, win_rate=?, avg_return=?, cycles_completed=?, last_cycle_at=?, current_cycle_pnl=?, updated_at=CURRENT_TIMESTAMP WHERE strategies.id = ?
+2026-04-19 06:22:28,895 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (50, 28, 0.084016, 56.0, 0.00168, 223, '2026-04-19 06:22:28.895674', 0.001329, 12)
+2026-04-19 06:22:28,896 | INFO | sqlalchemy.engine.Engine | INSERT INTO trades (trade_type, status, amount, price_at_trade, usd_value, fee, pnl, pnl_pct, strategy, signal_reason, tx_hash, netuid, network, executed_at, error_message) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id, created_at
+2026-04-19 06:22:28,896 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] ('sell', 'executed', 0.0436, 241.25, 10.5185, 0.0, 0.001329, 0.012634881399439087, 'contrarian_flow', 'Contrarian Flow: RSI=80.4, EMA9=240.925, EMA21=240.914, MACD_hist=0.09131', None, 1, 'finney', '2026-04-19 06:22:28.895576', None)
+2026-04-19 06:22:28,897 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:22:29,257 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:22:29,258 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:22:29,258 | INFO | sqlalchemy.engine.Engine | [cached since 1.427e+04s ago] (1,)
+2026-04-19 06:22:29,262 | INFO | sqlalchemy.engine.Engine | COMMIT
+2026-04-19 06:22:49,333 | INFO | sqlalchemy.engine.Engine | BEGIN (implicit)
+2026-04-19 06:22:49,334 | INFO | sqlalchemy.engine.Engine | SELECT bot_config.id, bot_config.is_running, bot_config.wallet_name, bot_config.wallet_hotkey, bot_config.wallet_path, bot_config.coldkey_address, bot_config.hotkey_address, bot_config.wallet_balance, bot_config.network, bot_config.netuid, bot_config.target_validator_hotkey, bot_config.active_strategy, bot_config.trade_amount, bot_config.max_trade_amount, bot_config.min_trade_amount, bot_config.trade_interval, bot_config.max_daily_trades, bot_config.stop_loss_pct, bot_config.take_profit_pct, bot_config.total_trades, bot_config.successful_trades, bot_config.total_pnl, bot_config.daily_trades, bot_config.created_at, bot_config.updated_at, bot_config.last_trade_at, bot_config.daily_reset_at, bot_config.status_message, bot_config.error_message 
+FROM bot_config 
+WHERE bot_config.id = ?
+2026-04-19 06:22:49,334 | INFO | sqlalchemy.engine.Engine | [cached since 1.429e+04s ago] (1,)
+2026-04-19 06:22:49,340 | INFO | sqlalchemy.engine.Engine | COMMIT
