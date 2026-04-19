@@ -216,14 +216,14 @@ function maskAddr(addr: string): string {
 }
 
 interface ChainInfo {
-  address:     string
-  balance_tao: number | null
-  block:       number | null
-  network:     string
-  connected:   boolean
-  timestamp:   string | null
-  wallet_loaded: boolean
-  error?:      string
+  address:        string
+  balance_cached: number | null   // API field — was incorrectly mapped as balance_tao
+  block_cached:   number | null
+  network:        string
+  connected:      boolean
+  last_chain_at:  string | null
+  wallet_loaded:  boolean
+  error?:         string
 }
 
 function AddrBox({ label, addr, show }: { label: string; addr: string; show: boolean }) {
@@ -299,7 +299,7 @@ export default function WalletPage() {
       const { data } = await api.get<ChainInfo>('/wallet/chain')
       setChainInfo(data)
       if (data.connected) {
-        toast.success(`Chain queried ✅ Block #${data.block?.toLocaleString()}`)
+        toast.success(`Chain queried ✅ Block #${data.block_cached?.toLocaleString()}`)
       } else {
         toast.error('Chain unreachable — using cached data')
       }
@@ -388,8 +388,8 @@ export default function WalletPage() {
   }
 
   const isConnected   = chainInfo?.connected ?? false
-  const balance       = chainInfo?.balance_tao ?? 0
-  const block         = chainInfo?.block
+  const balance       = chainInfo?.balance_cached ?? 0
+  const block         = chainInfo?.block_cached
   const displayAddr   = chainInfo?.address || generated?.address || '—'
   const usdValue      = taoPrice != null && balance ? balance * taoPrice : null
 
@@ -437,7 +437,7 @@ export default function WalletPage() {
 
       {/* ── Recovery Tracker ────────────────────────────────────────────────── */}
       <RecoveryTracker
-        balance={chainInfo?.balance_tao ?? null}
+        balance={chainInfo?.balance_cached ?? null}
         taoPrice={taoPrice}
       />
 
