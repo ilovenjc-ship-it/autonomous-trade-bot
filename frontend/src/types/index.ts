@@ -94,6 +94,9 @@ export interface Strategy {
   win_rate: number
   total_pnl: number
   cycles_completed: number
+  // Capital allocation fields
+  stake_amount?: number | null   // TAO per live trade (per-strategy override)
+  allocation_pct?: number | null // % of total capital (rebalance engine)
 }
 
 export interface BotConfig {

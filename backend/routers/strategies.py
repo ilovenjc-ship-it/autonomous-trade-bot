@@ -16,6 +16,7 @@ router = APIRouter(prefix="/api/strategies", tags=["strategies"])
 class StrategyUpdate(BaseModel):
     parameters: Optional[Dict[str, Any]] = None
     is_enabled: Optional[bool] = None
+    stake_amount: Optional[float] = None  # TAO per trade — overrides global config
 
 
 @router.get("")
@@ -36,6 +37,9 @@ async def list_strategies(db: AsyncSession = Depends(get_db)):
             "win_rate": s.win_rate,
             "total_pnl": s.total_pnl,
             "cycles_completed": getattr(s, "cycles_completed", 0),
+            # Capital allocation fields
+            "stake_amount": getattr(s, "stake_amount", None),
+            "allocation_pct": getattr(s, "allocation_pct", None),
         }
         for s in strategies
     ]
@@ -74,6 +78,8 @@ async def update_strategy(
         strategy.parameters = payload.parameters
     if payload.is_enabled is not None:
         strategy.is_enabled = payload.is_enabled
+    if payload.stake_amount is not None:
+        strategy.stake_amount = max(0.001, payload.stake_amount)  # enforce minimum
     await db.commit()
     return {"success": True, "message": f"Strategy '{name}' updated"}
 

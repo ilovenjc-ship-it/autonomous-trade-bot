@@ -212,7 +212,9 @@ async def _run_one_cycle() -> None:
                 and bittensor_service.connected
                 and bittensor_service.wallet_loaded
             ):
-                live_amount = config.trade_amount if config else 0.1
+                # Per-strategy stake takes priority; falls back to global bot config
+                # Tier: ELITE 0.020τ / STRONG 0.015τ / SOLID 0.010τ / CAUTIOUS 0.008/0.006τ
+                live_amount = s.stake_amount if s.stake_amount else (config.trade_amount if config else 0.1)
 
                 # Ask the subnet router for the best (netuid, hotkey) pair
                 target_netuid, hotkey = await get_stake_target(s.name)

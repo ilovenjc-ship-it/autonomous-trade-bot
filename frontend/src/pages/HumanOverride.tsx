@@ -24,6 +24,7 @@ interface StrategyRow {
   win_rate: number
   total_trades: number
   total_pnl: number
+  stake_amount?: number | null
 }
 
 // ── constants ─────────────────────────────────────────────────────────────────
@@ -90,6 +91,10 @@ export default function HumanOverride() {
 
   // promote / demote
   const [opPending, setOpPending] = useState<string | null>(null)
+
+  // inline stake editing
+  const [stakeEditing, setStakeEditing] = useState<string | null>(null)
+  const [stakeInput,   setStakeInput]   = useState('')
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -192,14 +197,27 @@ export default function HumanOverride() {
     finally { setPromoCheck(false) }
   }
 
+  async function doSetStake(name: string) {
+    const amount = parseFloat(stakeInput)
+    if (isNaN(amount) || amount < 0.001) { toast.error('Minimum stake is 0.001 τ'); return }
+    if (amount > 1.0) { toast.error('Max override stake is 1.0 τ — protect the wallet'); return }
+    try {
+      await api.put(`/strategies/${name}`, { stake_amount: amount })
+      toast.success(`✅ ${name}: stake → ${amount.toFixed(4)} τ/trade`)
+      setStakeEditing(null)
+      setStakeInput('')
+      fetchStrategies()
+    } catch { toast.error('Failed to update stake') }
+  }
+
   const halted = status?.emergency_halted ?? false
 
   // build strategy rows from store
   const rows: StrategyRow[] = STRATEGIES_LIST.map(name => {
     const s = strategies.find(x => x.name === name)
     return s
-      ? { name: s.name, display_name: s.display_name, mode: s.mode, win_rate: s.win_rate, total_trades: s.total_trades, total_pnl: s.total_pnl }
-      : { name, display_name: name, mode: 'PAPER_ONLY' as const, win_rate: 0, total_trades: 0, total_pnl: 0 }
+      ? { name: s.name, display_name: s.display_name, mode: s.mode, win_rate: s.win_rate, total_trades: s.total_trades, total_pnl: s.total_pnl, stake_amount: s.stake_amount }
+      : { name, display_name: name, mode: 'PAPER_ONLY' as const, win_rate: 0, total_trades: 0, total_pnl: 0, stake_amount: null }
   })
 
   return (
@@ -516,6 +534,51 @@ export default function HumanOverride() {
                       {fmtTao(s.total_pnl)}
                     </p>
                     <p className="text-[9px] text-slate-500">PnL</p>
+                  </div>
+
+                  {/* Stake / Trade — inline editable */}
+                  <div className="flex-shrink-0 hidden lg:block">
+                    {stakeEditing === s.name ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="number"
+                          min="0.001"
+                          max="1.0"
+                          step="0.001"
+                          value={stakeInput}
+                          onChange={e => setStakeInput(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') doSetStake(s.name); if (e.key === 'Escape') setStakeEditing(null) }}
+                          autoFocus
+                          className="w-20 px-2 py-1 text-xs font-mono bg-dark-800 border border-accent-blue/50 rounded text-white focus:outline-none focus:border-accent-blue"
+                          placeholder="0.0100"
+                        />
+                        <span className="text-[10px] text-slate-500 font-mono">τ</span>
+                        <button
+                          onClick={() => doSetStake(s.name)}
+                          className="text-accent-green hover:text-white text-[10px] font-mono font-bold transition-colors"
+                          title="Save"
+                        >✓</button>
+                        <button
+                          onClick={() => setStakeEditing(null)}
+                          className="text-slate-500 hover:text-red-400 text-[10px] font-mono transition-colors"
+                          title="Cancel"
+                        >✗</button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setStakeEditing(s.name); setStakeInput(s.stake_amount != null ? s.stake_amount.toFixed(4) : '') }}
+                        className="text-right group/stake"
+                        title="Click to edit stake per trade"
+                      >
+                        <p className={clsx(
+                          'text-xs font-mono font-bold group-hover/stake:text-accent-blue transition-colors',
+                          s.mode === 'LIVE' ? 'text-white' : 'text-slate-500',
+                        )}>
+                          {s.stake_amount != null ? `${s.stake_amount.toFixed(4)} τ` : '—'}
+                        </p>
+                        <p className="text-[9px] text-slate-500">stake/trade</p>
+                      </button>
+                    )}
                   </div>
 
                   {/* mode progression steps */}

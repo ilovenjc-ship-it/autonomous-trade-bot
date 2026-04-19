@@ -66,6 +66,10 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
   const winRate  = n ? strategies.reduce((a, s) => a + s.win_rate, 0) / n : 0
   const live     = strategies.filter(s => s.mode === 'LIVE').length
   const approved = strategies.filter(s => s.mode === 'APPROVED_FOR_LIVE').length
+  // Max possible stake if every LIVE bot fires in the same cycle
+  const maxCycleStake = strategies
+    .filter(s => s.mode === 'LIVE' && s.stake_amount != null)
+    .reduce((a, s) => a + (s.stake_amount ?? 0), 0)
 
   // tier counts
   const tierCounts = strategies.reduce<Record<Tier, number>>(
@@ -77,11 +81,11 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
     <div className="space-y-3">
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
-          { label: 'Strategies',      value: String(n),                 color: 'text-white',        icon: <Layers size={12} className="text-accent-blue" /> },
-          { label: 'Fleet Trades',    value: trades.toLocaleString(),   color: 'text-white',        icon: <Activity size={12} className="text-accent-blue" /> },
-          { label: 'Avg Win Rate',    value: `${winRate.toFixed(1)}%`,  color: winRate >= 55 ? 'text-accent-green' : 'text-yellow-400', icon: <TrendingUp size={12} className="text-accent-green" /> },
-          { label: 'Fleet PnL (τ)',   value: fmt(pnl),                  color: pnl >= 0 ? 'text-accent-green' : 'text-red-400', icon: pnl >= 0 ? <TrendingUp size={12} className="text-accent-green" /> : <TrendingDown size={12} className="text-red-400" /> },
-          { label: 'Live / Approved', value: `${live} / ${approved}`,   color: 'text-accent-green', icon: <Shield size={12} className="text-yellow-400" /> },
+          { label: 'Strategies',      value: String(n),                          color: 'text-white',        icon: <Layers size={12} className="text-accent-blue" /> },
+          { label: 'Fleet Trades',    value: trades.toLocaleString(),            color: 'text-white',        icon: <Activity size={12} className="text-accent-blue" /> },
+          { label: 'Avg Win Rate',    value: `${winRate.toFixed(1)}%`,           color: winRate >= 55 ? 'text-accent-green' : 'text-yellow-400', icon: <TrendingUp size={12} className="text-accent-green" /> },
+          { label: 'Fleet PnL (τ)',   value: fmt(pnl),                           color: pnl >= 0 ? 'text-accent-green' : 'text-red-400', icon: pnl >= 0 ? <TrendingUp size={12} className="text-accent-green" /> : <TrendingDown size={12} className="text-red-400" /> },
+          { label: 'Live / Approved', value: `${live} / ${approved}`,            color: 'text-accent-green', icon: <Shield size={12} className="text-yellow-400" /> },
         ].map(({ label, value, color, icon }) => (
           <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
@@ -92,6 +96,21 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
           </div>
         ))}
       </div>
+
+      {/* Max-cycle stake banner — only when LIVE bots have assigned stakes */}
+      {maxCycleStake > 0 && (
+        <div className="bg-dark-800 border border-accent-green/20 rounded-xl px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Zap size={13} className="text-accent-green" />
+            <span className="text-[11px] text-slate-400 font-mono uppercase tracking-wider">
+              Max on-chain stake if all LIVE bots fire simultaneously
+            </span>
+          </div>
+          <span className="text-base font-bold font-mono text-accent-green">
+            {maxCycleStake.toFixed(4)} τ
+          </span>
+        </div>
+      )}
 
       {/* tier distribution bar */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3">
@@ -194,7 +213,7 @@ function StrategyCard({ s }: { s: Strategy }) {
         </div>
       </div>
 
-      {/* ── capital allocation indicator ─────────────────── */}
+      {/* ── stake / capital indicator ────────────────────── */}
       <div className={clsx(
         'flex items-center justify-between rounded-lg px-3 py-2 mb-4 border',
         isSuspended
@@ -205,11 +224,22 @@ function StrategyCard({ s }: { s: Strategy }) {
       )}>
         <div className="flex items-center gap-1.5">
           <Zap size={11} className={tierMeta.allocClass} />
-          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">Capital Multiplier</span>
+          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
+            {s.mode === 'LIVE' ? 'Stake / Trade' : 'Capital Tier'}
+          </span>
         </div>
-        <span className={clsx('text-sm font-bold font-mono', tierMeta.allocClass)}>
-          {isSuspended ? 'SUSPENDED' : tierMeta.multiplier + ' base'}
-        </span>
+        {s.mode === 'LIVE' && s.stake_amount != null ? (
+          <div className="flex items-center gap-1.5">
+            <span className={clsx('text-sm font-bold font-mono', tierMeta.allocClass)}>
+              {s.stake_amount.toFixed(4)} τ
+            </span>
+            <span className="text-[10px] font-mono text-slate-500">{tierMeta.label}</span>
+          </div>
+        ) : (
+          <span className={clsx('text-sm font-bold font-mono', tierMeta.allocClass)}>
+            {isSuspended ? 'SUSPENDED' : tierMeta.multiplier + ' base'}
+          </span>
+        )}
       </div>
 
       {/* ── gate progress bar (cycles toward live) ──────── */}

@@ -35,6 +35,10 @@ class Strategy(Base):
     # Capital allocation (%) — persisted by the rebalance engine
     allocation_pct = Column(Float, nullable=True)
 
+    # Per-strategy stake amount (TAO) — overrides global bot config trade_amount
+    # Winners run bigger; set by win-rate tier or Human Override
+    stake_amount = Column(Float, nullable=True, default=None)
+
     # Autonomous promotion tracking
     last_promoted_at = Column(DateTime(timezone=True), nullable=True)
 
