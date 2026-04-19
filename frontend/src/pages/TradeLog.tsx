@@ -121,7 +121,7 @@ export default function TradeLog() {
   const [typeFilter,  setTypeFilter]  = useState<string>('')    // '' | 'buy' | 'sell'
   const [resultFilt,  setResultFilt]  = useState<string>('')    // '' | 'win' | 'loss'
   const [stratFilter, setStratFilter] = useState<string>('')
-  const [realOnly,    setRealOnly]    = useState(true)
+  const [realOnly,    setRealOnly]    = useState(false)
   const [search,      setSearch]      = useState('')
   const [realCount,   setRealCount]   = useState<number | null>(null)
   const [archivedCount, setArchivedCount] = useState<number | null>(null)
@@ -184,7 +184,14 @@ export default function TradeLog() {
               Trade Log
             </h1>
             <p className="text-sm text-slate-300 mt-0.5">
-              {total.toLocaleString()} trades · page {page}/{pages}
+              {total.toLocaleString()} trades · page {page}/{pages || 1}
+              {!realOnly && realCount !== null && (
+                <span className="ml-2 text-xs font-mono">
+                  <span className="text-emerald-400">⛓ {realCount} real</span>
+                  <span className="text-slate-500"> · </span>
+                  <span className="text-yellow-400">◌ {(total - (realCount ?? 0)).toLocaleString()} paper</span>
+                </span>
+              )}
             </p>
           </div>
           <div className="flex items-center gap-3">
@@ -381,9 +388,14 @@ export default function TradeLog() {
       <div className="flex-shrink-0 px-6 py-3 border-t border-dark-600 flex items-center justify-between">
         <p className="text-xs text-slate-300 font-mono">
           Showing {visible.length} of {total.toLocaleString()} trades
-          {(typeFilter || resultFilt || stratFilter || realOnly)
-            ? <span className="text-emerald-400 ml-1">(filtered{realOnly ? ' · ⛓ real only' : ''})</span>
-            : ''}
+          {(typeFilter || resultFilt || stratFilter || realOnly) && (
+            <span className="ml-1">
+              {realOnly
+                ? <span className="text-emerald-400">(⛓ real only)</span>
+                : <span className="text-slate-400">(filtered)</span>
+              }
+            </span>
+          )}
         </p>
 
         <div className="flex items-center gap-2">
