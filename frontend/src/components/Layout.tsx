@@ -11,6 +11,7 @@ import api from '@/api/client'
 import clsx from 'clsx'
 import TradingModeBanner from '@/components/TradingModeBanner'
 import NotificationBell from '@/components/NotificationBell'
+import TickerTape from '@/components/TickerTape'
 
 const navItems = [
   { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
@@ -342,6 +343,7 @@ export default function Layout() {
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
           <Outlet />
         </div>
+        <TickerTape />
       </main>
     </div>
   )
