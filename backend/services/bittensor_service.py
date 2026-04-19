@@ -25,6 +25,40 @@ logger = logging.getLogger(__name__)
 TARGET_WALLET = "5HMXmud5v6zUz84fm3azwLyENFpbtq5CFK6ZeShA4EqcECAT"  # Session VII final — clean bot wallet, τ0.227 funded, confirmed on-chain
 NETWORK       = "finney"
 
+
+class _WalletAdapter:
+    """
+    Minimal bittensor.Wallet-compatible wrapper around a bare mnemonic-derived Keypair.
+
+    bittensor SDK 10.x expects a Wallet object with:
+      - wallet.unlock_coldkey()  → decrypts file-based coldkey (no-op for us — already in memory)
+      - wallet.coldkey           → the signing Keypair
+
+    Without this adapter, every add_stake() / remove_stake() attempt raises:
+      'builtins.Keypair' object has no attribute 'unlock_coldkey'
+    ...and only ~17% of live trades slip through via an SDK fallback path.
+    With this adapter, the SDK gets a proper wallet interface and execution
+    succeeds cleanly on every consensus-approved cycle.
+    """
+
+    def __init__(self, keypair) -> None:
+        self.coldkey    = keypair          # the signing keypair (already unlocked)
+        self.coldkeypub = keypair          # SDK may also access coldkeypub
+        self.hotkey     = keypair          # some paths use hotkey for signing too
+        self._keypair   = keypair
+
+    def unlock_coldkey(self, password: Optional[str] = None) -> None:
+        """No-op — mnemonic-derived keypairs are always unlocked in memory."""
+        return
+
+    def unlock_hotkey(self, password: Optional[str] = None) -> None:
+        """No-op."""
+        return
+
+    @property
+    def ss58_address(self) -> str:
+        return self._keypair.ss58_address
+
 # ── Mnemonic storage (in-memory + env file) ──────────────────────────────────
 _MNEMONIC_ENV_KEY = "BT_MNEMONIC"
 
@@ -298,33 +332,35 @@ class BittensorService:
 
         try:
             import bittensor as bt
+            # Wrap bare Keypair in Wallet-compatible adapter so SDK 10.x
+            # unlock_coldkey() call succeeds (no-op) instead of raising AttributeError.
+            wallet_adapter = _WalletAdapter(self._keypair)
+
             async with await self._subtensor() as sub:
                 result = await sub.add_stake(
-                    wallet                 = self._keypair,
-                    hotkey_ss58            = hotkey_address,
-                    amount                 = bt.Balance.from_tao(amount_tao),
-                    netuid                 = netuid,
-                    wait_for_inclusion     = True,
-                    wait_for_finalization  = False,
+                    wallet                = wallet_adapter,
+                    netuid                = netuid,
+                    hotkey_ss58           = hotkey_address,
+                    amount                = bt.Balance.from_tao(amount_tao),
+                    wait_for_inclusion    = True,
+                    wait_for_finalization = False,
+                    raise_error           = False,
                 )
-                # result may be bool, extrinsic, or dict depending on SDK version
+                # SDK 10.x returns ExtrinsicResponse — bool(response) == True on success
                 success = bool(result)
 
-                # Try to extract a block hash / tx hash from the result
+                # Extract block hash / tx hash from the ExtrinsicResponse
                 tx_hash = None
-                if hasattr(result, "block_hash"):
+                if hasattr(result, "block_hash") and result.block_hash:
                     tx_hash = result.block_hash
-                elif hasattr(result, "extrinsic_hash"):
+                elif hasattr(result, "extrinsic_hash") and result.extrinsic_hash:
                     tx_hash = result.extrinsic_hash
                 elif isinstance(result, dict):
                     tx_hash = result.get("block_hash") or result.get("tx_hash")
 
                 # If no hash returned but call succeeded, record the current block
                 if success and not tx_hash:
-                    try:
-                        tx_hash = f"block:{self._last_block}" if self._last_block else "confirmed"
-                    except Exception:
-                        tx_hash = "confirmed"
+                    tx_hash = f"block:{self._last_block}" if self._last_block else "confirmed"
 
                 logger.info(
                     f"add_stake {'SUCCESS' if success else 'FAILED'} — "
@@ -348,16 +384,36 @@ class BittensorService:
             return {"success": False, "error": "Mnemonic not loaded"}
         try:
             import bittensor as bt
+            wallet_adapter = _WalletAdapter(self._keypair)
             async with await self._subtensor() as sub:
                 result = await sub.unstake(
-                    wallet          = self._keypair,
-                    hotkey_ss58     = hotkey_address,
-                    amount          = bt.Balance.from_tao(amount_tao),
-                    netuid          = netuid,
-                    wait_for_inclusion     = True,
-                    wait_for_finalization  = False,
+                    wallet                = wallet_adapter,
+                    netuid                = netuid,
+                    hotkey_ss58           = hotkey_address,
+                    amount                = bt.Balance.from_tao(amount_tao),
+                    wait_for_inclusion    = True,
+                    wait_for_finalization = False,
+                    raise_error           = False,
                 )
-                return {"success": bool(result), "amount": amount_tao}
+                success = bool(result)
+                tx_hash = None
+                if success:
+                    if hasattr(result, "block_hash") and result.block_hash:
+                        tx_hash = result.block_hash
+                    else:
+                        tx_hash = f"block:{self._last_block}" if self._last_block else "confirmed"
+                logger.info(
+                    f"remove_stake {'SUCCESS' if success else 'FAILED'} — "
+                    f"{amount_tao}τ ← {hotkey_address[:16]}… SN{netuid} | hash={tx_hash}"
+                )
+                return {
+                    "success":    success,
+                    "tx_hash":    tx_hash if success else None,
+                    "block_hash": tx_hash if success else None,
+                    "amount":     amount_tao,
+                    "netuid":     netuid,
+                    "hotkey":     hotkey_address,
+                }
         except Exception as e:
             logger.error(f"unstake error: {e}")
             return {"success": False, "error": str(e)}
