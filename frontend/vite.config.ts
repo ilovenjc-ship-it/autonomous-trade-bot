@@ -10,9 +10,9 @@ export default defineConfig({
     },
   },
   server: {
-    port: 3002,
+    port: 3004,
     host: true,
-    allowedHosts: ['all', '.e2b.app', 'localhost'],
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: 'http://localhost:8001',

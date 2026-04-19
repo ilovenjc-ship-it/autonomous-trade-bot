@@ -3,21 +3,23 @@
 # nightwatch.sh — Keeps the TAO Bot app alive all night.
 #
 # What it does (every 20 seconds):
-#   1. Pings the frontend public URL  → keeps the e2b tunnel warm
-#   2. Pings the backend health URL   → keeps the sandbox warm
-#   3. Checks if vite process is up   → restarts frontend if it crashed
-#   4. Checks if uvicorn is up        → restarts backend if it crashed
+#   1. Checks if uvicorn is up        → restarts backend if it crashed
+#   2. Checks if vite process is up   → restarts frontend if it crashed
+#   3. Checks cloudflared tunnels     → restarts if dropped, logs new URLs
+#   4. Pings both tunnel URLs         → keeps Cloudflare connections warm
+#   5. Heartbeat log every 5 min      → proof of life
 #
 # Run:  bash nightwatch.sh &
-#       (runs silently in background, logs to /workspace/autonomous-trade-bot/nightwatch.log)
+#       (runs silently in background, logs to nightwatch.log)
 # ─────────────────────────────────────────────────────────────────────────────
 
 FRONTEND_PORT=3004
 BACKEND_PORT=8001
-TUNNEL_URL="https://3004-i016jda98v65cspsvnnna.e2b.app"
 LOG="/workspace/autonomous-trade-bot/nightwatch.log"
 FRONTEND_DIR="/workspace/autonomous-trade-bot/frontend"
 BACKEND_DIR="/workspace/autonomous-trade-bot/backend"
+TUNNEL_FE_LOG="/workspace/autonomous-trade-bot/tunnel-frontend.log"
+TUNNEL_BE_LOG="/workspace/autonomous-trade-bot/tunnel-backend.log"
 
 # Rotate log if it gets large (> 2 MB)
 rotate_log() {
@@ -47,9 +49,46 @@ start_frontend() {
   echo "[$(date '+%H:%M:%S ET')] ✅ Frontend restarted (PID $!)" >> "$LOG"
 }
 
+start_tunnel_frontend() {
+  echo "[$(date '+%H:%M:%S ET')] 🌐 Restarting Cloudflare frontend tunnel…" >> "$LOG"
+  pkill -f "cloudflared tunnel --url http://localhost:${FRONTEND_PORT}" 2>/dev/null || true
+  sleep 2
+  > "$TUNNEL_FE_LOG"
+  nohup cloudflared tunnel --url "http://localhost:${FRONTEND_PORT}" \
+    --no-autoupdate >> "$TUNNEL_FE_LOG" 2>&1 &
+  sleep 12
+  NEW_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_FE_LOG" | head -1)
+  if [ -n "$NEW_URL" ]; then
+    echo "[$(date '+%H:%M:%S ET')] ✅ Frontend tunnel URL: $NEW_URL" >> "$LOG"
+  else
+    echo "[$(date '+%H:%M:%S ET')] ⚠️  Frontend tunnel started — URL pending" >> "$LOG"
+  fi
+}
+
+start_tunnel_backend() {
+  echo "[$(date '+%H:%M:%S ET')] 🌐 Restarting Cloudflare backend tunnel…" >> "$LOG"
+  pkill -f "cloudflared tunnel --url http://localhost:${BACKEND_PORT}" 2>/dev/null || true
+  sleep 2
+  > "$TUNNEL_BE_LOG"
+  nohup cloudflared tunnel --url "http://localhost:${BACKEND_PORT}" \
+    --no-autoupdate >> "$TUNNEL_BE_LOG" 2>&1 &
+  sleep 12
+  NEW_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_BE_LOG" | head -1)
+  if [ -n "$NEW_URL" ]; then
+    echo "[$(date '+%H:%M:%S ET')] ✅ Backend tunnel URL: $NEW_URL" >> "$LOG"
+  else
+    echo "[$(date '+%H:%M:%S ET')] ⚠️  Backend tunnel started — URL pending" >> "$LOG"
+  fi
+}
+
 echo "[$(date '+%H:%M:%S ET')] 🌙 NightWatch started — keeping app alive all night." >> "$LOG"
-echo "[$(date '+%H:%M:%S ET')] Frontend: http://localhost:${FRONTEND_PORT}" >> "$LOG"
-echo "[$(date '+%H:%M:%S ET')] Backend:  http://localhost:${BACKEND_PORT}" >> "$LOG"
+echo "[$(date '+%H:%M:%S ET')] Frontend local: http://localhost:${FRONTEND_PORT}" >> "$LOG"
+echo "[$(date '+%H:%M:%S ET')] Backend  local: http://localhost:${BACKEND_PORT}" >> "$LOG"
+# Print current tunnel URLs if available
+FE_URL_INIT=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_FE_LOG" 2>/dev/null | tail -1)
+BE_URL_INIT=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_BE_LOG" 2>/dev/null | tail -1)
+[ -n "$FE_URL_INIT" ] && echo "[$(date '+%H:%M:%S ET')] 🌐 Frontend tunnel: $FE_URL_INIT" >> "$LOG"
+[ -n "$BE_URL_INIT" ] && echo "[$(date '+%H:%M:%S ET')] 🌐 Backend  tunnel: $BE_URL_INIT" >> "$LOG"
 
 while true; do
   rotate_log
@@ -72,17 +111,30 @@ while true; do
     fi
   fi
 
-  # ── 2. Ping external tunnel URL (keeps e2b tunnel from closing) ──────────
-  if [ -n "$TUNNEL_URL" ]; then
-    curl -sf --max-time 8 "$TUNNEL_URL" -o /dev/null 2>/dev/null || true
-  fi
-
-  # ── 3. Check frontend vite process ───────────────────────────────────────
+  # ── 2. Check frontend vite process ───────────────────────────────────────
   if ! pgrep -f "vite" > /dev/null 2>&1; then
     echo "[$(date '+%H:%M:%S ET')] ❌ Frontend (vite) down — restarting…" >> "$LOG"
     start_frontend
     sleep 5
   fi
+
+  # ── 3. Check Cloudflare frontend tunnel ──────────────────────────────────
+  if ! pgrep -f "cloudflared tunnel --url http://localhost:${FRONTEND_PORT}" > /dev/null 2>&1; then
+    echo "[$(date '+%H:%M:%S ET')] ❌ Frontend tunnel down — restarting…" >> "$LOG"
+    start_tunnel_frontend
+  fi
+
+  # ── 4. Check Cloudflare backend tunnel ───────────────────────────────────
+  if ! pgrep -f "cloudflared tunnel --url http://localhost:${BACKEND_PORT}" > /dev/null 2>&1; then
+    echo "[$(date '+%H:%M:%S ET')] ❌ Backend tunnel down — restarting…" >> "$LOG"
+    start_tunnel_backend
+  fi
+
+  # ── 5. Ping tunnel URLs to keep them warm ────────────────────────────────
+  FE_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_FE_LOG" 2>/dev/null | tail -1)
+  BE_URL=$(grep -o 'https://[a-z0-9-]*\.trycloudflare\.com' "$TUNNEL_BE_LOG" 2>/dev/null | tail -1)
+  [ -n "$FE_URL" ] && curl -sf --max-time 8 "$FE_URL" -o /dev/null 2>/dev/null || true
+  [ -n "$BE_URL" ] && curl -sf --max-time 8 "$BE_URL/api/bot/status" -o /dev/null 2>/dev/null || true
 
   # ── 4. Heartbeat log every ~5 minutes (silent otherwise) ─────────────────
   MINUTE=$(date '+%M')
