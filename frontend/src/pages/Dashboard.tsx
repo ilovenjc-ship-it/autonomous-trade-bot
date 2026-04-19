@@ -1,8 +1,9 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Play, Square, RefreshCw, TrendingUp, TrendingDown,
   Activity, Zap, Bot, Shield, BarChart2, Clock, Award, Radio,
   Brain, Vote, Bell, Wallet, ArrowUp, ArrowDown, Minus,
+  MessageSquare, Send, ChevronDown, ChevronUp,
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -347,7 +348,35 @@ export default function Dashboard() {
   const [priceHistory,   setPriceHistory]   = useState<PricePoint[]>([])
   const [priceRange,     setPriceRange]     = useState<PriceRange>('24H')
   const [subnets,        setSubnets]        = useState<Subnet[]>([])
-  
+
+  // Mini-chat
+  const [miniChatOpen,    setMiniChatOpen]    = useState(true)
+  const [miniChatInput,   setMiniChatInput]   = useState('')
+  const [miniChatLoading, setMiniChatLoading] = useState(false)
+  const [miniChatLast,    setMiniChatLast]    = useState<{ q: string; a: string } | null>(null)
+  const miniChatInputRef = useRef<HTMLInputElement>(null)
+
+  const MINI_QUICK = [
+    { label: '📊 PnL',     text: 'What is the current fleet PnL?' },
+    { label: '🌡️ Regime',  text: 'What is the market regime and RSI?' },
+    { label: '🏆 Top bot', text: 'Which is the top performing strategy?' },
+  ]
+
+  const sendMiniChat = async (text: string) => {
+    const msg = text.trim()
+    if (!msg || miniChatLoading) return
+    setMiniChatInput('')
+    setMiniChatLoading(true)
+    setMiniChatLast({ q: msg, a: '' })
+    try {
+      const { data } = await api.post('/fleet/chat', { message: msg })
+      setMiniChatLast({ q: msg, a: data.response })
+    } catch {
+      setMiniChatLast({ q: msg, a: '⚠️ Agent unreachable — try again.' })
+    } finally {
+      setMiniChatLoading(false)
+    }
+  }
 
   const loadCharts = useCallback(async (range: PriceRange) => {
     try {
@@ -715,10 +744,10 @@ export default function Dashboard() {
       </div>
 
       {/* ── Bottom row ───────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
         {/* Strategy leaderboard */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
+        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-1">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
             <Award size={14} className="text-yellow-400" /> Top Strategies
           </h2>
@@ -749,7 +778,7 @@ export default function Dashboard() {
         </div>
 
         {/* Live activity feed */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
+        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-1">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
             <Activity size={14} className="text-accent-blue" /> Live Activity
             <span className="ml-auto text-[10px] text-slate-300 font-mono">auto-refresh 15s</span>
@@ -777,6 +806,120 @@ export default function Dashboard() {
               <p className="text-slate-300 text-[12px] font-mono text-center py-4">No activity yet</p>
             )}
           </div>
+        </div>
+
+        {/* ── Mini-chat ──────────────────────────────────────────────────────── */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden flex flex-col xl:col-span-1">
+          {/* Header */}
+          <div
+            className="flex items-center gap-2 px-4 py-3 border-b border-dark-700 cursor-pointer select-none hover:bg-dark-700/40 transition-colors"
+            onClick={() => setMiniChatOpen(o => !o)}
+          >
+            <div className="relative">
+              <MessageSquare size={13} className="text-indigo-400" />
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+            </div>
+            <span className="text-xs font-bold text-white font-mono uppercase tracking-wider flex-1">Ask II Agent</span>
+            {miniChatOpen ? <ChevronUp size={13} className="text-slate-400" /> : <ChevronDown size={13} className="text-slate-400" />}
+          </div>
+
+          {miniChatOpen && (
+            <>
+              {/* Quick prompts */}
+              <div className="flex gap-1.5 px-3 py-2 border-b border-dark-700/50 flex-wrap">
+                {MINI_QUICK.map(qp => (
+                  <button
+                    key={qp.label}
+                    onClick={() => sendMiniChat(qp.text)}
+                    disabled={miniChatLoading}
+                    className="text-[10px] font-mono px-2.5 py-1 rounded-full border border-indigo-500/25 bg-indigo-500/8 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/40 transition-all duration-200 disabled:opacity-40"
+                  >
+                    {qp.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Last exchange */}
+              <div className="flex-1 px-3 py-3 space-y-2 min-h-[140px] max-h-[180px] overflow-y-auto">
+                {!miniChatLast && !miniChatLoading && (
+                  <div className="flex items-center justify-center h-full">
+                    <div className="text-center">
+                      <Brain size={20} className="text-slate-600 mx-auto mb-1.5" />
+                      <p className="text-[11px] text-slate-500 font-mono">Ask about PnL, regime, or top bots</p>
+                    </div>
+                  </div>
+                )}
+
+                {miniChatLast && (
+                  <>
+                    {/* User question */}
+                    <div className="flex justify-end">
+                      <div className="bg-indigo-600/20 border border-indigo-500/30 rounded-xl rounded-tr-sm px-3 py-2 max-w-[90%]">
+                        <p className="text-[11px] font-mono text-indigo-100">{miniChatLast.q}</p>
+                      </div>
+                    </div>
+
+                    {/* Agent answer or loading */}
+                    <div className="flex justify-start">
+                      <div className="bg-dark-700 border border-dark-600 rounded-xl rounded-tl-sm px-3 py-2 max-w-[90%]">
+                        {miniChatLoading || !miniChatLast.a ? (
+                          <div className="flex items-center gap-1.5 py-0.5">
+                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                          </div>
+                        ) : (
+                          <p className="text-[11px] font-mono text-slate-200 leading-relaxed">
+                            {miniChatLast.a.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
+                              part.startsWith('**') && part.endsWith('**')
+                                ? <strong key={j} className="text-white font-bold">{part.slice(2, -2)}</strong>
+                                : <span key={j}>{part}</span>
+                            )}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Input */}
+              <div className="border-t border-dark-700 px-3 py-2.5">
+                <form
+                  onSubmit={e => { e.preventDefault(); sendMiniChat(miniChatInput) }}
+                  className="flex items-center gap-2"
+                >
+                  <input
+                    ref={miniChatInputRef}
+                    type="text"
+                    value={miniChatInput}
+                    onChange={e => setMiniChatInput(e.target.value)}
+                    placeholder="Ask anything…"
+                    disabled={miniChatLoading}
+                    className="flex-1 bg-dark-700 border border-dark-600 rounded-lg px-3 py-1.5 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition-colors disabled:opacity-50"
+                  />
+                  <button
+                    type="submit"
+                    disabled={!miniChatInput.trim() || miniChatLoading}
+                    className={clsx(
+                      'p-1.5 rounded-lg transition-all duration-200',
+                      miniChatInput.trim() && !miniChatLoading
+                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                        : 'bg-dark-700 text-slate-500 border border-dark-600 cursor-not-allowed'
+                    )}
+                  >
+                    <Send size={12} />
+                  </button>
+                </form>
+              </div>
+            </>
+          )}
+
+          {!miniChatOpen && miniChatLast?.a && (
+            <div className="px-4 py-2">
+              <p className="text-[10px] font-mono text-slate-400 truncate">{miniChatLast.a}</p>
+            </div>
+          )}
         </div>
 
       </div>

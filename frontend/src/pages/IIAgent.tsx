@@ -2,12 +2,13 @@
  * II Agent — Master Orchestrator Dashboard
  * The top-level intelligence view: regime, fleet health, observations, recommendations.
  */
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Brain, TrendingUp, TrendingDown, Minus, Zap,
   Activity, RefreshCw, ChevronRight, AlertTriangle,
   CheckCircle2, Flame, Eye, BarChart3, Lightbulb,
-  Cpu, Radio, ShieldAlert, ArrowUpRight,
+  Cpu, Radio, ShieldAlert, ArrowUpRight, MessageSquare,
+  Send, Sparkles, User, Bot,
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
@@ -100,6 +101,23 @@ const REC_CONFIG: Record<string, { color: string; bg: string; border: string; ic
   REGIME:    { color: 'text-purple-400',  bg: 'bg-purple-500/10',  border: 'border-purple-500/30',  icon: Zap          },
   CONSENSUS: { color: 'text-amber-400',   bg: 'bg-amber-500/10',   border: 'border-amber-500/30',   icon: Radio        },
 }
+
+// ── Chat types ────────────────────────────────────────────────────────────────
+
+interface ChatMsg {
+  role:      'user' | 'agent'
+  content:   string
+  timestamp: string
+}
+
+const QUICK_PROMPTS = [
+  { label: '📊 PnL?',        text: 'What is the total fleet PnL right now?' },
+  { label: '🏆 Top bots',   text: 'Which are the top 3 performing strategies?' },
+  { label: '🌡️ Regime',     text: 'What is the current market regime and RSI?' },
+  { label: '⚡ Gate status', text: 'Which strategies are approved or close to promotion?' },
+  { label: '🔁 Cycles',      text: 'How many autonomous cycles have completed?' },
+  { label: '🛡️ Risk',        text: 'What are the current risk controls?' },
+]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -259,6 +277,12 @@ export default function IIAgent() {
   const [flash,       setFlash]       = useState(false)
   const [cStats,      setCStats]      = useState<{total_rounds:number,approved_rounds:number,approval_rate_pct:number}|null>(null)
 
+  // Chat state
+  const [chatHistory, setChatHistory] = useState<ChatMsg[]>([])
+  const [chatInput,   setChatInput]   = useState('')
+  const [chatLoading, setChatLoading] = useState(false)
+  const chatBottomRef = useRef<HTMLDivElement>(null)
+
   const load = useCallback(async () => {
     const [statusRes, obsRes, recsRes, cStatsRes] = await Promise.allSettled([
       api.get('/agent/status'),
@@ -296,6 +320,37 @@ export default function IIAgent() {
       setAnalyzing(false)
     }
   }
+
+  const sendChat = async (text: string) => {
+    const msg = text.trim()
+    if (!msg || chatLoading) return
+    setChatInput('')
+    const userEntry: ChatMsg = { role: 'user', content: msg, timestamp: new Date().toISOString() }
+    setChatHistory(prev => [...prev, userEntry])
+    setChatLoading(true)
+    try {
+      const { data } = await api.post('/fleet/chat', { message: msg })
+      const agentEntry: ChatMsg = {
+        role: 'agent',
+        content: data.response,
+        timestamp: new Date().toISOString(),
+      }
+      setChatHistory(prev => [...prev, agentEntry])
+    } catch {
+      setChatHistory(prev => [...prev, {
+        role: 'agent',
+        content: '⚠️ Unable to reach the agent right now. Backend may be restarting.',
+        timestamp: new Date().toISOString(),
+      }])
+    } finally {
+      setChatLoading(false)
+    }
+  }
+
+  // Scroll to bottom when new message arrives
+  useEffect(() => {
+    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [chatHistory, chatLoading])
 
   const regime    = status?.current_regime ?? 'UNKNOWN'
   const regimeCfg = REGIME_CONFIG[regime] ?? REGIME_CONFIG.UNKNOWN
@@ -624,6 +679,149 @@ export default function IIAgent() {
               <span className="text-[10px] font-mono text-slate-300 font-semibold">{value}</span>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* ── Chat Panel ── */}
+      <div className="rounded-2xl border border-dark-600 overflow-hidden flex flex-col"
+           style={{ background: 'linear-gradient(180deg, #0d1525 0%, #0a1020 100%)' }}>
+
+        {/* Chat header */}
+        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-dark-600"
+             style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.08) 0%, transparent 100%)' }}>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <MessageSquare size={15} className="text-indigo-400" />
+              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+            </div>
+            <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">Chat with II Agent</span>
+          </div>
+          <div className="flex items-center gap-1.5 ml-2">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-[10px] font-mono text-emerald-400">ONLINE · backed by live data</span>
+          </div>
+          <span className="ml-auto text-[10px] font-mono text-slate-500 flex items-center gap-1">
+            <Sparkles size={10} className="text-indigo-400" />
+            keyword-matched · real-time indicators
+          </span>
+        </div>
+
+        {/* Quick prompt pills */}
+        <div className="flex flex-wrap gap-2 px-5 py-3 border-b border-dark-700/50">
+          {QUICK_PROMPTS.map(qp => (
+            <button
+              key={qp.label}
+              onClick={() => sendChat(qp.text)}
+              disabled={chatLoading}
+              className="text-[11px] font-mono px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/50 hover:text-indigo-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {qp.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Message history */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ minHeight: '320px', maxHeight: '420px' }}>
+          {chatHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full py-10 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3">
+                <Brain size={26} className="text-indigo-400" />
+              </div>
+              <p className="text-sm font-semibold text-slate-200 mb-1">Ask me anything about the fleet</p>
+              <p className="text-xs text-slate-400 font-mono max-w-xs leading-relaxed">
+                I'm backed by live market data, strategy metrics, and the autonomous cycle engine.
+                Use the quick prompts above or type your own question.
+              </p>
+            </div>
+          ) : (
+            chatHistory.map((msg, i) => (
+              <div key={i} className={clsx('flex gap-3', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
+                {/* Avatar */}
+                <div className={clsx(
+                  'w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5',
+                  msg.role === 'user'
+                    ? 'bg-indigo-600/30 border border-indigo-500/40'
+                    : 'bg-purple-600/30 border border-purple-500/40'
+                )}>
+                  {msg.role === 'user'
+                    ? <User size={13} className="text-indigo-300" />
+                    : <Bot  size={13} className="text-purple-300" />
+                  }
+                </div>
+
+                {/* Bubble */}
+                <div className={clsx(
+                  'max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed font-mono',
+                  msg.role === 'user'
+                    ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-100 rounded-tr-sm'
+                    : 'bg-dark-700 border border-dark-600 text-slate-200 rounded-tl-sm'
+                )}>
+                  {/* Format **bold** inline */}
+                  {msg.content.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
+                    part.startsWith('**') && part.endsWith('**')
+                      ? <strong key={j} className="text-white font-bold">{part.slice(2, -2)}</strong>
+                      : <span key={j}>{part}</span>
+                  )}
+                  <p className="text-[9px] text-slate-500 mt-1.5 text-right">
+                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+
+          {/* Typing indicator */}
+          {chatLoading && (
+            <div className="flex gap-3 flex-row">
+              <div className="w-7 h-7 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Bot size={13} className="text-purple-300" />
+              </div>
+              <div className="bg-dark-700 border border-dark-600 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          )}
+
+          <div ref={chatBottomRef} />
+        </div>
+
+        {/* Input bar */}
+        <div className="border-t border-dark-700 px-4 py-3">
+          <form
+            onSubmit={e => { e.preventDefault(); sendChat(chatInput) }}
+            className="flex items-center gap-3"
+          >
+            <input
+              type="text"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              placeholder="Ask about PnL, regime, strategies, risk controls…"
+              disabled={chatLoading}
+              className={clsx(
+                'flex-1 bg-dark-700 border border-dark-600 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-200',
+                'placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30',
+                'transition-all duration-200 disabled:opacity-50',
+              )}
+            />
+            <button
+              type="submit"
+              disabled={!chatInput.trim() || chatLoading}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
+                chatInput.trim() && !chatLoading
+                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                  : 'bg-dark-700 text-slate-500 border border-dark-600 cursor-not-allowed'
+              )}
+            >
+              <Send size={14} />
+              <span className="hidden sm:inline">Send</span>
+            </button>
+          </form>
+          <p className="text-[10px] text-slate-500 font-mono mt-1.5 px-1">
+            Responses are generated from live DB data · no LLM required
+          </p>
         </div>
       </div>
     </div>
