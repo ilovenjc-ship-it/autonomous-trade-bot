@@ -3,7 +3,7 @@ import { NavLink, Outlet } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
   Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
-  Mic, Send, ChevronDown, DollarSign,
+  Mic, Send, ChevronDown, DollarSign, ShieldOff,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -15,6 +15,7 @@ import NotificationBell from '@/components/NotificationBell'
 const navItems = [
   { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
   { to: '/mission-control',  icon: Radio,           label: 'Mission Control' },
+  { to: '/override',         icon: ShieldOff,       label: 'Human Override', danger: true },
   { to: '/fleet',            icon: Bot,             label: 'Agent Fleet'     },
   { to: '/ii-agent',         icon: Brain,           label: 'II Agent'        },
   { to: '/openclaw',         icon: Vote,            label: 'OpenClaw BFT'    },
@@ -120,7 +121,7 @@ export default function Layout() {
 
         {/* Nav */}
         <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map(({ to, icon: Icon, label, badge }) => (
+          {navItems.map(({ to, icon: Icon, label, badge, danger }) => (
             <NavLink
               key={to}
               to={to}
@@ -129,8 +130,12 @@ export default function Layout() {
                 clsx(
                   'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
                   isActive
-                    ? 'bg-accent-blue/15 text-accent-blue font-medium'
-                    : 'text-slate-300 hover:text-white hover:bg-dark-700'
+                    ? danger
+                      ? 'bg-red-500/15 text-red-400 font-medium border border-red-500/20'
+                      : 'bg-accent-blue/15 text-accent-blue font-medium'
+                    : danger
+                      ? 'text-red-400/70 hover:text-red-400 hover:bg-red-500/10'
+                      : 'text-slate-300 hover:text-white hover:bg-dark-700'
                 )
               }
             >

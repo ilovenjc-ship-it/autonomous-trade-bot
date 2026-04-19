@@ -18,6 +18,7 @@ import OpenClaw from './pages/OpenClaw'
 import IIAgent from './pages/IIAgent'
 import AlertInbox from './pages/AlertInbox'
 import PnLSummary from './pages/PnLSummary'
+import HumanOverride from './pages/HumanOverride'
 
 export default function App() {
   return (
@@ -43,6 +44,7 @@ export default function App() {
         <Route element={<Layout />}>
           <Route path="/"                element={<Dashboard />}      />
           <Route path="/mission-control" element={<MissionControl />} />
+          <Route path="/override"        element={<HumanOverride />}  />
           <Route path="/fleet"           element={<AgentFleet />}     />
           <Route path="/risk"            element={<RiskConfig />}     />
           <Route path="/analytics"       element={<Analytics />}      />
