@@ -148,15 +148,15 @@ export default function TradingModeBanner() {
         {/* Trade counts */}
         <div className="flex items-center gap-4 flex-shrink-0 mr-3">
           <span className="text-[10px] font-mono text-slate-400">
-            Total: <span className="text-slate-200">{data.trade_summary.total.toLocaleString()}</span>
+            Total: <span className="text-slate-200">{(data.trade_summary?.total ?? 0).toLocaleString()}</span>
           </span>
           <span className="text-[10px] font-mono text-slate-400">
-            Real: <span className={clsx('font-bold', data.trade_summary.real > 0 ? 'text-emerald-400' : 'text-slate-400')}>
-              {data.trade_summary.real.toLocaleString()}
+            Real: <span className={clsx('font-bold', (data.trade_summary?.real ?? 0) > 0 ? 'text-emerald-400' : 'text-slate-400')}>
+              {(data.trade_summary?.real ?? 0).toLocaleString()}
             </span>
           </span>
           <span className="text-[10px] font-mono text-slate-400">
-            Paper: <span className="text-amber-400">{data.trade_summary.paper.toLocaleString()}</span>
+            Paper: <span className="text-amber-400">{(data.trade_summary?.paper ?? 0).toLocaleString()}</span>
           </span>
         </div>
 
@@ -198,13 +198,13 @@ export default function TradingModeBanner() {
           </div>
 
           {/* Armed strategies */}
-          {data.live_strategies.length > 0 && (
+          {(data.live_strategies?.length ?? 0) > 0 && (
             <div className="mb-3">
               <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
                 Armed Strategies
               </p>
               <div className="flex flex-wrap gap-2">
-                {data.live_strategies.map(s => (
+                {(data.live_strategies ?? []).map(s => (
                   <span key={s.name}
                     className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-[10px] text-emerald-300 font-mono">
                     {s.display_name}
