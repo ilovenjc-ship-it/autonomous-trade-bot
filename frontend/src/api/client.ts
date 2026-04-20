@@ -1,7 +1,13 @@
 import axios from 'axios'
 
+// In development, Vite proxies /api → localhost backend.
+// In production (Railway), VITE_API_URL points to the deployed backend.
+const BASE_URL = import.meta.env.VITE_API_URL
+  ? `${import.meta.env.VITE_API_URL}/api`
+  : '/api'
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: BASE_URL,
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' },
 })

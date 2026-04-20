@@ -149,10 +149,18 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# On Railway, allow all origins initially — tighten by setting FRONTEND_URL env var
+# once both services are deployed and URLs are known.
+import os as _os
+_cors_origins = (
+    ["*"] if _os.environ.get("RAILWAY_ENVIRONMENT")
+    else settings.ALLOWED_ORIGINS
+)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=_cors_origins != ["*"],  # can't combine wildcard + credentials
     allow_methods=["*"],
     allow_headers=["*"],
 )

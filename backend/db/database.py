@@ -3,18 +3,21 @@ from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy import create_engine
 from core.config import settings
 
+# SQLite requires check_same_thread=False; Postgres does not need it
+_is_sqlite = "sqlite" in settings.DATABASE_URL
+_sqlite_args = {"check_same_thread": False} if _is_sqlite else {}
 
 # Async engine for FastAPI
 async_engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
-    connect_args={"check_same_thread": False},
+    connect_args=_sqlite_args,
 )
 
 # Sync engine for Alembic migrations
 sync_engine = create_engine(
     settings.DATABASE_SYNC_URL,
-    connect_args={"check_same_thread": False},
+    connect_args=_sqlite_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(
