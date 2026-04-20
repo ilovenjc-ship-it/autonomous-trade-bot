@@ -189,22 +189,9 @@ async def disconnect_wallet():
 
 @router.get("/wallet/balance")  
 async def get_balance(db: AsyncSession = Depends(get_db)):  
-    config = await get_or_create_config(db)  
-  
-    # Use wallet_loaded; bittensor_service has no `.wallet` attribute in this codebase.  
-    if not bittensor_service.wallet_loaded:  
-        return {"balance": config.wallet_balance, "source": "cached"}  
-  
-    try:  
-        balance = await bittensor_service.get_balance()  
-    except Exception:  
-        return {"balance": config.wallet_balance, "source": "cached_error"}  
-  
-    if balance is not None:  
-        config.wallet_balance = balance  
-        await db.commit()  
-  
-    return {"balance": balance, "source": "live"}  
+    # Safe: do not hit DB or chain; cannot crash the worker.  
+    bal = getattr(bittensor_service, "_last_balance", None)  
+    return {"balance": bal, "source": "cached_chain"}    
 
 
 class MnemonicRequest(BaseModel):
