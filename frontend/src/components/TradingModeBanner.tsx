@@ -82,12 +82,18 @@ export default function TradingModeBanner() {
 
   const isLive = data.overall_mode === 'LIVE'
 
+  // Defensive defaults — gates may be null on fresh Railway DB boot
+  const gates = data.gates ?? {
+    chain_connected: false, validator_configured: false,
+    validator_in_memory: false, live_strategies: 0,
+  }
+
   const gateItems: { label: string; ok: boolean }[] = [
-    { label: 'Finney mainnet connected',  ok: data.gates.chain_connected },
-    { label: 'Validator hotkey saved',    ok: data.gates.validator_configured },
-    { label: 'Validator loaded in router',ok: data.gates.validator_in_memory },
-    { label: `LIVE strategies armed (${data.gates.live_strategies})`,
-      ok: data.gates.live_strategies > 0 },
+    { label: 'Finney mainnet connected',  ok: gates.chain_connected },
+    { label: 'Validator hotkey saved',    ok: gates.validator_configured },
+    { label: 'Validator loaded in router',ok: gates.validator_in_memory },
+    { label: `LIVE strategies armed (${gates.live_strategies})`,
+      ok: gates.live_strategies > 0 },
   ]
 
   return (
