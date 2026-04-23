@@ -17,6 +17,7 @@ from services.agent_service import agent_service
 from services.bittensor_service import bittensor_service
 from services.subnet_router import set_primary_validator
 from services.promotion_service import promotion_service
+from services.subnet_cache_service import subnet_cache_service
 from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent, alerts, wallet, pnl, override
 
 logging.basicConfig(
@@ -97,6 +98,12 @@ async def lifespan(app: FastAPI):
         except Exception as _e:
             logger.error(f"Price feed start failed: {_e}")
 
+        try:
+            await subnet_cache_service.start()
+            logger.info("Subnet cache started — real on-chain data active")
+        except Exception as _e:
+            logger.error(f"Subnet cache start failed: {_e}")
+
         await _aio.sleep(3)
 
         try:
@@ -124,7 +131,7 @@ async def lifespan(app: FastAPI):
 
     # ── Graceful shutdown ────────────────────────────────────────────────────
     logger.info("Shutting down services…")
-    for svc in [promotion_service, agent_service, cycle_service, price_service]:
+    for svc in [promotion_service, agent_service, cycle_service, price_service, subnet_cache_service]:
         try:
             await svc.stop()
         except Exception as _e:

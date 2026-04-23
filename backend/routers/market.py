@@ -1,12 +1,21 @@
 """
-Market Data router — 64-subnet Bittensor network table with simulated live data.
-Provides subnet metadata, TAO staked, emission rates, and trend signals.
+Market Data router — Bittensor subnet table.
+
+Data priority:
+  1. Real on-chain data via SubnetCacheService (alpha prices + metagraph).
+  2. Simulated random-walk fallback for subnets not yet fetched or when
+     the chain is unreachable.
+
+Trend signals are derived from real alpha price movement (current vs
+previous snapshot) for every subnet the cache has seen.  Stake, miners,
+and APY are real for TRADING_NETUIDS; simulated for display-only subnets.
 """
 import math
 import random
 from datetime import datetime
 from fastapi import APIRouter, Query
 from services.price_service import price_service
+from services.subnet_cache_service import subnet_cache_service
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 
@@ -77,39 +86,80 @@ SUBNET_META = {
     62: ("Storb",                   "storb"),
     63: ("Melting Pot",             "meltingpot"),
     64: ("Chutes",                  "chutes"),
+    # Extended subnets — trading targets beyond the original display range
+    96: ("Subnet 96",               "sn96"),
 }
 
 # Deterministic base stats per subnet (seeded so they don't flicker wildly)
+# Used as fallback when real chain data is unavailable.
 _rng = random.Random(42)
 
+# Cover all UIDs that may be displayed or traded (1-64 + extended trading targets)
+_DISPLAY_UIDS = list(range(1, 65)) + sorted(
+    uid for uid in SUBNET_META if uid > 64
+)
+
 _BASE: dict[int, dict] = {}
-for uid in range(1, 65):
-    base_stake = _rng.uniform(10_000, 2_000_000)
+for uid in _DISPLAY_UIDS:
+    base_stake    = _rng.uniform(10_000, 2_000_000)
     base_emission = _rng.uniform(0.001, 0.04)
-    base_apy = _rng.uniform(8.0, 48.0)
+    base_apy      = _rng.uniform(8.0, 48.0)
     active_miners = _rng.randint(5, 256)
     _BASE[uid] = {
-        "stake":   base_stake,
+        "stake":    base_stake,
         "emission": base_emission,
-        "apy":     base_apy,
-        "miners":  active_miners,
+        "apy":      base_apy,
+        "miners":   active_miners,
     }
 
 def _live_subnet(uid: int, tao_price: float) -> dict:
-    """Add small random walk on top of base to simulate live data."""
+    """
+    Return subnet data, preferring real on-chain values where available.
+
+    Data source hierarchy:
+      - stake_tao / miners / emission / apy: real metagraph (TRADING_NETUIDS)
+        or seeded simulation (display-only subnets).
+      - trend: real alpha price movement if the cache has two snapshots,
+        otherwise derived from simulation noise.
+      - score: always computed fresh from whichever stake/APY we resolved.
+    """
     b = _BASE[uid]
     name, ticker = SUBNET_META.get(uid, (f"Subnet {uid}", f"sn{uid}"))
 
-    noise = random.uniform(-0.03, 0.03)
-    stake_tao  = b["stake"]  * (1 + noise)
-    emission   = b["emission"] * (1 + noise * 0.5)
-    apy        = b["apy"] * (1 + noise * 0.5)
-    stake_usd  = stake_tao * tao_price
+    # ── Try real metagraph data (trading subnets only) ────────────────────
+    meta = subnet_cache_service.get_meta(uid)
 
-    # Trend: positive if noise > 0.01, negative if < -0.01
-    trend = "up" if noise > 0.01 else "down" if noise < -0.01 else "neutral"
+    if meta and meta["stake_tao"] > 0:
+        stake_tao = meta["stake_tao"]
+        emission  = meta["emission"]
+        apy       = meta["apy"]
+        miners    = meta["miners"]
+        data_src  = "live"
+    else:
+        # Simulated random walk on top of seeded base
+        noise     = random.uniform(-0.03, 0.03)
+        stake_tao = b["stake"]   * (1 + noise)
+        emission  = b["emission"] * (1 + noise * 0.5)
+        apy       = b["apy"]     * (1 + noise * 0.5)
+        miners    = b["miners"]
+        data_src  = "simulated"
 
-    # Score = weighted combo of stake + APY
+    # ── Trend: real alpha price movement, fallback to noise ───────────────
+    real_trend = subnet_cache_service.get_trend(uid)
+    if real_trend is not None:
+        trend    = real_trend
+        data_src = "live" if data_src == "live" else "live_trend"
+    else:
+        # Derive from the noise that was already computed (or neutral if meta path)
+        if data_src == "live":
+            trend = "neutral"
+        else:
+            # noise is defined from the simulated branch above
+            trend = "up" if noise > 0.01 else "down" if noise < -0.01 else "neutral"
+
+    stake_usd = stake_tao * tao_price
+
+    # Score = log₁₀(stake_tao) × 10 + APY
     score = math.log10(max(stake_tao, 1)) * 10 + apy
     score = round(score, 1)
 
@@ -119,11 +169,12 @@ def _live_subnet(uid: int, tao_price: float) -> dict:
         "ticker":      ticker,
         "stake_tao":   round(stake_tao, 2),
         "stake_usd":   round(stake_usd, 0),
-        "emission":    round(emission, 5),
+        "emission":    round(emission, 8),
         "apy":         round(apy, 2),
-        "miners":      b["miners"],
+        "miners":      miners,
         "trend":       trend,
         "score":       score,
+        "data_source": data_src,   # "live" | "live_trend" | "simulated"
     }
 
 
@@ -134,10 +185,10 @@ async def get_subnets(
     min_apy: float = Query(0.0, description="Minimum APY filter"),
     search: str = Query("", description="Filter by subnet name"),
 ):
-    """Return live subnet table for all 64 subnets."""
+    """Return live subnet table for all known subnets."""
     tao_price = price_service.current_price or 250.0
 
-    subnets = [_live_subnet(uid, tao_price) for uid in range(1, 65)]
+    subnets = [_live_subnet(uid, tao_price) for uid in _DISPLAY_UIDS]
 
     # Apply filters
     if min_apy > 0:
@@ -150,11 +201,15 @@ async def get_subnets(
     if sort in ("stake_tao", "stake_usd", "emission", "apy", "miners", "score", "uid"):
         subnets.sort(key=lambda s: s[sort], reverse=reverse)
 
+    live_count = sum(1 for s in subnets if s["data_source"] == "live")
     return {
-        "subnets":   subnets,
-        "count":     len(subnets),
-        "tao_price": tao_price,
-        "updated":   datetime.utcnow().isoformat() + "Z",
+        "subnets":        subnets,
+        "count":          len(subnets),
+        "live_count":     live_count,
+        "simulated_count": len(subnets) - live_count,
+        "tao_price":      tao_price,
+        "updated":        datetime.utcnow().isoformat() + "Z",
+        "cache_status":   subnet_cache_service.get_status(),
     }
 
 
@@ -162,7 +217,7 @@ async def get_subnets(
 async def market_overview():
     """Top-level market summary stats."""
     tao_price = price_service.current_price or 250.0
-    all_s = [_live_subnet(uid, tao_price) for uid in range(1, 65)]
+    all_s = [_live_subnet(uid, tao_price) for uid in _DISPLAY_UIDS]
 
     total_stake = sum(s["stake_tao"] for s in all_s)
     avg_apy     = sum(s["apy"] for s in all_s) / len(all_s)
