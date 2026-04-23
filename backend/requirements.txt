@@ -1,3 +1,4 @@
+# build: 2026-04-23-openclaw-all-modes -- cache bust for Railway Docker layer
 fastapi>=0.110.1
 uvicorn[standard]>=0.29.0
 sqlalchemy>=2.0.30
