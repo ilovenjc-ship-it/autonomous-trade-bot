@@ -61,42 +61,50 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         logger.error(f"Failed to load primary validator from config: {e}")
 
-    # Attempt initial Finney mainnet connection (non-blocking background task)
-    # Sets bittensor_service.connected = True so the first LIVE cycle can fire.
+    # All heavy services start as a background task so the lifespan yields
+    # immediately — this lets /health respond right away and pass Railway's
+    # healthcheck before the chain connection and cycle engine are ready.
     import asyncio as _aio
-    async def _connect():
+
+    async def _boot_services():
+        """Connect to chain + start all autonomous services after a short delay."""
+        await _aio.sleep(2)
+        # Finney mainnet connection
         try:
             info = await bittensor_service.get_chain_info()
             if info.get("connected"):
                 logger.info(
-                    f"Finney connected at startup — block #{info.get('block')} "
+                    f"Finney connected — block #{info.get('block')} "
                     f"balance τ{info.get('balance_tao', 0):.4f}"
                 )
             else:
-                logger.warning("Finney connection attempted at startup but not yet reachable — "
-                               "cycle_service will retry each cycle.")
+                logger.warning("Finney not yet reachable at boot — cycle_service will retry.")
         except Exception as _e:
             logger.warning(f"Startup Finney connect failed: {_e} — will retry each cycle.")
-    _aio.create_task(_connect())
 
-    # Start price feed
-    await price_service.start()
-    logger.info("Price feed started")
+        # Price feed
+        await price_service.start()
+        logger.info("Price feed started")
 
-    # Wait briefly for first price tick, then start autonomous cycle engine
-    import asyncio
-    await asyncio.sleep(3)
-    await cycle_service.start(interval_seconds=60)
-    logger.info("Autonomous cycle engine started (60s interval)")
+        # Brief pause for first price tick
+        await _aio.sleep(3)
 
-    # Start II Agent orchestrator (analyses every 5 minutes)
-    await agent_service.start(interval=300)
-    logger.info("II Agent orchestrator started (300s interval)")
+        # Autonomous cycle engine (60s heartbeat)
+        await cycle_service.start(interval_seconds=60)
+        logger.info("Autonomous cycle engine started (60s interval)")
 
-    # Start Autonomous Promotion Engine (checks gates every 5 min, rebalances every 24h)
-    await promotion_service.start()
-    logger.info("Autonomous promotion engine started (gate check 300s, rebalance 86400s)")
+        # II Agent orchestrator (5-min analysis)
+        await agent_service.start(interval=300)
+        logger.info("II Agent orchestrator started (300s interval)")
 
+        # Autonomous promotion + rebalance engine
+        await promotion_service.start()
+        logger.info("Autonomous promotion engine started (gate check 300s, rebalance 86400s)")
+
+    _aio.create_task(_boot_services())
+
+    # Yield immediately — /health is live from this point
+    # Services initialise in the background over the next ~10 seconds
     yield
 
     # Shutdown
