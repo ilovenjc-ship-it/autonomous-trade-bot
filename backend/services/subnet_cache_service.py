@@ -159,7 +159,13 @@ class SubnetCacheService:
                         # Derived APY — annual yield if you held proportional stake
                         if stake_tao > 0 and emission_pb > 0:
                             apy = (emission_pb * BLOCKS_PER_DAY * 365 / stake_tao) * 100
-                            apy = round(min(apy, 500.0), 2)   # cap outliers
+                            apy_raw = apy
+                            apy = round(min(apy, 150.0), 2)   # cap at realistic max for display
+                            if apy_raw > 150.0:
+                                logger.debug(
+                                    f"SN{netuid} APY capped: raw={apy_raw:.1f}% → 150% "
+                                    f"(emission_pb={emission_pb:.6f} stake={stake_tao:.0f})"
+                                )
                         else:
                             apy = 0.0
 

@@ -44,10 +44,14 @@ export default function SubnetHeatMap() {
       .finally(() => setLoading(false))
   }, [])
 
-  const scores = subnets.map(s => s.score)
-  const minS   = scores.length ? Math.min(...scores) : 0
-  const maxS   = scores.length ? Math.max(...scores) : 1
-  const norm   = (s: number) => maxS === minS ? 0.5 : (s - minS) / (maxS - minS)
+  // Percentile-based normalization — prevents outlier subnets from collapsing
+  // the entire colour scale. Uses p10–p90 range so the middle 80% of subnets
+  // span the full cold→hot gradient and extreme outliers are clamped to 0/1.
+  const scores = subnets.map(s => s.score).sort((a, b) => a - b)
+  const p10    = scores[Math.max(0, Math.floor(scores.length * 0.10))] ?? 0
+  const p90    = scores[Math.min(scores.length - 1, Math.floor(scores.length * 0.90))] ?? 1
+  const norm   = (s: number) =>
+    p90 === p10 ? 0.5 : Math.max(0, Math.min(1, (s - p10) / (p90 - p10)))
 
   return (
     <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 h-full flex flex-col">
