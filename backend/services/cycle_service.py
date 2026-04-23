@@ -170,33 +170,47 @@ async def _run_one_cycle() -> None:
 
             reason = _build_signal_reason(s.name, indicators, price)
 
-            # ── OpenClaw BFT Gate (LIVE strategies only) ─────────────────────
-            # LIVE strategies must pass 7/12 supermajority before trade executes.
-            if s.mode == "LIVE":
-                consensus_result = await consensus_service.run_consensus(
-                    triggered_by = s.name,
-                    direction    = side.upper(),
+            # ── OpenClaw BFT Gate (ALL strategy modes) ───────────────────────
+            # Consensus runs for PAPER_ONLY, APPROVED_FOR_LIVE, and LIVE.
+            #
+            # Rationale: paper strategies need real consensus practice before
+            # promotion.  A strategy that can't pass 7/12 supermajority during
+            # paper trading has no business going LIVE.  Running consensus in
+            # paper mode means:
+            #   • Only consensus-approved signals accrue WR / PnL stats
+            #   • Gate metrics (WR ≥ 55%, cycles ≥ 10) reflect real BFT-filtered
+            #     performance — a much stronger promotion signal
+            #   • The 12-bot fleet accumulates voting history and indicator
+            #     calibration across all modes
+            #
+            # Vetoed paper trades: cycle count increments, no trade logged.
+            # Approved paper trades: proceed exactly as before (simulated).
+            # LIVE strategies: consensus approval is still required for on-chain
+            # execution (same as before).
+            consensus_result = await consensus_service.run_consensus(
+                triggered_by = s.name,
+                direction    = side.upper(),
+            )
+            if not consensus_result.approved:
+                # Consensus rejected — skip trade for ALL modes, log veto
+                push_event(
+                    "alert",
+                    f"🚫 OpenClaw VETOED {side.upper()} for {DISPLAY_NAMES.get(s.name, s.name)} [{s.mode}]",
+                    strategy = s.name,
+                    detail   = f"Result={consensus_result.result} "
+                               f"({consensus_result.buy_count}B/"
+                               f"{consensus_result.sell_count}S/"
+                               f"{consensus_result.hold_count}H)",
                 )
-                if not consensus_result.approved:
-                    # Consensus rejected — skip this trade, log veto
-                    push_event(
-                        "alert",
-                        f"🚫 OpenClaw VETOED {side.upper()} for {DISPLAY_NAMES.get(s.name, s.name)}",
-                        strategy = s.name,
-                        detail   = f"Result={consensus_result.result} "
-                                   f"({consensus_result.buy_count}B/"
-                                   f"{consensus_result.sell_count}S/"
-                                   f"{consensus_result.hold_count}H)",
-                    )
-                    s.cycles_completed = (s.cycles_completed or 0) + 1
-                    await db.flush()
-                    continue
-                else:
-                    # Consensus approved — override side if needed (majority wins)
-                    if consensus_result.result == "APPROVED_SELL":
-                        side = "sell"
-                    elif consensus_result.result == "APPROVED_BUY":
-                        side = "buy"
+                s.cycles_completed = (s.cycles_completed or 0) + 1
+                await db.flush()
+                continue
+            else:
+                # Consensus approved — let majority direction override signal side
+                if consensus_result.result == "APPROVED_SELL":
+                    side = "sell"
+                elif consensus_result.result == "APPROVED_BUY":
+                    side = "buy"
             # ─────────────────────────────────────────────────────────────────
 
             # ── Real on-chain execution (LIVE strategies only) ────────────────
