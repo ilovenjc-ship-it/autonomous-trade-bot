@@ -31,6 +31,10 @@ from services.subnet_router import get_stake_target
 
 logger = logging.getLogger(__name__)
 
+# Build tag — bumped to force Railway redeploy and confirm version in logs
+CYCLE_SERVICE_VERSION = "2.1.0-openclaw-all-modes"
+logger.info(f"cycle_service loaded — version {CYCLE_SERVICE_VERSION} (OpenClaw active for ALL modes)")
+
 # Dedup sets — prevent alert spam across cycles
 _drawdown_alerted: set = set()   # strategy names already drawdown-alerted this session
 
