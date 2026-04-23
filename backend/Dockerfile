@@ -22,8 +22,11 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY . .
 
+# Create startup script with diagnostics
+RUN printf '#!/bin/sh\necho "=== Railway startup ==="\necho "PORT=${PORT:-NOT_SET}"\necho "DATABASE_URL=${DATABASE_URL:-not_set}"\necho "Python: $(python3 --version)"\necho "Working dir: $(pwd)"\nls -la main.py\nexec uvicorn main:app --host 0.0.0.0 --port "${PORT:-8080}" --workers 1\n' > /app/start.sh && chmod +x /app/start.sh
+
 # Expose Railway's dynamic port
 EXPOSE 8080
 
-# Start uvicorn — Railway injects $PORT at runtime
-CMD ["sh", "-c", "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}"]
+# Start via script so we see env info in Deploy Logs
+CMD ["/app/start.sh"]

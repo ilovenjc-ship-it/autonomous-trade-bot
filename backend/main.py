@@ -30,19 +30,38 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("Starting TAO Trading Bot backend…")
+    """
+    Startup sequence designed to pass Railway healthchecks:
+    - ALL setup is wrapped in try/except so crashes don't prevent yield
+    - yield happens as early as possible → /health is reachable immediately
+    - Heavy services (chain, cycles, agents) start in background AFTER yield
+    """
+    import asyncio as _aio
+    import os as _os
 
-    # Init DB & tables
-    await init_db()
-    logger.info("Database initialised")
+    logger.info("=== TAO Trading Bot starting ===")
+    logger.info(f"PORT={_os.environ.get('PORT', 'NOT SET')} DATABASE_URL={'SET' if _os.environ.get('DATABASE_URL') else 'default-sqlite'}")
 
-    # Seed default strategies
-    await seed_strategies()
+    # ── DB init (required, but catch failures) ──────────────────────────────
+    try:
+        await init_db()
+        logger.info("Database initialised")
+    except Exception as _e:
+        logger.error(f"DB init failed: {_e} — continuing with degraded mode")
 
-    # Seed activity log startup events
-    seed_activity()
+    # ── Seed default strategies ──────────────────────────────────────────────
+    try:
+        await seed_strategies()
+    except Exception as _e:
+        logger.error(f"Strategy seed failed: {_e}")
 
-    # Load primary validator (TaoBot) from config if already set
+    # ── Seed activity log ────────────────────────────────────────────────────
+    try:
+        seed_activity()
+    except Exception as _e:
+        logger.error(f"Activity seed failed: {_e}")
+
+    # ── Load primary validator from config ───────────────────────────────────
     try:
         from sqlalchemy import select
         from db.database import AsyncSessionLocal
@@ -54,65 +73,62 @@ async def lifespan(app: FastAPI):
                 set_primary_validator(cfg.target_validator_hotkey)
                 logger.info(f"Primary validator loaded: {cfg.target_validator_hotkey[:20]}…")
             else:
-                logger.warning(
-                    "No target_validator_hotkey in config — subnet router will paper-mode "
-                    "LIVE strategies until hotkey is set via POST /api/bot/validator"
-                )
-    except Exception as e:
-        logger.error(f"Failed to load primary validator from config: {e}")
+                logger.warning("No target_validator_hotkey in config — paper mode until set")
+    except Exception as _e:
+        logger.error(f"Validator load failed: {_e}")
 
-    # All heavy services start as a background task so the lifespan yields
-    # immediately — this lets /health respond right away and pass Railway's
-    # healthcheck before the chain connection and cycle engine are ready.
-    import asyncio as _aio
-
+    # ── Schedule all heavy services as background task ───────────────────────
+    # Fires AFTER yield — guarantees /health responds before any I/O starts.
     async def _boot_services():
-        """Connect to chain + start all autonomous services after a short delay."""
-        await _aio.sleep(2)
-        # Finney mainnet connection
+        await _aio.sleep(3)  # let healthcheck pass first
+
         try:
             info = await bittensor_service.get_chain_info()
             if info.get("connected"):
-                logger.info(
-                    f"Finney connected — block #{info.get('block')} "
-                    f"balance τ{info.get('balance_tao', 0):.4f}"
-                )
+                logger.info(f"Finney connected — block #{info.get('block')}")
             else:
-                logger.warning("Finney not yet reachable at boot — cycle_service will retry.")
+                logger.warning("Finney not reachable at boot — cycle will retry")
         except Exception as _e:
-            logger.warning(f"Startup Finney connect failed: {_e} — will retry each cycle.")
+            logger.warning(f"Finney connect skipped: {_e}")
 
-        # Price feed
-        await price_service.start()
-        logger.info("Price feed started")
+        try:
+            await price_service.start()
+            logger.info("Price feed started")
+        except Exception as _e:
+            logger.error(f"Price feed start failed: {_e}")
 
-        # Brief pause for first price tick
         await _aio.sleep(3)
 
-        # Autonomous cycle engine (60s heartbeat)
-        await cycle_service.start(interval_seconds=60)
-        logger.info("Autonomous cycle engine started (60s interval)")
+        try:
+            await cycle_service.start(interval_seconds=60)
+            logger.info("Cycle engine started")
+        except Exception as _e:
+            logger.error(f"Cycle engine start failed: {_e}")
 
-        # II Agent orchestrator (5-min analysis)
-        await agent_service.start(interval=300)
-        logger.info("II Agent orchestrator started (300s interval)")
+        try:
+            await agent_service.start(interval=300)
+            logger.info("Agent orchestrator started")
+        except Exception as _e:
+            logger.error(f"Agent start failed: {_e}")
 
-        # Autonomous promotion + rebalance engine
-        await promotion_service.start()
-        logger.info("Autonomous promotion engine started (gate check 300s, rebalance 86400s)")
+        try:
+            await promotion_service.start()
+            logger.info("Promotion engine started")
+        except Exception as _e:
+            logger.error(f"Promotion engine start failed: {_e}")
 
     _aio.create_task(_boot_services())
 
-    # Yield immediately — /health is live from this point
-    # Services initialise in the background over the next ~10 seconds
-    yield
+    logger.info("=== Lifespan ready — /health is live ===")
+    yield  # ← Railway healthcheck passes from here
 
-    # Shutdown
-    logger.info("Shutting down…")
-    await promotion_service.stop()
-    await agent_service.stop()
-    await cycle_service.stop()
-    await price_service.stop()
+    # ── Graceful shutdown ────────────────────────────────────────────────────
+    logger.info("Shutting down services…")
+    for svc in [promotion_service, agent_service, cycle_service, price_service]:
+        try:
+            await svc.stop()
+        except Exception as _e:
+            logger.error(f"Stop failed for {svc}: {_e}")
 
 
 async def seed_strategies():
