@@ -61,7 +61,7 @@ grep BT_MNEMONIC /app/.user_env.sh
 cat >> /app/.user_env.sh << 'ENVEOF'
 
 # === Bittensor bot wallet ===
-export BT_MNEMONIC="grid shield fee crisp front salmon lamp material dad slim clever general"
+export BT_MNEMONIC="endorse member vague protect dutch radar hungry knock upgrade yellow tattoo rally"
 ENVEOF
 ```
 
@@ -74,7 +74,7 @@ grep BT_MNEMONIC backend/.env 2>/dev/null || echo "MISSING"
 **If MISSING:**
 
 ```bash
-echo 'BT_MNEMONIC="grid shield fee crisp front salmon lamp material dad slim clever general"' \
+echo 'BT_MNEMONIC="endorse member vague protect dutch radar hungry knock upgrade yellow tattoo rally"' \
   >> backend/.env
 ```
 
