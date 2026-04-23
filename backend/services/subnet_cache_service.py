@@ -72,12 +72,14 @@ class SubnetCacheService:
             return
         self._running = True
 
-        # Prime the cache before the main loop starts
+        # Prime alpha prices immediately — single fast chain call, all subnets.
+        # Metagraph fetch (6 subnets, 10-30 s each) is deferred to the background
+        # loop so we don't block cycle_service.start() at boot time.
         await self._fetch_prices()
-        await self._fetch_metagraphs()
+        asyncio.create_task(self._fetch_metagraphs(), name="subnet_meta_prime")
 
         self._task = asyncio.create_task(self._loop(), name="subnet_cache_loop")
-        logger.info("SubnetCacheService started — real on-chain data active")
+        logger.info("SubnetCacheService started — alpha prices live, metagraph priming in background")
 
     async def stop(self) -> None:
         self._running = False
