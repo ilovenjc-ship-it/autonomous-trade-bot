@@ -45,18 +45,30 @@ RESULT_DEADLOCK      = "DEADLOCK"
 # conviction = how strongly they commit (low conviction → more HOLD/ABSTAIN)
 # rsi_sensitivity = how much RSI overrides base bias
 BOT_PERSONALITIES: Dict[str, Dict] = {
+    # ── High-conviction bullish ──────────────────────────────────────────────
     "momentum_cascade":   dict(directional_bias=0.68, conviction=0.80, rsi_sensitivity=0.6),
     "dtao_flow_momentum": dict(directional_bias=0.84, conviction=0.90, rsi_sensitivity=0.4),
     "liquidity_hunter":   dict(directional_bias=0.76, conviction=0.75, rsi_sensitivity=0.5),
-    "breakout_hunter":    dict(directional_bias=0.62, conviction=0.70, rsi_sensitivity=0.7),
+    "breakout_hunter":    dict(directional_bias=0.62, conviction=0.72, rsi_sensitivity=0.7),
     "yield_maximizer":    dict(directional_bias=0.79, conviction=0.85, rsi_sensitivity=0.3),
-    "contrarian_flow":    dict(directional_bias=0.45, conviction=0.65, rsi_sensitivity=0.8),  # contrarian!
-    "volatility_arb":     dict(directional_bias=0.50, conviction=0.55, rsi_sensitivity=0.9),
-    "sentiment_surge":    dict(directional_bias=0.46, conviction=0.50, rsi_sensitivity=0.6),
     "balanced_risk":      dict(directional_bias=0.70, conviction=0.80, rsi_sensitivity=0.5),
-    "mean_reversion":     dict(directional_bias=0.40, conviction=0.60, rsi_sensitivity=0.9),  # reversal
     "emission_momentum":  dict(directional_bias=0.75, conviction=0.78, rsi_sensitivity=0.4),
-    "macro_correlation":  dict(directional_bias=0.50, conviction=0.45, rsi_sensitivity=0.5),
+
+    # ── Contrarian / mean-reversion ──────────────────────────────────────────
+    # Conviction raised from 0.65 → 0.70: was generating too many abstains.
+    # RSI override for contrarians is now corrected (BUY oversold, SELL overbought).
+    "contrarian_flow":    dict(directional_bias=0.45, conviction=0.70, rsi_sensitivity=0.8),
+    # Raised 0.60 → 0.68: high RSI-sensitivity bots must participate when
+    # RSI extremes fire — abstaining defeats their purpose.
+    "mean_reversion":     dict(directional_bias=0.40, conviction=0.68, rsi_sensitivity=0.9),
+
+    # ── Previously low-conviction / noise bots — calibrated up ──────────────
+    # volatility_arb: 0.55 → 0.70  (was abstaining 45% of rounds)
+    "volatility_arb":     dict(directional_bias=0.50, conviction=0.70, rsi_sensitivity=0.9),
+    # sentiment_surge: 0.50 → 0.68  (was abstaining/holding 50% of rounds)
+    "sentiment_surge":    dict(directional_bias=0.46, conviction=0.68, rsi_sensitivity=0.6),
+    # macro_correlation: 0.45 → 0.68  (was abstaining/holding 55% of rounds — worst offender)
+    "macro_correlation":  dict(directional_bias=0.50, conviction=0.68, rsi_sensitivity=0.5),
 }
 
 BOT_DISPLAY_NAMES = {
@@ -144,17 +156,23 @@ def _compute_rsi_override(rsi: Optional[float], personality: Dict) -> Optional[s
     """
     RSI extreme zones push vote in a technical direction.
     Returns BUY / SELL / None.
+
+    RSI < 30 (oversold)  → BUY  for ALL bots (fade the fear, mean-revert up)
+    RSI > 70 (overbought) → SELL for ALL bots (fade the greed, mean-revert down)
+
+    Contrarian personality is already encoded in directional_bias < 0.5.
+    Previously, contrarian bots had this reversed (SELL when oversold, BUY when
+    overbought) which made them momentum-followers in RSI extremes — the opposite
+    of what contrarian means. Fixed: RSI extremes produce uniform signals;
+    personality bias handles the directional lean in normal conditions.
     """
     if rsi is None:
         return None
-    sens = personality["rsi_sensitivity"]
-    # For contrarian / mean-reversion bots, RSI extremes are BUY/SELL signals reversed
-    is_contrarian = personality["directional_bias"] < 0.50
 
     if rsi < 30:
-        return VOTE_SELL if is_contrarian else VOTE_BUY   # oversold
+        return VOTE_BUY    # oversold → mean-reversion buy for all bots
     if rsi > 70:
-        return VOTE_BUY  if is_contrarian else VOTE_SELL  # overbought
+        return VOTE_SELL   # overbought → mean-reversion sell for all bots
     return None
 
 
