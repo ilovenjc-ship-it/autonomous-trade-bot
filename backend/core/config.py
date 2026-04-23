@@ -36,7 +36,18 @@ def _build_sync_db_url(raw: str) -> str:
 
 
 # ── Raw DATABASE_URL from environment ────────────────────────────────────────
-_RAW_DB = os.environ.get("DATABASE_URL", "sqlite+aiosqlite:///./trading_bot.db")
+# SQLite path selection:
+#   - Railway production: write to /data/trading_bot.db (Railway Volume mount)
+#     so trade history survives across redeploys.
+#   - Local dev: write to ./trading_bot.db (repo working dir).
+# If DATABASE_URL is explicitly set (e.g. a real Postgres URL), use that instead.
+_IN_RAILWAY = bool(os.environ.get("RAILWAY_ENVIRONMENT"))
+_SQLITE_PATH = (
+    "sqlite+aiosqlite:////data/trading_bot.db"
+    if _IN_RAILWAY
+    else "sqlite+aiosqlite:///./trading_bot.db"
+)
+_RAW_DB = os.environ.get("DATABASE_URL", _SQLITE_PATH)
 _IS_SQLITE = "sqlite" in _RAW_DB
 
 

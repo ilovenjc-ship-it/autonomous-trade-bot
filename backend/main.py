@@ -41,7 +41,9 @@ async def lifespan(app: FastAPI):
     import os as _os
 
     logger.info("=== TAO Trading Bot starting ===")
-    logger.info(f"PORT={_os.environ.get('PORT', 'NOT SET')} DATABASE_URL={'SET' if _os.environ.get('DATABASE_URL') else 'default-sqlite'}")
+    from core.config import settings as _settings
+    _db_display = _settings.DATABASE_URL.split("@")[-1] if "@" in _settings.DATABASE_URL else _settings.DATABASE_URL
+    logger.info(f"PORT={_os.environ.get('PORT', 'NOT SET')} DB={_db_display}")
 
     # ── DB init (required, but catch failures) ──────────────────────────────
     try:

@@ -32,6 +32,10 @@ echo "Python: $(python3 --version 2>&1)"\n\
 echo "Working dir: $(pwd)"\n\
 echo "Files:"\n\
 ls -la\n\
+# Ensure Railway Volume mount point exists (no-op if already mounted)\n\
+mkdir -p /data\n\
+echo "Volume /data contents:"\n\
+ls -la /data 2>/dev/null || echo "(empty or not mounted)"\n\
 echo "=== Testing import ==="\n\
 python3 -c "from main import app; print(\"IMPORT OK\")" 2>&1\n\
 echo "=== Starting uvicorn ==="\n\
