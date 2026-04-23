@@ -3,9 +3,8 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# No healthcheckPath — let Railway deploy without health gate so we can see
-# what the container actually does. Re-enable once port-open is confirmed.
-# healthcheckPath = "/health"
-# healthcheckTimeout = 300
+startCommand = "uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 1"
+healthcheckPath = "/health"
+healthcheckTimeout = 300
 restartPolicyType = "ON_FAILURE"
 restartPolicyMaxRetries = 3
