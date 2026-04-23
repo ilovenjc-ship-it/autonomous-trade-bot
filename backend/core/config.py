@@ -4,11 +4,17 @@ import os
 
 
 def _build_async_db_url(raw: str) -> str:
-    """Convert Railway's postgres:// URL to the async SQLAlchemy dialect."""
+    """Convert Railway's postgres:// URL to the async SQLAlchemy dialect.
+    
+    Strips ?sslmode=require from URL — we pass ssl="require" via connect_args
+    instead, since asyncpg doesn't support the sslmode query parameter in URLs.
+    """
     if raw.startswith("postgres://"):
         raw = raw.replace("postgres://", "postgresql+asyncpg://", 1)
     elif raw.startswith("postgresql://") and "+asyncpg" not in raw:
         raw = raw.replace("postgresql://", "postgresql+asyncpg://", 1)
+    # Remove sslmode param — handled via connect_args ssl="require"
+    raw = raw.split("?sslmode=")[0].split("&sslmode=")[0]
     return raw
 
 

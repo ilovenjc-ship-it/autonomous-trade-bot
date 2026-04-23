@@ -5,19 +5,30 @@ from core.config import settings
 
 # SQLite requires check_same_thread=False; Postgres does not need it
 _is_sqlite = "sqlite" in settings.DATABASE_URL
-_sqlite_args = {"check_same_thread": False} if _is_sqlite else {}
+
+# Railway's managed PostgreSQL requires SSL — asyncpg won't connect without it.
+# SQLite needs check_same_thread=False.
+if _is_sqlite:
+    _async_connect_args: dict = {"check_same_thread": False}
+    _sync_connect_args: dict = {"check_same_thread": False}
+else:
+    # asyncpg accepts ssl=True or ssl="require" via connect_args
+    _async_connect_args = {"ssl": "require"}
+    _sync_connect_args = {}  # psycopg2 reads sslmode from URL
 
 # Async engine for FastAPI
 async_engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
-    connect_args=_sqlite_args,
+    connect_args=_async_connect_args,
+    pool_pre_ping=True,    # detect stale connections
+    pool_recycle=300,      # recycle connections every 5 min
 )
 
 # Sync engine for Alembic migrations
 sync_engine = create_engine(
     settings.DATABASE_SYNC_URL,
-    connect_args=_sqlite_args,
+    connect_args=_sync_connect_args,
 )
 
 AsyncSessionLocal = async_sessionmaker(
