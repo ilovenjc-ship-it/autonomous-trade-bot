@@ -47,24 +47,30 @@ async def get_or_create_config(db: AsyncSession) -> BotConfig:
     result = await db.execute(select(BotConfig).where(BotConfig.id == 1))
     config = result.scalar_one_or_none()
     if not config:
-        config = BotConfig(
-            id=1,
-            is_running=False,
-            wallet_name=settings.BT_WALLET_NAME,
-            wallet_hotkey=settings.BT_WALLET_HOTKEY,
-            network=settings.BT_NETWORK,
-            netuid=settings.BT_NETUID,
-            trade_amount=settings.DEFAULT_TRADE_AMOUNT,
-            max_trade_amount=settings.MAX_TRADE_AMOUNT,
-            min_trade_amount=settings.MIN_TRADE_AMOUNT,
-            trade_interval=settings.TRADE_INTERVAL_SECONDS,
-            max_daily_trades=settings.MAX_DAILY_TRADES,
-            stop_loss_pct=settings.STOP_LOSS_PCT,
-            take_profit_pct=settings.TAKE_PROFIT_PCT,
-        )
-        db.add(config)
-        await db.commit()
-        await db.refresh(config)
+        try:
+            config = BotConfig(
+                id=1,
+                is_running=False,
+                wallet_name=settings.BT_WALLET_NAME,
+                wallet_hotkey=settings.BT_WALLET_HOTKEY,
+                network=settings.BT_NETWORK,
+                netuid=settings.BT_NETUID,
+                trade_amount=settings.DEFAULT_TRADE_AMOUNT,
+                max_trade_amount=settings.MAX_TRADE_AMOUNT,
+                min_trade_amount=settings.MIN_TRADE_AMOUNT,
+                trade_interval=settings.TRADE_INTERVAL_SECONDS,
+                max_daily_trades=settings.MAX_DAILY_TRADES,
+                stop_loss_pct=settings.STOP_LOSS_PCT,
+                take_profit_pct=settings.TAKE_PROFIT_PCT,
+            )
+            db.add(config)
+            await db.commit()
+            await db.refresh(config)
+        except Exception:
+            # Race condition: another task already inserted id=1 — fetch it
+            await db.rollback()
+            result = await db.execute(select(BotConfig).where(BotConfig.id == 1))
+            config = result.scalar_one()
     return config
 
 
