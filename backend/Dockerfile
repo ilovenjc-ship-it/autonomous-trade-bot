@@ -22,11 +22,25 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY . .
 
-# Create startup script with diagnostics
-RUN printf '#!/bin/sh\necho "=== Railway startup ==="\necho "PORT=${PORT:-NOT_SET}"\necho "DATABASE_URL=${DATABASE_URL:-not_set}"\necho "Python: $(python3 --version)"\necho "Working dir: $(pwd)"\nls -la main.py\nexec uvicorn main:app --host 0.0.0.0 --port "${PORT:-8080}" --workers 1\n' > /app/start.sh && chmod +x /app/start.sh
+# Create startup script with full diagnostics — output appears in Railway Deploy Logs
+RUN printf '#!/bin/sh\n\
+echo "=== RAILWAY STARTUP ==="\n\
+echo "PORT=${PORT:-NOT_SET}"\n\
+echo "DATABASE_URL=${DATABASE_URL:-NOT_SET}"\n\
+echo "RAILWAY_ENVIRONMENT=${RAILWAY_ENVIRONMENT:-NOT_SET}"\n\
+echo "Python: $(python3 --version 2>&1)"\n\
+echo "Working dir: $(pwd)"\n\
+echo "Files:"\n\
+ls -la\n\
+echo "=== Testing import ==="\n\
+python3 -c "from main import app; print(\"IMPORT OK\")" 2>&1\n\
+echo "=== Starting uvicorn ==="\n\
+exec uvicorn main:app --host 0.0.0.0 --port "${PORT:-8080}" --workers 1 --log-level debug\n\
+' > /app/start.sh && chmod +x /app/start.sh
 
 # Expose Railway's dynamic port
 EXPOSE 8080
 
-# Start via script so we see env info in Deploy Logs
+# Use startup script — Railway reads startCommand from railway.toml if set,
+# but since we removed startCommand from railway.toml, this CMD is used directly.
 CMD ["/app/start.sh"]
