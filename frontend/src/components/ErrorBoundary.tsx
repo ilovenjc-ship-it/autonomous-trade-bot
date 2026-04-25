@@ -2,7 +2,7 @@ import { Component, type ReactNode } from 'react'
 import { RefreshCw, AlertTriangle } from 'lucide-react'
 
 interface Props { children: ReactNode }
-interface State { error: Error | null }
+interface State { error: Error | null; componentStack: string }
 
 /**
  * Top-level error boundary.
@@ -10,14 +10,15 @@ interface State { error: Error | null }
  * instead of the white screen / platform error page.
  */
 export default class ErrorBoundary extends Component<Props, State> {
-  state: State = { error: null }
+  state: State = { error: null, componentStack: '' }
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): Partial<State> {
     return { error }
   }
 
   componentDidCatch(error: Error, info: { componentStack: string }) {
     console.error('[ErrorBoundary] caught:', error, info.componentStack)
+    this.setState({ componentStack: info.componentStack })
   }
 
   handleReload = () => {
@@ -42,10 +43,15 @@ export default class ErrorBoundary extends Component<Props, State> {
             this is a display issue only. Reload to recover.
           </p>
 
-          <div className="bg-dark-900 rounded-lg p-3 border border-dark-600">
-            <p className="text-[14px] font-mono text-red-400 break-all line-clamp-3">
+          <div className="bg-dark-900 rounded-lg p-3 border border-dark-600 space-y-2">
+            <p className="text-[14px] font-mono text-red-400 break-all">
               {this.state.error.message}
             </p>
+            {this.state.componentStack && (
+              <p className="text-[11px] font-mono text-slate-500 break-all whitespace-pre-wrap line-clamp-6">
+                {this.state.componentStack.trim().split('\n').slice(0, 5).join('\n')}
+              </p>
+            )}
           </div>
 
           <div className="flex gap-3">
