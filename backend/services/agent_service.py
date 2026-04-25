@@ -420,7 +420,7 @@ class IIAgentService:
             push_event(
                 "alert",
                 f"⚡ II Agent: Regime shifted to {regime}",
-                detail = f"TAO=${price:.2f} RSI={rsi:.1f if rsi else 'n/a'}",
+                detail = f"TAO=${price:.2f} RSI={f'{rsi:.1f}' if rsi else 'n/a'}",
             )
             alert_service.regime_shift(
                 from_regime = self._last_regime,
