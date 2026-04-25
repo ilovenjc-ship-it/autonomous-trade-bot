@@ -163,7 +163,7 @@ function BotCard({ bot, selected, onClick }: { bot: FleetBot; selected: boolean;
       <div className="flex items-baseline justify-between gap-1 mt-auto min-w-0">
         <span className={clsx('text-[12px] font-bold font-mono leading-none flex-shrink-0',
           bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400')}>
-          {bot.win_rate.toFixed(0)}%
+          {(bot.win_rate ?? 0).toFixed(0)}%
         </span>
         <span className={clsx('text-[10px] font-mono truncate',
           bot.total_pnl >= 0 ? 'text-emerald-400/70' : 'text-red-400/70')}>
@@ -273,7 +273,7 @@ function OpenClawCouncil() {
               <div className={clsx('text-lg font-bold font-mono leading-tight',
                 stats.approval_rate_pct >= 45 && stats.approval_rate_pct <= 65
                   ? 'text-emerald-400' : stats.approval_rate_pct > 65 ? 'text-yellow-400' : 'text-orange-400')}>
-                {stats.approval_rate_pct.toFixed(1)}%
+                {(stats.approval_rate_pct ?? 0).toFixed(1)}%
               </div>
             </div>
             <div className="flex-1 px-3 py-2 border-r border-slate-800/40 text-center">
@@ -315,7 +315,7 @@ function OpenClawCouncil() {
                     className={clsx('flex items-center gap-2 px-2.5 py-1.5 rounded-lg border', vc.bg, vc.border)}>
                     <div className="flex-1 min-w-0">
                       <div className="text-[11px] font-semibold text-slate-200 truncate leading-tight">{v.display_name}</div>
-                      <div className="text-[9px] text-slate-500 font-mono">{(v.confidence * 100).toFixed(0)}% conf</div>
+                      <div className="text-[9px] text-slate-500 font-mono">{((v.confidence ?? 0) * 100).toFixed(0)}% conf</div>
                     </div>
                     <span className={clsx('text-[11px] font-bold font-mono flex-shrink-0', vc.text)}>
                       {v.vote}
@@ -504,12 +504,12 @@ export default function MissionControl() {
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
                   <span className="text-[12px] text-slate-400">TAO/USD</span>
-                  <span className="text-[13px] font-bold text-white">${summary.tao_price.toFixed(2)}</span>
+                  <span className="text-[13px] font-bold text-white">${(summary.tao_price ?? 0).toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[12px] text-slate-400">RSI-14</span>
                   <span className={clsx('text-[13px] font-bold', summary.rsi > 60 ? 'text-red-400' : summary.rsi < 40 ? 'text-emerald-400' : 'text-slate-300')}>
-                    {summary.rsi.toFixed(1)}
+                    {(summary.rsi ?? 0).toFixed(1)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
@@ -624,9 +624,9 @@ export default function MissionControl() {
                     <div className="space-y-0.5 flex-1">
                       {([
                         { ok: bot.gate.cycles.ok,    val: `${bot.gate.cycles.value}/${bot.gate.cycles.required}` },
-                        { ok: bot.gate.win_rate.ok,  val: `${bot.gate.win_rate.value.toFixed(0)}%` },
-                        { ok: bot.gate.win_margin.ok,val: `${bot.gate.win_margin.value.toFixed(1)}%` },
-                        { ok: bot.gate.pnl.ok,       val: `${bot.gate.pnl.value.toFixed(2)}τ` },
+                        { ok: bot.gate.win_rate.ok,  val: `${(bot.gate.win_rate?.value ?? 0).toFixed(0)}%` },
+                        { ok: bot.gate.win_margin.ok,val: `${(bot.gate.win_margin?.value ?? 0).toFixed(1)}%` },
+                        { ok: bot.gate.pnl.ok,       val: `${(bot.gate.pnl?.value ?? 0).toFixed(2)}τ` },
                       ] as const).map(({ ok, val }, idx) => (
                         <div key={idx} className="flex items-center gap-1">
                           <div className={clsx('h-0.5 rounded-full flex-shrink-0', ok ? 'bg-emerald-500' : 'bg-slate-700')}
@@ -639,7 +639,7 @@ export default function MissionControl() {
                     </div>
                     <div className={clsx('text-[11px] font-bold font-mono mt-1 leading-none',
                       bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400')}>
-                      {bot.win_rate.toFixed(0)}%
+                      {(bot.win_rate ?? 0).toFixed(0)}%
                     </div>
                   </div>
                 )

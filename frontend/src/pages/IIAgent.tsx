@@ -182,7 +182,7 @@ function RegimeCard({ regime, color, price, rsi }: {
           <div>
             <p className="text-[13px] text-slate-300 font-mono">RSI-14</p>
             <p className={clsx('text-lg font-bold font-mono', rsi > 65 ? 'text-red-400' : rsi < 35 ? 'text-emerald-400' : 'text-white')}>
-              {rsi.toFixed(1)}
+              {(rsi ?? 0).toFixed(1)}
             </p>
           </div>
         )}
@@ -204,8 +204,8 @@ function FleetHealthCard({ bot }: { bot: FleetBot }) {
       </div>
       <p className={clsx('text-[13px] font-mono font-bold', hcfg.text)}>{hcfg.label}</p>
       <div className="flex justify-between text-[13px] font-mono text-slate-300">
-        <span className={bot.win_rate >= 55 ? 'text-emerald-400' : 'text-red-400'}>{bot.win_rate.toFixed(1)}% WR</span>
-        <span className={bot.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>{bot.total_pnl >= 0 ? '+' : ''}{bot.total_pnl.toFixed(4)}τ</span>
+        <span className={bot.win_rate >= 55 ? 'text-emerald-400' : 'text-red-400'}>{(bot.win_rate ?? 0).toFixed(1)}% WR</span>
+        <span className={bot.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>{bot.total_pnl >= 0 ? '+' : ''}{(bot.total_pnl ?? 0).toFixed(4)}τ</span>
       </div>
       <div className={clsx(
         'text-[15px] font-mono px-1.5 py-0.5 rounded self-start',
@@ -387,7 +387,7 @@ export default function IIAgent() {
     {
       title: 'OpenClaw Consensus', subtitle: 'BFT Council', accent: 'emerald' as const,
       stats: [
-        { label: 'Approval Rate',   value: cStats ? `${cStats.approval_rate_pct.toFixed(1)}%` : '—',   color: 'emerald' as const },
+        { label: 'Approval Rate',   value: cStats ? `${(cStats.approval_rate_pct ?? 0).toFixed(1)}%` : '—',   color: 'emerald' as const },
         { label: 'Total Rounds',    value: cStats ? String(cStats.total_rounds) : '—',          color: 'white' as const },
         { label: 'Approved',        value: cStats ? String(cStats.approved_rounds) : '—',       color: 'emerald' as const },
         { label: 'Threshold',       value: '7/12',                                              color: 'purple' as const },

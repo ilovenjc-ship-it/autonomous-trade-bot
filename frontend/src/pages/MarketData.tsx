@@ -61,7 +61,7 @@ function ApyBadge({ apy }: { apy: number }) {
                 'bg-dark-600 text-slate-300'
   return (
     <span className={clsx('px-2 py-0.5 rounded font-mono text-[14px] font-semibold', color)}>
-      {apy.toFixed(1)}%
+      {(apy ?? 0).toFixed(1)}%
     </span>
   )
 }
@@ -77,7 +77,7 @@ function ScoreBar({ score }: { score: number }) {
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="font-mono text-xs text-slate-300">{score.toFixed(0)}</span>
+      <span className="font-mono text-xs text-slate-300">{(score ?? 0).toFixed(0)}</span>
     </div>
   )
 }
@@ -201,9 +201,9 @@ export default function MarketData() {
         {/* KPI row */}
         {overview && (
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2 mb-4">
-            <KPI label="TAO Price"       value={`$${overview.tao_price.toFixed(2)}`}  color="text-accent-blue" />
+            <KPI label="TAO Price"       value={`$${(overview.tao_price ?? 0).toFixed(2)}`}  color="text-accent-blue" />
             <KPI label="Total Staked"    value={fmtTAO(overview.total_stake_tao)}     sub={fmtUSD(overview.total_stake_usd)} />
-            <KPI label="Avg APY"         value={`${overview.avg_apy.toFixed(1)}%`}    color="text-accent-green" />
+            <KPI label="Avg APY"         value={`${(overview.avg_apy ?? 0).toFixed(1)}%`}    color="text-accent-green" />
             <KPI label="Active Subnets"  value={`${overview.total_subnets}`}          sub={`${upCount}↑ / ${downCount}↓`} />
             <KPI label="Top Subnet"      value={overview.top_subnet.name.slice(0, 12)} sub={`SN${overview.top_subnet.uid}`} />
             <KPI label="Top Stake"       value={fmtTAO(overview.top_subnet.stake_tao)} color="text-yellow-400" />
@@ -319,7 +319,7 @@ export default function MarketData() {
 
                 {/* Emission */}
                 <td className="px-4 py-2.5 text-right font-mono text-slate-300">
-                  {s.emission.toFixed(4)}
+                  {(s.emission ?? 0).toFixed(4)}
                 </td>
 
                 {/* Miners */}

@@ -236,13 +236,13 @@ export default function SubnetHeatMap() {
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px] font-mono">
                     <span className="text-slate-500">APY</span>
-                    <span className="text-amber-400 font-semibold">{hovered.apy.toFixed(1)}%</span>
+                    <span className="text-amber-400 font-semibold">{(hovered.apy ?? 0).toFixed(1)}%</span>
                     <span className="text-slate-500">Stake τ</span>
                     <span className="text-slate-200">{hovered.stake_tao.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span>
                     <span className="text-slate-500">Miners</span>
                     <span className="text-slate-300">{hovered.miners}</span>
                     <span className="text-slate-500">Score</span>
-                    <span className="text-indigo-400">{hovered.score.toFixed(1)}</span>
+                    <span className="text-indigo-400">{(hovered.score ?? 0).toFixed(1)}</span>
                     <span className="text-slate-500">Trend</span>
                     <span className={hovered.trend === 'up' ? 'text-emerald-400' : hovered.trend === 'down' ? 'text-red-400' : 'text-slate-400'}>
                       {hovered.trend === 'up' ? '▲ rising' : hovered.trend === 'down' ? '▼ falling' : '— flat'}

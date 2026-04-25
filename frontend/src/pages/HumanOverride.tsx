@@ -561,7 +561,7 @@ export default function HumanOverride() {
                       'text-xs font-mono font-bold',
                       s.win_rate >= 55 ? 'text-accent-green' : s.win_rate >= 40 ? 'text-yellow-400' : 'text-red-400',
                     )}>
-                      {s.win_rate.toFixed(1)}%
+                      {(s.win_rate ?? 0).toFixed(1)}%
                     </p>
                     <p className="text-[15px] text-slate-500">win rate</p>
                   </div>

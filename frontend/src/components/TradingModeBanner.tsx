@@ -163,7 +163,7 @@ export default function TradingModeBanner() {
         {/* Wallet */}
         {data.wallet_balance_tao > 0 && (
           <span className="text-[13px] font-mono text-slate-300 flex-shrink-0 mr-2">
-            τ {data.wallet_balance_tao.toFixed(6)}
+            τ {(data.wallet_balance_tao ?? 0).toFixed(6)}
           </span>
         )}
 

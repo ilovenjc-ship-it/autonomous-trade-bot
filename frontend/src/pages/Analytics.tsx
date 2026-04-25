@@ -230,7 +230,7 @@ export default function Analytics() {
     {
       title: 'Strategy Analysis', subtitle: 'Fleet Breakdown', accent: 'blue' as const,
       stats: [
-        { label: 'Best WR',     value: bestStr ? `${bestStr.win_rate.toFixed(0)}%` : '—',                 color: 'emerald' as const },
+        { label: 'Best WR',     value: bestStr ? `${(bestStr.win_rate ?? 0).toFixed(0)}%` : '—',                 color: 'emerald' as const },
         { label: 'Best Name',   value: bestStr ? bestStr.name.split('_')[0] : '—',                        color: 'white'   as const },
         { label: 'Avg Win Rate',value: strategies.length ? `${(strategies.reduce((s,x)=>s+x.win_rate,0)/strategies.length).toFixed(0)}%` : '—', color: 'yellow' as const },
         { label: 'Profitable',  value: String(strategies.filter(s => s.total_pnl > 0).length),            color: 'emerald' as const },

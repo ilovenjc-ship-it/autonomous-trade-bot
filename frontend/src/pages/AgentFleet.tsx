@@ -407,12 +407,12 @@ export default function AgentFleet() {
                   <td className="px-4 py-3"><SignalBadge signal={bot.last_signal} /></td>
                   <td className="px-4 py-3 text-right">
                     <span className={clsx('font-bold', bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 40 ? 'text-yellow-400' : 'text-red-400')}>
-                      {bot.win_rate.toFixed(1)}%
+                      {(bot.win_rate ?? 0).toFixed(1)}%
                     </span>
                   </td>
                   <td className="px-4 py-3 text-right">
                     <span className={clsx('font-bold', bot.net_pnl_tao > 0 ? 'text-emerald-400' : bot.net_pnl_tao < 0 ? 'text-red-400' : 'text-slate-300')}>
-                      {bot.net_pnl_tao > 0 ? '+' : ''}{bot.net_pnl_tao.toFixed(4)}
+                      {bot.net_pnl_tao > 0 ? '+' : ''}{(bot.net_pnl_tao ?? 0).toFixed(4)}
                     </span>
                   </td>
                   <td className="px-4 py-3">
@@ -522,8 +522,8 @@ export default function AgentFleet() {
                       { label: 'Wins',     value: selected.win_trades,     cls: 'text-emerald-400' },
                       { label: 'Losses',   value: selected.loss_trades,    cls: 'text-red-400' },
                       { label: 'Cycles',   value: selected.cycles_completed },
-                      { label: 'Win Rate', value: `${selected.win_rate.toFixed(1)}%`, cls: selected.win_rate >= 55 ? 'text-emerald-400' : 'text-yellow-400' },
-                      { label: 'Net PnL',  value: `${selected.net_pnl_tao >= 0 ? '+' : ''}${selected.net_pnl_tao.toFixed(4)}τ`, cls: selected.net_pnl_tao >= 0 ? 'text-emerald-400' : 'text-red-400' },
+                      { label: 'Win Rate', value: `${(selected.win_rate ?? 0).toFixed(1)}%`, cls: selected.win_rate >= 55 ? 'text-emerald-400' : 'text-yellow-400' },
+                      { label: 'Net PnL',  value: `${selected.net_pnl_tao >= 0 ? '+' : ''}${(selected.net_pnl_tao ?? 0).toFixed(4)}τ`, cls: selected.net_pnl_tao >= 0 ? 'text-emerald-400' : 'text-red-400' },
                     ].map(({ label, value, cls }) => (
                       <div key={label} className="bg-slate-800/40 rounded p-2">
                         <div className="text-[15px] text-slate-400 uppercase">{label}</div>
@@ -602,7 +602,7 @@ export default function AgentFleet() {
                       <span className="text-[13px] text-slate-300 group-hover:text-white transition-colors font-mono truncate max-w-[160px]">
                         {bot.display_name}
                       </span>
-                      <span className="text-[13px] text-slate-400 font-mono">{bot.capital_allocation_pct.toFixed(1)}%</span>
+                      <span className="text-[13px] text-slate-400 font-mono">{(bot.capital_allocation_pct ?? 0).toFixed(1)}%</span>
                     </div>
                     <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
                       <div className={clsx(

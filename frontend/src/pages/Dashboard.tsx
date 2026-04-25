@@ -245,7 +245,7 @@ function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
       <div className="mb-2">
         <div className="flex justify-between text-[15px] font-mono mb-1">
           <span className="text-slate-500">Stake</span>
-          <span className="text-slate-300">{(s.stake_tao / 1e6).toFixed(2)}M τ</span>
+          <span className="text-slate-300">{((s.stake_tao ?? 0) / 1e6).toFixed(2)}M τ</span>
         </div>
         <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
           <div className="h-full bg-accent-blue/60 rounded-full transition-all"
@@ -257,11 +257,11 @@ function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
       <div className="grid grid-cols-2 gap-1.5 mb-2">
         <div className="bg-dark-800 rounded px-2 py-1 text-center">
           <p className="text-[15px] text-slate-500 font-mono">APY</p>
-          <p className="text-[14px] font-bold text-accent-green font-mono">{s.apy.toFixed(1)}%</p>
+          <p className="text-[14px] font-bold text-accent-green font-mono">{(s.apy ?? 0).toFixed(1)}%</p>
         </div>
         <div className="bg-dark-800 rounded px-2 py-1 text-center">
           <p className="text-[15px] text-slate-500 font-mono">Emit</p>
-          <p className="text-[14px] font-bold text-yellow-400 font-mono">{(s.emission * 100).toFixed(2)}%</p>
+          <p className="text-[14px] font-bold text-yellow-400 font-mono">{((s.emission ?? 0) * 100).toFixed(2)}%</p>
         </div>
       </div>
 
@@ -269,7 +269,7 @@ function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
       <div>
         <div className="flex justify-between text-[15px] font-mono mb-1">
           <span className="text-slate-500">Score</span>
-          <span className="font-bold" style={{ color: scoreColor }}>{s.score.toFixed(1)}</span>
+          <span className="font-bold" style={{ color: scoreColor }}>{(s.score ?? 0).toFixed(1)}</span>
         </div>
         <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
           <div className="h-full rounded-full transition-all"
@@ -646,7 +646,7 @@ function SentimentGauge({
           {/* score label */}
           <text x={cx} y={cy - 28} textAnchor="middle"
             fontSize={22} fontWeight="800" fontFamily="monospace" fill={labelColor}>
-            {score > 0 ? '+' : ''}{score.toFixed(0)}
+            {(score ?? 0) > 0 ? '+' : ''}{(score ?? 0).toFixed(0)}
           </text>
           <text x={cx} y={cy - 10} textAnchor="middle"
             fontSize={11} fontFamily="monospace" fill={labelColor}>
@@ -710,7 +710,7 @@ function RecentTradesMini({ trades }: { trades: RecentTrade[] }) {
 
             {/* Amount */}
             <span className="text-[12px] font-mono text-slate-500">
-              {t.amount.toFixed(4)}τ
+              {(t.amount ?? 0).toFixed(4)}τ
             </span>
 
             {/* PnL */}
@@ -718,7 +718,7 @@ function RecentTradesMini({ trades }: { trades: RecentTrade[] }) {
               'text-[13px] font-mono font-bold w-16 text-right flex-shrink-0',
               t.pnl >= 0 ? 'text-accent-green' : 'text-red-400'
             )}>
-              {t.pnl >= 0 ? '+' : ''}{t.pnl.toFixed(4)}
+              {(t.pnl ?? 0) >= 0 ? '+' : ''}{(t.pnl ?? 0).toFixed(4)}
             </span>
 
             {/* Real badge */}
@@ -995,7 +995,7 @@ export default function Dashboard() {
         {/* Account Balance — live from Finney chain */}
         <KPI label="Account Balance" icon={Wallet}
           value={walletStatus?.balance_cached != null
-            ? `τ${walletStatus.balance_cached.toFixed(4)}`
+            ? `τ${(walletStatus.balance_cached ?? 0).toFixed(4)}`
             : '—'}
           sub={walletStatus?.balance_cached != null && price
             ? `$${(walletStatus.balance_cached * price).toFixed(2)} USD`
@@ -1075,7 +1075,7 @@ export default function Dashboard() {
             <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">Chain Balance</p>
             <p className="text-sm font-bold font-mono mt-0.5 text-indigo-400">
               {walletStatus?.balance_cached != null
-                ? `τ${walletStatus.balance_cached.toFixed(6)}`
+                ? `τ${(walletStatus.balance_cached ?? 0).toFixed(6)}`
                 : walletStatus?.connected ? 'Querying…' : 'Offline'}
             </p>
             <p className="text-[13px] text-slate-300 font-mono">
@@ -1151,7 +1151,7 @@ export default function Dashboard() {
                     <span className="text-[13px] font-mono text-slate-300">{s.total_trades} trades</span>
                     <span className={clsx('text-[13px] font-mono',
                       s.win_rate >= 55 ? 'text-accent-green' : 'text-yellow-400'
-                    )}>{s.win_rate.toFixed(1)}% WR</span>
+                    )}>{(s.win_rate ?? 0).toFixed(1)}% WR</span>
                   </div>
                 </div>
                 <span className={clsx('font-mono text-sm font-bold',
