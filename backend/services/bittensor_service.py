@@ -200,17 +200,29 @@ class BittensorService:
         import bittensor as bt
         return bt.AsyncSubtensor(network=NETWORK)
 
+    # ── Timeout constants ─────────────────────────────────────────────────────
+    # All chain calls are wrapped with asyncio.wait_for() so a degraded or
+    # non-responsive Finney RPC node cannot hang the event loop indefinitely.
+    # Hanging calls were the primary cause of Railway process kills.
+    _TIMEOUT_FAST  = 20.0   # seconds — block number, balance (single lightweight query)
+    _TIMEOUT_PRICE = 35.0   # seconds — get_subnet_prices (scans all 100+ subnets)
+    _TIMEOUT_STAKE = 90.0   # seconds — add_stake / remove_stake (waits for block inclusion ~12 s/block)
+    _TIMEOUT_META  = 45.0   # seconds — per-subnet metagraph (large payload, slower)
+
     async def get_balance(self, address: Optional[str] = None) -> Optional[float]:
         """Query live TAO balance from Finney mainnet."""
         addr = address or self._coldkey_addr
         try:
             async with await self._subtensor() as sub:
-                bal = await sub.get_balance(addr)
+                bal = await asyncio.wait_for(sub.get_balance(addr), timeout=self._TIMEOUT_FAST)
                 result = float(bal)
                 self._last_balance = result
                 self._last_chain_at = datetime.now(timezone.utc).isoformat()
                 self.connected = True
                 return result
+        except asyncio.TimeoutError:
+            logger.warning(f"get_balance timed out after {self._TIMEOUT_FAST}s — using cached value")
+            return self._last_balance
         except Exception as e:
             logger.warning(f"get_balance error: {e}")
             self.connected = False
@@ -219,10 +231,13 @@ class BittensorService:
     async def get_current_block(self) -> Optional[int]:
         try:
             async with await self._subtensor() as sub:
-                block = await sub.get_current_block()
+                block = await asyncio.wait_for(sub.get_current_block(), timeout=self._TIMEOUT_FAST)
                 self._last_block = block
                 self.connected   = True
                 return block
+        except asyncio.TimeoutError:
+            logger.warning(f"get_current_block timed out after {self._TIMEOUT_FAST}s — using cached value")
+            return self._last_block
         except Exception as e:
             logger.warning(f"get_current_block error: {e}")
             return self._last_block
@@ -235,7 +250,7 @@ class BittensorService:
         try:
             async with await self._subtensor() as sub:
                 # Block query proves connectivity; balance is best-effort
-                block = await sub.get_current_block()
+                block = await asyncio.wait_for(sub.get_current_block(), timeout=self._TIMEOUT_FAST)
                 self._last_block    = block
                 self._last_chain_at = datetime.now(timezone.utc).isoformat()
                 self.connected      = True   # chain is reachable
@@ -243,8 +258,13 @@ class BittensorService:
                 # Balance — independent best-effort
                 if self._coldkey_addr:
                     try:
-                        bal = await sub.get_balance(self._coldkey_addr)
+                        bal = await asyncio.wait_for(
+                            sub.get_balance(self._coldkey_addr),
+                            timeout=self._TIMEOUT_FAST,
+                        )
                         self._last_balance = float(bal)
+                    except asyncio.TimeoutError:
+                        logger.debug("Balance query timed out (non-fatal) — using cached")
                     except Exception as _be:
                         logger.debug(f"Balance query failed (non-fatal): {_be}")
 
@@ -257,6 +277,18 @@ class BittensorService:
                     "timestamp":     self._last_chain_at,
                     "wallet_loaded": self._mnemonic_set,
                 }
+        except asyncio.TimeoutError:
+            logger.warning(f"get_chain_info block query timed out after {self._TIMEOUT_FAST}s")
+            self.connected = False
+            return {
+                "address":       self._coldkey_addr,
+                "balance_tao":   self._last_balance,
+                "block":         self._last_block,
+                "network":       NETWORK,
+                "connected":     False,
+                "error":         "chain query timed out",
+                "wallet_loaded": self._mnemonic_set,
+            }
         except Exception as e:
             logger.warning(f"get_chain_info error: {e}")
             self.connected = False
@@ -278,7 +310,7 @@ class BittensorService:
         """
         try:
             async with await self._subtensor() as sub:
-                prices = await sub.get_subnet_prices()
+                prices = await asyncio.wait_for(sub.get_subnet_prices(), timeout=self._TIMEOUT_PRICE)
                 result = []
                 for netuid, price in list(prices.items())[:limit]:
                     p = float(price) if price else 0.0
@@ -286,6 +318,9 @@ class BittensorService:
                     result.append({"netuid": int(netuid), "price": p})
                 self.connected = True
                 return sorted(result, key=lambda x: x["price"], reverse=True)
+        except asyncio.TimeoutError:
+            logger.warning(f"get_subnet_prices timed out after {self._TIMEOUT_PRICE}s — returning empty")
+            return []
         except Exception as e:
             logger.warning(f"get_subnet_prices error: {e}")
             return []
@@ -294,7 +329,10 @@ class BittensorService:
         """Return staking positions for the coldkey."""
         try:
             async with await self._subtensor() as sub:
-                stakes = await sub.get_stake_info_for_coldkey(self._coldkey_addr)
+                stakes = await asyncio.wait_for(
+                    sub.get_stake_info_for_coldkey(self._coldkey_addr),
+                    timeout=self._TIMEOUT_FAST,
+                )
                 items = []
                 if stakes:
                     for s in (stakes if isinstance(stakes, list) else [stakes]):
@@ -304,6 +342,9 @@ class BittensorService:
                             "netuid":  getattr(s, "netuid", None),
                         })
                 return {"stakes": items, "total": sum(i["stake"] for i in items)}
+        except asyncio.TimeoutError:
+            logger.warning(f"get_stake_info timed out after {self._TIMEOUT_FAST}s")
+            return {"stakes": [], "total": 0.0, "error": "query timed out"}
         except Exception as e:
             logger.warning(f"get_stake_info error: {e}")
             return {"stakes": [], "total": 0.0, "error": str(e)}
@@ -337,14 +378,19 @@ class BittensorService:
             wallet_adapter = _WalletAdapter(self._keypair)
 
             async with await self._subtensor() as sub:
-                result = await sub.add_stake(
-                    wallet                = wallet_adapter,
-                    netuid                = netuid,
-                    hotkey_ss58           = hotkey_address,
-                    amount                = bt.Balance.from_tao(amount_tao),
-                    wait_for_inclusion    = True,
-                    wait_for_finalization = False,
-                    raise_error           = False,
+                # 90s timeout: wait_for_inclusion = True means we wait up to
+                # ~12s per block for the extrinsic to land. Allow 7-8 blocks.
+                result = await asyncio.wait_for(
+                    sub.add_stake(
+                        wallet                = wallet_adapter,
+                        netuid                = netuid,
+                        hotkey_ss58           = hotkey_address,
+                        amount                = bt.Balance.from_tao(amount_tao),
+                        wait_for_inclusion    = True,
+                        wait_for_finalization = False,
+                        raise_error           = False,
+                    ),
+                    timeout=self._TIMEOUT_STAKE,
                 )
                 # SDK 10.x returns ExtrinsicResponse — bool(response) == True on success
                 success = bool(result)
@@ -374,6 +420,9 @@ class BittensorService:
                     "netuid":     netuid,
                     "hotkey":     hotkey_address,
                 }
+        except asyncio.TimeoutError:
+            logger.error(f"add_stake timed out after {self._TIMEOUT_STAKE}s — SN{netuid} {hotkey_address[:16]}")
+            return {"success": False, "error": f"stake timed out after {self._TIMEOUT_STAKE}s"}
         except Exception as e:
             logger.error(f"add_stake error: {e}")
             return {"success": False, "error": str(e)}
@@ -386,14 +435,17 @@ class BittensorService:
             import bittensor as bt
             wallet_adapter = _WalletAdapter(self._keypair)
             async with await self._subtensor() as sub:
-                result = await sub.unstake(
-                    wallet                = wallet_adapter,
-                    netuid                = netuid,
-                    hotkey_ss58           = hotkey_address,
-                    amount                = bt.Balance.from_tao(amount_tao),
-                    wait_for_inclusion    = True,
-                    wait_for_finalization = False,
-                    raise_error           = False,
+                result = await asyncio.wait_for(
+                    sub.unstake(
+                        wallet                = wallet_adapter,
+                        netuid                = netuid,
+                        hotkey_ss58           = hotkey_address,
+                        amount                = bt.Balance.from_tao(amount_tao),
+                        wait_for_inclusion    = True,
+                        wait_for_finalization = False,
+                        raise_error           = False,
+                    ),
+                    timeout=self._TIMEOUT_STAKE,
                 )
                 success = bool(result)
                 tx_hash = None
@@ -414,6 +466,9 @@ class BittensorService:
                     "netuid":     netuid,
                     "hotkey":     hotkey_address,
                 }
+        except asyncio.TimeoutError:
+            logger.error(f"unstake timed out after {self._TIMEOUT_STAKE}s — SN{netuid} {hotkey_address[:16]}")
+            return {"success": False, "error": f"unstake timed out after {self._TIMEOUT_STAKE}s"}
         except Exception as e:
             logger.error(f"unstake error: {e}")
             return {"success": False, "error": str(e)}

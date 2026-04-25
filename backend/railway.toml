@@ -3,11 +3,15 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# healthcheckPath and startCommand intentionally omitted.
-# Railway uses Dockerfile CMD (/app/start.sh) which handles port expansion
-# correctly and produces full diagnostic output in Deploy Logs.
-# Healthcheck gate re-disabled: Railway infra degradation (GitHub incident)
-# causes probe timeouts even when the app is healthy. The container is
-# confirmed healthy via /health responding 200 after deployment.
-restartPolicyType = "ON_FAILURE"
-restartPolicyMaxRetries = 3
+# healthcheckPath intentionally omitted — Railway probe sometimes fires before
+# the 3-second boot delay completes, causing false-positive restarts.
+# /health is confirmed responding 200 in Deploy Logs after every deploy.
+#
+# restartPolicyType = ALWAYS: Railway restarts the container whenever it exits,
+# regardless of exit code. Previously ON_FAILURE with maxRetries=3 meant three
+# Finney RPC hiccups (hanging chain call → OOM/timeout kill) would permanently
+# stop the backend until the next manual redeploy. ALWAYS keeps it alive.
+#
+# No maxRetries cap — the bot must run continuously. Railway applies a 1-minute
+# backoff after repeated restarts so it won't hammer the RPC endlessly.
+restartPolicyType = "ALWAYS"

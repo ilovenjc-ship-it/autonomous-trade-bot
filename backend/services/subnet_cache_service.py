@@ -91,6 +91,13 @@ class SubnetCacheService:
                 pass
         logger.info("SubnetCacheService stopped")
 
+    # ── Timeout constants ─────────────────────────────────────────────────────
+    # Metagraph fetches are the slowest chain calls (large payloads, 6 subnets).
+    # Without timeouts a stalled RPC node can hold this background task open
+    # for the entire poll interval, eventually causing event-loop starvation.
+    _META_PER_SUBNET_TIMEOUT = 45.0    # seconds — per metagraph() call
+    _META_TOTAL_TIMEOUT      = 270.0   # seconds — entire _fetch_metagraphs() run
+
     # ── Background loop ───────────────────────────────────────────────────────
 
     async def _loop(self) -> None:
@@ -103,7 +110,19 @@ class SubnetCacheService:
 
             ticks_since_meta += 1
             if ticks_since_meta >= meta_every:
-                await self._fetch_metagraphs()
+                # Wrap the entire metagraph cycle in an outer timeout so a
+                # completely stalled Finney node cannot hold the loop open
+                # longer than META_TOTAL_TIMEOUT seconds.
+                try:
+                    await asyncio.wait_for(
+                        self._fetch_metagraphs(),
+                        timeout=self._META_TOTAL_TIMEOUT,
+                    )
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        f"SubnetCacheService: _fetch_metagraphs() exceeded "
+                        f"{self._META_TOTAL_TIMEOUT}s — skipping this round"
+                    )
                 ticks_since_meta = 0
 
     # ── Data fetchers ─────────────────────────────────────────────────────────
@@ -143,7 +162,13 @@ class SubnetCacheService:
             async with bt.AsyncSubtensor(network="finney") as sub:
                 for netuid in sorted(TRADING_NETUIDS):
                     try:
-                        mg = await sub.metagraph(netuid=netuid)
+                        # Per-subnet timeout: metagraph is a large payload query.
+                        # If a single subnet's RPC call hangs, we skip it and
+                        # continue to the next rather than blocking the whole cycle.
+                        mg = await asyncio.wait_for(
+                            sub.metagraph(netuid=netuid),
+                            timeout=self._META_PER_SUBNET_TIMEOUT,
+                        )
 
                         # Total stake on this subnet (sum across all UIDs)
                         stake_tao = float(mg.S.sum()) if hasattr(mg, "S") else 0.0
@@ -184,6 +209,11 @@ class SubnetCacheService:
                             f"APY≈{apy:.1f}%"
                         )
 
+                    except asyncio.TimeoutError:
+                        logger.warning(
+                            f"SN{netuid} metagraph timed out after "
+                            f"{self._META_PER_SUBNET_TIMEOUT}s — skipping"
+                        )
                     except Exception as exc:
                         logger.warning(f"SN{netuid} metagraph fetch error: {exc}")
 
