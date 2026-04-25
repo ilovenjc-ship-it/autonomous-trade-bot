@@ -219,6 +219,8 @@ async def get_subnets(
 
 @router.get("/overview")
 async def market_overview():
+    """Basic market overview — placeholder."""
+    return {"status": "ok"}
 
 
 # ── CoinGecko crypto ticker ────────────────────────────────────────────────────
@@ -293,13 +295,15 @@ async def crypto_ticker():
     return {"coins": coins, "cached": False}
 
 
-"""Top-level market summary stats."""
+@router.get("/stats")
+async def market_stats():
+    """Top-level market summary stats."""
     tao_price = price_service.current_price or 250.0
     all_s = [_live_subnet(uid, tao_price) for uid in _DISPLAY_UIDS]
 
     total_stake = sum(s["stake_tao"] for s in all_s)
-    avg_apy     = sum(s["apy"] for s in all_s) / len(all_s)
-    top_subnet  = max(all_s, key=lambda s: s["stake_tao"])
+    avg_apy     = sum(s["apy"] for s in all_s) / len(all_s) if all_s else 0.0
+    top_subnet  = max(all_s, key=lambda s: s["stake_tao"]) if all_s else {}
 
     return {
         "tao_price":       round(tao_price, 2),
