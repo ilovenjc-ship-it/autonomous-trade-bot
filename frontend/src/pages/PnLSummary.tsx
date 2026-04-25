@@ -88,10 +88,10 @@ interface PnLData {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-const fmt = (n: number, dp = 4) => n.toFixed(dp)
+const fmt = (n: number | null | undefined, dp = 4) => (n ?? 0).toFixed(dp)
 const fmtUSD = (n: number) => `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-const fmtTau = (n: number) => `${n >= 0 ? '+' : ''}${n.toFixed(6)} τ`
-const pnlColor = (n: number) => n >= 0 ? '#10b981' : '#f87171'
+const fmtTau = (n: number | null | undefined) => `${(n ?? 0) >= 0 ? '+' : ''}${(n ?? 0).toFixed(6)} τ`
+const pnlColor = (n: number | null | undefined) => ((n ?? 0) >= 0 ? '#10b981' : '#f87171')
 
 function ModeBadge({ mode, isActive }: { mode: string; isActive: boolean }) {
   const cfg: Record<string, string> = {

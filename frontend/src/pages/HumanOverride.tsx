@@ -43,9 +43,9 @@ const STRATEGIES_LIST = [
 ]
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-function fmtTao(n: number) {
-  const s = Math.abs(n).toFixed(4)
-  return n >= 0 ? `+${s} τ` : `-${s} τ`
+function fmtTao(n: number | null | undefined) {
+  const _n = n ?? 0; const s = Math.abs(_n).toFixed(4)
+  return _n >= 0 ? `+${s} τ` : `-${s} τ`
 }
 
 // ── sub-components ────────────────────────────────────────────────────────────

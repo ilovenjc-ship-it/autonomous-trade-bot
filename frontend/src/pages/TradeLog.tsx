@@ -31,9 +31,9 @@ interface TradesResponse {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-function fmt4(n: number) {
-  const s = Math.abs(n).toFixed(4)
-  return n >= 0 ? `+${s}` : `-${s}`
+function fmt4(n: number | null | undefined) {
+  const _n = n ?? 0; const s = Math.abs(_n).toFixed(4)
+  return _n >= 0 ? `+${s}` : `-${s}`
 }
 
 function ts(raw: string | null) {

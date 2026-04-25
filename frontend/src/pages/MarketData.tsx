@@ -32,16 +32,18 @@ interface Overview {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-function fmtTAO(n: number) {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M τ`
-  if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K τ`
-  return `${n.toFixed(0)} τ`
+function fmtTAO(n: number | null | undefined) {
+  const v = n ?? 0
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M τ`
+  if (v >= 1_000)     return `${(v / 1_000).toFixed(1)}K τ`
+  return `${v.toFixed(0)} τ`
 }
 
-function fmtUSD(n: number) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`
-  if (n >= 1_000)     return `$${(n / 1_000).toFixed(0)}K`
-  return `$${n.toFixed(0)}`
+function fmtUSD(n: number | null | undefined) {
+  const v = n ?? 0
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000)     return `$${(v / 1_000).toFixed(0)}K`
+  return `$${v.toFixed(0)}`
 }
 
 type SortKey = 'uid' | 'stake_tao' | 'stake_usd' | 'apy' | 'emission' | 'miners' | 'score'
@@ -205,8 +207,8 @@ export default function MarketData() {
             <KPI label="Total Staked"    value={fmtTAO(overview.total_stake_tao)}     sub={fmtUSD(overview.total_stake_usd)} />
             <KPI label="Avg APY"         value={`${(overview.avg_apy ?? 0).toFixed(1)}%`}    color="text-accent-green" />
             <KPI label="Active Subnets"  value={`${overview.total_subnets}`}          sub={`${upCount}↑ / ${downCount}↓`} />
-            <KPI label="Top Subnet"      value={overview.top_subnet.name.slice(0, 12)} sub={`SN${overview.top_subnet.uid}`} />
-            <KPI label="Top Stake"       value={fmtTAO(overview.top_subnet.stake_tao)} color="text-yellow-400" />
+            <KPI label="Top Subnet"      value={overview.top_subnet?.name?.slice(0, 12) ?? '—'} sub={overview.top_subnet?.uid != null ? `SN${overview.top_subnet.uid}` : '—'} />
+            <KPI label="Top Stake"       value={fmtTAO(overview.top_subnet?.stake_tao)} color="text-yellow-400" />
           </div>
         )}
 

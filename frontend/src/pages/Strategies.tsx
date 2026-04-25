@@ -48,9 +48,9 @@ const MODE_META: Record<string, { label: string; badge: string; prefix: string }
   PAPER_ONLY:        { label: 'PAPER',    prefix: '◌', badge: 'bg-slate-700/60 text-slate-300 border-slate-600' },
 }
 
-function fmt(n: number) {
-  const s = Math.abs(n).toFixed(4)
-  return n >= 0 ? `+${s} τ` : `-${s} τ`
+function fmt(n: number | null | undefined) {
+  const _n = n ?? 0; const s = Math.abs(_n).toFixed(4)
+  return _n >= 0 ? `+${s} τ` : `-${s} τ`
 }
 
 // ── sort / filter types ───────────────────────────────────────────────────────

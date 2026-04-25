@@ -27,9 +27,9 @@ interface Detail {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-function fmt(n: number, d = 4) {
-  const s = Math.abs(n).toFixed(d)
-  return n >= 0 ? `+${s}` : `-${s}`
+function fmt(n: number | null | undefined, d = 4) {
+  const _n = n ?? 0; const s = Math.abs(_n).toFixed(d)
+  return _n >= 0 ? `+${s}` : `-${s}`
 }
 
 const MODE_COLOR: Record<string, string> = {
