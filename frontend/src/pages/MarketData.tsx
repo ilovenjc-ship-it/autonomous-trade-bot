@@ -357,7 +357,7 @@ export default function MarketData() {
       {/* Footer */}
       <div className="flex-shrink-0 px-6 py-2 border-t border-dark-600">
         <p className="text-xs text-slate-300 font-mono">
-          Data simulated — connect Bittensor wallet for live subnet metrics · auto-refresh every 15s
+          Live Bittensor Finney mainnet · stake &amp; trend data from on-chain metagraph · auto-refresh every 15s
         </p>
       </div>
     </div>

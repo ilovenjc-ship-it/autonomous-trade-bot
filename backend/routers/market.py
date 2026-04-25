@@ -219,8 +219,27 @@ async def get_subnets(
 
 @router.get("/overview")
 async def market_overview():
-    """Basic market overview — placeholder."""
-    return {"status": "ok"}
+    """
+    Full market overview — TAO price, total stake, avg APY, subnet counts, top subnet.
+    Delegates to the same logic as /stats.
+    """
+    tao_price = price_service.current_price or 250.0
+    all_s = [_live_subnet(uid, tao_price) for uid in _DISPLAY_UIDS]
+
+    total_stake = sum(s["stake_tao"] for s in all_s)
+    avg_apy     = sum(s["apy"] for s in all_s) / len(all_s) if all_s else 0.0
+    top_subnet  = max(all_s, key=lambda s: s["stake_tao"]) if all_s else {}
+
+    return {
+        "tao_price":       round(tao_price, 2),
+        "total_subnets":   len(all_s),
+        "total_stake_tao": round(total_stake, 0),
+        "total_stake_usd": round(total_stake * tao_price, 0),
+        "avg_apy":         round(avg_apy, 1),
+        "top_subnet":      top_subnet,
+        "up_subnets":      sum(1 for s in all_s if s["trend"] == "up"),
+        "down_subnets":    sum(1 for s in all_s if s["trend"] == "down"),
+    }
 
 
 # ── CoinGecko crypto ticker ────────────────────────────────────────────────────
