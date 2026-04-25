@@ -160,7 +160,7 @@ export default function MarketData() {
   const downCount = subnets.filter(s => s.trend === 'down').length
 
   return (
-    <div className="flex flex-col h-screen bg-dark-900">
+    <div className="flex flex-col h-full bg-dark-900">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-dark-600">
