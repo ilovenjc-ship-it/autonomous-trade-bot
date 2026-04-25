@@ -182,18 +182,13 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# On Railway, allow all origins initially — tighten by setting FRONTEND_URL env var
-# once both services are deployed and URLs are known.
-import os as _os
-_cors_origins = (
-    ["*"] if _os.environ.get("RAILWAY_ENVIRONMENT")
-    else settings.ALLOWED_ORIGINS
-)
-
+# CORS — allow all origins unconditionally so Railway / any deployment works
+# without environment variable coordination between frontend and backend services.
+# POST preflights (OPTIONS) from any domain will be accepted.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_cors_origins,
-    allow_credentials=_cors_origins != ["*"],  # can't combine wildcard + credentials
+    allow_origins=["*"],
+    allow_credentials=False,   # must be False when allow_origins=["*"]
     allow_methods=["*"],
     allow_headers=["*"],
 )
