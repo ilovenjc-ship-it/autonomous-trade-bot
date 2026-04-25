@@ -3,7 +3,7 @@ import {
   Play, Square, RefreshCw, TrendingUp, TrendingDown,
   Activity, Zap, Bot, Shield, BarChart2, Clock, Award, Radio,
   Brain, Vote, Bell, Wallet, ArrowUp, ArrowDown, Minus,
-  MessageSquare, Send, ChevronDown, ChevronUp,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -80,6 +80,17 @@ interface Subnet {
 }
 
 type PriceRange = '1H' | '6H' | '24H' | '7D'
+
+interface RecentTrade {
+  id: number
+  trade_type: string
+  strategy: string
+  pnl: number
+  amount: number
+  price_at_trade: number
+  tx_hash: string | null
+  executed_at: string
+}
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function fmt(n: number, d = 4) {
@@ -294,6 +305,438 @@ function SubnetMiniRow({ subnets }: { subnets: Subnet[] }) {
   )
 }
 
+// ── Hero Slider ───────────────────────────────────────────────────────────────
+function HeroSlider({
+  price, change24h, agentStatus, summary, consensusStats, botStatus, walletStatus,
+}: {
+  price: number | null | undefined
+  change24h: number | null | undefined
+  agentStatus: AgentStatus | null
+  summary: Summary | null
+  consensusStats: ConsensusStats | null
+  botStatus: BotStatus | null
+  walletStatus: WalletStatus | null
+}) {
+  const [idx, setIdx] = useState(0)
+  const SLIDE_COUNT = 3
+  const next = () => setIdx(i => (i + 1) % SLIDE_COUNT)
+  const prev = () => setIdx(i => (i - 1 + SLIDE_COUNT) % SLIDE_COUNT)
+
+  useEffect(() => {
+    const t = setInterval(next, 6000)
+    return () => clearInterval(t)
+  }, [])
+
+  const ind = botStatus?.indicators ?? {}
+  const rsi = ind.rsi_14 as number | null
+  const regime = agentStatus?.current_regime ?? 'UNKNOWN'
+  const regimeColor = agentStatus?.regime_color ?? '#6b7280'
+  const up24h = (change24h ?? 0) >= 0
+  const totalRounds = consensusStats?.total_rounds ?? 0
+  const approvalRate = consensusStats?.approval_rate_pct ?? 0
+  const buyVotes = consensusStats?.total_buy_votes ?? 0
+  const sellVotes = consensusStats?.total_sell_votes ?? 0
+  const bias = buyVotes > sellVotes ? 'BULLISH' : buyVotes < sellVotes ? 'BEARISH' : 'NEUTRAL'
+  const biasColor = bias === 'BULLISH' ? '#00e5a0' : bias === 'BEARISH' ? '#f87171' : '#94a3b8'
+
+  const slides = [
+    /* ── Slide 0: Market Pulse ── */
+    <div key="market" className="h-full flex items-center px-8 gap-10">
+      <div>
+        <p className="text-[13px] font-mono text-slate-400 uppercase tracking-widest mb-1">TAO / USD · Market Pulse</p>
+        <div className="flex items-baseline gap-3">
+          <span className="text-5xl font-black font-mono text-white">
+            {price ? `$${price.toFixed(2)}` : '—'}
+          </span>
+          {change24h != null && (
+            <span className={clsx('text-xl font-bold font-mono', up24h ? 'text-accent-green' : 'text-red-400')}>
+              {up24h ? '+' : ''}{change24h.toFixed(2)}% 24h
+            </span>
+          )}
+        </div>
+      </div>
+      <div className="h-16 w-px bg-dark-600" />
+      <div>
+        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">II Agent Regime</p>
+        <p className="text-2xl font-extrabold font-mono" style={{ color: regimeColor }}>
+          {regime === 'BULL' ? '🐂 BULL' : regime === 'BEAR' ? '🐻 BEAR' : regime === 'SIDEWAYS' ? '↔ SIDEWAYS' : regime === 'VOLATILE' ? '⚡ VOLATILE' : '⟳ SCANNING'}
+        </p>
+      </div>
+      <div className="h-16 w-px bg-dark-600" />
+      <div>
+        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">RSI-14</p>
+        <p className={clsx('text-2xl font-bold font-mono',
+          rsi == null ? 'text-slate-400' : rsi < 35 ? 'text-accent-green' : rsi > 65 ? 'text-red-400' : 'text-yellow-400'
+        )}>
+          {rsi != null ? rsi.toFixed(1) : '—'}
+        </p>
+        <p className="text-[13px] font-mono text-slate-500">
+          {rsi == null ? '' : rsi < 35 ? 'Oversold' : rsi > 65 ? 'Overbought' : 'Neutral'}
+        </p>
+      </div>
+      <div className="h-16 w-px bg-dark-600" />
+      <div>
+        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Chain</p>
+        <p className="text-[14px] font-mono text-indigo-400">Block #{walletStatus?.block_cached?.toLocaleString() ?? '—'}</p>
+        <p className={clsx('text-[14px] font-mono mt-0.5', walletStatus?.connected ? 'text-accent-green' : 'text-slate-500')}>
+          {walletStatus?.connected ? '● Finney Connected' : '○ Offline'}
+        </p>
+      </div>
+    </div>,
+
+    /* ── Slide 1: Fleet Performance ── */
+    <div key="fleet" className="h-full flex items-center px-8 gap-10">
+      <div>
+        <p className="text-[13px] font-mono text-slate-400 uppercase tracking-widest mb-1">Fleet Performance</p>
+        <p className={clsx('text-5xl font-black font-mono',
+          (summary?.total_pnl ?? 0) >= 0 ? 'text-accent-green' : 'text-red-400'
+        )}>
+          {summary ? fmt(summary.total_pnl, 4) + ' τ' : '—'}
+        </p>
+        <p className="text-[14px] font-mono text-slate-500 mt-1">Cumulative PnL · All Strategies</p>
+      </div>
+      <div className="h-16 w-px bg-dark-600" />
+      <div>
+        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Win Rate</p>
+        <p className={clsx('text-3xl font-bold font-mono',
+          (summary?.win_rate ?? 0) >= 55 ? 'text-accent-green' : 'text-yellow-400'
+        )}>
+          {summary ? `${summary.win_rate.toFixed(1)}%` : '—'}
+        </p>
+        <p className="text-[14px] font-mono text-slate-500">{summary ? `${summary.wins}W / ${summary.losses}L` : ''}</p>
+      </div>
+      <div className="h-16 w-px bg-dark-600" />
+      <div>
+        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Active Strategies</p>
+        <p className="text-3xl font-bold font-mono text-accent-blue">{summary?.active_strategies ?? '—'}</p>
+        <p className="text-[14px] font-mono text-slate-500">in fleet</p>
+      </div>
+      <div className="h-16 w-px bg-dark-600" />
+      <div>
+        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Total Trades</p>
+        <p className="text-3xl font-bold font-mono text-white">{summary?.total_trades?.toLocaleString() ?? '—'}</p>
+        <p className="text-[14px] font-mono text-slate-500">all time</p>
+      </div>
+    </div>,
+
+    /* ── Slide 2: OpenClaw Status ── */
+    <div key="openclaw" className="h-full flex items-center px-8 gap-10">
+      <div>
+        <p className="text-[13px] font-mono text-slate-400 uppercase tracking-widest mb-1">OpenClaw BFT Council</p>
+        <p className="text-5xl font-black font-mono text-white">{approvalRate.toFixed(1)}%</p>
+        <p className="text-[14px] font-mono text-slate-500 mt-1">Approval Rate · 7/12 threshold</p>
+      </div>
+      <div className="h-16 w-px bg-dark-600" />
+      <div>
+        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Rounds Completed</p>
+        <p className="text-3xl font-bold font-mono text-accent-blue">{totalRounds.toLocaleString()}</p>
+        <p className="text-[14px] font-mono text-slate-500">consensus rounds</p>
+      </div>
+      <div className="h-16 w-px bg-dark-600" />
+      <div>
+        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Vote Bias</p>
+        <p className="text-3xl font-bold font-mono" style={{ color: biasColor }}>{bias}</p>
+        <p className="text-[14px] font-mono text-slate-500">{buyVotes}B · {sellVotes}S</p>
+      </div>
+      <div className="h-16 w-px bg-dark-600" />
+      <div>
+        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Status</p>
+        <p className={clsx('text-[14px] font-bold font-mono',
+          approvalRate >= 45 && approvalRate <= 65 ? 'text-accent-green' : 'text-yellow-400'
+        )}>
+          {approvalRate >= 45 && approvalRate <= 65 ? '✅ CALIBRATED' : '⚠ REVIEW'}
+        </p>
+        <p className="text-[14px] font-mono text-slate-500">12-bot fleet</p>
+      </div>
+    </div>,
+  ]
+
+  const gradients = [
+    'from-indigo-950/60 via-dark-800 to-dark-800',
+    'from-emerald-950/60 via-dark-800 to-dark-800',
+    'from-violet-950/60 via-dark-800 to-dark-800',
+  ]
+
+  return (
+    <div className={clsx(
+      'relative w-full rounded-xl border border-dark-600 overflow-hidden bg-gradient-to-r',
+      gradients[idx]
+    )} style={{ height: 120, transition: 'background 0.5s ease' }}>
+
+      {/* slide content with fade transition */}
+      <div className="absolute inset-0" style={{ transition: 'opacity 0.4s ease' }}>
+        {slides[idx]}
+      </div>
+
+      {/* nav arrows */}
+      <button onClick={prev}
+        className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-dark-900/70 border border-dark-600 flex items-center justify-center text-slate-400 hover:text-white hover:bg-dark-700 transition-all z-10">
+        <ChevronLeft size={13} />
+      </button>
+      <button onClick={next}
+        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-dark-900/70 border border-dark-600 flex items-center justify-center text-slate-400 hover:text-white hover:bg-dark-700 transition-all z-10">
+        <ChevronRight size={13} />
+      </button>
+
+      {/* dots */}
+      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+        {Array.from({ length: SLIDE_COUNT }).map((_, i) => (
+          <button key={i} onClick={() => setIdx(i)}
+            className={clsx('rounded-full transition-all duration-300',
+              i === idx ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-slate-600 hover:bg-slate-400'
+            )} />
+        ))}
+      </div>
+
+      {/* slide label */}
+      <div className="absolute top-2.5 right-10 text-[12px] font-mono text-slate-600">
+        {idx + 1} / {SLIDE_COUNT}
+      </div>
+    </div>
+  )
+}
+
+// ── TradingView TAO Chart ─────────────────────────────────────────────────────
+function TaoTradingViewChart() {
+  const src = "https://s.tradingview.com/widgetembed/?frameElementId=tv_tao" +
+    "&symbol=BINANCE%3ATAOUSDT&interval=60&hidesidetoolbar=0&symboledit=0" +
+    "&saveimage=0&toolbarbg=152030&studies=%5B%5D&theme=dark&style=1&timezone=Etc%2FUTC" +
+    "&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D" +
+    "&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget"
+  return (
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-2 flex flex-col">
+      <div className="flex items-center justify-between mb-3">
+        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+          <TrendingUp size={14} className="text-accent-green" />
+          TAO / USDT
+          <span className="text-[13px] text-slate-500 font-mono font-normal">live · TradingView</span>
+        </h2>
+        <a
+          href="https://www.tradingview.com/chart/?symbol=BINANCE:TAOUSDT"
+          target="_blank" rel="noopener noreferrer"
+          className="text-[13px] font-mono text-accent-blue hover:text-blue-300 transition-colors"
+        >
+          Open Full ↗
+        </a>
+      </div>
+      <div className="flex-1 rounded-lg overflow-hidden" style={{ minHeight: 260 }}>
+        <iframe
+          id="tv_tao"
+          src={src}
+          title="TAO/USDT TradingView Chart"
+          width="100%"
+          height="100%"
+          style={{ border: 'none', minHeight: 260, display: 'block' }}
+          allowFullScreen
+        />
+      </div>
+    </div>
+  )
+}
+
+// ── Sentiment Gauge ───────────────────────────────────────────────────────────
+function SentimentGauge({
+  ind, consensusStats,
+}: {
+  ind: Record<string, number | null>
+  consensusStats: ConsensusStats | null
+}) {
+  const rsi      = (ind.rsi_14      as number | null) ?? null
+  const macdHist = (ind.macd != null && ind.macd_signal != null)
+    ? (ind.macd as number) - (ind.macd_signal as number)
+    : null
+
+  // Compute composite sentiment score: -100 (fear) → +100 (greed)
+  let score = 0
+  let factors = 0
+  if (rsi != null) {
+    score += ((rsi - 50) / 50) * 100 * 0.40  // RSI contributes 40%
+    factors++
+  }
+  if (macdHist != null) {
+    const macdScore = Math.max(-1, Math.min(1, macdHist / 0.5)) * 100
+    score += macdScore * 0.30                  // MACD contributes 30%
+    factors++
+  }
+  if (consensusStats) {
+    const total = (consensusStats.total_buy_votes + consensusStats.total_sell_votes) || 1
+    const voteScore = ((consensusStats.total_buy_votes / total) - 0.5) * 200
+    score += voteScore * 0.30                  // Consensus contributes 30%
+    factors++
+  }
+  score = Math.max(-100, Math.min(100, factors > 0 ? score : 0))
+
+  const label =
+    score >= 60  ? 'Extreme Greed' :
+    score >= 25  ? 'Greed'         :
+    score >= -25 ? 'Neutral'       :
+    score >= -60 ? 'Fear'          :
+                   'Extreme Fear'
+
+  const labelColor =
+    score >= 60  ? '#00e5a0' :
+    score >= 25  ? '#86efac' :
+    score >= -25 ? '#f59e0b' :
+    score >= -60 ? '#f87171' :
+                   '#ef4444'
+
+  // SVG arc gauge: semicircle, needle rotates from -90° (left=fear) to +90° (right=greed)
+  const W = 220; const H = 130
+  const cx = W / 2; const cy = H - 20
+  const R = 85
+  const needleAngleDeg = (score / 100) * 90   // -90° to +90°
+  const needleAngleRad = (needleAngleDeg - 90) * (Math.PI / 180)  // -180° = left, 0° = top
+  const nx = cx + R * 0.75 * Math.cos(needleAngleRad)
+  const ny = cy + R * 0.75 * Math.sin(needleAngleRad)
+
+  // Arc segments: fear (red) → greed (green) across the top semicircle
+  const segments = [
+    { from: 180, to: 216, color: '#ef4444' },   // Extreme Fear
+    { from: 216, to: 252, color: '#f87171' },   // Fear
+    { from: 252, to: 288, color: '#f59e0b' },   // Neutral
+    { from: 288, to: 324, color: '#86efac' },   // Greed
+    { from: 324, to: 360, color: '#00e5a0' },   // Extreme Greed
+  ]
+
+  function arcPath(startDeg: number, endDeg: number, r: number) {
+    const s = (startDeg * Math.PI) / 180
+    const e = (endDeg   * Math.PI) / 180
+    const x1 = cx + r * Math.cos(s); const y1 = cy + r * Math.sin(s)
+    const x2 = cx + r * Math.cos(e); const y2 = cy + r * Math.sin(e)
+    const large = endDeg - startDeg > 180 ? 1 : 0
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`
+  }
+
+  const inputs: { label: string; value: string; color: string }[] = [
+    { label: 'RSI-14',    value: rsi != null ? rsi.toFixed(1) : '—',
+      color: rsi == null ? '#64748b' : rsi < 35 ? '#00e5a0' : rsi > 65 ? '#f87171' : '#f59e0b' },
+    { label: 'MACD Hist', value: macdHist != null ? (macdHist > 0 ? '+' : '') + macdHist.toFixed(4) : '—',
+      color: macdHist == null ? '#64748b' : macdHist > 0 ? '#00e5a0' : '#f87171' },
+    { label: 'Consensus', value: consensusStats ? `${consensusStats.approval_rate_pct.toFixed(1)}%` : '—',
+      color: '#818cf8' },
+  ]
+
+  return (
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 flex flex-col">
+      <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+        <Activity size={14} className="text-yellow-400" /> Market Sentiment
+      </h2>
+
+      {/* Gauge SVG */}
+      <div className="flex justify-center">
+        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+          {/* background arc */}
+          <path d={arcPath(180, 360, R)} fill="none" stroke="#1e293b" strokeWidth={14} />
+
+          {/* coloured segments */}
+          {segments.map((seg, i) => (
+            <path key={i} d={arcPath(seg.from, seg.to, R)}
+              fill="none" stroke={seg.color} strokeWidth={14} strokeOpacity={0.85} />
+          ))}
+
+          {/* inner track */}
+          <path d={arcPath(180, 360, R - 18)} fill="none" stroke="#0d1525" strokeWidth={2} />
+
+          {/* needle */}
+          <line x1={cx} y1={cy} x2={nx} y2={ny}
+            stroke="white" strokeWidth={2.5} strokeLinecap="round"
+            style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} />
+          <circle cx={cx} cy={cy} r={5} fill="white" />
+
+          {/* score label */}
+          <text x={cx} y={cy - 28} textAnchor="middle"
+            fontSize={22} fontWeight="800" fontFamily="monospace" fill={labelColor}>
+            {score > 0 ? '+' : ''}{score.toFixed(0)}
+          </text>
+          <text x={cx} y={cy - 10} textAnchor="middle"
+            fontSize={11} fontFamily="monospace" fill={labelColor}>
+            {label}
+          </text>
+
+          {/* axis labels */}
+          <text x={12}  y={cy + 4} fontSize={9} fill="#ef4444" fontFamily="monospace">Fear</text>
+          <text x={W - 36} y={cy + 4} fontSize={9} fill="#00e5a0" fontFamily="monospace">Greed</text>
+        </svg>
+      </div>
+
+      {/* Input breakdown */}
+      <div className="mt-2 space-y-2 border-t border-dark-600 pt-3">
+        {inputs.map(inp => (
+          <div key={inp.label} className="flex items-center justify-between">
+            <span className="text-[13px] font-mono text-slate-400">{inp.label}</span>
+            <span className="text-[14px] font-mono font-bold" style={{ color: inp.color }}>{inp.value}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+// ── Recent Trades Mini ────────────────────────────────────────────────────────
+function RecentTradesMini({ trades }: { trades: RecentTrade[] }) {
+  const STRAT_SHORT: Record<string, string> = {
+    momentum_cascade:   'MomCas',  dtao_flow_momentum: 'dTAO',
+    liquidity_hunter:   'LiqHnt',  emission_momentum:  'EmitMo',
+    balanced_risk:      'BalRsk',  mean_reversion:     'MeanRv',
+    volatility_arb:     'VolArb',  sentiment_surge:    'SentSg',
+    macro_correlation:  'MacroCo', breakout_hunter:    'BrkHnt',
+    yield_maximizer:    'YldMax',  contrarian_flow:    'CntFlo',
+  }
+
+  return (
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-1">
+      <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+        <BarChart2 size={14} className="text-accent-blue" /> Recent Trades
+        <span className="ml-auto text-[12px] text-slate-500 font-mono">last {trades.length}</span>
+      </h2>
+      <div className="space-y-2">
+        {trades.slice(0, 8).map(t => (
+          <div key={t.id}
+            className="flex items-center gap-2 px-3 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition-colors">
+            {/* Side badge */}
+            <span className={clsx(
+              'text-[12px] font-bold font-mono w-8 flex-shrink-0 text-center rounded px-1',
+              t.trade_type === 'buy'
+                ? 'text-accent-green bg-accent-green/10'
+                : 'text-red-400 bg-red-400/10'
+            )}>
+              {t.trade_type.toUpperCase().slice(0, 1)}
+            </span>
+
+            {/* Strategy */}
+            <span className="text-[13px] font-mono text-slate-300 flex-1 truncate">
+              {STRAT_SHORT[t.strategy] ?? t.strategy.slice(0, 6)}
+            </span>
+
+            {/* Amount */}
+            <span className="text-[12px] font-mono text-slate-500">
+              {t.amount.toFixed(4)}τ
+            </span>
+
+            {/* PnL */}
+            <span className={clsx(
+              'text-[13px] font-mono font-bold w-16 text-right flex-shrink-0',
+              t.pnl >= 0 ? 'text-accent-green' : 'text-red-400'
+            )}>
+              {t.pnl >= 0 ? '+' : ''}{t.pnl.toFixed(4)}
+            </span>
+
+            {/* Real badge */}
+            {t.tx_hash && (
+              <span className="text-[11px] font-mono text-emerald-400 bg-emerald-400/10 px-1 rounded flex-shrink-0">
+                REAL
+              </span>
+            )}
+          </div>
+        ))}
+        {trades.length === 0 && (
+          <p className="text-slate-500 text-[13px] font-mono text-center py-6">No trades yet</p>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── KPI ───────────────────────────────────────────────────────────────────────
 function KPI({ label, value, sub, color, icon: Icon }: {
   label: string; value: string; sub?: string; color?: string; icon: React.ElementType
@@ -349,34 +792,8 @@ export default function Dashboard() {
   const [priceRange,     setPriceRange]     = useState<PriceRange>('24H')
   const [subnets,        setSubnets]        = useState<Subnet[]>([])
 
-  // Mini-chat
-  const [miniChatOpen,    setMiniChatOpen]    = useState(true)
-  const [miniChatInput,   setMiniChatInput]   = useState('')
-  const [miniChatLoading, setMiniChatLoading] = useState(false)
-  const [miniChatLast,    setMiniChatLast]    = useState<{ q: string; a: string } | null>(null)
-  const miniChatInputRef = useRef<HTMLInputElement>(null)
-
-  const MINI_QUICK = [
-    { label: '📊 PnL',     text: 'What is the current fleet PnL?' },
-    { label: '🌡️ Regime',  text: 'What is the market regime and RSI?' },
-    { label: '🏆 Top bot', text: 'Which is the top performing strategy?' },
-  ]
-
-  const sendMiniChat = async (text: string) => {
-    const msg = text.trim()
-    if (!msg || miniChatLoading) return
-    setMiniChatInput('')
-    setMiniChatLoading(true)
-    setMiniChatLast({ q: msg, a: '' })
-    try {
-      const { data } = await api.post('/fleet/chat', { message: msg })
-      setMiniChatLast({ q: msg, a: data.response })
-    } catch {
-      setMiniChatLast({ q: msg, a: '⚠️ Agent unreachable — try again.' })
-    } finally {
-      setMiniChatLoading(false)
-    }
-  }
+  // Recent trades (for bottom panel)
+  const [recentTrades, setRecentTrades] = useState<RecentTrade[]>([])
 
   const loadCharts = useCallback(async (range: PriceRange) => {
     try {
@@ -408,17 +825,17 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     try {
-      const [statusRes, sumRes, stratRes, eqRes, actRes,
-             agentRes, consensusRes, walletRes, alertsRes] = await Promise.all([
+      const [statusRes, sumRes, stratRes, eqRes,
+             agentRes, consensusRes, walletRes, alertsRes, tradesRes] = await Promise.all([
         api.get('/bot/status'),
         fetch('/api/analytics/summary'),
         fetch('/api/analytics/strategies'),
         fetch('/api/analytics/equity'),
-        api.get('/fleet/activity?limit=12'),
         fetch('/api/agent/status').then(r => r.json()).catch(() => null),
         fetch('/api/consensus/stats').then(r => r.json()).catch(() => null),
         fetch('/api/wallet/status').then(r => r.json()).catch(() => null),
         fetch('/api/alerts/unread-count').then(r => r.json()).catch(() => null),
+        fetch('/api/trades?limit=8').then(r => r.json()).catch(() => []),
       ])
       setBotStatus(statusRes.data)
       setSummary(await sumRes.json())
@@ -426,7 +843,8 @@ export default function Dashboard() {
       const eqData: EquityPoint[] = await eqRes.json()
       const stride = Math.max(1, Math.floor(eqData.length / 100))
       setEquity(eqData.filter((_, i) => i % stride === 0))
-      setActivity(actRes.data.events || [])
+      const tradesData = await tradesRes
+      setRecentTrades(Array.isArray(tradesData) ? tradesData : tradesData.trades ?? [])
       if (agentRes)    setAgentStatus(agentRes)
       if (consensusRes)setConsensusStats(consensusRes)
       if (walletRes)   setWalletStatus(walletRes)
@@ -481,6 +899,17 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-5">
+
+      {/* ── Hero Slider ────────────────────────────────────────────────────── */}
+      <HeroSlider
+        price={price}
+        change24h={change24h}
+        agentStatus={agentStatus}
+        summary={summary}
+        consensusStats={consensusStats}
+        botStatus={botStatus}
+        walletStatus={walletStatus}
+      />
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -661,55 +1090,8 @@ export default function Dashboard() {
       {/* ── Main 2-col ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
-        {/* Equity curve — 2/3 width */}
-        <div className="xl:col-span-2 bg-dark-800 border border-dark-600 rounded-xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-              <TrendingUp size={14} className="text-accent-green" />
-              Equity Curve
-              <span className="text-[13px] text-slate-500 font-mono font-normal">cumulative PnL over time</span>
-            </h2>
-            {equity.length > 1 && summary && (
-              <div className="flex items-center gap-3">
-                <span className={clsx(
-                  'text-sm font-bold font-mono',
-                  summary.total_pnl >= 0 ? 'text-accent-green' : 'text-red-400'
-                )}>
-                  {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(4)} τ
-                </span>
-                <span className="text-[13px] text-slate-500 font-mono">{equity.length} pts</span>
-              </div>
-            )}
-          </div>
-          {equity.length > 1 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={equity} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="eqGr" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#00ff88" stopOpacity={0.3} />
-                    <stop offset="95%" stopColor="#00ff88" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#243450" />
-                <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 9 }}
-                  tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false}
-                  axisLine={false} tickFormatter={v => v.toFixed(3)} />
-                <ReferenceLine y={0} stroke="#334155" strokeDasharray="4 4" />
-                <Tooltip
-                  contentStyle={{ background: '#152030', border: '1px solid #243450', borderRadius: 8, fontSize: 11, fontFamily: 'monospace' }}
-                  formatter={(v: any) => [`${v.toFixed(4)} τ`, 'Cumulative PnL']}
-                />
-                <Area dataKey="cumulative" stroke="#00ff88" strokeWidth={2}
-                  fill="url(#eqGr)" dot={false} />
-              </AreaChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[220px] flex items-center justify-center text-slate-300 font-mono text-sm">
-              {loading ? 'Loading equity curve…' : 'No trade data yet'}
-            </div>
-          )}
-        </div>
+        {/* TAO TradingView chart — 2/3 width */}
+        <TaoTradingViewChart />
 
         {/* Indicators — 1/3 width */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
@@ -777,150 +1159,11 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Live activity feed */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-1">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
-            <Activity size={14} className="text-accent-blue" /> Live Activity
-            <span className="ml-auto text-[13px] text-slate-300 font-mono">auto-refresh 15s</span>
-          </h2>
-          <div className="space-y-2 overflow-y-auto max-h-[230px]">
-            {activity.slice(0, 20).map((ev, i) => {
-              const colors: Record<string, string> = {
-                trade: 'text-accent-green', signal: 'text-accent-blue',
-                gate: 'text-yellow-400', system: 'text-slate-300', alert: 'text-red-400',
-              }
-              return (
-                <div key={`${ev.id}-${i}`} className="flex items-start gap-2">
-                  <span className={clsx('font-mono font-bold flex-shrink-0 text-[14px] mt-0.5 w-10',
-                    colors[ev.kind] ?? 'text-slate-300')}>
-                    {ev.kind.toUpperCase().slice(0, 3)}
-                  </span>
-                  <span className="text-slate-200 font-mono text-[15px] truncate leading-relaxed">{ev.message}</span>
-                  {ev.strategy && (
-                    <span className="text-slate-400 text-[14px] ml-auto flex-shrink-0 font-mono">{ev.strategy.slice(0, 10)}</span>
-                  )}
-                </div>
-              )
-            })}
-            {activity.length === 0 && (
-              <p className="text-slate-300 text-[15px] font-mono text-center py-4">No activity yet</p>
-            )}
-          </div>
-        </div>
+        {/* Recent Trades — replaces Live Activity */}
+        <RecentTradesMini trades={recentTrades} />
 
-        {/* ── Mini-chat ──────────────────────────────────────────────────────── */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden flex flex-col xl:col-span-1">
-          {/* Header */}
-          <div
-            className="flex items-center gap-2 px-4 py-3 border-b border-dark-700 cursor-pointer select-none hover:bg-dark-700/40 transition-colors"
-            onClick={() => setMiniChatOpen(o => !o)}
-          >
-            <div className="relative">
-              <MessageSquare size={13} className="text-indigo-400" />
-              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
-            </div>
-            <span className="text-xs font-bold text-white font-mono uppercase tracking-wider flex-1">Ask II Agent</span>
-            {miniChatOpen ? <ChevronUp size={13} className="text-slate-400" /> : <ChevronDown size={13} className="text-slate-400" />}
-          </div>
-
-          {miniChatOpen && (
-            <>
-              {/* Quick prompts */}
-              <div className="flex gap-1.5 px-3 py-2 border-b border-dark-700/50 flex-wrap">
-                {MINI_QUICK.map(qp => (
-                  <button
-                    key={qp.label}
-                    onClick={() => sendMiniChat(qp.text)}
-                    disabled={miniChatLoading}
-                    className="text-[13px] font-mono px-2.5 py-1 rounded-full border border-indigo-500/25 bg-indigo-500/8 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/40 transition-all duration-200 disabled:opacity-40"
-                  >
-                    {qp.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Last exchange */}
-              <div className="flex-1 px-3 py-3 space-y-2 min-h-[140px] max-h-[180px] overflow-y-auto">
-                {!miniChatLast && !miniChatLoading && (
-                  <div className="flex items-center justify-center h-full">
-                    <div className="text-center">
-                      <Brain size={20} className="text-slate-600 mx-auto mb-1.5" />
-                      <p className="text-[14px] text-slate-500 font-mono">Ask about PnL, regime, or top bots</p>
-                    </div>
-                  </div>
-                )}
-
-                {miniChatLast && (
-                  <>
-                    {/* User question */}
-                    <div className="flex justify-end">
-                      <div className="bg-indigo-600/20 border border-indigo-500/30 rounded-xl rounded-tr-sm px-3 py-2 max-w-[90%]">
-                        <p className="text-[14px] font-mono text-indigo-100">{miniChatLast.q}</p>
-                      </div>
-                    </div>
-
-                    {/* Agent answer or loading */}
-                    <div className="flex justify-start">
-                      <div className="bg-dark-700 border border-dark-600 rounded-xl rounded-tl-sm px-3 py-2 max-w-[90%]">
-                        {miniChatLoading || !miniChatLast.a ? (
-                          <div className="flex items-center gap-1.5 py-0.5">
-                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                            <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-                          </div>
-                        ) : (
-                          <p className="text-[14px] font-mono text-slate-200 leading-relaxed">
-                            {miniChatLast.a.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
-                              part.startsWith('**') && part.endsWith('**')
-                                ? <strong key={j} className="text-white font-bold">{part.slice(2, -2)}</strong>
-                                : <span key={j}>{part}</span>
-                            )}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-
-              {/* Input */}
-              <div className="border-t border-dark-700 px-3 py-2.5">
-                <form
-                  onSubmit={e => { e.preventDefault(); sendMiniChat(miniChatInput) }}
-                  className="flex items-center gap-2"
-                >
-                  <input
-                    ref={miniChatInputRef}
-                    type="text"
-                    value={miniChatInput}
-                    onChange={e => setMiniChatInput(e.target.value)}
-                    placeholder="Ask anything…"
-                    disabled={miniChatLoading}
-                    className="flex-1 bg-dark-700 border border-dark-600 rounded-lg px-3 py-1.5 text-[14px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition-colors disabled:opacity-50"
-                  />
-                  <button
-                    type="submit"
-                    disabled={!miniChatInput.trim() || miniChatLoading}
-                    className={clsx(
-                      'p-1.5 rounded-lg transition-all duration-200',
-                      miniChatInput.trim() && !miniChatLoading
-                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                        : 'bg-dark-700 text-slate-500 border border-dark-600 cursor-not-allowed'
-                    )}
-                  >
-                    <Send size={12} />
-                  </button>
-                </form>
-              </div>
-            </>
-          )}
-
-          {!miniChatOpen && miniChatLast?.a && (
-            <div className="px-4 py-2">
-              <p className="text-[13px] font-mono text-slate-400 truncate">{miniChatLast.a}</p>
-            </div>
-          )}
-        </div>
+        {/* Sentiment Gauge — replaces Ask II Agent chat */}
+        <SentimentGauge ind={ind} consensusStats={consensusStats} />
 
       </div>
     </div>
