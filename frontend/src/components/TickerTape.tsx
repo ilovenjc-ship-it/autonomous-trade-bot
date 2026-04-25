@@ -109,10 +109,11 @@ export default function TickerTape() {
     return () => clearInterval(id)
   }, [])
 
-  if (items.length === 0) return null
+  // Always render the bar — show shimmer placeholders while loading
+  const loading = items.length === 0
 
   // Duplicate for seamless loop
-  const doubled = [...items, ...items]
+  const doubled = loading ? [] : [...items, ...items]
 
   return (
     <div className="flex-shrink-0 h-8 bg-dark-950 border-t border-dark-700/80 flex items-center overflow-hidden relative"
@@ -129,11 +130,24 @@ export default function TickerTape() {
 
       {/* scrolling track */}
       <div className="flex-1 overflow-hidden h-full flex items-center">
-        <div className="ticker-track">
-          {doubled.map((item, i) => (
-            <Pill key={`${item.key}-${i}`} item={item} />
-          ))}
-        </div>
+        {loading ? (
+          /* Loading shimmer — keeps the bar visible while fetching */
+          <div className="flex items-center gap-6 px-4 animate-pulse">
+            {Array.from({ length: 10 }).map((_, i) => (
+              <span key={i} className="flex items-center gap-1.5">
+                <span className="h-2 w-8 rounded bg-slate-700/60" />
+                <span className="h-2 w-14 rounded bg-slate-600/50" />
+                <span className="h-2 w-10 rounded bg-slate-700/40" />
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="ticker-track">
+            {doubled.map((item, i) => (
+              <Pill key={`${item.key}-${i}`} item={item} />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* right fade mask */}
