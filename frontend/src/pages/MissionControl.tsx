@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import SubnetHeatMap from '@/components/SubnetHeatMap'
 import {
-  Activity, Send, Zap, Radio, Shield, TrendingUp,
-  TrendingDown, ChevronRight, AlertTriangle, CheckCircle2,
+  Activity, Zap, Radio, Shield, TrendingUp,
+  TrendingDown, AlertTriangle, CheckCircle2,
   Circle, Clock, BarChart3, Cpu, Lock
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -59,23 +59,52 @@ interface ActivityEvent {
   timestamp: string
 }
 
-interface ChatEntry {
-  role: 'user' | 'agent'
-  content: string
+// ── OpenClaw types ────────────────────────────────────────────────────────────
+
+interface ConsensusVote {
+  bot_name: string
+  display_name: string
+  vote: 'BUY' | 'SELL' | 'HOLD' | 'ABSTAIN'
+  confidence: number
+  mode: string
+}
+
+interface ConsensusRound {
+  round_id: number
+  triggered_by: string
+  direction: string
+  price_at_round: number
   timestamp: string
+  result: string
+  buy_count: number
+  sell_count: number
+  hold_count: number
+  abstain_count: number
+  approved: boolean
+  votes: ConsensusVote[]
+}
+
+interface ConsensusStats {
+  total_rounds: number
+  approved_rounds: number
+  rejected_rounds: number
+  approval_rate_pct: number
+  supermajority_threshold: number
+  total_bots: number
 }
 
 // ── Mode badge ────────────────────────────────────────────────────────────────
 
-function ModeBadge({ mode }: { mode: string }) {
+function ModeBadge({ mode, compact = false }: { mode: string; compact?: boolean }) {
   const cfg = {
-    PAPER_ONLY:       { label: 'PAPER',    cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
-    APPROVED_FOR_LIVE:{ label: 'APPROVED', cls: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
-    LIVE:             { label: 'LIVE',     cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+    PAPER_ONLY:       { label: compact ? 'PAP' : 'PAPER',    cls: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' },
+    APPROVED_FOR_LIVE:{ label: compact ? 'APR' : 'APPROVED', cls: 'bg-purple-500/15 text-purple-400 border-purple-500/30' },
+    LIVE:             { label: 'LIVE',                        cls: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
   }[mode] ?? { label: mode, cls: 'bg-slate-500/15 text-slate-300 border-slate-500/30' }
 
   return (
-    <span className={clsx('text-[15px] font-bold tracking-widest px-1.5 py-0.5 rounded border font-mono', cfg.cls)}>
+    <span className={clsx('font-bold tracking-widest px-1 py-0.5 rounded border font-mono leading-none',
+      compact ? 'text-[9px]' : 'text-[11px]', cfg.cls)}>
       {cfg.label}
     </span>
   )
@@ -103,60 +132,52 @@ function GateBar({ label, check }: { label: string; check: GateCheck }) {
   )
 }
 
-// ── Bot card ──────────────────────────────────────────────────────────────────
+// ── Bot card (compact grid-cell version) ──────────────────────────────────────
 
 function BotCard({ bot, selected, onClick }: { bot: FleetBot; selected: boolean; onClick: () => void }) {
-  const gatesPassed = [bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok].filter(Boolean).length
-
   return (
     <button
       onClick={onClick}
       className={clsx(
-        'flex-shrink-0 w-[148px] text-left px-3 py-2.5 rounded-lg border transition-all duration-200',
+        'w-full h-full text-left px-2 py-1.5 rounded-lg border transition-all duration-200 flex flex-col min-w-0',
         selected
-          ? 'bg-blue-500/10 border-blue-500/40 shadow-[0_0_12px_rgba(59,130,246,0.15)]'
+          ? 'bg-blue-500/10 border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.15)]'
           : 'bg-slate-900/40 border-slate-700/40 hover:bg-slate-800/50 hover:border-slate-600/50'
       )}
     >
       {/* Name + active dot */}
-      <div className="flex items-center gap-1.5 mb-1.5">
+      <div className="flex items-center gap-1 mb-1 min-w-0">
         <div className={clsx(
           'w-1.5 h-1.5 rounded-full flex-shrink-0',
-          bot.is_active ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-slate-600'
+          bot.is_active ? 'bg-emerald-400 shadow-[0_0_4px_#34d399]' : 'bg-slate-600'
         )} />
-        <span className="text-[14px] font-semibold text-slate-100 truncate flex-1">
-          {bot.display_name}
+        <span className="text-[11px] font-semibold text-slate-100 truncate flex-1 leading-none">
+          {bot.display_name.split(' ').slice(0, 2).join(' ')}
         </span>
       </div>
 
-      {/* Mode badge */}
-      <div className="mb-2">
-        <ModeBadge mode={bot.mode} />
-      </div>
+      {/* Mode badge — compact */}
+      <div className="mb-1"><ModeBadge mode={bot.mode} compact /></div>
 
-      {/* Win rate + PnL side by side */}
-      <div className="flex items-end justify-between mb-2">
-        <div>
-          <div className={clsx('text-sm font-bold font-mono leading-none', bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400')}>
-            {bot.win_rate.toFixed(0)}%
-          </div>
-          <div className="text-[8px] text-slate-500 mt-0.5">win rate</div>
-        </div>
-        <div className="text-right">
-          <div className={clsx('text-[14px] font-bold font-mono leading-none', bot.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-            {bot.total_pnl >= 0 ? '+' : ''}{bot.total_pnl.toFixed(3)}τ
-          </div>
-          <div className="text-[8px] text-slate-500 mt-0.5">{bot.total_trades} trades</div>
-        </div>
+      {/* Win rate + PnL */}
+      <div className="flex items-baseline justify-between gap-1 mt-auto min-w-0">
+        <span className={clsx('text-[12px] font-bold font-mono leading-none flex-shrink-0',
+          bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400')}>
+          {bot.win_rate.toFixed(0)}%
+        </span>
+        <span className={clsx('text-[10px] font-mono truncate',
+          bot.total_pnl >= 0 ? 'text-emerald-400/70' : 'text-red-400/70')}>
+          {bot.total_pnl >= 0 ? '+' : ''}{bot.total_pnl.toFixed(2)}τ
+        </span>
       </div>
 
       {/* Gate dots */}
-      <div className="flex items-center gap-1">
+      <div className="flex gap-0.5 mt-1.5">
         {[bot.gate.cycles.ok, bot.gate.win_rate.ok, bot.gate.win_margin.ok, bot.gate.pnl.ok].map((ok, i) => (
-          <div key={i} className={clsx('flex-1 h-1 rounded-full', ok ? 'bg-emerald-500' : 'bg-slate-700')} />
+          <div key={i} className={clsx('flex-1 h-0.5 rounded-full', ok ? 'bg-emerald-500' : 'bg-slate-700')} />
         ))}
         {bot.gate.all_clear && (
-          <span className="text-[8px] text-purple-400 font-bold animate-pulse ml-1">✓</span>
+          <span className="text-[8px] text-purple-400 font-bold animate-pulse ml-0.5">✓</span>
         )}
       </div>
     </button>
@@ -184,22 +205,214 @@ function fmtTime(ts: string) {
   } catch { return '' }
 }
 
+// ── OpenClaw Council Monitor ──────────────────────────────────────────────────
+
+const VOTE_COLORS = {
+  BUY:     { bg: 'bg-emerald-500/15', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+  SELL:    { bg: 'bg-red-500/15',     text: 'text-red-400',     border: 'border-red-500/30'     },
+  HOLD:    { bg: 'bg-yellow-500/10',  text: 'text-yellow-400',  border: 'border-yellow-500/30'  },
+  ABSTAIN: { bg: 'bg-slate-800/50',   text: 'text-slate-500',   border: 'border-slate-700/40'   },
+} as const
+
+const RESULT_LABEL: Record<string, { label: string; cls: string }> = {
+  APPROVED_BUY:  { label: '✓ APPROVED BUY',  cls: 'text-emerald-400' },
+  APPROVED_SELL: { label: '✓ APPROVED SELL', cls: 'text-red-400'     },
+  REJECTED:      { label: '✗ REJECTED',       cls: 'text-orange-400'  },
+  DEADLOCK:      { label: '⊘ DEADLOCK',       cls: 'text-purple-400'  },
+}
+
+function OpenClawCouncil() {
+  const [latest,  setLatest]  = useState<ConsensusRound | null>(null)
+  const [stats,   setStats]   = useState<ConsensusStats  | null>(null)
+  const [history, setHistory] = useState<ConsensusRound[]>([])
+
+  const fetchAll = useCallback(async () => {
+    try {
+      const [lR, sR, hR] = await Promise.all([
+        api.get('/consensus/latest'),
+        api.get('/consensus/stats'),
+        api.get('/consensus/history?limit=32'),
+      ])
+      setLatest(lR.data.round || null)
+      setStats(sR.data || null)
+      setHistory(hR.data.rounds || [])
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    fetchAll()
+    const t = setInterval(fetchAll, 5_000)
+    return () => clearInterval(t)
+  }, [fetchAll])
+
+  const rLabel = latest ? (RESULT_LABEL[latest.result] ?? { label: latest.result, cls: 'text-slate-400' }) : null
+
+  return (
+    <div className="flex flex-col h-full overflow-hidden">
+
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-800/40 flex-shrink-0">
+        <Zap size={12} className="text-purple-400" />
+        <span className="text-[13px] font-bold tracking-widest text-slate-300 uppercase">OpenClaw Council</span>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[11px] font-mono text-purple-400/70 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">
+            BFT · 7/12 Threshold
+          </span>
+          {latest && (
+            <span className="text-[11px] font-mono text-slate-500">#{latest.round_id}</span>
+          )}
+        </div>
+      </div>
+
+      {/* Stats strip */}
+      <div className="flex-shrink-0 flex border-b border-slate-800/40">
+        {stats ? (
+          <>
+            <div className="flex-1 px-3 py-2 border-r border-slate-800/40 text-center">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Approval</div>
+              <div className={clsx('text-lg font-bold font-mono leading-tight',
+                stats.approval_rate_pct >= 45 && stats.approval_rate_pct <= 65
+                  ? 'text-emerald-400' : stats.approval_rate_pct > 65 ? 'text-yellow-400' : 'text-orange-400')}>
+                {stats.approval_rate_pct.toFixed(1)}%
+              </div>
+            </div>
+            <div className="flex-1 px-3 py-2 border-r border-slate-800/40 text-center">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Rounds</div>
+              <div className="text-lg font-bold font-mono text-slate-200 leading-tight">{stats.total_rounds}</div>
+            </div>
+            <div className="flex-1 px-3 py-2 border-r border-slate-800/40 text-center">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Approved</div>
+              <div className="text-lg font-bold font-mono text-emerald-400 leading-tight">{stats.approved_rounds}</div>
+            </div>
+            <div className="flex-2 px-3 py-2 text-center min-w-0 flex-1">
+              <div className="text-[10px] text-slate-500 uppercase tracking-wider">Last</div>
+              <div className={clsx('text-[11px] font-bold font-mono leading-tight truncate', rLabel?.cls ?? 'text-slate-500')}>
+                {rLabel?.label ?? '—'}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="px-4 py-2 text-[11px] text-slate-500 font-mono">Loading…</div>
+        )}
+      </div>
+
+      {/* Bot vote grid — scrollable */}
+      <div className="flex-1 overflow-y-auto px-3 py-2.5 min-h-0">
+        {latest?.votes && latest.votes.length > 0 ? (
+          <>
+            {/* Trigger context */}
+            <div className="text-[10px] text-slate-500 font-mono mb-2 leading-none">
+              Round #{latest.round_id} · {latest.direction} signal ·{' '}
+              <span className="text-slate-400">{latest.triggered_by.replace(/_/g, ' ')}</span>
+            </div>
+
+            {/* 2-col grid of 12 bot votes */}
+            <div className="grid grid-cols-2 gap-1">
+              {latest.votes.map(v => {
+                const vc = VOTE_COLORS[v.vote as keyof typeof VOTE_COLORS] ?? VOTE_COLORS.ABSTAIN
+                return (
+                  <div key={v.bot_name}
+                    className={clsx('flex items-center gap-2 px-2.5 py-1.5 rounded-lg border', vc.bg, vc.border)}>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-[11px] font-semibold text-slate-200 truncate leading-tight">{v.display_name}</div>
+                      <div className="text-[9px] text-slate-500 font-mono">{(v.confidence * 100).toFixed(0)}% conf</div>
+                    </div>
+                    <span className={clsx('text-[11px] font-bold font-mono flex-shrink-0', vc.text)}>
+                      {v.vote}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Vote tally bar */}
+            <div className="mt-3 space-y-1.5">
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                <span className="text-emerald-400 w-12">BUY {latest.buy_count}</span>
+                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-emerald-500/70 rounded-full transition-all"
+                    style={{ width: `${(latest.buy_count / 12) * 100}%` }} />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                <span className="text-red-400 w-12">SELL {latest.sell_count}</span>
+                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-red-500/70 rounded-full transition-all"
+                    style={{ width: `${(latest.sell_count / 12) * 100}%` }} />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                <span className="text-yellow-400 w-12">HOLD {latest.hold_count}</span>
+                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-yellow-500/50 rounded-full transition-all"
+                    style={{ width: `${(latest.hold_count / 12) * 100}%` }} />
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-[10px] font-mono">
+                <span className="text-slate-500 w-12">ABS {latest.abstain_count}</span>
+                <div className="flex-1 h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div className="h-full bg-slate-600/50 rounded-full transition-all"
+                    style={{ width: `${(latest.abstain_count / 12) * 100}%` }} />
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex flex-col items-center justify-center h-full py-6 text-center">
+            <Zap size={32} className="text-purple-400/30 mb-3" />
+            <div className="text-[13px] text-slate-400 font-mono">Waiting for consensus rounds…</div>
+            <div className="text-[11px] text-slate-600 mt-1">Rounds fire when LIVE strategies trigger</div>
+          </div>
+        )}
+      </div>
+
+      {/* History sparkline */}
+      <div className="flex-shrink-0 border-t border-slate-800/40 px-3 py-2.5">
+        <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-2 font-mono flex items-center justify-between">
+          <span>Round History</span>
+          {history.length > 0 && (
+            <span className="text-slate-600">{history.length} rounds</span>
+          )}
+        </div>
+        <div className="flex gap-0.5 items-end h-7">
+          {history.length === 0 ? (
+            <span className="text-[11px] text-slate-600 font-mono">No rounds yet</span>
+          ) : (
+            /* Render newest on right: history is newest-first, so reverse */
+            [...history].reverse().map((r, i) => (
+              <div
+                key={i}
+                title={`Round ${r.round_id}: ${r.result}`}
+                className={clsx(
+                  'flex-1 rounded-sm transition-all cursor-default',
+                  r.approved ? 'bg-emerald-500/65 hover:bg-emerald-400/80' : 'bg-orange-500/55 hover:bg-orange-400/70'
+                )}
+                style={{ height: `${Math.max(25, Math.min(100, ((r.buy_count || 0) / 12) * 100))}%` }}
+              />
+            ))
+          )}
+        </div>
+        <div className="flex items-center gap-3 mt-1.5 text-[9px] font-mono text-slate-600">
+          <span className="flex items-center gap-1"><span className="inline-block w-2 h-1.5 bg-emerald-500/65 rounded-sm" />Approved</span>
+          <span className="flex items-center gap-1"><span className="inline-block w-2 h-1.5 bg-orange-500/55 rounded-sm" />Rejected</span>
+        </div>
+      </div>
+
+    </div>
+  )
+}
+
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function MissionControl() {
   const [fleet, setFleet] = useState<FleetBot[]>([])
   const [summary, setSummary] = useState<FleetSummary | null>(null)
   const [events, setEvents] = useState<ActivityEvent[]>([])
-  const [chat, setChat] = useState<ChatEntry[]>([])
-  const [chatInput, setChatInput] = useState('')
-  const [chatLoading, setChatLoading] = useState(false)
   const [selectedBot, setSelectedBot] = useState<FleetBot | null>(null)
   const [countdown, setCountdown] = useState(300) // 5 min cycle
-  const [tick, setTick] = useState(0)
   const [liveTime, setLiveTime] = useState(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
 
   const activityRef    = useRef<HTMLDivElement>(null)
-  const chatRef        = useRef<HTMLDivElement>(null)
   const countdownRef   = useRef(300)   // tracks real value synchronously — avoids setState-in-updater
 
   // Fetch fleet status
@@ -219,11 +432,10 @@ export default function MissionControl() {
     } catch {}
   }, [])
 
-  // Initial load + chat history
+  // Initial load
   useEffect(() => {
     fetchFleet()
     fetchActivity()
-    api.get('/fleet/chat/history').then(r => setChat(r.data.history || [])).catch(() => {})
   }, [fetchFleet, fetchActivity])
 
   // Polling
@@ -234,9 +446,6 @@ export default function MissionControl() {
   }, [fetchFleet, fetchActivity])
 
   // Countdown tick + live clock
-  // Uses a ref for the actual counter so we never call async side-effects
-  // inside a setState updater — that pattern violates React's pure-updater
-  // contract and is the root cause of error #185 in this component.
   useEffect(() => {
     const t = setInterval(() => {
       countdownRef.current -= 1
@@ -246,7 +455,6 @@ export default function MissionControl() {
         fetchActivity()
       }
       setCountdown(countdownRef.current)
-      setTick(t => t + 1)
       setLiveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
     }, 1000)
     return () => clearInterval(t)
@@ -257,28 +465,6 @@ export default function MissionControl() {
     if (activityRef.current) activityRef.current.scrollTop = 0
   }, [events])
 
-  // Auto-scroll chat
-  useEffect(() => {
-    if (chatRef.current) chatRef.current.scrollTop = chatRef.current.scrollHeight
-  }, [chat])
-
-  const sendChat = async () => {
-    const msg = chatInput.trim()
-    if (!msg || chatLoading) return
-    setChatInput('')
-    setChatLoading(true)
-    const userEntry: ChatEntry = { role: 'user', content: msg, timestamp: new Date().toISOString() }
-    setChat(prev => [...prev, userEntry])
-    try {
-      const data = await api.post('/fleet/chat', { message: msg }).then(r => r.data)
-      setChat(data.history || [])
-    } catch {
-      setChat(prev => [...prev, { role: 'agent', content: 'Connection error. Please retry.', timestamp: new Date().toISOString() }])
-    } finally {
-      setChatLoading(false)
-    }
-  }
-
   const fmtCountdown = (s: number) => `${String(Math.floor(s / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`
   const rsiTrend = (summary?.rsi ?? 50) > 60 ? 'Overbought' : (summary?.rsi ?? 50) < 40 ? 'Oversold' : 'Neutral'
 
@@ -288,20 +474,20 @@ export default function MissionControl() {
       {/* ══ TOP SECTION: left info panel + right strips (h = 2 × 162px) ══ */}
       <div className="flex flex-shrink-0 h-[324px] border-b border-slate-800/60">
 
-        {/* Left panel: Lock Guard → Clock → Market Intel → System */}
+        {/* Left panel: Clock → Market Intel → System */}
         <div className="w-56 flex-shrink-0 border-r border-slate-800/60 flex flex-col overflow-hidden">
 
           {/* Clock + Next Cycle */}
           <div className="flex-shrink-0 border-b border-slate-800/50 px-4 py-3 bg-slate-900/50">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[15px] text-slate-500 uppercase tracking-wider flex items-center gap-1">
+              <span className="text-[11px] text-slate-500 uppercase tracking-wider flex items-center gap-1">
                 <Clock size={8} /> Local Time
               </span>
-              <span className="text-[15px] text-slate-500 uppercase tracking-wider">Next Cycle</span>
+              <span className="text-[11px] text-slate-500 uppercase tracking-wider">Next Cycle</span>
             </div>
             <div className="flex items-baseline justify-between gap-2">
-              <div className="text-[19px] font-bold text-slate-100 font-mono leading-none">{liveTime}</div>
-              <div className="text-[19px] font-bold text-blue-300 font-mono leading-none">{fmtCountdown(countdown)}</div>
+              <div className="text-[17px] font-bold text-slate-100 font-mono leading-none">{liveTime}</div>
+              <div className="text-[17px] font-bold text-blue-300 font-mono leading-none">{fmtCountdown(countdown)}</div>
             </div>
             <div className="mt-2 h-0.5 bg-slate-700/60 rounded-full overflow-hidden">
               <div
@@ -313,26 +499,26 @@ export default function MissionControl() {
 
           {/* Market Intel */}
           <div className="flex-shrink-0 border-b border-slate-800/50 px-3 py-2.5">
-            <div className="text-[15px] text-slate-400 uppercase tracking-wider font-bold mb-2">Market Intel</div>
+            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-bold mb-2">Market Intel</div>
             {summary ? (
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-[13px] text-slate-400">TAO/USD</span>
-                  <span className="text-[14px] font-bold text-white">${summary.tao_price.toFixed(2)}</span>
+                  <span className="text-[12px] text-slate-400">TAO/USD</span>
+                  <span className="text-[13px] font-bold text-white">${summary.tao_price.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[13px] text-slate-400">RSI-14</span>
-                  <span className={clsx('text-[14px] font-bold', summary.rsi > 60 ? 'text-red-400' : summary.rsi < 40 ? 'text-emerald-400' : 'text-slate-300')}>
+                  <span className="text-[12px] text-slate-400">RSI-14</span>
+                  <span className={clsx('text-[13px] font-bold', summary.rsi > 60 ? 'text-red-400' : summary.rsi < 40 ? 'text-emerald-400' : 'text-slate-300')}>
                     {summary.rsi.toFixed(1)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[13px] text-slate-400">Momentum</span>
+                  <span className="text-[12px] text-slate-400">Momentum</span>
                   <div className="flex items-center gap-1">
                     {summary.rsi > 55 ? <TrendingUp size={10} className="text-emerald-400" />
                       : summary.rsi < 45 ? <TrendingDown size={10} className="text-red-400" />
                       : <Circle size={10} className="text-slate-400" />}
-                    <span className="text-[13px] text-slate-300">{rsiTrend}</span>
+                    <span className="text-[12px] text-slate-300">{rsiTrend}</span>
                   </div>
                 </div>
               </div>
@@ -341,7 +527,7 @@ export default function MissionControl() {
 
           {/* System */}
           <div className="flex-shrink-0 border-b border-slate-800/50 px-3 py-2.5">
-            <div className="text-[15px] text-slate-400 uppercase tracking-wider font-bold mb-2">System</div>
+            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-bold mb-2">System</div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
               {[
                 { label: 'Price Feed',   ok: true },
@@ -351,43 +537,44 @@ export default function MissionControl() {
               ].map(({ label, ok }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <div className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', ok ? 'bg-emerald-400' : 'bg-red-400')} />
-                  <span className="text-[15px] text-slate-300 truncate">{label}</span>
+                  <span className="text-[12px] text-slate-300 truncate">{label}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          
-
         </div>{/* end left panel */}
 
-        {/* Right: Fleet strip (h-162) + Gate Summary strip (h-162) */}
+        {/* Right: Fleet strip (h-162) + Gate Summary strip (h-162) — symmetric rows */}
         <div className="flex-1 flex flex-col min-w-0">
 
-          {/* Fleet strip */}
+          {/* ── Row 1: Agent Fleet ─────────────────────────────────────────── */}
           <div className="h-[162px] flex flex-col border-b border-slate-800/60">
-            <div className="flex items-center gap-4 px-4 py-3 border-b border-slate-800/40 flex-shrink-0">
-              {/* Agent Fleet label — large */}
-              <div className="w-3 h-3 rounded-full bg-emerald-400 shadow-[0_0_10px_#34d399] animate-pulse flex-shrink-0" />
-              <span className="text-base font-bold tracking-wide text-white uppercase">Agent Fleet</span>
 
-              {/* Primary badges — LIVE + APPROVED, large and prominent */}
+            {/* Uniform header */}
+            <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-800/40 flex-shrink-0 h-10">
+              <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse flex-shrink-0" />
+              <span className="text-sm font-bold tracking-wide text-white uppercase">Agent Fleet</span>
               {summary && (
-                <div className="flex items-center gap-3 ml-2">
-                  <span className="px-4 py-1.5 rounded-lg border text-sm font-bold bg-emerald-500/20 text-emerald-400 border-emerald-500/40 shadow-[0_0_12px_rgba(52,211,153,0.15)]">
+                <div className="ml-auto flex items-center gap-2">
+                  <span className="px-2.5 py-1 rounded border text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border-emerald-500/35">
                     {summary.live} LIVE
                   </span>
-                  <span className="px-4 py-1.5 rounded-lg border text-sm font-bold bg-purple-500/20 text-purple-400 border-purple-500/40 shadow-[0_0_12px_rgba(167,139,250,0.15)]">
+                  <span className="px-2.5 py-1 rounded border text-[11px] font-bold bg-purple-500/15 text-purple-400 border-purple-500/35">
                     {summary.approved} APPROVED
+                  </span>
+                  <span className="px-2.5 py-1 rounded border text-[11px] font-bold bg-yellow-500/10 text-yellow-400 border-yellow-500/25">
+                    {summary.paper} PAPER
                   </span>
                 </div>
               )}
-
-              
             </div>
-            <div className="flex gap-2 px-3 py-2 overflow-x-hidden flex-1">
+
+            {/* Bot cards — auto-fill columns, no overflow scroll */}
+            <div className="flex-1 grid gap-1.5 px-3 py-1.5 overflow-hidden"
+              style={{ gridAutoFlow: 'column', gridAutoColumns: 'minmax(0, 1fr)' }}>
               {fleet.length === 0 ? (
-                <div className="text-slate-300 text-xs py-2">Loading fleet…</div>
+                <div className="text-slate-500 text-xs py-2 font-mono col-span-full">Loading fleet…</div>
               ) : (
                 fleet.map(bot => (
                   <BotCard key={bot.id} bot={bot}
@@ -395,98 +582,95 @@ export default function MissionControl() {
                     onClick={() => setSelectedBot(prev => prev?.id === bot.id ? null : bot)} />
                 ))
               )}
-              {/* Paper Trading info card — same size as BotCard */}
+              {/* Paper Trading summary cell */}
               {summary && (
-                <div className="flex-shrink-0 w-[148px] px-3 py-2.5 rounded-lg border bg-yellow-500/5 border-yellow-500/25 flex flex-col justify-center gap-1">
-                  <div className="text-[15px] text-yellow-400/60 uppercase tracking-wider font-bold">Paper Trading</div>
-                  <div className="text-xl font-bold text-yellow-400 font-mono">{summary.paper}</div>
-                  <div className="text-[15px] text-yellow-400/50">strategies in simulation</div>
+                <div className="w-full h-full px-2 py-1.5 rounded-lg border bg-yellow-500/5 border-yellow-500/20 flex flex-col justify-center">
+                  <div className="text-[9px] text-yellow-400/60 uppercase tracking-wider font-bold">Paper</div>
+                  <div className="text-lg font-bold text-yellow-400 font-mono leading-none">{summary.paper}</div>
+                  <div className="text-[9px] text-yellow-400/40 leading-tight">in simulation</div>
                 </div>
               )}
             </div>
           </div>
 
-          {/* Gate Summary strip — same h-[162px], chips fill full height */}
+          {/* ── Row 2: Gate Summary ─────────────────────────────────────────── */}
           <div className="h-[162px] flex flex-col">
-            <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800/40 flex-shrink-0">
+
+            {/* Uniform header — mirrors Row 1 exactly */}
+            <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-800/40 flex-shrink-0 h-10">
               <div className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_#a78bfa] animate-pulse flex-shrink-0" />
-              <span className="text-[13px] font-bold tracking-widest text-slate-300 uppercase">Gate Summary</span>
-              <span className="ml-auto text-[15px] text-slate-400">Cyc · WR · WM · PnL</span>
+              <span className="text-sm font-bold tracking-wide text-white uppercase">Gate Summary</span>
+              <span className="ml-auto text-[11px] font-mono text-slate-500">Cyc · WR · Margin · PnL</span>
             </div>
-            {/* flex-1 row — chips use h-full to fill the remaining 126px */}
-            <div className="flex gap-2 px-3 py-2 overflow-x-hidden flex-1">
+
+            {/* Gate chips — same auto-fill grid, no overflow scroll */}
+            <div className="flex-1 grid gap-1.5 px-3 py-1.5 overflow-hidden"
+              style={{ gridAutoFlow: 'column', gridAutoColumns: 'minmax(0, 1fr)' }}>
               {fleet.map(bot => {
-                const modeColor = bot.mode === 'LIVE' ? 'bg-emerald-500'
-                  : bot.mode === 'APPROVED_FOR_LIVE' ? 'bg-purple-500' : 'bg-slate-600'
-                const modeBorder = bot.mode === 'LIVE' ? 'border-l-emerald-500/60'
-                  : bot.mode === 'APPROVED_FOR_LIVE' ? 'border-l-purple-500/60' : 'border-l-slate-600/60'
+                const modeColor  = bot.mode === 'LIVE' ? 'bg-emerald-500'   : bot.mode === 'APPROVED_FOR_LIVE' ? 'bg-purple-500' : 'bg-slate-600'
+                const modeBorder = bot.mode === 'LIVE' ? 'border-l-emerald-500/60' : bot.mode === 'APPROVED_FOR_LIVE' ? 'border-l-purple-500/60' : 'border-l-slate-600/60'
                 return (
                   <div key={bot.id}
                     className={clsx(
-                      'flex-shrink-0 flex flex-col bg-slate-800/50 border border-slate-700/40 border-l-2 rounded-md px-2.5 py-2 min-w-[130px] h-full justify-between',
+                      'flex flex-col bg-slate-800/50 border border-slate-700/40 border-l-2 rounded-md px-1.5 py-1.5 h-full justify-between min-w-0',
                       modeBorder
                     )}>
-                    {/* Name */}
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <div className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', modeColor)} />
-                      <div className="text-[13px] text-slate-200 font-semibold truncate">{bot.display_name}</div>
+                    <div className="flex items-center gap-1 mb-0.5 min-w-0">
+                      <div className={clsx('w-1 h-1 rounded-full flex-shrink-0', modeColor)} />
+                      <div className="text-[10px] text-slate-200 font-semibold truncate leading-none">
+                        {bot.display_name.split(' ')[0]}
+                      </div>
                     </div>
-                    {/* Labeled gate rows */}
-                    <div className="space-y-1 flex-1">
+                    <div className="space-y-0.5 flex-1">
                       {([
-                        { label: 'Cycles', ok: bot.gate.cycles.ok, val: `${bot.gate.cycles.value}/${bot.gate.cycles.required}` },
-                        { label: 'Win %',  ok: bot.gate.win_rate.ok, val: `${bot.gate.win_rate.value.toFixed(0)}%` },
-                        { label: 'Margin', ok: bot.gate.win_margin.ok, val: `${bot.gate.win_margin.value.toFixed(1)}%` },
-                        { label: 'PnL',    ok: bot.gate.pnl.ok, val: `${bot.gate.pnl.value.toFixed(2)}τ` },
-                      ] as const).map(({ label, ok, val }) => (
-                        <div key={label} className="flex items-center gap-1.5">
-                          <div className={clsx('w-8 h-1 rounded-full flex-shrink-0', ok ? 'bg-emerald-500' : 'bg-slate-700')} />
-                          <span className="text-[8px] text-slate-500 w-8 flex-shrink-0">{label}</span>
-                          <span className={clsx('text-[8px] font-mono ml-auto', ok ? 'text-emerald-400' : 'text-slate-500')}>{ok ? '✓' : val}</span>
+                        { ok: bot.gate.cycles.ok,    val: `${bot.gate.cycles.value}/${bot.gate.cycles.required}` },
+                        { ok: bot.gate.win_rate.ok,  val: `${bot.gate.win_rate.value.toFixed(0)}%` },
+                        { ok: bot.gate.win_margin.ok,val: `${bot.gate.win_margin.value.toFixed(1)}%` },
+                        { ok: bot.gate.pnl.ok,       val: `${bot.gate.pnl.value.toFixed(2)}τ` },
+                      ] as const).map(({ ok, val }, idx) => (
+                        <div key={idx} className="flex items-center gap-1">
+                          <div className={clsx('h-0.5 rounded-full flex-shrink-0', ok ? 'bg-emerald-500' : 'bg-slate-700')}
+                            style={{ width: 20 }} />
+                          <span className={clsx('text-[8px] font-mono ml-auto', ok ? 'text-emerald-400' : 'text-slate-600')}>
+                            {ok ? '✓' : val}
+                          </span>
                         </div>
                       ))}
                     </div>
-                    {/* Win rate large */}
-                    <div className={clsx('text-[15px] font-bold font-mono mt-1.5 leading-none',
-                      bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400'
-                    )}>{bot.win_rate.toFixed(0)}%</div>
+                    <div className={clsx('text-[11px] font-bold font-mono mt-1 leading-none',
+                      bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400')}>
+                      {bot.win_rate.toFixed(0)}%
+                    </div>
                   </div>
                 )
               })}
-              {/* Gate Enforced + Fleet PnL — same chip style as gate summary cards */}
+
+              {/* Gate Enforced chip */}
               {summary && (
                 <>
-                  <div className="flex-shrink-0 flex flex-col bg-yellow-500/5 border border-yellow-500/20 border-l-2 border-l-yellow-500/40 rounded-md px-2.5 py-2 min-w-[130px] h-full justify-between">
-                    <div className="flex items-center gap-1 mb-1">
-                      <Lock size={8} className="text-yellow-400 flex-shrink-0" />
-                      <div className="text-[13px] text-yellow-400 font-semibold">Gate Enforced</div>
+                  <div className="flex flex-col bg-yellow-500/5 border border-yellow-500/20 border-l-2 border-l-yellow-500/40 rounded-md px-1.5 py-1.5 h-full justify-between min-w-0">
+                    <div className="flex items-center gap-1 mb-0.5">
+                      <Lock size={7} className="text-yellow-400 flex-shrink-0" />
+                      <div className="text-[10px] text-yellow-400 font-semibold truncate leading-none">Gate</div>
                     </div>
-                    <div className="space-y-1 flex-1">
-                      {[
-                        { label: 'Cycles', val: '100+' },
-                        { label: 'Win %',  val: '55%'  },
-                        { label: 'Margin', val: '> 0'  },
-                        { label: 'PnL',    val: '> 0τ' },
-                      ].map(({ label, val }) => (
-                        <div key={label} className="flex items-center gap-1.5">
-                          <div className="w-8 h-1 rounded-full flex-shrink-0 bg-yellow-500/40" />
-                          <span className="text-[8px] text-slate-500 w-8 flex-shrink-0">{label}</span>
-                          <span className="text-[8px] font-mono ml-auto text-yellow-400/70">{val}</span>
+                    <div className="space-y-0.5 flex-1">
+                      {[['100+', '55%', '>0', '>0τ']].flat().map((v, i) => (
+                        <div key={i} className="flex items-center gap-1">
+                          <div className="h-0.5 rounded-full flex-shrink-0 bg-yellow-500/30" style={{ width: 20 }} />
+                          <span className="text-[8px] font-mono ml-auto text-yellow-400/60">{v}</span>
                         </div>
                       ))}
                     </div>
-                    <div className="text-[13px] text-yellow-400/50 font-mono mt-1.5">min threshold</div>
+                    <div className="text-[9px] text-yellow-400/40 font-mono mt-1">min</div>
                   </div>
-                  <div className="flex-shrink-0 flex flex-col bg-slate-800/50 border border-slate-700/40 border-l-2 border-l-emerald-500/60 rounded-md px-2.5 py-2 min-w-[130px] h-full justify-between">
-                    <div className="text-[13px] text-slate-200 font-semibold mb-1">Fleet PnL</div>
-                    <div className="space-y-1 flex-1">
-                      <div className="flex items-center gap-1.5">
-                        <div className="w-8 h-1 rounded-full flex-shrink-0 bg-emerald-500" />
-                        <span className="text-[8px] text-slate-500">Total</span>
-                      </div>
-                    </div>
-                    <div className={clsx('text-[15px] font-bold font-mono mt-1.5 leading-none', summary.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                      {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(4)} τ
+
+                  {/* Fleet PnL chip */}
+                  <div className="flex flex-col bg-slate-800/50 border border-slate-700/40 border-l-2 border-l-emerald-500/60 rounded-md px-1.5 py-1.5 h-full justify-between min-w-0">
+                    <div className="text-[10px] text-slate-300 font-semibold leading-none mb-0.5">Fleet</div>
+                    <div className="flex-1" />
+                    <div className={clsx('text-[12px] font-bold font-mono leading-none',
+                      summary.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+                      {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(3)}τ
                     </div>
                   </div>
                 </>
@@ -497,87 +681,12 @@ export default function MissionControl() {
         </div>{/* end right strips */}
       </div>{/* end TOP SECTION */}
 
-      {/* ══ BOTTOM SECTION: Chat | Activity Stream | Subnet Heat Map ══ */}
+      {/* ══ BOTTOM SECTION: OpenClaw Council | Activity Stream | Subnet Heat Map ══ */}
       <div className="flex flex-1 min-h-0">
 
-        {/* II Agent Chat — wider by ~1 inch */}
-        <div className="w-[560px] flex-shrink-0 border-r border-slate-800/60 flex flex-col">
-          <div className="px-4 py-2.5 border-b border-slate-800/40 flex items-center gap-2 flex-shrink-0">
-            <Cpu size={12} className="text-emerald-400" />
-            <span className="text-[13px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>
-          </div>
-          <div ref={chatRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
-            {chat.length === 0 && (
-              <div className="text-[13px] text-slate-400 italic mt-1">
-                Ask II Agent about strategy status, win rates, next cycle…
-              </div>
-            )}
-            {chat.map((entry, i) => (
-              <div key={i} className={clsx('flex', entry.role === 'user' ? 'justify-end' : 'justify-start')}>
-                <div className={clsx(
-                  'max-w-[88%] px-3 py-2 rounded-lg text-[13px] leading-relaxed',
-                  entry.role === 'user'
-                    ? 'bg-blue-500/20 text-blue-100 rounded-br-sm'
-                    : 'bg-slate-800/80 text-slate-200 rounded-bl-sm border border-slate-700/50'
-                )}>
-                  {entry.role === 'agent' && (
-                    <div className="text-[13px] text-emerald-400 mb-1 font-bold tracking-wider">II AGENT</div>
-                  )}
-                  {entry.content}
-                </div>
-              </div>
-            ))}
-            {chatLoading && (
-              <div className="flex justify-start">
-                <div className="bg-slate-800/80 border border-slate-700/50 px-3 py-2 rounded-lg rounded-bl-sm">
-                  <div className="flex gap-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '0ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '150ms' }} />
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: '300ms' }} />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-          {/* FAQ quick-prompt chips */}
-          <div className="px-3 pt-2 pb-1 border-t border-slate-800/40 flex flex-wrap gap-1.5">
-            {[
-              'Fleet win rate?',
-              'Who is closest to LIVE?',
-              'Next cycle ETA?',
-              'Gate status summary',
-              'Why is Mean Reversion PAPER?',
-              'What is TAO doing?',
-            ].map(q => (
-              <button
-                key={q}
-                onClick={() => { setChatInput(q); setTimeout(() => { const el = document.querySelector<HTMLInputElement>('input[placeholder="Ask II Agent…"]'); el?.focus() }, 0) }}
-                className="text-[15px] px-2 py-1 rounded-md bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-emerald-300 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors font-mono"
-              >
-                {q}
-              </button>
-            ))}
-          </div>
-
-          <div className="px-3 py-2 border-t border-slate-800/40 flex-shrink-0">
-            <div className="flex gap-2">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && sendChat()}
-                placeholder="Ask II Agent…"
-                className="flex-1 bg-slate-800/60 border border-slate-700/50 rounded-lg px-3 py-1.5 text-[13px] text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500/40 transition-colors"
-              />
-              <button
-                onClick={sendChat}
-                disabled={chatLoading || !chatInput.trim()}
-                className="px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-40 transition-colors"
-              >
-                <Send size={12} />
-              </button>
-            </div>
-          </div>
+        {/* OpenClaw Council Monitor */}
+        <div className="w-[520px] flex-shrink-0 border-r border-slate-800/60 flex flex-col">
+          <OpenClawCouncil />
         </div>
 
         {/* Right side: activity stream (half) + heat map (half) — equal split */}
