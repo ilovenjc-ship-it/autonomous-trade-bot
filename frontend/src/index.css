@@ -7,6 +7,13 @@
     box-sizing: border-box;
   }
 
+  /* Global font scale — browser default is 16px; 118.75% lifts it to ~19px.
+     All rem-based Tailwind sizes (text-xs, text-sm, text-base, text-lg …)
+     scale proportionally. Fixed-pixel classes are handled individually. */
+  html {
+    font-size: 118.75%;
+  }
+
   html, body, #root {
     height: 100%;
     margin: 0;

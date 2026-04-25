@@ -73,7 +73,7 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
           <h2 className="text-sm font-semibold text-white">
             {achieved ? 'Target Achieved 🎉' : 'Recovery Tracker'}
           </h2>
-          <span className="text-[10px] text-slate-500 font-mono ml-1">
+          <span className="text-[13px] text-slate-500 font-mono ml-1">
             {achieved ? 'Next milestone?' : `toward τ${target.toFixed(3)}`}
           </span>
         </div>
@@ -82,7 +82,7 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
         {!editing ? (
           <button
             onClick={() => { setEditVal(String(target)); setEditing(true) }}
-            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-mono text-slate-400
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[13px] font-mono text-slate-400
                        border border-dark-600 hover:text-white hover:border-dark-500 transition-colors"
           >
             <Edit3 size={10} /> Edit Target
@@ -99,12 +99,12 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
               autoFocus
             />
             <button onClick={saveTarget}
-              className="px-2.5 py-1 rounded-lg text-[10px] font-mono bg-accent-blue/15
+              className="px-2.5 py-1 rounded-lg text-[13px] font-mono bg-accent-blue/15
                          text-accent-blue border border-accent-blue/30 hover:bg-accent-blue/25 transition-colors">
               Set
             </button>
             <button onClick={() => setEditing(false)}
-              className="text-[10px] text-slate-500 hover:text-slate-300 font-mono transition-colors">
+              className="text-[13px] text-slate-500 hover:text-slate-300 font-mono transition-colors">
               Cancel
             </button>
           </div>
@@ -148,7 +148,7 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
             style={{ left: `calc(${m.pct}% - 20px)`, width: 40 }}
           >
             <span className={clsx(
-              'text-[9px] font-mono leading-tight text-center',
+              'text-[15px] font-mono leading-tight text-center',
               m.reached ? 'text-slate-300' : 'text-slate-600'
             )}>
               τ{m.val}
@@ -161,12 +161,12 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {/* current */}
         <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
-          <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono mb-1">Current</p>
+          <p className="text-[15px] text-slate-500 uppercase tracking-wider font-mono mb-1">Current</p>
           <p className={clsx('text-lg font-black font-mono', balance != null ? 'text-white' : 'text-slate-600')}>
             {balance != null ? `τ${balance.toFixed(4)}` : '—'}
           </p>
           {balance != null && taoPrice && (
-            <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+            <p className="text-[13px] text-slate-400 font-mono mt-0.5">
               ${(balance * taoPrice).toFixed(2)}
             </p>
           )}
@@ -174,31 +174,31 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
 
         {/* target */}
         <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
-          <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono mb-1">Target</p>
+          <p className="text-[15px] text-slate-500 uppercase tracking-wider font-mono mb-1">Target</p>
           <p className="text-lg font-black font-mono text-accent-blue">τ{target.toFixed(3)}</p>
           {usdTarget && (
-            <p className="text-[10px] text-slate-400 font-mono mt-0.5">${usdTarget.toFixed(2)}</p>
+            <p className="text-[13px] text-slate-400 font-mono mt-0.5">${usdTarget.toFixed(2)}</p>
           )}
         </div>
 
         {/* remaining */}
         <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
-          <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono mb-1">Remaining</p>
+          <p className="text-[15px] text-slate-500 uppercase tracking-wider font-mono mb-1">Remaining</p>
           <p className={clsx('text-lg font-black font-mono', achieved ? 'text-accent-green' : 'text-yellow-400')}>
             {achieved ? '✓ Done' : remaining != null ? `τ${remaining.toFixed(4)}` : '—'}
           </p>
           {!achieved && usdRemain != null && (
-            <p className="text-[10px] text-slate-400 font-mono mt-0.5">${usdRemain.toFixed(2)} to go</p>
+            <p className="text-[13px] text-slate-400 font-mono mt-0.5">${usdRemain.toFixed(2)} to go</p>
           )}
         </div>
 
         {/* progress % */}
         <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
-          <p className="text-[9px] text-slate-500 uppercase tracking-wider font-mono mb-1">Progress</p>
+          <p className="text-[15px] text-slate-500 uppercase tracking-wider font-mono mb-1">Progress</p>
           <p className="text-lg font-black font-mono" style={{ color: barColor }}>
             {balance != null ? `${pct.toFixed(1)}%` : '—'}
           </p>
-          <p className="text-[10px] text-slate-400 font-mono mt-0.5">
+          <p className="text-[13px] text-slate-400 font-mono mt-0.5">
             {pct >= 75 ? 'Almost there' : pct >= 50 ? 'Halfway' : pct >= 25 ? 'Building' : 'Starting'}
           </p>
         </div>
@@ -230,7 +230,7 @@ function AddrBox({ label, addr, show }: { label: string; addr: string; show: boo
   const copy = () => { navigator.clipboard.writeText(addr); toast.success('Copied!') }
   return (
     <div className="bg-dark-700 border border-dark-600 rounded-xl px-4 py-3">
-      <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1">{label}</p>
+      <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono mb-1">{label}</p>
       <div className="flex items-center gap-2">
         <p className={clsx('text-sm font-mono truncate flex-1 transition-all',
           show ? 'text-slate-100' : 'text-slate-500 tracking-widest')}>
@@ -505,14 +505,14 @@ export default function WalletPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1">TAO Balance</p>
+                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono mb-1">TAO Balance</p>
                 <p className={clsx('text-2xl font-black font-mono', balance ? 'text-white' : 'text-slate-600')}>
                   {balance ? `τ ${balance.toFixed(4)}` : 'τ —'}
                 </p>
                 <p className="text-xs text-slate-500 mt-1 font-mono">Free · unstaked</p>
               </div>
               <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1">Est. USD Value</p>
+                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono mb-1">Est. USD Value</p>
                 <p className={clsx('text-2xl font-black font-mono', usdValue != null ? 'text-emerald-400' : 'text-slate-600')}>
                   {usdValue != null
                     ? `$${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
@@ -527,8 +527,8 @@ export default function WalletPage() {
             {/* Staking positions */}
             <div>
               <div className="flex items-center justify-between mb-2">
-                <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Staking Positions</p>
-                <span className="text-[10px] text-slate-600 font-mono">Per-subnet αTAO</span>
+                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono">Staking Positions</p>
+                <span className="text-[13px] text-slate-600 font-mono">Per-subnet αTAO</span>
               </div>
               {isConnected ? (
                 <div className="text-xs text-slate-500 font-mono px-3 py-4 bg-dark-700/60 rounded-lg border border-dark-600 text-center">
@@ -542,12 +542,12 @@ export default function WalletPage() {
                         <Layers size={11} className="text-slate-600" />
                         <span className="text-xs text-slate-500 font-mono">{name}</span>
                       </div>
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-600 font-mono">
+                      <div className="flex items-center gap-1.5 text-[13px] text-slate-600 font-mono">
                         <Lock size={10} /> Chain offline
                       </div>
                     </div>
                   ))}
-                  <p className="text-[10px] text-slate-600 font-mono text-center pt-1">
+                  <p className="text-[13px] text-slate-600 font-mono text-center pt-1">
                     Query chain to load real αTAO staking positions
                   </p>
                 </div>
@@ -598,7 +598,7 @@ export default function WalletPage() {
 
                   <div className="flex items-start gap-2 px-3 py-3 bg-amber-500/8 border border-amber-500/20 rounded-lg">
                     <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-amber-300/90 leading-snug">
+                    <p className="text-[14px] text-amber-300/90 leading-snug">
                       The 12-word recovery phrase is shown <span className="font-bold text-amber-300">exactly once</span>.
                       Write it down offline before continuing. It cannot be recovered if lost.
                     </p>
@@ -621,7 +621,7 @@ export default function WalletPage() {
                   {/* ── Success: show the 12 words ── */}
                   <div className="flex items-start gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/30 rounded-lg">
                     <AlertTriangle size={13} className="text-red-400 flex-shrink-0 mt-0.5" />
-                    <p className="text-[11px] text-red-300 leading-snug font-semibold">
+                    <p className="text-[14px] text-red-300 leading-snug font-semibold">
                       Write these 12 words down NOW — this is the only time they will be shown.
                     </p>
                   </div>
@@ -630,7 +630,7 @@ export default function WalletPage() {
                   <div className="grid grid-cols-3 gap-2">
                     {generated.mnemonic.split(' ').map((word, i) => (
                       <div key={i} className="relative bg-dark-700 border border-dark-500 rounded-lg px-2 py-2 flex items-center gap-1.5">
-                        <span className="text-[10px] text-slate-500 font-mono w-4 flex-shrink-0">{i + 1}.</span>
+                        <span className="text-[13px] text-slate-500 font-mono w-4 flex-shrink-0">{i + 1}.</span>
                         <span className={clsx('text-xs font-mono font-semibold text-slate-100 transition-all', !showGenWords && 'blur-sm select-none')}>
                           {word}
                         </span>
@@ -682,7 +682,7 @@ export default function WalletPage() {
                       </div>
 
                       <div>
-                        <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono mb-1.5">
+                        <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono mb-1.5">
                           Send TAO to this address
                         </p>
                         <div className="flex items-center gap-2 bg-dark-900 rounded-lg px-3 py-2.5 border border-dark-500">
@@ -708,14 +708,14 @@ export default function WalletPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-start gap-2 text-[11px] text-slate-400 font-mono">
+                      <div className="flex items-start gap-2 text-[14px] text-slate-400 font-mono">
                         <Send size={11} className="mt-0.5 text-slate-500 flex-shrink-0" />
                         Fund this address with TAO. Once funded, enable strategies in the Agent Fleet to begin live trading.
                       </div>
 
                       <button
                         onClick={() => { setGenerated(null); setBackedUp(false) }}
-                        className="flex items-center gap-1.5 text-[11px] text-slate-500 hover:text-slate-300 font-mono transition-colors"
+                        className="flex items-center gap-1.5 text-[14px] text-slate-500 hover:text-slate-300 font-mono transition-colors"
                       >
                         <RotateCcw size={10} /> Generate a different wallet
                       </button>
@@ -736,7 +736,7 @@ export default function WalletPage() {
 
               <div className="flex items-start gap-2 px-3 py-3 bg-amber-500/8 border border-amber-500/20 rounded-lg mb-4">
                 <AlertTriangle size={13} className="text-amber-400 flex-shrink-0 mt-0.5" />
-                <p className="text-[11px] text-amber-400/80 leading-snug">
+                <p className="text-[14px] text-amber-400/80 leading-snug">
                   <span className="font-semibold text-amber-400">Only restore the dedicated bot wallet.</span>{' '}
                   Never enter your personal wallet's phrase here.
                 </p>
@@ -761,7 +761,7 @@ export default function WalletPage() {
               <div className="grid grid-cols-3 gap-2.5 mb-4 flex-1">
                 {words.map((w, i) => (
                   <div key={i} className="relative">
-                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 font-mono select-none">
+                    <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[13px] text-slate-500 font-mono select-none">
                       {i + 1}.
                     </span>
                     <input

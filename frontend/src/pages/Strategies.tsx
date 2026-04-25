@@ -90,7 +90,7 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
           <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
               {icon}
-              <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">{label}</p>
+              <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono">{label}</p>
             </div>
             <p className={clsx('text-lg font-bold font-mono', color)}>{value}</p>
           </div>
@@ -102,7 +102,7 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
         <div className="bg-dark-800 border border-accent-green/20 rounded-xl px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Zap size={13} className="text-accent-green" />
-            <span className="text-[11px] text-slate-400 font-mono uppercase tracking-wider">
+            <span className="text-[14px] text-slate-400 font-mono uppercase tracking-wider">
               Max on-chain stake if all LIVE bots fire simultaneously
             </span>
           </div>
@@ -117,18 +117,18 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-1.5">
             <BarChart2 size={12} className="text-accent-blue" />
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">Capital Allocation Tiers</p>
+            <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono">Capital Allocation Tiers</p>
           </div>
-          <p className="text-[10px] text-slate-500 font-mono">performance-weighted · auto-rebalanced</p>
+          <p className="text-[13px] text-slate-500 font-mono">performance-weighted · auto-rebalanced</p>
         </div>
         <div className="flex items-center gap-4 flex-wrap">
           {(Object.entries(tierCounts) as [Tier, number][]).map(([tier, count]) => (
             <div key={tier} className="flex items-center gap-1.5">
-              <span className={clsx('px-1.5 py-0.5 rounded border text-[10px] font-mono font-bold', TIERS[tier].badgeClass)}>
+              <span className={clsx('px-1.5 py-0.5 rounded border text-[13px] font-mono font-bold', TIERS[tier].badgeClass)}>
                 {TIERS[tier].emoji} {TIERS[tier].label}
               </span>
               <span className="text-sm font-bold font-mono text-white">{count}</span>
-              <span className={clsx('text-[10px] font-mono', TIERS[tier].allocClass)}>{TIERS[tier].multiplier} capital</span>
+              <span className={clsx('text-[13px] font-mono', TIERS[tier].allocClass)}>{TIERS[tier].multiplier} capital</span>
             </div>
           ))}
         </div>
@@ -163,17 +163,17 @@ function StrategyCard({ s }: { s: Strategy }) {
             <h3 className="text-sm font-semibold text-white leading-tight truncate">
               {s.display_name}
             </h3>
-            <p className="text-[10px] font-mono text-slate-500 mt-0.5 truncate">{s.name}</p>
+            <p className="text-[13px] font-mono text-slate-500 mt-0.5 truncate">{s.name}</p>
           </div>
         </div>
 
         <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
           {/* tier badge */}
-          <span className={clsx('px-2 py-0.5 rounded border text-[10px] font-mono font-bold whitespace-nowrap', tierMeta.badgeClass)}>
+          <span className={clsx('px-2 py-0.5 rounded border text-[13px] font-mono font-bold whitespace-nowrap', tierMeta.badgeClass)}>
             {tierMeta.emoji} {tierMeta.label}
           </span>
           {/* mode badge */}
-          <span className={clsx('px-2 py-0.5 rounded border text-[10px] font-mono font-semibold whitespace-nowrap', mode.badge)}>
+          <span className={clsx('px-2 py-0.5 rounded border text-[13px] font-mono font-semibold whitespace-nowrap', mode.badge)}>
             {mode.prefix} {mode.label}
           </span>
           {/* detail link */}
@@ -194,13 +194,13 @@ function StrategyCard({ s }: { s: Strategy }) {
       <div className="grid grid-cols-3 gap-2 mb-4">
         <div className="text-center">
           <p className="text-sm font-mono font-semibold text-white">{s.total_trades.toLocaleString()}</p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Trades</p>
+          <p className="text-[13px] text-slate-500 mt-0.5">Trades</p>
         </div>
         <div className="text-center">
           <p className={clsx('text-sm font-mono font-semibold', tierMeta.allocClass)}>
             {s.win_rate.toFixed(1)}%
           </p>
-          <p className="text-[10px] text-slate-500 mt-0.5">Win Rate</p>
+          <p className="text-[13px] text-slate-500 mt-0.5">Win Rate</p>
         </div>
         <div className="text-center">
           <p className={clsx(
@@ -209,7 +209,7 @@ function StrategyCard({ s }: { s: Strategy }) {
           )}>
             {fmt(s.total_pnl)}
           </p>
-          <p className="text-[10px] text-slate-500 mt-0.5">PnL (τ)</p>
+          <p className="text-[13px] text-slate-500 mt-0.5">PnL (τ)</p>
         </div>
       </div>
 
@@ -224,7 +224,7 @@ function StrategyCard({ s }: { s: Strategy }) {
       )}>
         <div className="flex items-center gap-1.5">
           <Zap size={11} className={tierMeta.allocClass} />
-          <span className="text-[10px] text-slate-400 font-mono uppercase tracking-wider">
+          <span className="text-[13px] text-slate-400 font-mono uppercase tracking-wider">
             {s.mode === 'LIVE' ? 'Stake / Trade' : 'Capital Tier'}
           </span>
         </div>
@@ -233,7 +233,7 @@ function StrategyCard({ s }: { s: Strategy }) {
             <span className={clsx('text-sm font-bold font-mono', tierMeta.allocClass)}>
               {s.stake_amount.toFixed(4)} τ
             </span>
-            <span className="text-[10px] font-mono text-slate-500">{tierMeta.label}</span>
+            <span className="text-[13px] font-mono text-slate-500">{tierMeta.label}</span>
           </div>
         ) : (
           <span className={clsx('text-sm font-bold font-mono', tierMeta.allocClass)}>
@@ -244,7 +244,7 @@ function StrategyCard({ s }: { s: Strategy }) {
 
       {/* ── gate progress bar (cycles toward live) ──────── */}
       <div className="mt-auto">
-        <div className="flex justify-between text-[10px] font-mono mb-1">
+        <div className="flex justify-between text-[13px] font-mono mb-1">
           <span className="text-slate-500">Promotion gate</span>
           <span className={clsx(s.cycles_completed >= gateMax ? 'text-accent-green' : 'text-slate-400')}>
             {s.cycles_completed}/{gateMax} cycles
@@ -427,7 +427,7 @@ export default function Strategies() {
             {(Object.entries(TIERS) as [Tier, TierMeta][]).map(([, t]) => (
               <div key={t.label} className="flex items-center justify-between text-xs">
                 <div className="flex items-center gap-2">
-                  <span className={clsx('px-1.5 py-0.5 rounded border text-[10px] font-mono font-bold', t.badgeClass)}>
+                  <span className={clsx('px-1.5 py-0.5 rounded border text-[13px] font-mono font-bold', t.badgeClass)}>
                     {t.emoji} {t.label}
                   </span>
                   <span className="text-slate-400">Win rate ≥ {t.minWr}%</span>
@@ -438,7 +438,7 @@ export default function Strategies() {
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-slate-500 mt-3">
+          <p className="text-[13px] text-slate-500 mt-3">
             Capital from suspended strategies flows up to elite performers automatically.
           </p>
         </div>
@@ -456,12 +456,12 @@ export default function Strategies() {
               { n: '④ PnL > 0 τ',      desc: 'Cumulative realised PnL must be positive' },
             ].map(({ n, desc }) => (
               <div key={n} className="space-y-0.5">
-                <p className="text-white font-mono text-[11px]">{n}</p>
-                <p className="leading-relaxed text-[11px]">{desc}</p>
+                <p className="text-white font-mono text-[14px]">{n}</p>
+                <p className="leading-relaxed text-[14px]">{desc}</p>
               </div>
             ))}
           </div>
-          <p className="text-[10px] text-slate-500 mt-3">
+          <p className="text-[13px] text-slate-500 mt-3">
             Gate pass → <span className="text-yellow-400">APPROVED</span>.
             Operator confirms → <span className="text-accent-green">LIVE</span>.
           </p>

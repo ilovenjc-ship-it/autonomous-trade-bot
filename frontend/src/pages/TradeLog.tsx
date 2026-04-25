@@ -67,7 +67,7 @@ function TypeBadge({ type }: { type: string }) {
   const isBuy = type === 'buy'
   return (
     <span className={clsx(
-      'inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[11px] font-bold',
+      'inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[14px] font-bold',
       isBuy ? 'bg-accent-green/15 text-accent-green' : 'bg-red-400/15 text-red-400'
     )}>
       {isBuy ? <TrendingUp size={10} /> : <TrendingDown size={10} />}
@@ -80,7 +80,7 @@ function ResultBadge({ pnl }: { pnl: number }) {
   const win = pnl > 0
   return (
     <span className={clsx(
-      'inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[11px] font-semibold',
+      'inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[14px] font-semibold',
       win ? 'bg-accent-green/10 text-accent-green' : 'bg-red-400/10 text-red-400'
     )}>
       {win ? <CheckCircle2 size={10} /> : <XCircle size={10} />}
@@ -94,11 +94,11 @@ function ModeBadge({ mode, txHash }: { mode: string | undefined; txHash: string 
 
   if (mode === 'LIVE') return (
     <span className="inline-flex items-center gap-1">
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[13px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">
         ● LIVE
       </span>
       {onChain && (
-        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded font-mono text-[9px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded font-mono text-[15px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
           ⛓ chain
         </span>
       )}
@@ -106,14 +106,14 @@ function ModeBadge({ mode, txHash }: { mode: string | undefined; txHash: string 
   )
 
   if (mode === 'APPROVED_FOR_LIVE') return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[13px] font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">
       ✅ APPROVED
     </span>
   )
 
   // PAPER_ONLY or unknown
   return (
-    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[10px] font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">
+    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded font-mono text-[13px] font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/25">
       ◌ PAPER
     </span>
   )
@@ -239,7 +239,7 @@ export default function TradeLog() {
                   {realCount} real on-chain
                 </span>
                 {archivedCount !== null && archivedCount > 0 && (
-                  <span className="text-[10px] text-slate-400 font-mono">
+                  <span className="text-[13px] text-slate-400 font-mono">
                     · {archivedCount.toLocaleString()} archived
                   </span>
                 )}

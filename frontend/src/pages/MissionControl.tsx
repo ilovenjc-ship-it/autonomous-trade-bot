@@ -75,7 +75,7 @@ function ModeBadge({ mode }: { mode: string }) {
   }[mode] ?? { label: mode, cls: 'bg-slate-500/15 text-slate-300 border-slate-500/30' }
 
   return (
-    <span className={clsx('text-[9px] font-bold tracking-widest px-1.5 py-0.5 rounded border font-mono', cfg.cls)}>
+    <span className={clsx('text-[15px] font-bold tracking-widest px-1.5 py-0.5 rounded border font-mono', cfg.cls)}>
       {cfg.label}
     </span>
   )
@@ -88,8 +88,8 @@ function GateBar({ label, check }: { label: string; check: GateCheck }) {
   return (
     <div className="space-y-0.5">
       <div className="flex justify-between items-center">
-        <span className="text-[10px] text-slate-300 font-mono">{label}</span>
-        <span className={clsx('text-[10px] font-mono', check.ok ? 'text-emerald-400' : 'text-slate-300')}>
+        <span className="text-[13px] text-slate-300 font-mono">{label}</span>
+        <span className={clsx('text-[13px] font-mono', check.ok ? 'text-emerald-400' : 'text-slate-300')}>
           {check.ok ? '✓' : `${check.value}/${check.required}`}
         </span>
       </div>
@@ -124,7 +124,7 @@ function BotCard({ bot, selected, onClick }: { bot: FleetBot; selected: boolean;
           'w-1.5 h-1.5 rounded-full flex-shrink-0',
           bot.is_active ? 'bg-emerald-400 shadow-[0_0_6px_#34d399]' : 'bg-slate-600'
         )} />
-        <span className="text-[11px] font-semibold text-slate-100 truncate flex-1">
+        <span className="text-[14px] font-semibold text-slate-100 truncate flex-1">
           {bot.display_name}
         </span>
       </div>
@@ -143,7 +143,7 @@ function BotCard({ bot, selected, onClick }: { bot: FleetBot; selected: boolean;
           <div className="text-[8px] text-slate-500 mt-0.5">win rate</div>
         </div>
         <div className="text-right">
-          <div className={clsx('text-[11px] font-bold font-mono leading-none', bot.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
+          <div className={clsx('text-[14px] font-bold font-mono leading-none', bot.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
             {bot.total_pnl >= 0 ? '+' : ''}{bot.total_pnl.toFixed(3)}τ
           </div>
           <div className="text-[8px] text-slate-500 mt-0.5">{bot.total_trades} trades</div>
@@ -294,10 +294,10 @@ export default function MissionControl() {
           {/* Clock + Next Cycle */}
           <div className="flex-shrink-0 border-b border-slate-800/50 px-4 py-3 bg-slate-900/50">
             <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[9px] text-slate-500 uppercase tracking-wider flex items-center gap-1">
+              <span className="text-[15px] text-slate-500 uppercase tracking-wider flex items-center gap-1">
                 <Clock size={8} /> Local Time
               </span>
-              <span className="text-[9px] text-slate-500 uppercase tracking-wider">Next Cycle</span>
+              <span className="text-[15px] text-slate-500 uppercase tracking-wider">Next Cycle</span>
             </div>
             <div className="flex items-baseline justify-between gap-2">
               <div className="text-[19px] font-bold text-slate-100 font-mono leading-none">{liveTime}</div>
@@ -313,26 +313,26 @@ export default function MissionControl() {
 
           {/* Market Intel */}
           <div className="flex-shrink-0 border-b border-slate-800/50 px-3 py-2.5">
-            <div className="text-[9px] text-slate-400 uppercase tracking-wider font-bold mb-2">Market Intel</div>
+            <div className="text-[15px] text-slate-400 uppercase tracking-wider font-bold mb-2">Market Intel</div>
             {summary ? (
               <div className="space-y-1.5">
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-slate-400">TAO/USD</span>
-                  <span className="text-[11px] font-bold text-white">${summary.tao_price.toFixed(2)}</span>
+                  <span className="text-[13px] text-slate-400">TAO/USD</span>
+                  <span className="text-[14px] font-bold text-white">${summary.tao_price.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-slate-400">RSI-14</span>
-                  <span className={clsx('text-[11px] font-bold', summary.rsi > 60 ? 'text-red-400' : summary.rsi < 40 ? 'text-emerald-400' : 'text-slate-300')}>
+                  <span className="text-[13px] text-slate-400">RSI-14</span>
+                  <span className={clsx('text-[14px] font-bold', summary.rsi > 60 ? 'text-red-400' : summary.rsi < 40 ? 'text-emerald-400' : 'text-slate-300')}>
                     {summary.rsi.toFixed(1)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-slate-400">Momentum</span>
+                  <span className="text-[13px] text-slate-400">Momentum</span>
                   <div className="flex items-center gap-1">
                     {summary.rsi > 55 ? <TrendingUp size={10} className="text-emerald-400" />
                       : summary.rsi < 45 ? <TrendingDown size={10} className="text-red-400" />
                       : <Circle size={10} className="text-slate-400" />}
-                    <span className="text-[10px] text-slate-300">{rsiTrend}</span>
+                    <span className="text-[13px] text-slate-300">{rsiTrend}</span>
                   </div>
                 </div>
               </div>
@@ -341,7 +341,7 @@ export default function MissionControl() {
 
           {/* System */}
           <div className="flex-shrink-0 border-b border-slate-800/50 px-3 py-2.5">
-            <div className="text-[9px] text-slate-400 uppercase tracking-wider font-bold mb-2">System</div>
+            <div className="text-[15px] text-slate-400 uppercase tracking-wider font-bold mb-2">System</div>
             <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
               {[
                 { label: 'Price Feed',   ok: true },
@@ -351,7 +351,7 @@ export default function MissionControl() {
               ].map(({ label, ok }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <div className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', ok ? 'bg-emerald-400' : 'bg-red-400')} />
-                  <span className="text-[9px] text-slate-300 truncate">{label}</span>
+                  <span className="text-[15px] text-slate-300 truncate">{label}</span>
                 </div>
               ))}
             </div>
@@ -398,9 +398,9 @@ export default function MissionControl() {
               {/* Paper Trading info card — same size as BotCard */}
               {summary && (
                 <div className="flex-shrink-0 w-[148px] px-3 py-2.5 rounded-lg border bg-yellow-500/5 border-yellow-500/25 flex flex-col justify-center gap-1">
-                  <div className="text-[9px] text-yellow-400/60 uppercase tracking-wider font-bold">Paper Trading</div>
+                  <div className="text-[15px] text-yellow-400/60 uppercase tracking-wider font-bold">Paper Trading</div>
                   <div className="text-xl font-bold text-yellow-400 font-mono">{summary.paper}</div>
-                  <div className="text-[9px] text-yellow-400/50">strategies in simulation</div>
+                  <div className="text-[15px] text-yellow-400/50">strategies in simulation</div>
                 </div>
               )}
             </div>
@@ -410,8 +410,8 @@ export default function MissionControl() {
           <div className="h-[162px] flex flex-col">
             <div className="flex items-center gap-3 px-4 py-2 border-b border-slate-800/40 flex-shrink-0">
               <div className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_#a78bfa] animate-pulse flex-shrink-0" />
-              <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Gate Summary</span>
-              <span className="ml-auto text-[9px] text-slate-400">Cyc · WR · WM · PnL</span>
+              <span className="text-[13px] font-bold tracking-widest text-slate-300 uppercase">Gate Summary</span>
+              <span className="ml-auto text-[15px] text-slate-400">Cyc · WR · WM · PnL</span>
             </div>
             {/* flex-1 row — chips use h-full to fill the remaining 126px */}
             <div className="flex gap-2 px-3 py-2 overflow-x-hidden flex-1">
@@ -429,7 +429,7 @@ export default function MissionControl() {
                     {/* Name */}
                     <div className="flex items-center gap-1.5 mb-1">
                       <div className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', modeColor)} />
-                      <div className="text-[10px] text-slate-200 font-semibold truncate">{bot.display_name}</div>
+                      <div className="text-[13px] text-slate-200 font-semibold truncate">{bot.display_name}</div>
                     </div>
                     {/* Labeled gate rows */}
                     <div className="space-y-1 flex-1">
@@ -459,7 +459,7 @@ export default function MissionControl() {
                   <div className="flex-shrink-0 flex flex-col bg-yellow-500/5 border border-yellow-500/20 border-l-2 border-l-yellow-500/40 rounded-md px-2.5 py-2 min-w-[130px] h-full justify-between">
                     <div className="flex items-center gap-1 mb-1">
                       <Lock size={8} className="text-yellow-400 flex-shrink-0" />
-                      <div className="text-[10px] text-yellow-400 font-semibold">Gate Enforced</div>
+                      <div className="text-[13px] text-yellow-400 font-semibold">Gate Enforced</div>
                     </div>
                     <div className="space-y-1 flex-1">
                       {[
@@ -475,10 +475,10 @@ export default function MissionControl() {
                         </div>
                       ))}
                     </div>
-                    <div className="text-[10px] text-yellow-400/50 font-mono mt-1.5">min threshold</div>
+                    <div className="text-[13px] text-yellow-400/50 font-mono mt-1.5">min threshold</div>
                   </div>
                   <div className="flex-shrink-0 flex flex-col bg-slate-800/50 border border-slate-700/40 border-l-2 border-l-emerald-500/60 rounded-md px-2.5 py-2 min-w-[130px] h-full justify-between">
-                    <div className="text-[10px] text-slate-200 font-semibold mb-1">Fleet PnL</div>
+                    <div className="text-[13px] text-slate-200 font-semibold mb-1">Fleet PnL</div>
                     <div className="space-y-1 flex-1">
                       <div className="flex items-center gap-1.5">
                         <div className="w-8 h-1 rounded-full flex-shrink-0 bg-emerald-500" />
@@ -504,7 +504,7 @@ export default function MissionControl() {
         <div className="w-[560px] flex-shrink-0 border-r border-slate-800/60 flex flex-col">
           <div className="px-4 py-2.5 border-b border-slate-800/40 flex items-center gap-2 flex-shrink-0">
             <Cpu size={12} className="text-emerald-400" />
-            <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>
+            <span className="text-[13px] font-bold tracking-widest text-slate-300 uppercase">II Agent Chat</span>
           </div>
           <div ref={chatRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-2">
             {chat.length === 0 && (
@@ -521,7 +521,7 @@ export default function MissionControl() {
                     : 'bg-slate-800/80 text-slate-200 rounded-bl-sm border border-slate-700/50'
                 )}>
                   {entry.role === 'agent' && (
-                    <div className="text-[10px] text-emerald-400 mb-1 font-bold tracking-wider">II AGENT</div>
+                    <div className="text-[13px] text-emerald-400 mb-1 font-bold tracking-wider">II AGENT</div>
                   )}
                   {entry.content}
                 </div>
@@ -552,7 +552,7 @@ export default function MissionControl() {
               <button
                 key={q}
                 onClick={() => { setChatInput(q); setTimeout(() => { const el = document.querySelector<HTMLInputElement>('input[placeholder="Ask II Agent…"]'); el?.focus() }, 0) }}
-                className="text-[9px] px-2 py-1 rounded-md bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-emerald-300 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors font-mono"
+                className="text-[15px] px-2 py-1 rounded-md bg-slate-800/60 border border-slate-700/40 text-slate-400 hover:text-emerald-300 hover:border-emerald-500/30 hover:bg-emerald-500/5 transition-colors font-mono"
               >
                 {q}
               </button>
@@ -605,7 +605,7 @@ export default function MissionControl() {
                 {selectedBot.gate.all_clear && (
                   <div className="mt-2 flex items-center gap-2 text-purple-400">
                     <CheckCircle2 size={12} />
-                    <span className="text-[10px] font-bold tracking-wider">ALL GATES CLEAR — READY FOR LIVE PROMOTION</span>
+                    <span className="text-[13px] font-bold tracking-wider">ALL GATES CLEAR — READY FOR LIVE PROMOTION</span>
                   </div>
                 )}
               </div>
@@ -615,8 +615,8 @@ export default function MissionControl() {
             <div className="flex-1 flex flex-col min-h-0 rounded-lg border border-slate-700/50 bg-slate-800/30">
               <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-700/40 flex-shrink-0">
                 <Activity size={12} className="text-blue-400" />
-                <span className="text-[10px] font-bold tracking-widest text-slate-300 uppercase">Activity Stream</span>
-                <span className="ml-auto text-[9px] text-slate-400 font-mono">live</span>
+                <span className="text-[13px] font-bold tracking-widest text-slate-300 uppercase">Activity Stream</span>
+                <span className="ml-auto text-[15px] text-slate-400 font-mono">live</span>
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
               </div>
               <div ref={activityRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
@@ -627,9 +627,9 @@ export default function MissionControl() {
                     <div key={`${ev.id}-${i}`} className="flex items-center gap-1.5 py-0.5">
                       <div className="flex-shrink-0"><EventIcon kind={ev.kind} /></div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[12px] text-slate-300 leading-tight truncate">{ev.message}</div>
+                        <div className="text-[15px] text-slate-300 leading-tight truncate">{ev.message}</div>
                       </div>
-                      <div className="text-[11px] text-slate-500 flex-shrink-0 font-mono">{fmtTime(ev.timestamp)}</div>
+                      <div className="text-[14px] text-slate-500 flex-shrink-0 font-mono">{fmtTime(ev.timestamp)}</div>
                     </div>
                   ))
                 )}

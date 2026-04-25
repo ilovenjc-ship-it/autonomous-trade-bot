@@ -97,10 +97,10 @@ function toET(d: Date): string {
 /** Compact top-of-page legend identifying every symbol on the page */
 function LegendBar() {
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 bg-dark-800/70 border border-dark-700 rounded-xl text-[10px] font-mono">
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 bg-dark-800/70 border border-dark-700 rounded-xl text-[13px] font-mono">
 
       {/* Vote types */}
-      <span className="text-slate-500 uppercase tracking-widest text-[9px]">Votes</span>
+      <span className="text-slate-500 uppercase tracking-widest text-[15px]">Votes</span>
       <span className="flex items-center gap-1 text-emerald-400"><TrendingUp  size={10} /> BUY — strategy recommends buying</span>
       <span className="flex items-center gap-1 text-red-400">   <TrendingDown size={10} /> SELL — strategy recommends selling</span>
       <span className="flex items-center gap-1 text-amber-400"> <Minus        size={10} /> HOLD — no clear edge, wait</span>
@@ -110,7 +110,7 @@ function LegendBar() {
       <span className="hidden sm:block w-px h-4 bg-dark-600" />
 
       {/* Round results */}
-      <span className="text-slate-500 uppercase tracking-widest text-[9px]">Result</span>
+      <span className="text-slate-500 uppercase tracking-widest text-[15px]">Result</span>
       <span className="flex items-center gap-1 text-emerald-400"><ShieldCheck   size={10} /> APPROVED — supermajority reached</span>
       <span className="flex items-center gap-1 text-red-400">   <ShieldX       size={10} /> REJECTED — vote failed</span>
       <span className="flex items-center gap-1 text-amber-400"> <AlertTriangle size={10} /> DEADLOCK — tie, no majority</span>
@@ -119,7 +119,7 @@ function LegendBar() {
       <span className="hidden sm:block w-px h-4 bg-dark-600" />
 
       {/* Mode badges */}
-      <span className="text-slate-500 uppercase tracking-widest text-[9px]">Mode</span>
+      <span className="text-slate-500 uppercase tracking-widest text-[15px]">Mode</span>
       <span className="text-emerald-400">🚀 LIVE — executes real on-chain trades</span>
       <span className="text-sky-400">✅ APPROVED — gate passed, awaiting deploy</span>
       <span className="text-slate-400">📄 PAPER — simulated, no real funds</span>
@@ -137,9 +137,9 @@ function StatCard({ icon: Icon, label, value, sub, accent }: {
         <Icon size={16} className={clsx(accent ? '' : 'text-indigo-400')} />
       </div>
       <div>
-        <p className="text-[11px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
+        <p className="text-[14px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
         <p className="text-xl font-bold text-white font-mono mt-0.5">{value}</p>
-        {sub && <p className="text-[11px] text-slate-300 mt-0.5">{sub}</p>}
+        {sub && <p className="text-[14px] text-slate-300 mt-0.5">{sub}</p>}
       </div>
     </div>
   )
@@ -222,8 +222,8 @@ function BotVoteCard({ vote }: { vote: BotVote }) {
     )}>
       {/* Header */}
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold text-white truncate pr-1">{vote.display_name}</p>
-        <div className={clsx('flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold', meta.bg)}>
+        <p className="text-[14px] font-semibold text-white truncate pr-1">{vote.display_name}</p>
+        <div className={clsx('flex items-center gap-1 px-2 py-0.5 rounded-full text-[13px] font-bold', meta.bg)}>
           <Icon size={10} className={meta.text} />
           <span className={meta.text}>{vote.vote}</span>
         </div>
@@ -231,7 +231,7 @@ function BotVoteCard({ vote }: { vote: BotVote }) {
 
       {/* Confidence bar */}
       <div>
-        <div className="flex justify-between text-[10px] font-mono mb-1">
+        <div className="flex justify-between text-[13px] font-mono mb-1">
           <span className="text-slate-300">Confidence</span>
           <span className={meta.text}>{(vote.confidence * 100).toFixed(0)}%</span>
         </div>
@@ -246,7 +246,7 @@ function BotVoteCard({ vote }: { vote: BotVote }) {
       {/* Mode badge */}
       <div className="flex items-center justify-between">
         <span className={clsx(
-          'text-[9px] font-mono px-1.5 py-0.5 rounded font-semibold',
+          'text-[15px] font-mono px-1.5 py-0.5 rounded font-semibold',
           vote.mode === 'LIVE'             ? 'bg-emerald-500/20 text-emerald-400' :
           vote.mode === 'APPROVED_FOR_LIVE'? 'bg-sky-500/20 text-sky-400' :
                                              'bg-slate-700 text-slate-300'
@@ -256,7 +256,7 @@ function BotVoteCard({ vote }: { vote: BotVote }) {
       </div>
 
       {/* Reasoning */}
-      <p className="text-[10px] text-slate-300 leading-tight line-clamp-2">{vote.reasoning}</p>
+      <p className="text-[13px] text-slate-300 leading-tight line-clamp-2">{vote.reasoning}</p>
     </div>
   )
 }
@@ -270,7 +270,7 @@ function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
       <td className="px-3 py-2 text-xs text-slate-300 truncate max-w-[120px]">{round.triggered_by}</td>
       <td className="px-3 py-2">
         <span className={clsx(
-          'text-[10px] font-bold font-mono px-2 py-0.5 rounded-full border',
+          'text-[13px] font-bold font-mono px-2 py-0.5 rounded-full border',
           rm.bg, rm.color,
         )}>
           {rm.label}
@@ -283,9 +283,9 @@ function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
         <span className="text-slate-300 mx-1">/</span>
         <span className="text-amber-400">{round.hold_count}H</span>
       </td>
-      <td className="px-3 py-2 text-[11px] text-slate-300 font-mono">${round.price_at_round.toFixed(2)}</td>
-      <td className="px-3 py-2 text-[11px] text-slate-300">{timeSince(round.timestamp)}</td>
-      <td className="px-3 py-2 text-[10px] text-slate-300 font-mono">{round.duration_ms}ms</td>
+      <td className="px-3 py-2 text-[14px] text-slate-300 font-mono">${round.price_at_round.toFixed(2)}</td>
+      <td className="px-3 py-2 text-[14px] text-slate-300">{timeSince(round.timestamp)}</td>
+      <td className="px-3 py-2 text-[13px] text-slate-300 font-mono">{round.duration_ms}ms</td>
     </tr>
   )
 }
@@ -459,7 +459,7 @@ export default function OpenClaw() {
                   <span className={rm.color}>{rm.label}</span>
                 </div>
               )}
-              <span className="text-[11px] text-slate-300 font-mono">{timeSince(latestRound.timestamp)} · {latestRound.duration_ms}ms</span>
+              <span className="text-[14px] text-slate-300 font-mono">{timeSince(latestRound.timestamp)} · {latestRound.duration_ms}ms</span>
             </div>
           </div>
 
@@ -552,7 +552,7 @@ export default function OpenClaw() {
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-dark-700 text-[10px] text-slate-300 uppercase tracking-wider font-mono">
+              <tr className="border-b border-dark-700 text-[13px] text-slate-300 uppercase tracking-wider font-mono">
                 <th className="px-3 py-2">Round</th>
                 <th className="px-3 py-2">Trigger</th>
                 <th className="px-3 py-2">Result</th>

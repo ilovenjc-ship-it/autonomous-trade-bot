@@ -60,11 +60,11 @@ export default function SubnetHeatMap() {
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
           <Flame size={15} className="text-orange-400" />
           Network Heat Map
-          <span className="text-[10px] text-slate-500 font-mono font-normal">
+          <span className="text-[13px] text-slate-500 font-mono font-normal">
             64 subnets · scored by APY + stake
           </span>
         </h2>
-        <div className="flex items-center gap-2 text-[10px] font-mono">
+        <div className="flex items-center gap-2 text-[13px] font-mono">
           <span className="text-slate-400">COLD</span>
           <div className="flex gap-0.5">
             {[0, 0.2, 0.4, 0.6, 0.8, 1].map(v => (
@@ -115,10 +115,10 @@ export default function SubnetHeatMap() {
                   <span className="text-[13px] font-black leading-none tracking-tight" style={{ color: txt }}>
                     SN{s.uid}
                   </span>
-                  <span className="text-[10px] font-mono leading-none mt-1.5 opacity-85" style={{ color: txt }}>
+                  <span className="text-[13px] font-mono leading-none mt-1.5 opacity-85" style={{ color: txt }}>
                     {s.apy.toFixed(1)}%
                   </span>
-                  <span className="text-[9px] font-mono leading-none mt-1 opacity-60 truncate max-w-full px-1 text-center" style={{ color: txt }}>
+                  <span className="text-[15px] font-mono leading-none mt-1 opacity-60 truncate max-w-full px-1 text-center" style={{ color: txt }}>
                     {s.name.split(' ')[0]}
                   </span>
                   {isTaoBot && (
@@ -144,12 +144,12 @@ export default function SubnetHeatMap() {
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-bold text-white">SN{hovered.uid} — {hovered.name}</span>
                   {TAOBOT_SUBNETS.has(hovered.uid) && (
-                    <span className="text-[9px] font-mono text-accent-green border border-accent-green/30 rounded px-1 py-0.5">
+                    <span className="text-[15px] font-mono text-accent-green border border-accent-green/30 rounded px-1 py-0.5">
                       TaoBot ✓
                     </span>
                   )}
                 </div>
-                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[10px] font-mono">
+                <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-[13px] font-mono">
                   <span className="text-slate-500">APY</span>
                   <span className="text-amber-400 font-semibold">{hovered.apy.toFixed(1)}%</span>
                   <span className="text-slate-500">Stake</span>
@@ -168,7 +168,7 @@ export default function SubnetHeatMap() {
         )
       })()}
 
-      <div className="mt-3 flex-shrink-0 flex items-center gap-4 text-[10px] font-mono text-slate-500">
+      <div className="mt-3 flex-shrink-0 flex items-center gap-4 text-[13px] font-mono text-slate-500">
         <div className="flex items-center gap-1">
           <span className="w-2 h-2 rounded-full bg-accent-green inline-block" />
           TaoBot validator active

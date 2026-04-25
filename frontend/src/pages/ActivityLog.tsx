@@ -47,7 +47,7 @@ function KindBadge({ kind }: { kind: string }) {
   const m = KIND_META[kind] ?? KIND_META.system
   const Icon = m.icon
   return (
-    <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[10px] font-mono font-semibold', m.color)}>
+    <span className={clsx('inline-flex items-center gap-1 px-2 py-0.5 rounded border text-[13px] font-mono font-semibold', m.color)}>
       <Icon size={10} />
       {m.label.toUpperCase()}
     </span>
@@ -66,7 +66,7 @@ const LEGEND_ITEMS: { kind: string; desc: string }[] = [
 function LegendBar() {
   return (
     <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 px-6 py-2">
-      <span className="text-[10px] font-mono text-slate-500 uppercase tracking-widest pr-1">
+      <span className="text-[13px] font-mono text-slate-500 uppercase tracking-widest pr-1">
         Legend
       </span>
       {LEGEND_ITEMS.map(({ kind, desc }) => {
@@ -77,10 +77,10 @@ function LegendBar() {
         return (
           <span key={kind} className="inline-flex items-center gap-1.5">
             <Icon size={11} className={textColor} />
-            <span className={clsx('text-[11px] font-mono font-semibold', textColor)}>
+            <span className={clsx('text-[14px] font-mono font-semibold', textColor)}>
               {m.label}
             </span>
-            <span className="text-[11px] text-slate-500 font-mono">— {desc}</span>
+            <span className="text-[14px] text-slate-500 font-mono">— {desc}</span>
           </span>
         )
       })}
@@ -251,11 +251,11 @@ export default function ActivityLog() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <KindBadge kind={ev.kind} />
                   {ev.strategy && (
-                    <span className="text-[10px] font-mono text-slate-300 bg-dark-700 px-1.5 py-0.5 rounded">
+                    <span className="text-[13px] font-mono text-slate-300 bg-dark-700 px-1.5 py-0.5 rounded">
                       {ev.strategy}
                     </span>
                   )}
-                  <span className="text-[10px] font-mono text-slate-300 ml-auto">
+                  <span className="text-[13px] font-mono text-slate-300 ml-auto">
                     {ts(ev.timestamp)}
                   </span>
                 </div>

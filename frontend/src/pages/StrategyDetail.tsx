@@ -140,7 +140,7 @@ export default function StrategyDetail() {
           { label: 'Cycles',       value: String(detail.cycles_completed), color: 'text-accent-blue' },
         ].map(({ label, value, color }) => (
           <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3">
-            <p className="text-[10px] text-slate-300 uppercase tracking-widest font-mono">{label}</p>
+            <p className="text-[13px] text-slate-300 uppercase tracking-widest font-mono">{label}</p>
             <p className={clsx('text-xl font-bold font-mono mt-1', color)}>{value}</p>
           </div>
         ))}
@@ -228,7 +228,7 @@ export default function StrategyDetail() {
         <div className="overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
-              <tr className="border-b border-dark-600 text-[10px] text-slate-300 uppercase tracking-wider font-mono">
+              <tr className="border-b border-dark-600 text-[13px] text-slate-300 uppercase tracking-wider font-mono">
                 <th className="px-4 py-2.5 text-left">ID</th>
                 <th className="px-4 py-2.5 text-left">Type</th>
                 <th className="px-4 py-2.5 text-right">Amount</th>
@@ -247,7 +247,7 @@ export default function StrategyDetail() {
                 )}>
                   <td className="px-4 py-2 text-slate-300 font-mono">#{t.id}</td>
                   <td className="px-4 py-2">
-                    <span className={clsx('font-mono font-bold text-[11px]',
+                    <span className={clsx('font-mono font-bold text-[14px]',
                       t.type === 'buy' ? 'text-accent-green' : 'text-red-400')}>
                       {t.type.toUpperCase()}
                     </span>

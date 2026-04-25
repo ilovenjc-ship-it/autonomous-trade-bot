@@ -106,7 +106,7 @@ function RiskSlider({ label, description, value, min, max, step, riskDir, format
             {fmt(value)}
           </span>
         </div>
-        <span className="text-[10px] text-slate-500 font-mono flex-shrink-0">
+        <span className="text-[13px] text-slate-500 font-mono flex-shrink-0">
           {rangeLabel ?? `${min} — ${max}`}
         </span>
       </div>
@@ -140,7 +140,7 @@ function RiskSlider({ label, description, value, min, max, step, riskDir, format
       </div>
 
       {/* Risk zone label */}
-      <div className="flex justify-between text-[9px] font-mono text-slate-600">
+      <div className="flex justify-between text-[15px] font-mono text-slate-600">
         <span className="text-emerald-600">SAFE</span>
         <span className="text-amber-700">MODERATE</span>
         <span className="text-red-700">DANGER</span>
@@ -167,12 +167,12 @@ function StatusCard({
         <Icon size={14} className={danger ? 'text-red-400' : warn ? 'text-amber-400' : 'text-slate-300'} />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] text-slate-500 uppercase tracking-widest font-mono">{label}</p>
+        <p className="text-[13px] text-slate-500 uppercase tracking-widest font-mono">{label}</p>
         <p className={clsx('text-sm font-bold font-mono',
           danger ? 'text-red-400' : warn ? 'text-amber-400' : 'text-emerald-400')}>
           {value}
         </p>
-        {sub && <p className="text-[10px] text-slate-500 mt-0.5">{sub}</p>}
+        {sub && <p className="text-[13px] text-slate-500 mt-0.5">{sub}</p>}
       </div>
     </div>
   )

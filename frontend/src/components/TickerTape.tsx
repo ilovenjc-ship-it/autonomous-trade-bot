@@ -54,12 +54,12 @@ function Pill({ item }: { item: TickerItem }) {
       item.highlight && 'text-yellow-300',
     )}>
       <Icon size={10} className={item.highlight ? 'text-yellow-300' : color} />
-      <span className="text-[10px] font-mono text-slate-400">{item.label}</span>
-      <span className={clsx('text-[11px] font-mono font-bold', item.highlight ? 'text-yellow-300' : color)}>
+      <span className="text-[13px] font-mono text-slate-400">{item.label}</span>
+      <span className={clsx('text-[14px] font-mono font-bold', item.highlight ? 'text-yellow-300' : color)}>
         {item.value}
       </span>
       {item.change && (
-        <span className={clsx('text-[10px] font-mono', color)}>
+        <span className={clsx('text-[13px] font-mono', color)}>
           {item.change}
         </span>
       )}
@@ -137,7 +137,7 @@ export default function TickerTape() {
       <div className="flex-shrink-0 flex items-center gap-1.5 px-3 h-full
                       bg-accent-green/10 border-r border-accent-green/20 z-10">
         <Zap size={10} className="text-accent-green" />
-        <span className="text-[9px] font-mono font-bold text-accent-green tracking-widest uppercase">
+        <span className="text-[15px] font-mono font-bold text-accent-green tracking-widest uppercase">
           Live
         </span>
       </div>

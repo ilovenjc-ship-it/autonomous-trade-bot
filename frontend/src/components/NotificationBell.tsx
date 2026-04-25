@@ -114,7 +114,7 @@ export default function NotificationBell({ unreadCount }: { unreadCount: number 
       >
         <Bell size={15} className={open ? 'text-indigo-300' : ''} />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5 animate-pulse">
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 text-white text-[15px] font-bold rounded-full flex items-center justify-center px-0.5 animate-pulse">
             {unreadCount > 99 ? '99+' : unreadCount}
           </span>
         )}
@@ -134,7 +134,7 @@ export default function NotificationBell({ unreadCount }: { unreadCount: number 
               <Bell size={13} className="text-indigo-400" />
               <span className="text-sm font-bold text-white">Notifications</span>
               {unread > 0 && (
-                <span className="text-[10px] font-bold text-red-400 bg-red-500/15 px-1.5 py-0.5 rounded-full">
+                <span className="text-[13px] font-bold text-red-400 bg-red-500/15 px-1.5 py-0.5 rounded-full">
                   {unread} unread
                 </span>
               )}
@@ -143,7 +143,7 @@ export default function NotificationBell({ unreadCount }: { unreadCount: number 
               {unread > 0 && (
                 <button
                   onClick={markAllRead}
-                  className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-emerald-400 transition-colors"
+                  className="flex items-center gap-1 text-[13px] text-slate-400 hover:text-emerald-400 transition-colors"
                   title="Mark all read"
                 >
                   <CheckCheck size={11} />
@@ -152,7 +152,7 @@ export default function NotificationBell({ unreadCount }: { unreadCount: number 
               )}
               <button
                 onClick={() => { setOpen(false); navigate('/alerts') }}
-                className="text-[10px] text-slate-400 hover:text-indigo-400 transition-colors flex items-center gap-1"
+                className="text-[13px] text-slate-400 hover:text-indigo-400 transition-colors flex items-center gap-1"
               >
                 <ExternalLink size={10} />
                 Inbox
@@ -174,7 +174,7 @@ export default function NotificationBell({ unreadCount }: { unreadCount: number 
               <div className="flex flex-col items-center justify-center py-10 gap-2">
                 <Bell size={24} className="text-slate-700" />
                 <p className="text-xs text-slate-500">No notifications yet</p>
-                <p className="text-[10px] text-slate-600">The fleet will page you when it matters</p>
+                <p className="text-[13px] text-slate-600">The fleet will page you when it matters</p>
               </div>
             )}
             {!loading && alerts.map(alert => {
@@ -216,14 +216,14 @@ export default function NotificationBell({ unreadCount }: { unreadCount: number 
                       {/* Meta row */}
                       <div className="flex items-center gap-2 mt-1">
                         {alert.strategy && (
-                          <span className="text-[9px] font-mono text-indigo-400/70 bg-indigo-500/10 px-1.5 py-0.5 rounded">
+                          <span className="text-[15px] font-mono text-indigo-400/70 bg-indigo-500/10 px-1.5 py-0.5 rounded">
                             {alert.strategy}
                           </span>
                         )}
-                        <span className="text-[9px] text-slate-600 font-mono">
+                        <span className="text-[15px] text-slate-600 font-mono">
                           {timeAgo(alert.timestamp)}
                         </span>
-                        <span className={clsx('text-[9px] font-mono ml-auto', colors.text)}>
+                        <span className={clsx('text-[15px] font-mono ml-auto', colors.text)}>
                           {alert.level}
                         </span>
                       </div>
@@ -239,11 +239,11 @@ export default function NotificationBell({ unreadCount }: { unreadCount: number 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-[9px] text-slate-500 font-mono">Live · polling every 4s</span>
+                <span className="text-[15px] text-slate-500 font-mono">Live · polling every 4s</span>
               </div>
               <button
                 onClick={() => { setOpen(false); navigate('/alerts') }}
-                className="text-[10px] text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
+                className="text-[13px] text-indigo-400 hover:text-indigo-300 transition-colors flex items-center gap-1"
               >
                 View full inbox <ExternalLink size={9} />
               </button>

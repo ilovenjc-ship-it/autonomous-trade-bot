@@ -149,10 +149,10 @@ export default function Trades() {
         <div className="flex items-center gap-2.5 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/25 rounded-lg">
           <span className="text-emerald-400 text-sm">🟢</span>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-bold text-emerald-400 font-mono uppercase tracking-wider">
+            <span className="text-[14px] font-bold text-emerald-400 font-mono uppercase tracking-wider">
               Live Trading — Real TAO
             </span>
-            <span className="text-[10px] text-emerald-400/70 font-mono">
+            <span className="text-[13px] text-emerald-400/70 font-mono">
               System is armed. Strategies with LIVE status fire real <code className="font-mono">add_stake()</code> calls on Finney mainnet.
               Stats include both paper history and confirmed on-chain trades.
               Win rate = execution success rate (executed ÷ total).
@@ -163,10 +163,10 @@ export default function Trades() {
         <div className="flex items-center gap-2.5 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/25 rounded-lg">
           <span className="text-yellow-400 text-sm">📄</span>
           <div className="flex flex-col gap-0.5">
-            <span className="text-[11px] font-bold text-yellow-400 font-mono uppercase tracking-wider">
+            <span className="text-[14px] font-bold text-yellow-400 font-mono uppercase tracking-wider">
               Paper Trading — Simulated
             </span>
-            <span className="text-[10px] text-yellow-400/70 font-mono">
+            <span className="text-[13px] text-yellow-400/70 font-mono">
               These figures reflect paper trading only — no real TAO has moved. Volume and P&amp;L are simulated.
               Win rate = execution success rate (executed ÷ total), not PnL-based.
             </span>
@@ -209,7 +209,7 @@ export default function Trades() {
             Manual Trade
           </h2>
           <div className={clsx(
-            'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold font-mono tracking-wider border',
+            'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-bold font-mono tracking-wider border',
             isLive
               ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
               : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
@@ -223,11 +223,11 @@ export default function Trades() {
         {isLive && (
           <div className="flex items-start gap-2 px-3 py-2.5 bg-emerald-500/8 border border-emerald-500/20 rounded-lg">
             <ShieldAlert size={13} className="text-emerald-400 flex-shrink-0 mt-0.5" />
-            <p className="text-[11px] text-emerald-300/90 leading-snug">
+            <p className="text-[14px] text-emerald-300/90 leading-snug">
               System is <span className="font-bold text-emerald-300">LIVE</span>. This fires a real{' '}
-              <code className="text-emerald-200 font-mono text-[10px]">add_stake()</code> on Finney mainnet.
+              <code className="text-emerald-200 font-mono text-[13px]">add_stake()</code> on Finney mainnet.
               {tradingMode?.validator_hotkey && (
-                <> Validator: <code className="text-emerald-200 font-mono text-[10px]">{tradingMode.validator_hotkey.slice(0, 12)}…</code></>
+                <> Validator: <code className="text-emerald-200 font-mono text-[13px]">{tradingMode.validator_hotkey.slice(0, 12)}…</code></>
               )}
               {' '}Balance: <span className="font-bold text-emerald-300">τ{tradingMode?.wallet_balance_tao?.toFixed(4)}</span>
             </p>
@@ -238,7 +238,7 @@ export default function Trades() {
         <div className="flex items-end gap-3 flex-wrap">
           {/* BUY / SELL toggle */}
           <div>
-            <label className="block text-[10px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">Action</label>
+            <label className="block text-[13px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">Action</label>
             <div className="flex gap-1">
               {(['buy', 'sell'] as const).map((a) => (
                 <button
@@ -259,7 +259,7 @@ export default function Trades() {
 
           {/* Amount */}
           <div>
-            <label className="block text-[10px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">Amount (TAO)</label>
+            <label className="block text-[13px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">Amount (TAO)</label>
             <input
               type="number"
               value={manualAmount}
@@ -273,7 +273,7 @@ export default function Trades() {
           {/* USD estimate */}
           {status?.current_price && (
             <div>
-              <label className="block text-[10px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">≈ USD</label>
+              <label className="block text-[13px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">≈ USD</label>
               <div className="w-28 h-9 flex items-center px-3 bg-dark-700 border border-dark-600 rounded-lg text-sm font-mono text-slate-400">
                 ${(parseFloat(manualAmount || '0') * (status.current_price ?? 0)).toFixed(4)}
               </div>
@@ -305,7 +305,7 @@ export default function Trades() {
             <AlertTriangle size={15} className="text-amber-400 flex-shrink-0" />
             <div className="flex-1">
               <p className="text-xs font-bold text-amber-300">Confirm real on-chain trade</p>
-              <p className="text-[10px] text-amber-400/80 mt-0.5">
+              <p className="text-[13px] text-amber-400/80 mt-0.5">
                 {manualAction.toUpperCase()} τ{manualAmount} ≈ $
                 {(parseFloat(manualAmount || '0') * (status?.current_price ?? 0)).toFixed(4)} —
                 this will fire <code className="font-mono">add_stake()</code> on Finney mainnet
@@ -351,7 +351,7 @@ export default function Trades() {
                     : '🟢 REAL TRADE EXECUTED ON-CHAIN'
                   : '🟡 Paper trade simulated'}
               </span>
-              <span className="ml-auto text-[10px] font-mono text-slate-500">
+              <span className="ml-auto text-[13px] font-mono text-slate-500">
                 τ{tradeResult.amount} @ ${tradeResult.price?.toFixed(2)}
               </span>
             </div>
@@ -360,7 +360,7 @@ export default function Trades() {
             {tradeResult.tx_hash && (
               <div className="flex items-center gap-2 bg-dark-900 rounded-lg px-3 py-2 border border-dark-500">
                 <Activity size={11} className={tradeResult.is_real ? 'text-emerald-400' : 'text-slate-500'} />
-                <code className="text-[10px] font-mono text-slate-300 flex-1 truncate">
+                <code className="text-[13px] font-mono text-slate-300 flex-1 truncate">
                   {tradeResult.tx_hash}
                 </code>
                 <button
@@ -389,7 +389,7 @@ export default function Trades() {
             )}
 
             {!tradeResult.success && (
-              <p className="text-[11px] text-red-400 font-mono">{tradeResult.message}</p>
+              <p className="text-[14px] text-red-400 font-mono">{tradeResult.message}</p>
             )}
           </div>
         )}
@@ -477,15 +477,15 @@ export default function Trades() {
                         const onChain = t.tx_hash && !t.tx_hash.startsWith('block:sim')
                         if (mode === 'LIVE') return (
                           <span className="inline-flex items-center gap-1">
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">● LIVE</span>
-                            {onChain && <span className="px-1.5 py-0.5 rounded text-[9px] font-mono font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">⛓</span>}
+                            <span className="px-2 py-0.5 rounded text-[13px] font-mono font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/40">● LIVE</span>
+                            {onChain && <span className="px-1.5 py-0.5 rounded text-[15px] font-mono font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">⛓</span>}
                           </span>
                         )
                         if (mode === 'APPROVED_FOR_LIVE') return (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">✅ APPROVED</span>
+                          <span className="px-2 py-0.5 rounded text-[13px] font-mono font-bold bg-sky-500/15 text-sky-400 border border-sky-500/30">✅ APPROVED</span>
                         )
                         return (
-                          <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">◌ PAPER</span>
+                          <span className="px-2 py-0.5 rounded text-[13px] font-mono font-bold bg-yellow-500/15 text-yellow-400 border border-yellow-500/30">◌ PAPER</span>
                         )
                       })()}
                     </td>
@@ -510,7 +510,7 @@ export default function Trades() {
                     </td>
                     <td className="px-4 py-3">
                       <span className={clsx(
-                        'px-2 py-0.5 rounded text-[10px] font-mono',
+                        'px-2 py-0.5 rounded text-[13px] font-mono',
                         t.status === 'executed' ? 'bg-accent-green/10 text-accent-green' :
                         t.status === 'failed'   ? 'bg-accent-red/10 text-accent-red' :
                         'bg-dark-600 text-slate-300'

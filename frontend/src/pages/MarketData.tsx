@@ -60,7 +60,7 @@ function ApyBadge({ apy }: { apy: number }) {
     apy >= 15 ? 'bg-yellow-400/20 text-yellow-400' :
                 'bg-dark-600 text-slate-300'
   return (
-    <span className={clsx('px-2 py-0.5 rounded font-mono text-[11px] font-semibold', color)}>
+    <span className={clsx('px-2 py-0.5 rounded font-mono text-[14px] font-semibold', color)}>
       {apy.toFixed(1)}%
     </span>
   )
@@ -85,9 +85,9 @@ function ScoreBar({ score }: { score: number }) {
 function KPI({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
     <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex flex-col gap-1 min-w-0">
-      <p className="text-[10px] text-slate-300 uppercase tracking-widest font-mono truncate">{label}</p>
+      <p className="text-[13px] text-slate-300 uppercase tracking-widest font-mono truncate">{label}</p>
       <p className={clsx('text-xl font-bold font-mono truncate', color ?? 'text-white')}>{value}</p>
-      {sub && <p className="text-[10px] text-slate-300 truncate">{sub}</p>}
+      {sub && <p className="text-[13px] text-slate-300 truncate">{sub}</p>}
     </div>
   )
 }
@@ -290,14 +290,14 @@ export default function MarketData() {
                     {idx < 3 && <Star size={10} className="text-yellow-400 flex-shrink-0" />}
                     <div>
                       <p className="text-white font-medium">{s.name}</p>
-                      <p className="text-slate-300 font-mono text-[10px]">SN{s.uid}</p>
+                      <p className="text-slate-300 font-mono text-[13px]">SN{s.uid}</p>
                     </div>
                   </div>
                 </td>
 
                 {/* Ticker */}
                 <td className="px-4 py-2.5">
-                  <span className="font-mono text-slate-300 text-[11px] bg-dark-700 px-1.5 py-0.5 rounded">
+                  <span className="font-mono text-slate-300 text-[14px] bg-dark-700 px-1.5 py-0.5 rounded">
                     {s.ticker.toUpperCase()}
                   </span>
                 </td>

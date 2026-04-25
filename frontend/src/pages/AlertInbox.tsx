@@ -114,19 +114,19 @@ function AlertRow({ alert, onMarkRead }: { alert: Alert; onMarkRead: (id: number
               {alert.title}
             </p>
             <span className={clsx(
-              'text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full border',
+              'text-[13px] font-mono font-bold px-1.5 py-0.5 rounded-full border',
               lc.bg, lc.border, lc.text,
             )}>
               {lc.label}
             </span>
-            <span className="text-[10px] text-slate-300 font-mono bg-dark-700 px-1.5 py-0.5 rounded">
+            <span className="text-[13px] text-slate-300 font-mono bg-dark-700 px-1.5 py-0.5 rounded">
               {tc.label}
             </span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <div className="text-right">
-              <p className="text-[11px] text-slate-300 font-mono">{toET(alert.timestamp)}</p>
-              <p className="text-[10px] text-slate-500 font-mono">{timeSince(alert.timestamp)}</p>
+              <p className="text-[14px] text-slate-300 font-mono">{toET(alert.timestamp)}</p>
+              <p className="text-[13px] text-slate-500 font-mono">{timeSince(alert.timestamp)}</p>
             </div>
             {!alert.read && (
               <button
@@ -143,10 +143,10 @@ function AlertRow({ alert, onMarkRead }: { alert: Alert; onMarkRead: (id: number
         <p className="text-xs text-slate-300 mt-1 leading-relaxed">{alert.message}</p>
 
         {alert.strategy && (
-          <p className="text-[11px] text-indigo-400 font-mono mt-1">↳ {alert.strategy}</p>
+          <p className="text-[14px] text-indigo-400 font-mono mt-1">↳ {alert.strategy}</p>
         )}
         {alert.detail && (
-          <p className="text-[10px] text-slate-300 font-mono mt-0.5">{alert.detail}</p>
+          <p className="text-[13px] text-slate-300 font-mono mt-0.5">{alert.detail}</p>
         )}
       </div>
     </div>
@@ -216,7 +216,7 @@ export default function AlertInbox() {
               <Bell size={18} className="text-white" />
             </div>
             {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[13px] font-bold rounded-full flex items-center justify-center px-1">
                 {unreadCount > 99 ? '99+' : unreadCount}
               </span>
             )}
@@ -258,7 +258,7 @@ export default function AlertInbox() {
             { label: 'Warnings', value: (stats.by_level?.WARNING ?? 0),       accent: 'text-amber-400'  },
           ].map(({ label, value, accent }) => (
             <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl p-3 text-center">
-              <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
+              <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
               <p className={clsx('text-2xl font-bold font-mono mt-1', accent)}>{value}</p>
             </div>
           ))}
@@ -276,7 +276,7 @@ export default function AlertInbox() {
               key={level}
               onClick={() => setLevelFilter(level)}
               className={clsx(
-                'px-3 py-1 rounded-lg text-[11px] font-mono font-semibold transition-colors',
+                'px-3 py-1 rounded-lg text-[14px] font-mono font-semibold transition-colors',
                 levelFilter === level
                   ? level === 'ALL'
                     ? 'bg-slate-600 text-white'
@@ -295,7 +295,7 @@ export default function AlertInbox() {
         <button
           onClick={() => setUnreadOnly(v => !v)}
           className={clsx(
-            'flex items-center gap-1.5 px-3 py-1 rounded-lg text-[11px] font-mono font-semibold transition-colors',
+            'flex items-center gap-1.5 px-3 py-1 rounded-lg text-[14px] font-mono font-semibold transition-colors',
             unreadOnly
               ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
               : 'bg-dark-700 text-slate-300 hover:text-white',
@@ -323,7 +323,7 @@ export default function AlertInbox() {
         <div className="px-4 py-3 border-b border-dark-700 flex items-center gap-2">
           <Bell size={13} className="text-slate-300" />
           <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Alerts</span>
-          <span className="ml-auto text-[10px] text-slate-300 font-mono">{filtered.length} shown</span>
+          <span className="ml-auto text-[13px] text-slate-300 font-mono">{filtered.length} shown</span>
         </div>
 
         {filtered.length === 0 ? (
@@ -366,8 +366,8 @@ export default function AlertInbox() {
               >
                 <Icon size={12} />
                 <div>
-                  <p className="text-[10px] font-mono leading-none">{cfg.label}</p>
-                  <p className="text-[10px] text-slate-300 font-mono">{count} fired</p>
+                  <p className="text-[13px] font-mono leading-none">{cfg.label}</p>
+                  <p className="text-[13px] text-slate-300 font-mono">{count} fired</p>
                 </div>
               </button>
             )

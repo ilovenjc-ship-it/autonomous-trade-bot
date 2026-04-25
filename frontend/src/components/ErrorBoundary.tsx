@@ -43,7 +43,7 @@ export default class ErrorBoundary extends Component<Props, State> {
           </p>
 
           <div className="bg-dark-900 rounded-lg p-3 border border-dark-600">
-            <p className="text-[11px] font-mono text-red-400 break-all line-clamp-3">
+            <p className="text-[14px] font-mono text-red-400 break-all line-clamp-3">
               {this.state.error.message}
             </p>
           </div>
@@ -66,7 +66,7 @@ export default class ErrorBoundary extends Component<Props, State> {
             </button>
           </div>
 
-          <p className="text-[10px] text-slate-600 font-mono text-center">
+          <p className="text-[13px] text-slate-600 font-mono text-center">
             The bot continues trading in the background regardless of UI errors.
           </p>
         </div>

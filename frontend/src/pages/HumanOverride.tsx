@@ -64,7 +64,7 @@ function ModeStep({ mode, active }: { mode: string; active: boolean }) {
   const m = MODE_META[mode]
   return (
     <span className={clsx(
-      'px-2 py-0.5 rounded border text-[10px] font-mono font-bold transition-all',
+      'px-2 py-0.5 rounded border text-[13px] font-mono font-bold transition-all',
       active ? m.badge : 'bg-dark-900 text-slate-600 border-dark-700',
     )}>
       {m.prefix} {m.short}
@@ -254,7 +254,7 @@ export default function HumanOverride() {
               <div>
                 <p className="text-sm font-bold text-red-400 font-mono">EMERGENCY HALT ACTIVE</p>
                 {status?.halted_at && (
-                  <p className="text-[10px] text-red-400/60 font-mono">Halted at {status.halted_at.replace('T', ' ').slice(0, 19)} UTC</p>
+                  <p className="text-[13px] text-red-400/60 font-mono">Halted at {status.halted_at.replace('T', ' ').slice(0, 19)} UTC</p>
                 )}
               </div>
             </div>
@@ -333,7 +333,7 @@ export default function HumanOverride() {
               </button>
             )}
 
-            <p className="text-[10px] text-slate-500 font-mono leading-relaxed">
+            <p className="text-[13px] text-slate-500 font-mono leading-relaxed">
               Emergency Stop halts the cycle engine and trading engine immediately. No new trades will execute until Resume is called.
             </p>
           </div>
@@ -356,7 +356,7 @@ export default function HumanOverride() {
               <ChevronRight size={13} className="text-slate-500" />
             </button>
 
-            <p className="text-[10px] text-slate-500 font-mono">
+            <p className="text-[13px] text-slate-500 font-mono">
               Gate check evaluates all 12 strategies for promotion eligibility right now, bypassing the 5-minute throttle. Capital rebalances automatically every 24h and on every promote/demote.
             </p>
           </div>
@@ -370,7 +370,7 @@ export default function HumanOverride() {
             {halted && (
               <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
                 <AlertTriangle size={11} className="text-red-400" />
-                <span className="text-[11px] text-red-400 font-mono">System halted — resume before trading</span>
+                <span className="text-[14px] text-red-400 font-mono">System halted — resume before trading</span>
               </div>
             )}
 
@@ -402,7 +402,7 @@ export default function HumanOverride() {
 
             {/* Amount */}
             <div>
-              <label className="text-[10px] text-slate-400 uppercase tracking-wider font-mono block mb-1.5">
+              <label className="text-[13px] text-slate-400 uppercase tracking-wider font-mono block mb-1.5">
                 Amount (τ)
               </label>
               <input
@@ -418,7 +418,7 @@ export default function HumanOverride() {
 
             {/* Reason */}
             <div>
-              <label className="text-[10px] text-slate-400 uppercase tracking-wider font-mono block mb-1.5">
+              <label className="text-[13px] text-slate-400 uppercase tracking-wider font-mono block mb-1.5">
                 Reason (optional)
               </label>
               <input
@@ -465,7 +465,7 @@ export default function HumanOverride() {
               </button>
             )}
 
-            <p className="text-[10px] text-slate-500 font-mono">
+            <p className="text-[13px] text-slate-500 font-mono">
               First click stages the trade. Second click executes. In paper mode this records a simulated trade. In live mode this submits to chain.
             </p>
           </div>
@@ -478,7 +478,7 @@ export default function HumanOverride() {
             <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
               <ArrowUp size={13} className="text-accent-green" /> Strategy Mode Override
             </h2>
-            <p className="text-[10px] text-slate-500 font-mono">bypasses gate · instant · permanent until changed</p>
+            <p className="text-[13px] text-slate-500 font-mono">bypasses gate · instant · permanent until changed</p>
           </div>
 
           {/* Mode legend */}
@@ -486,12 +486,12 @@ export default function HumanOverride() {
             {MODE_ORDER.map(m => {
               const meta = MODE_META[m]
               return (
-                <span key={m} className={clsx('px-2 py-0.5 rounded border text-[10px] font-mono font-bold', meta.badge)}>
+                <span key={m} className={clsx('px-2 py-0.5 rounded border text-[13px] font-mono font-bold', meta.badge)}>
                   {meta.prefix} {meta.label}
                 </span>
               )
             })}
-            <span className="text-[10px] text-slate-500 ml-2">— click ↑ to promote, ↓ to demote</span>
+            <span className="text-[13px] text-slate-500 ml-2">— click ↑ to promote, ↓ to demote</span>
           </div>
 
           {/* Strategy rows */}
@@ -511,7 +511,7 @@ export default function HumanOverride() {
                   {/* name */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-white font-medium truncate">{s.display_name}</p>
-                    <p className="text-[10px] text-slate-500 font-mono">{s.name}</p>
+                    <p className="text-[13px] text-slate-500 font-mono">{s.name}</p>
                   </div>
 
                   {/* win rate */}
@@ -522,7 +522,7 @@ export default function HumanOverride() {
                     )}>
                       {s.win_rate.toFixed(1)}%
                     </p>
-                    <p className="text-[9px] text-slate-500">win rate</p>
+                    <p className="text-[15px] text-slate-500">win rate</p>
                   </div>
 
                   {/* PnL */}
@@ -533,7 +533,7 @@ export default function HumanOverride() {
                     )}>
                       {fmtTao(s.total_pnl)}
                     </p>
-                    <p className="text-[9px] text-slate-500">PnL</p>
+                    <p className="text-[15px] text-slate-500">PnL</p>
                   </div>
 
                   {/* Stake / Trade — inline editable */}
@@ -552,15 +552,15 @@ export default function HumanOverride() {
                           className="w-20 px-2 py-1 text-xs font-mono bg-dark-800 border border-accent-blue/50 rounded text-white focus:outline-none focus:border-accent-blue"
                           placeholder="0.0100"
                         />
-                        <span className="text-[10px] text-slate-500 font-mono">τ</span>
+                        <span className="text-[13px] text-slate-500 font-mono">τ</span>
                         <button
                           onClick={() => doSetStake(s.name)}
-                          className="text-accent-green hover:text-white text-[10px] font-mono font-bold transition-colors"
+                          className="text-accent-green hover:text-white text-[13px] font-mono font-bold transition-colors"
                           title="Save"
                         >✓</button>
                         <button
                           onClick={() => setStakeEditing(null)}
-                          className="text-slate-500 hover:text-red-400 text-[10px] font-mono transition-colors"
+                          className="text-slate-500 hover:text-red-400 text-[13px] font-mono transition-colors"
                           title="Cancel"
                         >✗</button>
                       </div>
@@ -576,7 +576,7 @@ export default function HumanOverride() {
                         )}>
                           {s.stake_amount != null ? `${s.stake_amount.toFixed(4)} τ` : '—'}
                         </p>
-                        <p className="text-[9px] text-slate-500">stake/trade</p>
+                        <p className="text-[15px] text-slate-500">stake/trade</p>
                       </button>
                     )}
                   </div>
@@ -637,7 +637,7 @@ export default function HumanOverride() {
           </div>
 
           {/* footer note */}
-          <p className="text-[10px] text-slate-500 font-mono mt-4 leading-relaxed">
+          <p className="text-[13px] text-slate-500 font-mono mt-4 leading-relaxed">
             Mode changes are instant and persistent (written to DB). Promoting a strategy to LIVE while in paper trading mode
             means it will execute real on-chain trades when live mode is enabled. Demoting from LIVE does not cancel open positions.
           </p>

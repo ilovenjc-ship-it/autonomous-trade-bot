@@ -105,7 +105,7 @@ function ModeBadge({ mode, isActive }: { mode: string; isActive: boolean }) {
     PAPER_ONLY:        'PAPER',
   }
   return (
-    <span className={clsx('text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border', cfg[mode] ?? cfg.PAPER_ONLY)}>
+    <span className={clsx('text-[13px] font-mono font-bold px-2 py-0.5 rounded-full border', cfg[mode] ?? cfg.PAPER_ONLY)}>
       {label[mode] ?? mode}
     </span>
   )
@@ -235,10 +235,10 @@ export default function PnLSummary() {
           <div key={label} className={clsx('bg-dark-800 border border-dark-600 rounded-2xl p-4 shadow-lg', glow)}>
             <div className="flex items-center gap-2 mb-3">
               <Icon size={14} className="text-slate-400" />
-              <p className="text-[11px] text-slate-400 uppercase tracking-wider font-mono">{label}</p>
+              <p className="text-[14px] text-slate-400 uppercase tracking-wider font-mono">{label}</p>
             </div>
             <p className={clsx('text-2xl font-bold font-mono', color)}>{value}</p>
-            <p className="text-[11px] text-slate-500 font-mono mt-1">{sub}</p>
+            <p className="text-[14px] text-slate-500 font-mono mt-1">{sub}</p>
           </div>
         ))}
       </div>
@@ -278,7 +278,7 @@ export default function PnLSummary() {
           <div className="px-5 py-3 border-b border-dark-700 flex items-center gap-2">
             <Trophy size={13} className="text-amber-400" />
             <span className="text-xs font-semibold text-white uppercase tracking-wider">Strategy Leaderboard</span>
-            <span className="ml-auto text-[10px] text-slate-500 font-mono">{by_strategy.length} strategies</span>
+            <span className="ml-auto text-[13px] text-slate-500 font-mono">{by_strategy.length} strategies</span>
           </div>
           <div className="divide-y divide-dark-700/60">
             {by_strategy.map((s, i) => (
@@ -313,7 +313,7 @@ export default function PnLSummary() {
                   <p className={clsx('text-sm font-bold font-mono', s.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
                     {fmtTau(s.total_pnl)}
                   </p>
-                  <p className="text-[10px] text-slate-500 font-mono">
+                  <p className="text-[13px] text-slate-500 font-mono">
                     {s.win_rate}% WR · {s.total_trades} trades
                   </p>
                 </div>
@@ -350,7 +350,7 @@ export default function PnLSummary() {
                     {fmtTau(t.total_pnl)}
                   </span>
                 </div>
-                <div className="space-y-1.5 text-[11px] font-mono">
+                <div className="space-y-1.5 text-[14px] font-mono">
                   {[
                     { label: 'Trades',   val: t.total_trades.toLocaleString() },
                     { label: 'Win Rate', val: `${t.win_rate}%` },
@@ -382,7 +382,7 @@ export default function PnLSummary() {
                 key={v}
                 onClick={() => setView(v)}
                 className={clsx(
-                  'px-3 py-1 rounded-lg text-[11px] font-mono font-semibold transition-colors',
+                  'px-3 py-1 rounded-lg text-[14px] font-mono font-semibold transition-colors',
                   view === v
                     ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
                     : 'text-slate-500 hover:text-white'
@@ -426,12 +426,12 @@ export default function PnLSummary() {
       {/* ── Top / Worst Trade ── */}
       <div className="grid grid-cols-2 gap-4">
         <div className="bg-dark-800 border border-emerald-500/20 rounded-2xl p-4">
-          <p className="text-[10px] text-emerald-400 uppercase tracking-wider font-mono mb-2">Best Single Trade</p>
+          <p className="text-[13px] text-emerald-400 uppercase tracking-wider font-mono mb-2">Best Single Trade</p>
           <p className="text-2xl font-bold font-mono text-emerald-400">{fmtTau(fleet.best_trade)}</p>
           <p className="text-xs text-slate-500 font-mono mt-1">{fmtUSD(fleet.best_trade * (data.tao_price_usd ?? 259.31))}</p>
         </div>
         <div className="bg-dark-800 border border-red-500/20 rounded-2xl p-4">
-          <p className="text-[10px] text-red-400 uppercase tracking-wider font-mono mb-2">Worst Single Trade</p>
+          <p className="text-[13px] text-red-400 uppercase tracking-wider font-mono mb-2">Worst Single Trade</p>
           <p className="text-2xl font-bold font-mono text-red-400">{fmtTau(fleet.worst_trade)}</p>
           <p className="text-xs text-slate-500 font-mono mt-1">{fmtUSD(fleet.worst_trade * (data.tao_price_usd ?? 259.31))}</p>
         </div>

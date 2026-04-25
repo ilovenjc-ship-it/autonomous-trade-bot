@@ -32,7 +32,7 @@ function FieldRow({
       <div className="flex-1 min-w-0">
         <label className="block text-xs font-semibold text-slate-300 mb-1">{label}</label>
         {children}
-        {hint && <p className="text-[10px] text-slate-500 mt-1 leading-snug">{hint}</p>}
+        {hint && <p className="text-[13px] text-slate-500 mt-1 leading-snug">{hint}</p>}
       </div>
     </div>
   )
@@ -54,7 +54,7 @@ function NumberInput({
         className="input w-full pr-12"
       />
       {suffix && (
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-500 font-mono pointer-events-none">
+        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[13px] text-slate-500 font-mono pointer-events-none">
           {suffix}
         </span>
       )}
@@ -152,7 +152,7 @@ export default function Settings() {
       {/* Mode badge row */}
       <div className="flex flex-wrap items-center gap-2">
         <span className={clsx(
-          'flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold border',
+          'flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-mono font-semibold border',
           simMode
             ? 'bg-slate-700/60 text-slate-300 border-slate-600'
             : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
@@ -162,7 +162,7 @@ export default function Settings() {
         </span>
 
         {isMainnet && (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono font-semibold border bg-amber-500/10 text-amber-400 border-amber-500/30">
+          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-mono font-semibold border bg-amber-500/10 text-amber-400 border-amber-500/30">
             <AlertTriangle size={11} />
             FINNEY MAINNET — real money
           </span>
@@ -257,7 +257,7 @@ export default function Settings() {
 
         <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-500/8 border border-blue-500/15 rounded-lg">
           <Wifi size={12} className="text-blue-400 flex-shrink-0 mt-0.5" />
-          <p className="text-[11px] text-blue-400/80 leading-snug">
+          <p className="text-[14px] text-blue-400/80 leading-snug">
             Stop-loss %, take-profit %, and consensus thresholds are managed on the{' '}
             <span className="font-semibold text-blue-400">Risk Config</span> page.
           </p>

@@ -73,7 +73,7 @@ export default function TradingModeBanner() {
     return (
       <div className="w-full h-8 bg-dark-700 flex items-center justify-center gap-2">
         <Loader2 size={12} className="animate-spin text-slate-400" />
-        <span className="text-[10px] text-slate-400 font-mono">Checking trading mode…</span>
+        <span className="text-[13px] text-slate-400 font-mono">Checking trading mode…</span>
       </div>
     )
   }
@@ -147,22 +147,22 @@ export default function TradingModeBanner() {
 
         {/* Trade counts */}
         <div className="flex items-center gap-4 flex-shrink-0 mr-3">
-          <span className="text-[10px] font-mono text-slate-400">
+          <span className="text-[13px] font-mono text-slate-400">
             Total: <span className="text-slate-200">{(data.trade_summary?.total ?? 0).toLocaleString()}</span>
           </span>
-          <span className="text-[10px] font-mono text-slate-400">
+          <span className="text-[13px] font-mono text-slate-400">
             Real: <span className={clsx('font-bold', (data.trade_summary?.real ?? 0) > 0 ? 'text-emerald-400' : 'text-slate-400')}>
               {(data.trade_summary?.real ?? 0).toLocaleString()}
             </span>
           </span>
-          <span className="text-[10px] font-mono text-slate-400">
+          <span className="text-[13px] font-mono text-slate-400">
             Paper: <span className="text-amber-400">{(data.trade_summary?.paper ?? 0).toLocaleString()}</span>
           </span>
         </div>
 
         {/* Wallet */}
         {data.wallet_balance_tao > 0 && (
-          <span className="text-[10px] font-mono text-slate-300 flex-shrink-0 mr-2">
+          <span className="text-[13px] font-mono text-slate-300 flex-shrink-0 mr-2">
             τ {data.wallet_balance_tao.toFixed(6)}
           </span>
         )}
@@ -188,7 +188,7 @@ export default function TradingModeBanner() {
                   : <XCircle    size={13} className="text-red-400 flex-shrink-0" />
                 }
                 <span className={clsx(
-                  'text-[11px] font-mono',
+                  'text-[14px] font-mono',
                   g.ok ? 'text-slate-300' : 'text-red-300'
                 )}>
                   {g.label}
@@ -200,13 +200,13 @@ export default function TradingModeBanner() {
           {/* Armed strategies */}
           {(data.live_strategies?.length ?? 0) > 0 && (
             <div className="mb-3">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
+              <p className="text-[15px] font-bold uppercase tracking-widest text-slate-500 mb-1.5">
                 Armed Strategies
               </p>
               <div className="flex flex-wrap gap-2">
                 {(data.live_strategies ?? []).map(s => (
                   <span key={s.name}
-                    className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-[10px] text-emerald-300 font-mono">
+                    className="px-2 py-0.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-[13px] text-emerald-300 font-mono">
                     {s.display_name}
                   </span>
                 ))}
@@ -217,10 +217,10 @@ export default function TradingModeBanner() {
           {/* Validator */}
           {data.validator_hotkey && (
             <div>
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-500 mb-1">
+              <p className="text-[15px] font-bold uppercase tracking-widest text-slate-500 mb-1">
                 Target Validator
               </p>
-              <p className="text-[10px] font-mono text-slate-400">
+              <p className="text-[13px] font-mono text-slate-400">
                 {data.validator_hotkey}
               </p>
             </div>
@@ -228,11 +228,11 @@ export default function TradingModeBanner() {
 
           {/* What happens next */}
           {isLive ? (
-            <p className="mt-3 text-[10px] text-emerald-400/60 font-mono">
+            <p className="mt-3 text-[13px] text-emerald-400/60 font-mono">
               Next LIVE strategy signal + 7/12 OpenClaw votes → stake() fires on Finney → tx_hash recorded
             </p>
           ) : (
-            <p className="mt-3 text-[10px] text-amber-400/60 font-mono">
+            <p className="mt-3 text-[13px] text-amber-400/60 font-mono">
               All conditions above must be ✅ for live trading to activate
             </p>
           )}

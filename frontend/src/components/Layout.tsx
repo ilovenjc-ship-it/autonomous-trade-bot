@@ -9,7 +9,6 @@ import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
 import api from '@/api/client'
 import clsx from 'clsx'
-import TradingModeBanner from '@/components/TradingModeBanner'
 import NotificationBell from '@/components/NotificationBell'
 import TickerTape from '@/components/TickerTape'
 
@@ -111,13 +110,12 @@ export default function Layout() {
     <div className="flex h-screen overflow-hidden bg-dark-900">
       {/* Sidebar */}
       <aside className="w-56 flex-shrink-0 bg-dark-800 border-r border-dark-600 flex flex-col">
-        {/* TAO price — top of sidebar */}
-        <div className="px-4 py-3 border-b border-dark-600">
-          {price && (
-            <p className="text-xs text-slate-300 font-mono px-1">
-              TAO <span className="text-white font-semibold">${price.toFixed(2)}</span>
-            </p>
-          )}
+        {/* Brand — upper left corner */}
+        <div className="px-4 py-4 border-b border-dark-600">
+          <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">Powered by</p>
+          <p className="text-sm font-bold text-emerald-400 leading-tight tracking-wide drop-shadow-[0_0_8px_rgba(0,229,160,0.4)]">
+            Intelligent Internet
+          </p>
         </div>
 
         {/* Nav */}
@@ -143,7 +141,7 @@ export default function Layout() {
               <Icon size={16} />
               <span className="flex-1">{label}</span>
               {badge && unreadCount > 0 && (
-                <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
+                <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[13px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
                   {unreadCount > 99 ? '99+' : unreadCount}
                 </span>
               )}
@@ -165,7 +163,7 @@ export default function Layout() {
               <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/60 flex-shrink-0">
                 <div className="flex items-center gap-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] animate-pulse" />
-                  <span className="text-[10px] font-bold tracking-widest text-emerald-400 uppercase">II Agent</span>
+                  <span className="text-[13px] font-bold tracking-widest text-emerald-400 uppercase">II Agent</span>
                 </div>
                 <button onClick={() => setOrbOpen(false)} className="text-slate-500 hover:text-slate-300 transition-colors">
                   <ChevronDown size={14} />
@@ -175,14 +173,14 @@ export default function Layout() {
               {/* Messages */}
               <div ref={chatPanelRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
                 {chatHistory.length === 0 && !chatLoading && (
-                  <p className="text-[10px] text-slate-500 italic text-center mt-4">
+                  <p className="text-[13px] text-slate-500 italic text-center mt-4">
                     Ask II Agent anything about the fleet…
                   </p>
                 )}
                 {chatHistory.map((m, i) => (
                   <div key={i} className={clsx('flex', m.role === 'user' ? 'justify-end' : 'justify-start')}>
                     <div className={clsx(
-                      'max-w-[85%] px-2.5 py-1.5 rounded-lg text-[11px] leading-relaxed',
+                      'max-w-[85%] px-2.5 py-1.5 rounded-lg text-[14px] leading-relaxed',
                       m.role === 'user'
                         ? 'bg-blue-500/20 text-blue-100 rounded-br-sm'
                         : 'bg-slate-800/80 text-slate-200 rounded-bl-sm border border-slate-700/40'
@@ -204,7 +202,7 @@ export default function Layout() {
                   </div>
                 )}
                 {voiceHint && (
-                  <p className="text-[9px] text-red-400 text-center">{voiceHint}</p>
+                  <p className="text-[15px] text-red-400 text-center">{voiceHint}</p>
                 )}
               </div>
 
@@ -217,7 +215,7 @@ export default function Layout() {
                   onChange={e => setChatInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && sendMessage(chatInput)}
                   placeholder="Ask II Agent…"
-                  className="flex-1 bg-slate-800/60 border border-slate-700/40 rounded-lg px-2.5 py-1.5 text-[11px] text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500/40 transition-colors"
+                  className="flex-1 bg-slate-800/60 border border-slate-700/40 rounded-lg px-2.5 py-1.5 text-[14px] text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500/40 transition-colors"
                 />
                 {/* Mic button — voice option */}
                 <button
@@ -300,7 +298,7 @@ export default function Layout() {
             </div>
             {/* Subtext — always visible when active, hover-reveal when idle */}
             <div className={clsx(
-              'text-[9px] mt-1 font-mono transition-all duration-200',
+              'text-[15px] mt-1 font-mono transition-all duration-200',
               orbOpen
                 ? 'text-emerald-400 animate-pulse opacity-100'
                 : 'text-slate-500 opacity-0 group-hover/label:opacity-100 group-hover/label:text-emerald-400/70'
@@ -310,36 +308,38 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Network indicator */}
+        {/* Bottom-left — Finney mainnet · Live (relocated from top bar) */}
         <div className="px-4 py-3 border-t border-dark-600">
           <div className="flex items-center gap-2">
-            <Activity size={12} className={status?.network_connected ? 'text-accent-green' : 'text-slate-300'} />
-            <span className="text-xs text-slate-300 font-mono">
-              {status?.network_connected ? status.network : 'disconnected'}
-            </span>
+            <span className={clsx(
+              'w-2 h-2 rounded-full flex-shrink-0 transition-colors',
+              status?.network_connected ? 'bg-accent-green animate-pulse' : 'bg-slate-500'
+            )} />
+            <div className="min-w-0">
+              <p className="text-sm font-semibold font-mono text-slate-200 leading-none">
+                Finney mainnet
+              </p>
+              <p className={clsx(
+                'text-[13px] font-mono mt-0.5',
+                status?.network_connected ? 'text-accent-green' : 'text-slate-500'
+              )}>
+                {status?.network_connected ? '● Live' : '○ Offline'}
+              </p>
+            </div>
           </div>
           {status?.simulation_mode && (
-            <p className="mt-1 text-[10px] text-yellow-400/80 font-mono">⚠ SIMULATION MODE</p>
+            <p className="mt-1.5 text-[13px] text-yellow-400/80 font-mono">⚠ SIMULATION MODE</p>
           )}
         </div>
       </aside>
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto flex flex-col">
-        {/* Top bar — bot status pill + notification bell */}
+        {/* Top bar — notification bell only (Finney status moved to sidebar bottom) */}
         <div className="flex-shrink-0 flex items-center justify-end gap-3 px-4 py-2 bg-dark-900 border-b border-dark-700/50">
-          {/* Left: Finney network status */}
-          <div className="flex items-center gap-2 mr-auto">
-            {status?.network_connected && (
-              <span className="text-[10px] font-mono text-emerald-400/70 flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse inline-block" />
-                Finney mainnet · LIVE
-              </span>
-            )}
-          </div>
           <NotificationBell unreadCount={unreadCount} />
         </div>
-        <TradingModeBanner />
+        {/* TradingModeBanner removed from universal layout — shown per-page where relevant */}
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
           <Outlet />
         </div>

@@ -26,7 +26,7 @@ interface Summary {
 
 function HealthDot({ health }: { health: string }) {
   return (
-    <span className={clsx('inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold font-mono', {
+    <span className={clsx('inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[13px] font-bold font-mono', {
       'bg-emerald-500/15 text-emerald-400': health === 'GREEN',
       'bg-yellow-500/15 text-yellow-400': health === 'YELLOW',
       'bg-red-500/15 text-red-400': health === 'RED',
@@ -43,7 +43,7 @@ function HealthDot({ health }: { health: string }) {
 
 function SignalBadge({ signal }: { signal: string }) {
   return (
-    <span className={clsx('px-2 py-0.5 rounded text-[10px] font-bold font-mono', {
+    <span className={clsx('px-2 py-0.5 rounded text-[13px] font-bold font-mono', {
       'bg-emerald-500/20 text-emerald-400': signal === 'BUY',
       'bg-red-500/20 text-red-400': signal === 'SELL',
       'bg-slate-500/20 text-slate-300': signal === 'HOLD',
@@ -59,7 +59,7 @@ function AllocationBar({ pct, max }: { pct: number; max: number }) {
       <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
         <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(pct / max) * 100}%` }} />
       </div>
-      <span className="text-[10px] text-slate-300 font-mono w-8 text-right">{pct.toFixed(1)}%</span>
+      <span className="text-[13px] text-slate-300 font-mono w-8 text-right">{pct.toFixed(1)}%</span>
     </div>
   )
 }
@@ -159,7 +159,7 @@ function ScoreBar({ score }: { score: number }) {
         <div className={clsx('h-full rounded-full', score >= 60 ? 'bg-emerald-500' : score >= 30 ? 'bg-yellow-500' : 'bg-red-500')}
           style={{ width: `${score}%` }} />
       </div>
-      <span className="text-[10px] text-slate-300 font-mono">{score.toFixed(0)}</span>
+      <span className="text-[13px] text-slate-300 font-mono">{score.toFixed(0)}</span>
     </div>
   )
 }
@@ -221,18 +221,18 @@ export default function AgentFleet() {
         {/* Header bar */}
         <div className="px-6 py-3 border-b border-slate-800/60 flex items-center justify-between">
           <div className="flex items-center gap-6">
-            <div className="text-[10px] text-slate-300 uppercase tracking-wider">Fleet Health:</div>
+            <div className="text-[13px] text-slate-300 uppercase tracking-wider">Fleet Health:</div>
             {summary && (
               <>
-                <span className="flex items-center gap-1.5 text-[11px]">
+                <span className="flex items-center gap-1.5 text-[14px]">
                   <span className="w-2 h-2 rounded-full bg-emerald-400" />
                   <span className="text-emerald-400 font-bold">{summary.green}</span>
                 </span>
-                <span className="flex items-center gap-1.5 text-[11px]">
+                <span className="flex items-center gap-1.5 text-[14px]">
                   <span className="w-2 h-2 rounded-full bg-yellow-400" />
                   <span className="text-yellow-400 font-bold">{summary.yellow}</span>
                 </span>
-                <span className="flex items-center gap-1.5 text-[11px]">
+                <span className="flex items-center gap-1.5 text-[14px]">
                   <span className="w-2 h-2 rounded-full bg-red-400" />
                   <span className="text-red-400 font-bold">{summary.red}</span>
                 </span>
@@ -240,10 +240,10 @@ export default function AgentFleet() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-slate-300">Updated every 60s by II Agent health-check loop</span>
-            {lastUpdated && <span className="text-[10px] text-slate-400">Last: {lastUpdated}</span>}
+            <span className="text-[13px] text-slate-300">Updated every 60s by II Agent health-check loop</span>
+            {lastUpdated && <span className="text-[13px] text-slate-400">Last: {lastUpdated}</span>}
             <button onClick={fetchBots} disabled={loading}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700/50 rounded text-[11px] text-slate-300 hover:text-white hover:border-slate-600 transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700/50 rounded text-[14px] text-slate-300 hover:text-white hover:border-slate-600 transition-colors">
               <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
               Refresh
             </button>
@@ -286,7 +286,7 @@ export default function AgentFleet() {
         <div className="px-6 py-4 border-b border-slate-800/40 flex items-center justify-between">
           <div>
             <h1 className="text-lg font-bold text-white tracking-wide">AGENT FLEET</h1>
-            <p className="text-[11px] text-slate-400 mt-0.5">
+            <p className="text-[14px] text-slate-400 mt-0.5">
               {bots.length} Specialized Trading Bot Sub-Agents · Ranked by Performance
             </p>
           </div>
@@ -294,7 +294,7 @@ export default function AgentFleet() {
             <button
               onClick={handleRebalance}
               disabled={rebalancing || loading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded text-blue-400 text-[11px] font-bold hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+              className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded text-blue-400 text-[14px] font-bold hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
               {rebalancing
                 ? <><RefreshCw size={12} className="animate-spin" /> Rebalancing…</>
@@ -302,7 +302,7 @@ export default function AgentFleet() {
               }
             </button>
             {/* Autonomous engine status */}
-            <div className="flex items-center gap-3 text-[9px] font-mono">
+            <div className="flex items-center gap-3 text-[15px] font-mono">
               <span className="flex items-center gap-1 text-emerald-400/70">
                 <Zap size={9} />
                 Auto-engine active
@@ -325,7 +325,7 @@ export default function AgentFleet() {
 
         {/* Table */}
         <div className="flex-1 overflow-y-auto">
-          <table className="w-full text-[11px]">
+          <table className="w-full text-[14px]">
             <thead className="sticky top-0 bg-[#080d18] border-b border-slate-800/60 z-10">
               <tr>
                 <th className="text-left px-4 py-2.5 text-slate-300 font-normal w-8">#</th>
@@ -355,8 +355,8 @@ export default function AgentFleet() {
                         'bg-slate-600': !bot.is_active,
                       })} />
                       <div>
-                        <div className="text-slate-100 font-bold uppercase tracking-wider text-[10px]">{bot.display_name}</div>
-                        <div className="text-slate-300 text-[9px] truncate max-w-[160px]">{bot.mode === 'LIVE' ? '● LIVE MODE' : bot.mode === 'APPROVED_FOR_LIVE' ? '◆ APPROVED' : '✗ PAPER'}</div>
+                        <div className="text-slate-100 font-bold uppercase tracking-wider text-[13px]">{bot.display_name}</div>
+                        <div className="text-slate-300 text-[15px] truncate max-w-[160px]">{bot.mode === 'LIVE' ? '● LIVE MODE' : bot.mode === 'APPROVED_FOR_LIVE' ? '◆ APPROVED' : '✗ PAPER'}</div>
                       </div>
                     </div>
                   </td>
@@ -382,17 +382,17 @@ export default function AgentFleet() {
                     <div className="flex items-center justify-center gap-1">
                       <button
                         onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/deactivate`) }}
-                        className={clsx('px-2 py-0.5 rounded text-[9px] font-bold transition-colors', !bot.is_active ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'text-slate-300 hover:text-slate-300')}>
+                        className={clsx('px-2 py-0.5 rounded text-[15px] font-bold transition-colors', !bot.is_active ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'text-slate-300 hover:text-slate-300')}>
                         OFF
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/activate`) }}
-                        className={clsx('px-2 py-0.5 rounded text-[9px] font-bold transition-colors', bot.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-300 hover:text-slate-300')}>
+                        className={clsx('px-2 py-0.5 rounded text-[15px] font-bold transition-colors', bot.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-300 hover:text-slate-300')}>
                         ON
                       </button>
                       <button
                         onClick={e => { e.stopPropagation(); navigate(`/strategy/${bot.name}`) }}
-                        className="px-1.5 py-0.5 rounded text-[9px] text-slate-300 hover:text-accent-blue border border-transparent hover:border-accent-blue/30 transition-colors"
+                        className="px-1.5 py-0.5 rounded text-[15px] text-slate-300 hover:text-accent-blue border border-transparent hover:border-accent-blue/30 transition-colors"
                         title="View strategy detail"
                       >
                         <ExternalLink size={10} />
@@ -415,13 +415,13 @@ export default function AgentFleet() {
         <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/60 flex-shrink-0">
           <div className="flex gap-1">
             <button onClick={() => setSlide(0)}
-              className={clsx('px-2.5 py-1 rounded text-[10px] font-bold transition-colors', slide === 0
+              className={clsx('px-2.5 py-1 rounded text-[13px] font-bold transition-colors', slide === 0
                 ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                 : 'text-slate-400 hover:text-slate-200')}>
               ◈ Profile
             </button>
             <button onClick={() => setSlide(1)}
-              className={clsx('px-2.5 py-1 rounded text-[10px] font-bold transition-colors', slide === 1
+              className={clsx('px-2.5 py-1 rounded text-[13px] font-bold transition-colors', slide === 1
                 ? 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
                 : 'text-slate-400 hover:text-slate-200')}>
               ▦ Capital
@@ -462,7 +462,7 @@ export default function AgentFleet() {
                     <span className="text-xs font-bold text-white uppercase tracking-wider">{selected.display_name}</span>
                     <HealthDot health={selected.health} />
                   </div>
-                  <p className="text-[10px] text-slate-400 leading-relaxed -mt-1">{selected.strategy}</p>
+                  <p className="text-[13px] text-slate-400 leading-relaxed -mt-1">{selected.strategy}</p>
 
                   {/* Radar chart — fills width */}
                   <div className="bg-slate-900/30 rounded-lg border border-slate-800/60 pt-3 pb-1">
@@ -483,7 +483,7 @@ export default function AgentFleet() {
                       { label: 'Net PnL',  value: `${selected.net_pnl_tao >= 0 ? '+' : ''}${selected.net_pnl_tao.toFixed(4)}τ`, cls: selected.net_pnl_tao >= 0 ? 'text-emerald-400' : 'text-red-400' },
                     ].map(({ label, value, cls }) => (
                       <div key={label} className="bg-slate-800/40 rounded p-2">
-                        <div className="text-[9px] text-slate-400 uppercase">{label}</div>
+                        <div className="text-[15px] text-slate-400 uppercase">{label}</div>
                         <div className={clsx('text-xs font-bold mt-0.5', cls ?? 'text-slate-100')}>{value}</div>
                       </div>
                     ))}
@@ -491,7 +491,7 @@ export default function AgentFleet() {
 
                   {/* Gate progress */}
                   <div>
-                    <div className="text-[9px] text-slate-400 uppercase tracking-wider mb-2">Gate Progress</div>
+                    <div className="text-[15px] text-slate-400 uppercase tracking-wider mb-2">Gate Progress</div>
                     <div className="space-y-1.5">
                       {[
                         { label: 'Cycles ≥ 10',    check: selected.gate.cycles },
@@ -503,13 +503,13 @@ export default function AgentFleet() {
                           {check.ok
                             ? <CheckCircle2 size={11} className="text-emerald-400 flex-shrink-0" />
                             : <XCircle size={11} className="text-slate-600 flex-shrink-0" />}
-                          <span className={clsx('text-[10px]', check.ok ? 'text-emerald-400' : 'text-slate-400')}>{label}</span>
-                          <span className="ml-auto text-[9px] text-slate-500 font-mono">{check.value}/{check.required}</span>
+                          <span className={clsx('text-[13px]', check.ok ? 'text-emerald-400' : 'text-slate-400')}>{label}</span>
+                          <span className="ml-auto text-[15px] text-slate-500 font-mono">{check.value}/{check.required}</span>
                         </div>
                       ))}
                     </div>
                     {selected.gate.all_clear && (
-                      <div className="mt-2 p-2 bg-purple-500/10 border border-purple-500/30 rounded text-[10px] text-purple-400 font-bold text-center">
+                      <div className="mt-2 p-2 bg-purple-500/10 border border-purple-500/30 rounded text-[13px] text-purple-400 font-bold text-center">
                         ✓ READY FOR LIVE PROMOTION
                       </div>
                     )}
@@ -517,7 +517,7 @@ export default function AgentFleet() {
 
                   {/* Mode chip */}
                   <div className="p-2 bg-slate-800/40 rounded flex items-center justify-between">
-                    <span className="text-[9px] text-slate-400 uppercase">Mode</span>
+                    <span className="text-[15px] text-slate-400 uppercase">Mode</span>
                     <span className={clsx('text-xs font-bold', {
                       'text-emerald-400': selected.mode === 'LIVE',
                       'text-purple-400': selected.mode === 'APPROVED_FOR_LIVE',
@@ -540,14 +540,14 @@ export default function AgentFleet() {
                       return <polygon key={s} points={pts} fill="none" stroke="rgba(148,163,184,0.3)" strokeWidth="1" />
                     })}
                   </svg>
-                  <p className="text-[11px] italic -mt-4">Select an agent to view profile</p>
+                  <p className="text-[14px] italic -mt-4">Select an agent to view profile</p>
                 </div>
               )}
             </div>
 
             {/* ── Slide 1: Capital Allocation ── */}
             <div className="min-w-full h-full overflow-y-auto p-4">
-              <div className="text-[10px] text-slate-400 uppercase tracking-wider mb-4 font-bold">
+              <div className="text-[13px] text-slate-400 uppercase tracking-wider mb-4 font-bold">
                 Capital Allocation %
               </div>
               <div className="space-y-3">
@@ -556,10 +556,10 @@ export default function AgentFleet() {
                     onClick={() => { setSelected(prev => prev?.name === bot.name ? null : bot); setSlide(0) }}
                     className="cursor-pointer group">
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-[10px] text-slate-300 group-hover:text-white transition-colors font-mono truncate max-w-[160px]">
+                      <span className="text-[13px] text-slate-300 group-hover:text-white transition-colors font-mono truncate max-w-[160px]">
                         {bot.display_name}
                       </span>
-                      <span className="text-[10px] text-slate-400 font-mono">{bot.capital_allocation_pct.toFixed(1)}%</span>
+                      <span className="text-[13px] text-slate-400 font-mono">{bot.capital_allocation_pct.toFixed(1)}%</span>
                     </div>
                     <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
                       <div className={clsx(
@@ -570,7 +570,7 @@ export default function AgentFleet() {
                   </div>
                 ))}
               </div>
-              <p className="text-center text-[9px] text-slate-600 italic mt-6">
+              <p className="text-center text-[15px] text-slate-600 italic mt-6">
                 Click a bar to open agent profile
               </p>
             </div>

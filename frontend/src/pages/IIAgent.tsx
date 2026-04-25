@@ -165,7 +165,7 @@ function RegimeCard({ regime, color, price, rsi }: {
             <Icon size={22} style={{ color }} />
           </div>
           <div>
-            <p className="text-[10px] text-slate-300 uppercase tracking-widest font-mono">Market Regime</p>
+            <p className="text-[13px] text-slate-300 uppercase tracking-widest font-mono">Market Regime</p>
             <p className="text-2xl font-black tracking-tight" style={{ color }}>{cfg.label}</p>
           </div>
         </div>
@@ -174,12 +174,12 @@ function RegimeCard({ regime, color, price, rsi }: {
 
       <div className="flex gap-4 relative">
         <div>
-          <p className="text-[10px] text-slate-300 font-mono">TAO Price</p>
+          <p className="text-[13px] text-slate-300 font-mono">TAO Price</p>
           <p className="text-lg font-bold text-white font-mono">${price?.toFixed(2) ?? '—'}</p>
         </div>
         {rsi !== null && (
           <div>
-            <p className="text-[10px] text-slate-300 font-mono">RSI-14</p>
+            <p className="text-[13px] text-slate-300 font-mono">RSI-14</p>
             <p className={clsx('text-lg font-bold font-mono', rsi > 65 ? 'text-red-400' : rsi < 35 ? 'text-emerald-400' : 'text-white')}>
               {rsi.toFixed(1)}
             </p>
@@ -198,16 +198,16 @@ function FleetHealthCard({ bot }: { bot: FleetBot }) {
       hcfg.bg, hcfg.border,
     )}>
       <div className="flex items-center justify-between">
-        <p className="text-[11px] font-semibold text-white truncate pr-1">{bot.display_name}</p>
+        <p className="text-[14px] font-semibold text-white truncate pr-1">{bot.display_name}</p>
         <span className={clsx('w-2 h-2 rounded-full flex-shrink-0', hcfg.dot)} />
       </div>
-      <p className={clsx('text-[10px] font-mono font-bold', hcfg.text)}>{hcfg.label}</p>
-      <div className="flex justify-between text-[10px] font-mono text-slate-300">
+      <p className={clsx('text-[13px] font-mono font-bold', hcfg.text)}>{hcfg.label}</p>
+      <div className="flex justify-between text-[13px] font-mono text-slate-300">
         <span className={bot.win_rate >= 55 ? 'text-emerald-400' : 'text-red-400'}>{bot.win_rate.toFixed(1)}% WR</span>
         <span className={bot.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400'}>{bot.total_pnl >= 0 ? '+' : ''}{bot.total_pnl.toFixed(4)}τ</span>
       </div>
       <div className={clsx(
-        'text-[9px] font-mono px-1.5 py-0.5 rounded self-start',
+        'text-[15px] font-mono px-1.5 py-0.5 rounded self-start',
         bot.mode === 'LIVE' ? 'bg-emerald-500/20 text-emerald-400' :
         bot.mode === 'APPROVED_FOR_LIVE' ? 'bg-sky-500/20 text-sky-400' :
         'bg-slate-700 text-slate-300'
@@ -228,8 +228,8 @@ function ObservationRow({ obs }: { obs: Observation }) {
         <div className="flex-1 min-w-0">
           <p className="text-xs text-slate-300 leading-relaxed">{obs.message}</p>
           <div className="flex gap-3 mt-1">
-            <span className={clsx('text-[10px] font-mono font-bold', cfg.color)}>{obs.level}</span>
-            <span className="text-[10px] text-slate-300 font-mono">{timeSince(obs.timestamp)}</span>
+            <span className={clsx('text-[13px] font-mono font-bold', cfg.color)}>{obs.level}</span>
+            <span className="text-[13px] text-slate-300 font-mono">{timeSince(obs.timestamp)}</span>
           </div>
         </div>
       </div>
@@ -247,19 +247,19 @@ function RecommendationCard({ rec, index }: { rec: Recommendation; index: number
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-1">
-          <span className={clsx('text-[10px] font-bold font-mono uppercase', cfg.color)}>{rec.type}</span>
+          <span className={clsx('text-[13px] font-bold font-mono uppercase', cfg.color)}>{rec.type}</span>
           <span className={clsx(
-            'text-[9px] font-mono px-1.5 py-0.5 rounded',
+            'text-[15px] font-mono px-1.5 py-0.5 rounded',
             rec.priority === 'HIGH'   ? 'bg-red-500/20 text-red-400' :
             rec.priority === 'MEDIUM' ? 'bg-amber-500/20 text-amber-400' :
                                         'bg-slate-700 text-slate-300'
           )}>{rec.priority}</span>
           {rec.strategy && (
-            <span className="text-[10px] text-slate-300 font-mono truncate">{rec.strategy}</span>
+            <span className="text-[13px] text-slate-300 font-mono truncate">{rec.strategy}</span>
           )}
         </div>
         <p className="text-xs text-slate-300 leading-relaxed">{rec.action}</p>
-        <p className="text-[10px] text-slate-300 font-mono mt-1">{timeSince(rec.timestamp)}</p>
+        <p className="text-[13px] text-slate-300 font-mono mt-1">{timeSince(rec.timestamp)}</p>
       </div>
     </div>
   )
@@ -450,10 +450,10 @@ export default function IIAgent() {
             <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl p-3 flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <Icon size={14} className={accent} />
-                <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
+                <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
               </div>
               <p className={clsx('text-xl font-bold font-mono', accent)}>{value}</p>
-              <p className="text-[10px] text-slate-300">{sub}</p>
+              <p className="text-[13px] text-slate-300">{sub}</p>
             </div>
           ))}
         </div>
@@ -465,7 +465,7 @@ export default function IIAgent() {
           <div className="flex items-center gap-2">
             <Eye size={14} className="text-slate-300" />
             <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Fleet Health Monitor</span>
-            <span className="ml-auto text-[10px] text-slate-300 font-mono">
+            <span className="ml-auto text-[13px] text-slate-300 font-mono">
               {fleetBots.filter(b => b.health === 'HOT').length} hot · {fleetBots.filter(b => b.health === 'STRUGGLING').length} struggling
             </span>
           </div>
@@ -489,7 +489,7 @@ export default function IIAgent() {
               )}
             </div>
             <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Agent Observation Log</span>
-            <span className="ml-auto text-[10px] text-slate-300 font-mono">{observations.length} entries</span>
+            <span className="ml-auto text-[13px] text-slate-300 font-mono">{observations.length} entries</span>
           </div>
 
           <div className="flex-1 overflow-y-auto max-h-[420px] divide-y divide-dark-700/50 px-4 py-2 space-y-0">
@@ -512,7 +512,7 @@ export default function IIAgent() {
           <div className="px-4 py-3 border-b border-dark-700 flex items-center gap-2">
             <Lightbulb size={14} className="text-amber-400" />
             <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Directives</span>
-            <span className="ml-auto text-[10px] text-slate-300 font-mono">{recommendations.length}</span>
+            <span className="ml-auto text-[13px] text-slate-300 font-mono">{recommendations.length}</span>
           </div>
 
           <div className="flex-1 overflow-y-auto max-h-[420px] p-3 space-y-2">
@@ -546,7 +546,7 @@ export default function IIAgent() {
               How It All Connects
             </p>
           </div>
-          <p className="text-[10px] font-mono text-slate-400">
+          <p className="text-[13px] font-mono text-slate-400">
             Hover each tier to learn more
           </p>
         </div>
@@ -560,18 +560,18 @@ export default function IIAgent() {
             <div className="transition-opacity duration-300 group-hover:opacity-0">
               <p className="text-lg mb-1">🧠</p>
               <p className="text-sm font-bold text-indigo-400 font-mono">II Agent</p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Master Orchestrator</p>
+              <p className="text-[13px] text-slate-400 uppercase tracking-wider mb-2">Master Orchestrator</p>
               <p className="text-xs font-mono font-semibold text-slate-200">
                 {status?.analysis_count ?? 0} analyses run
               </p>
-              <p className="text-[10px] text-slate-400 font-mono">
+              <p className="text-[13px] text-slate-400 font-mono">
                 {status?.observation_count ?? 0} observations logged
               </p>
             </div>
             {/* Hover description */}
             <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
               <p className="text-xs font-bold text-indigo-300 mb-2">🧠 II Agent — Master Orchestrator</p>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
+              <p className="text-[14px] text-slate-300 leading-relaxed">
                 Runs every 5 minutes. Analyses all 12 bots, detects market regime (BULL / BEAR / SIDEWAYS / VOLATILE),
                 generates directives, and fires alerts when conditions change. The brain that watches everything.
               </p>
@@ -591,15 +591,15 @@ export default function IIAgent() {
             <div className="transition-opacity duration-300 group-hover:opacity-0">
               <p className="text-lg mb-1">⚡</p>
               <p className="text-sm font-bold text-purple-400 font-mono">OpenClaw</p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">BFT Consensus</p>
+              <p className="text-[13px] text-slate-400 uppercase tracking-wider mb-2">BFT Consensus</p>
               <p className="text-xs font-mono font-semibold text-slate-200">
                 {cStats?.total_rounds ?? 0} rounds · {cStats?.approval_rate_pct?.toFixed(1) ?? 0}% approved
               </p>
-              <p className="text-[10px] text-slate-400 font-mono">7 of 12 supermajority required</p>
+              <p className="text-[13px] text-slate-400 font-mono">7 of 12 supermajority required</p>
             </div>
             <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
               <p className="text-xs font-bold text-purple-300 mb-2">⚡ OpenClaw — BFT Consensus Engine</p>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
+              <p className="text-[14px] text-slate-300 leading-relaxed">
                 Every LIVE trade must pass a 7-of-12 supermajority vote before executing.
                 12 bot personalities vote BUY / SELL / HOLD based on their own signal weights.
                 No consensus = no trade. No exceptions.
@@ -620,15 +620,15 @@ export default function IIAgent() {
             <div className="transition-opacity duration-300 group-hover:opacity-0">
               <p className="text-lg mb-1">🤖</p>
               <p className="text-sm font-bold text-emerald-400 font-mono">12 Bots</p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">Strategy Fleet</p>
+              <p className="text-[13px] text-slate-400 uppercase tracking-wider mb-2">Strategy Fleet</p>
               <p className="text-xs font-mono font-semibold text-slate-200">
                 {Object.values(status?.fleet_health ?? {}).filter(h => h === 'LIVE' || h === 'HOT' || h === 'HEALTHY').length} active · {Object.values(status?.fleet_health ?? {}).filter(h => h === 'STRUGGLING').length} struggling
               </p>
-              <p className="text-[10px] text-slate-400 font-mono">cycling every 60 seconds</p>
+              <p className="text-[13px] text-slate-400 font-mono">cycling every 60 seconds</p>
             </div>
             <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
               <p className="text-xs font-bold text-emerald-300 mb-2">🤖 12 Bots — Strategy Fleet</p>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
+              <p className="text-[14px] text-slate-300 leading-relaxed">
                 12 strategies run autonomously every 60 seconds. Each starts in PAPER mode and earns
                 promotion through performance — 55%+ win rate unlocks APPROVED, 65%+ unlocks LIVE.
                 The gate system never sleeps.
@@ -649,15 +649,15 @@ export default function IIAgent() {
             <div className="transition-opacity duration-300 group-hover:opacity-0">
               <p className="text-lg mb-1">📈</p>
               <p className="text-sm font-bold text-sky-400 font-mono">Trades</p>
-              <p className="text-[10px] text-slate-400 uppercase tracking-wider mb-2">TAO Execution</p>
+              <p className="text-[13px] text-slate-400 uppercase tracking-wider mb-2">TAO Execution</p>
               <p className="text-xs font-mono font-semibold text-slate-200">
                 {(status?.total_pnl ?? 0) >= 0 ? '+' : ''}{(status?.total_pnl ?? 0).toFixed(4)} τ PnL
               </p>
-              <p className="text-[10px] text-slate-400 font-mono">Finney mainnet · live chain</p>
+              <p className="text-[13px] text-slate-400 font-mono">Finney mainnet · live chain</p>
             </div>
             <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
               <p className="text-xs font-bold text-sky-300 mb-2">📈 Trades — On-Chain Execution</p>
-              <p className="text-[11px] text-slate-300 leading-relaxed">
+              <p className="text-[14px] text-slate-300 leading-relaxed">
                 Only trades that clear every layer reach execution. Paper trades build the track record.
                 LIVE trades pass BFT consensus then execute on Finney mainnet via AsyncSubtensor.
                 Real TAO moves only when the full pipeline agrees.
@@ -675,8 +675,8 @@ export default function IIAgent() {
             { label: 'Gate — Approved → Live', value: '65% WR + 0.05τ PnL' },
           ].map(({ label, value }) => (
             <div key={label} className="flex items-center gap-2">
-              <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">{label}:</span>
-              <span className="text-[10px] font-mono text-slate-300 font-semibold">{value}</span>
+              <span className="text-[13px] font-mono text-slate-500 uppercase tracking-wider">{label}:</span>
+              <span className="text-[13px] font-mono text-slate-300 font-semibold">{value}</span>
             </div>
           ))}
         </div>
@@ -698,9 +698,9 @@ export default function IIAgent() {
           </div>
           <div className="flex items-center gap-1.5 ml-2">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[10px] font-mono text-emerald-400">ONLINE · backed by live data</span>
+            <span className="text-[13px] font-mono text-emerald-400">ONLINE · backed by live data</span>
           </div>
-          <span className="ml-auto text-[10px] font-mono text-slate-500 flex items-center gap-1">
+          <span className="ml-auto text-[13px] font-mono text-slate-500 flex items-center gap-1">
             <Sparkles size={10} className="text-indigo-400" />
             keyword-matched · real-time indicators
           </span>
@@ -713,7 +713,7 @@ export default function IIAgent() {
               key={qp.label}
               onClick={() => sendChat(qp.text)}
               disabled={chatLoading}
-              className="text-[11px] font-mono px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/50 hover:text-indigo-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="text-[14px] font-mono px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/50 hover:text-indigo-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {qp.label}
             </button>
@@ -762,7 +762,7 @@ export default function IIAgent() {
                       ? <strong key={j} className="text-white font-bold">{part.slice(2, -2)}</strong>
                       : <span key={j}>{part}</span>
                   )}
-                  <p className="text-[9px] text-slate-500 mt-1.5 text-right">
+                  <p className="text-[15px] text-slate-500 mt-1.5 text-right">
                     {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                   </p>
                 </div>
@@ -819,7 +819,7 @@ export default function IIAgent() {
               <span className="hidden sm:inline">Send</span>
             </button>
           </form>
-          <p className="text-[10px] text-slate-500 font-mono mt-1.5 px-1">
+          <p className="text-[13px] text-slate-500 font-mono mt-1.5 px-1">
             Responses are generated from live DB data · no LLM required
           </p>
         </div>

@@ -114,7 +114,7 @@ function TaoPriceChart({ data, range, onRange }: {
       <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
         <div className="flex items-center gap-4">
           <div>
-            <p className="text-[10px] text-slate-400 uppercase tracking-widest font-mono">TAO / USD</p>
+            <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono">TAO / USD</p>
             <div className="flex items-baseline gap-2 mt-0.5">
               <span className="text-2xl font-bold font-mono text-white">
                 ${last ? last.toFixed(2) : '—'}
@@ -219,12 +219,12 @@ function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
       {/* name + trend */}
       <div className="flex items-start justify-between mb-2">
         <div className="min-w-0">
-          <p className="text-[11px] font-semibold text-white truncate">{s.name}</p>
-          <p className="text-[9px] text-slate-500 font-mono uppercase">{s.ticker}</p>
+          <p className="text-[14px] font-semibold text-white truncate">{s.name}</p>
+          <p className="text-[15px] text-slate-500 font-mono uppercase">{s.ticker}</p>
         </div>
         <div className="flex items-center gap-0.5 flex-shrink-0 ml-1">
           <TrendIcon trend={s.trend} />
-          <span className={clsx('text-[9px] font-mono font-bold', trendColor)}>
+          <span className={clsx('text-[15px] font-mono font-bold', trendColor)}>
             {s.trend.toUpperCase()}
           </span>
         </div>
@@ -232,7 +232,7 @@ function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
 
       {/* stake bar */}
       <div className="mb-2">
-        <div className="flex justify-between text-[9px] font-mono mb-1">
+        <div className="flex justify-between text-[15px] font-mono mb-1">
           <span className="text-slate-500">Stake</span>
           <span className="text-slate-300">{(s.stake_tao / 1e6).toFixed(2)}M τ</span>
         </div>
@@ -245,18 +245,18 @@ function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
       {/* stats row */}
       <div className="grid grid-cols-2 gap-1.5 mb-2">
         <div className="bg-dark-800 rounded px-2 py-1 text-center">
-          <p className="text-[9px] text-slate-500 font-mono">APY</p>
-          <p className="text-[11px] font-bold text-accent-green font-mono">{s.apy.toFixed(1)}%</p>
+          <p className="text-[15px] text-slate-500 font-mono">APY</p>
+          <p className="text-[14px] font-bold text-accent-green font-mono">{s.apy.toFixed(1)}%</p>
         </div>
         <div className="bg-dark-800 rounded px-2 py-1 text-center">
-          <p className="text-[9px] text-slate-500 font-mono">Emit</p>
-          <p className="text-[11px] font-bold text-yellow-400 font-mono">{(s.emission * 100).toFixed(2)}%</p>
+          <p className="text-[15px] text-slate-500 font-mono">Emit</p>
+          <p className="text-[14px] font-bold text-yellow-400 font-mono">{(s.emission * 100).toFixed(2)}%</p>
         </div>
       </div>
 
       {/* score gauge */}
       <div>
-        <div className="flex justify-between text-[9px] font-mono mb-1">
+        <div className="flex justify-between text-[15px] font-mono mb-1">
           <span className="text-slate-500">Score</span>
           <span className="font-bold" style={{ color: scoreColor }}>{s.score.toFixed(1)}</span>
         </div>
@@ -277,9 +277,9 @@ function SubnetMiniRow({ subnets }: { subnets: Subnet[] }) {
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
           <BarChart2 size={14} className="text-accent-blue" />
           Top Subnets
-          <span className="text-[10px] text-slate-500 font-mono font-normal">by stake · live</span>
+          <span className="text-[13px] text-slate-500 font-mono font-normal">by stake · live</span>
         </h2>
-        <span className="text-[10px] text-slate-500 font-mono">{subnets.length} subnets</span>
+        <span className="text-[13px] text-slate-500 font-mono">{subnets.length} subnets</span>
       </div>
       {subnets.length > 0 ? (
         <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
@@ -304,9 +304,9 @@ function KPI({ label, value, sub, color, icon: Icon }: {
         <Icon size={16} className={color ?? 'text-slate-300'} />
       </div>
       <div className="min-w-0">
-        <p className="text-[10px] text-slate-300 uppercase tracking-widest font-mono">{label}</p>
+        <p className="text-[13px] text-slate-300 uppercase tracking-widest font-mono">{label}</p>
         <p className={clsx('text-xl font-bold font-mono mt-0.5', color ?? 'text-white')}>{value}</p>
-        {sub && <p className="text-[11px] text-slate-300 mt-0.5">{sub}</p>}
+        {sub && <p className="text-[14px] text-slate-300 mt-0.5">{sub}</p>}
       </div>
     </div>
   )
@@ -546,7 +546,7 @@ export default function Dashboard() {
             <span className="text-slate-300">{summary?.active_strategies ?? 0} strategies active</span>
           </>
         )}
-        <span className="ml-auto text-slate-300 font-mono text-[10px]">
+        <span className="ml-auto text-slate-300 font-mono text-[13px]">
           {walletStatus?.connected
             ? <span className="text-indigo-400">⛓ CHAIN CONNECTED · Block #{walletStatus.block_cached?.toLocaleString()}</span>
             : <span>⚠ Paper trading — OpenClaw gates LIVE execution</span>}
@@ -593,11 +593,11 @@ export default function Dashboard() {
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
           <Brain size={15} style={{ color: agentStatus?.regime_color ?? '#6b7280' }} />
           <div className="min-w-0">
-            <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">II Agent Regime</p>
+            <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">II Agent Regime</p>
             <p className="text-sm font-bold font-mono mt-0.5" style={{ color: agentStatus?.regime_color ?? '#6b7280' }}>
               {REGIME_LABEL[agentStatus?.current_regime ?? 'UNKNOWN'] ?? '⟳ SCANNING'}
             </p>
-            <p className="text-[10px] text-slate-300 font-mono">{agentStatus?.analysis_count ?? 0} analyses</p>
+            <p className="text-[13px] text-slate-300 font-mono">{agentStatus?.analysis_count ?? 0} analyses</p>
           </div>
         </div>
 
@@ -607,13 +607,13 @@ export default function Dashboard() {
             (consensusStats?.approval_rate_pct ?? 0) >= 50 ? 'text-emerald-400' : 'text-amber-400'
           } />
           <div className="min-w-0">
-            <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">Consensus Rate</p>
+            <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">Consensus Rate</p>
             <p className={clsx('text-sm font-bold font-mono mt-0.5',
               (consensusStats?.approval_rate_pct ?? 0) >= 50 ? 'text-emerald-400' : 'text-amber-400'
             )}>
               {consensusStats ? `${consensusStats.approval_rate_pct.toFixed(1)}%` : '—'}
             </p>
-            <p className="text-[10px] text-slate-300 font-mono">{consensusStats?.total_rounds ?? 0} rounds</p>
+            <p className="text-[13px] text-slate-300 font-mono">{consensusStats?.total_rounds ?? 0} rounds</p>
           </div>
         </div>
 
@@ -621,13 +621,13 @@ export default function Dashboard() {
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
           <Bell size={15} className={unreadAlerts > 0 ? 'text-red-400' : 'text-slate-300'} />
           <div className="min-w-0">
-            <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">Unread Alerts</p>
+            <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">Unread Alerts</p>
             <p className={clsx('text-sm font-bold font-mono mt-0.5',
               unreadAlerts > 0 ? 'text-red-400' : 'text-emerald-400'
             )}>
               {unreadAlerts > 0 ? `${unreadAlerts} new` : 'All clear'}
             </p>
-            <p className="text-[10px] text-slate-300 font-mono">auto-detected</p>
+            <p className="text-[13px] text-slate-300 font-mono">auto-detected</p>
           </div>
         </div>
 
@@ -635,13 +635,13 @@ export default function Dashboard() {
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
           <Wallet size={15} className={walletStatus?.connected ? 'text-indigo-400' : 'text-slate-300'} />
           <div className="min-w-0">
-            <p className="text-[10px] text-slate-300 uppercase tracking-wider font-mono">Chain Balance</p>
+            <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">Chain Balance</p>
             <p className="text-sm font-bold font-mono mt-0.5 text-indigo-400">
               {walletStatus?.balance_cached != null
                 ? `τ${walletStatus.balance_cached.toFixed(6)}`
                 : walletStatus?.connected ? 'Querying…' : 'Offline'}
             </p>
-            <p className="text-[10px] text-slate-300 font-mono">
+            <p className="text-[13px] text-slate-300 font-mono">
               {walletStatus?.block_cached ? `Block #${walletStatus.block_cached.toLocaleString()}` : 'Finney mainnet'}
             </p>
           </div>
@@ -667,7 +667,7 @@ export default function Dashboard() {
             <h2 className="text-sm font-semibold text-white flex items-center gap-2">
               <TrendingUp size={14} className="text-accent-green" />
               Equity Curve
-              <span className="text-[10px] text-slate-500 font-mono font-normal">cumulative PnL over time</span>
+              <span className="text-[13px] text-slate-500 font-mono font-normal">cumulative PnL over time</span>
             </h2>
             {equity.length > 1 && summary && (
               <div className="flex items-center gap-3">
@@ -677,7 +677,7 @@ export default function Dashboard() {
                 )}>
                   {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(4)} τ
                 </span>
-                <span className="text-[10px] text-slate-500 font-mono">{equity.length} pts</span>
+                <span className="text-[13px] text-slate-500 font-mono">{equity.length} pts</span>
               </div>
             )}
           </div>
@@ -727,7 +727,7 @@ export default function Dashboard() {
 
           {/* Momentum signal summary */}
           <div className="mt-4 p-3 rounded-lg bg-dark-700 border border-dark-600">
-            <p className="text-[10px] text-slate-300 font-mono uppercase tracking-widest mb-1">Momentum Signal</p>
+            <p className="text-[13px] text-slate-300 font-mono uppercase tracking-widest mb-1">Momentum Signal</p>
             {ind.rsi_14 != null ? (
               <p className={clsx('text-sm font-bold font-mono',
                 ind.rsi_14 < 35 ? 'text-accent-green' :
@@ -758,8 +758,8 @@ export default function Dashboard() {
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-white font-medium truncate">{s.label}</p>
                   <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-[10px] font-mono text-slate-300">{s.total_trades} trades</span>
-                    <span className={clsx('text-[10px] font-mono',
+                    <span className="text-[13px] font-mono text-slate-300">{s.total_trades} trades</span>
+                    <span className={clsx('text-[13px] font-mono',
                       s.win_rate >= 55 ? 'text-accent-green' : 'text-yellow-400'
                     )}>{s.win_rate.toFixed(1)}% WR</span>
                   </div>
@@ -781,7 +781,7 @@ export default function Dashboard() {
         <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-1">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
             <Activity size={14} className="text-accent-blue" /> Live Activity
-            <span className="ml-auto text-[10px] text-slate-300 font-mono">auto-refresh 15s</span>
+            <span className="ml-auto text-[13px] text-slate-300 font-mono">auto-refresh 15s</span>
           </h2>
           <div className="space-y-2 overflow-y-auto max-h-[230px]">
             {activity.slice(0, 20).map((ev, i) => {
@@ -791,19 +791,19 @@ export default function Dashboard() {
               }
               return (
                 <div key={`${ev.id}-${i}`} className="flex items-start gap-2">
-                  <span className={clsx('font-mono font-bold flex-shrink-0 text-[11px] mt-0.5 w-10',
+                  <span className={clsx('font-mono font-bold flex-shrink-0 text-[14px] mt-0.5 w-10',
                     colors[ev.kind] ?? 'text-slate-300')}>
                     {ev.kind.toUpperCase().slice(0, 3)}
                   </span>
-                  <span className="text-slate-200 font-mono text-[12px] truncate leading-relaxed">{ev.message}</span>
+                  <span className="text-slate-200 font-mono text-[15px] truncate leading-relaxed">{ev.message}</span>
                   {ev.strategy && (
-                    <span className="text-slate-400 text-[11px] ml-auto flex-shrink-0 font-mono">{ev.strategy.slice(0, 10)}</span>
+                    <span className="text-slate-400 text-[14px] ml-auto flex-shrink-0 font-mono">{ev.strategy.slice(0, 10)}</span>
                   )}
                 </div>
               )
             })}
             {activity.length === 0 && (
-              <p className="text-slate-300 text-[12px] font-mono text-center py-4">No activity yet</p>
+              <p className="text-slate-300 text-[15px] font-mono text-center py-4">No activity yet</p>
             )}
           </div>
         </div>
@@ -832,7 +832,7 @@ export default function Dashboard() {
                     key={qp.label}
                     onClick={() => sendMiniChat(qp.text)}
                     disabled={miniChatLoading}
-                    className="text-[10px] font-mono px-2.5 py-1 rounded-full border border-indigo-500/25 bg-indigo-500/8 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/40 transition-all duration-200 disabled:opacity-40"
+                    className="text-[13px] font-mono px-2.5 py-1 rounded-full border border-indigo-500/25 bg-indigo-500/8 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/40 transition-all duration-200 disabled:opacity-40"
                   >
                     {qp.label}
                   </button>
@@ -845,7 +845,7 @@ export default function Dashboard() {
                   <div className="flex items-center justify-center h-full">
                     <div className="text-center">
                       <Brain size={20} className="text-slate-600 mx-auto mb-1.5" />
-                      <p className="text-[11px] text-slate-500 font-mono">Ask about PnL, regime, or top bots</p>
+                      <p className="text-[14px] text-slate-500 font-mono">Ask about PnL, regime, or top bots</p>
                     </div>
                   </div>
                 )}
@@ -855,7 +855,7 @@ export default function Dashboard() {
                     {/* User question */}
                     <div className="flex justify-end">
                       <div className="bg-indigo-600/20 border border-indigo-500/30 rounded-xl rounded-tr-sm px-3 py-2 max-w-[90%]">
-                        <p className="text-[11px] font-mono text-indigo-100">{miniChatLast.q}</p>
+                        <p className="text-[14px] font-mono text-indigo-100">{miniChatLast.q}</p>
                       </div>
                     </div>
 
@@ -869,7 +869,7 @@ export default function Dashboard() {
                             <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                           </div>
                         ) : (
-                          <p className="text-[11px] font-mono text-slate-200 leading-relaxed">
+                          <p className="text-[14px] font-mono text-slate-200 leading-relaxed">
                             {miniChatLast.a.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
                               part.startsWith('**') && part.endsWith('**')
                                 ? <strong key={j} className="text-white font-bold">{part.slice(2, -2)}</strong>
@@ -896,7 +896,7 @@ export default function Dashboard() {
                     onChange={e => setMiniChatInput(e.target.value)}
                     placeholder="Ask anything…"
                     disabled={miniChatLoading}
-                    className="flex-1 bg-dark-700 border border-dark-600 rounded-lg px-3 py-1.5 text-[11px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition-colors disabled:opacity-50"
+                    className="flex-1 bg-dark-700 border border-dark-600 rounded-lg px-3 py-1.5 text-[14px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500/50 transition-colors disabled:opacity-50"
                   />
                   <button
                     type="submit"
@@ -917,7 +917,7 @@ export default function Dashboard() {
 
           {!miniChatOpen && miniChatLast?.a && (
             <div className="px-4 py-2">
-              <p className="text-[10px] font-mono text-slate-400 truncate">{miniChatLast.a}</p>
+              <p className="text-[13px] font-mono text-slate-400 truncate">{miniChatLast.a}</p>
             </div>
           )}
         </div>

@@ -236,7 +236,7 @@ export default function Analytics() {
               <button key={r}
                 onClick={() => handleTimeRange(r)}
                 className={clsx(
-                  'px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-colors',
+                  'px-2.5 py-1 rounded text-[13px] font-mono font-bold transition-colors',
                   timeRange === r
                     ? 'bg-accent-blue/20 text-accent-blue'
                     : 'text-slate-400 hover:text-slate-200'
@@ -264,7 +264,7 @@ export default function Analytics() {
       )}
 
       {/* ── Data context note ──────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-800/60 border border-slate-700/40 rounded-lg text-[11px] font-mono text-slate-400">
+      <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-800/60 border border-slate-700/40 rounded-lg text-[14px] font-mono text-slate-400">
         <span className="text-blue-400 font-bold flex-shrink-0">ℹ DATA CONTEXT</span>
         <span>
           Stats include <span className="text-slate-300">full trade history</span> (paper + real on-chain).
@@ -334,12 +334,12 @@ export default function Analytics() {
           {/* Win rate window toggle — only relevant on winrate tab */}
           {activeChart === 'winrate' && (
             <div className="flex items-center gap-1 bg-dark-700 border border-dark-600 rounded-lg p-0.5">
-              <span className="text-[9px] text-slate-500 font-mono px-1.5">window</span>
+              <span className="text-[15px] text-slate-500 font-mono px-1.5">window</span>
               {([10, 20, 50] as WrWindow[]).map(w => (
                 <button key={w}
                   onClick={() => handleWrWindow(w)}
                   className={clsx(
-                    'px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-colors',
+                    'px-2.5 py-1 rounded text-[13px] font-mono font-bold transition-colors',
                     wrWindow === w
                       ? 'bg-purple-500/20 text-purple-400'
                       : 'text-slate-400 hover:text-slate-200'
@@ -490,7 +490,7 @@ export default function Analytics() {
                       {idx === 2 && <span className="text-amber-600">🥉</span>}
                       <div>
                         <p className="text-white font-medium text-xs">{s.label}</p>
-                        <p className="text-slate-300 font-mono text-[10px]">{s.name}</p>
+                        <p className="text-slate-300 font-mono text-[13px]">{s.name}</p>
                       </div>
                     </div>
                   </td>
