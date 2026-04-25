@@ -8,6 +8,7 @@ import {
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
+import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── Recovery Tracker ──────────────────────────────────────────────────────────
 const TARGET_STORAGE_KEY = 'tao_recovery_target'
@@ -393,8 +394,43 @@ export default function WalletPage() {
   const displayAddr   = chainInfo?.address || generated?.address || '—'
   const usdValue      = taoPrice != null && balance ? balance * taoPrice : null
 
+  const heroSlides = [
+    {
+      title: 'Wallet Overview', subtitle: 'Finney Mainnet', accent: 'emerald' as const,
+      stats: [
+        { label: 'Balance',     value: `${balance.toFixed(4)} τ`,                          color: balance > 0 ? 'emerald' : 'slate' as any },
+        { label: 'USD Value',   value: usdValue != null ? `$${usdValue.toFixed(2)}` : '—', color: 'white'   as const },
+        { label: 'TAO Price',   value: taoPrice != null ? `$${taoPrice.toFixed(2)}` : '—', color: 'yellow'  as const },
+        { label: 'Status',      value: isConnected ? 'Connected' : 'Disconnected',         color: isConnected ? 'emerald' : 'red' as any },
+        { label: 'Network',     value: 'Finney',                                           color: 'blue'    as const },
+      ],
+    },
+    {
+      title: 'Chain Info', subtitle: 'Block Data', accent: 'blue' as const,
+      stats: [
+        { label: 'Block',       value: block ? `#${block.toLocaleString()}` : '—',         color: 'white'   as const },
+        { label: 'Connected',   value: isConnected ? '✓ Yes' : '✗ No',                   color: isConnected ? 'emerald' : 'red' as any },
+        { label: 'Address',     value: displayAddr !== '—' ? `${displayAddr.slice(0,6)}…${displayAddr.slice(-4)}` : '—', color: 'slate' as const },
+        { label: 'Chain',       value: 'Bittensor',                                        color: 'purple'  as const },
+        { label: 'Validator',   value: chainInfo?.address ? 'Configured' : 'None',                  color: 'slate' as const },
+      ],
+    },
+    {
+      title: 'Security', subtitle: 'Wallet Health', accent: 'purple' as const,
+      stats: [
+        { label: 'Wallet',      value: chainInfo?.address ? '✓ Configured' : '✗ Not Set', color: chainInfo?.address ? 'emerald' : 'red' as any },
+        { label: 'Seed Phrase', value: showWords ? 'VISIBLE' : 'Hidden',                  color: showWords ? 'yellow' : 'emerald' as any },
+        { label: 'Backed Up',   value: backedUp ? '✓ Yes' : 'Pending',                   color: backedUp ? 'emerald' : 'yellow' as any },
+        { label: 'Generated',   value: generated ? '✓ Ready' : '—',                      color: generated ? 'emerald' : 'slate' as any },
+        { label: 'Tab',         value: walletTab.charAt(0).toUpperCase() + walletTab.slice(1), color: 'slate' as const },
+      ],
+    },
+  ]
+
   return (
-    <div className="p-6 space-y-5 w-full">
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-5 w-full">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
@@ -827,7 +863,7 @@ export default function WalletPage() {
       </div>
 
       
-
+      </div>{/* end scrollable */}
     </div>
   )
 }

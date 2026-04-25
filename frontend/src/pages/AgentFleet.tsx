@@ -4,6 +4,7 @@ import { RefreshCw, BarChart2, CheckCircle2, XCircle, TrendingUp, TrendingDown, 
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
+import PageHeroSlider from '@/components/PageHeroSlider'
 
 interface GateCheck { value: number; required: number; ok: boolean }
 interface Gate {
@@ -213,9 +214,51 @@ export default function AgentFleet() {
 
   const maxAlloc = Math.max(...bots.map(b => b.capital_allocation_pct), 25)
 
+  const liveCount     = bots.filter(b => b.mode === 'LIVE').length
+  const approvedCount = bots.filter(b => b.mode === 'APPROVED_FOR_LIVE').length
+  const paperCount    = bots.filter(b => b.mode === 'PAPER_ONLY').length
+  const fleetWR = bots.length ? (bots.reduce((s,b) => s + b.win_rate, 0) / bots.length) : 0
+  const fleetPnL = bots.reduce((s,b) => s + b.net_pnl_tao, 0)
+
+  const heroSlides = [
+    {
+      title: 'Agent Fleet', subtitle: `${bots.length || 12} Autonomous Bots`, accent: 'blue' as const,
+      stats: [
+        { label: 'LIVE',        value: String(liveCount),                            color: 'emerald' as const },
+        { label: 'APPROVED',    value: String(approvedCount),                        color: 'purple'  as const },
+        { label: 'PAPER',       value: String(paperCount),                           color: 'yellow'  as const },
+        { label: 'Health',      value: summary ? `${summary.green}G/${summary.yellow}Y/${summary.red}R` : '—', color: 'white' as const },
+        { label: 'Last Rebal',  value: summary?.last_rebalanced_at ? 'Done' : '—',  color: 'slate'   as const },
+      ],
+    },
+    {
+      title: 'Fleet Performance', subtitle: 'All Strategies', accent: 'emerald' as const,
+      stats: [
+        { label: 'Avg Win Rate', value: bots.length ? `${fleetWR.toFixed(0)}%` : '—', color: fleetWR >= 55 ? 'emerald' : 'yellow' as any },
+        { label: 'Fleet PnL',   value: `${fleetPnL >= 0 ? '+' : ''}${fleetPnL.toFixed(3)}τ`, color: fleetPnL >= 0 ? 'emerald' : 'red' as any },
+        { label: 'Total Trades',value: String(bots.reduce((s,b) => s + b.total_trades, 0)), color: 'white'  as const },
+        { label: 'Green Health',value: String(summary?.green ?? 0),                  color: 'emerald' as const },
+        { label: 'Promotions',  value: String(summary?.promotions_this_session ?? 0),color: 'purple'  as const },
+      ],
+    },
+    {
+      title: 'Gate Progress', subtitle: 'LIVE Qualification', accent: 'purple' as const,
+      stats: [
+        { label: 'Gates Cleared', value: String(bots.filter(b => b.gate_passed).length),         color: 'emerald' as const },
+        { label: 'WR ≥ 55%',     value: String(bots.filter(b => b.win_rate >= 55).length),       color: 'emerald' as const },
+        { label: 'WR < 45%',     value: String(bots.filter(b => b.win_rate < 45 && b.total_trades > 10).length), color: 'red' as const },
+        { label: 'Selected Bot', value: selected ? selected.display_name.split(' ')[0] : 'None', color: 'blue' as const },
+        { label: 'Slide View',   value: ['Detail', 'Radar'][slide] ?? 'Detail',                  color: 'slate'  as const },
+      ],
+    },
+  ]
+
   return (
-    <div className="flex h-full bg-[#080d18] text-slate-100 font-mono overflow-hidden">
-      {/* Main content */}
+    <div className="flex flex-col h-full bg-[#080d18] text-slate-100 font-mono overflow-hidden">
+      <PageHeroSlider slides={heroSlides} />
+      {/* Main content — fills rest of height */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+      {/* Left list + right carousel */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Header bar */}
@@ -408,8 +451,8 @@ export default function AgentFleet() {
         </div>
       </div>
 
-      {/* Right panel — carousel */}
-      <div className="w-[310px] flex-shrink-0 border-l border-slate-800/60 flex flex-col overflow-hidden">
+      {/* Right panel — 30% width, proportional */}
+      <div className="w-[30%] min-w-[260px] max-w-[420px] flex-shrink-0 border-l border-slate-800/60 flex flex-col overflow-hidden">
 
         {/* Slide tabs + arrow nav */}
         <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/60 flex-shrink-0">
@@ -578,6 +621,7 @@ export default function AgentFleet() {
           </div>
         </div>
       </div>
+      </div>{/* end main content flex row */}
     </div>
   )
 }

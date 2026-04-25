@@ -8,6 +8,7 @@ import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
+import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface OverrideStatus {
@@ -220,8 +221,47 @@ export default function HumanOverride() {
       : { name, display_name: name, mode: 'PAPER_ONLY' as const, win_rate: 0, total_trades: 0, total_pnl: 0, stake_amount: null }
   })
 
+  const liveCount     = rows.filter(r => r.mode === 'LIVE').length
+  const approvedCount = rows.filter(r => r.mode === 'APPROVED_FOR_LIVE').length
+  const paperCount    = rows.filter(r => r.mode === 'PAPER_ONLY').length
+
+  const heroSlides = [
+    {
+      title: 'System Status', subtitle: 'Command Authority', accent: halted ? 'red' : 'emerald' as any,
+      stats: [
+        { label: 'System',          value: halted ? '⛔ HALTED' : '✓ Running',                   color: halted ? 'red' : 'emerald' as any },
+        { label: 'Cycle Engine',    value: status?.cycle_engine_running   ? '✓ Online' : '✗ Off', color: status?.cycle_engine_running   ? 'emerald' : 'red' as any },
+        { label: 'Trading Engine',  value: status?.trading_engine_running ? '✓ Online' : '✗ Off', color: status?.trading_engine_running ? 'emerald' : 'red' as any },
+        { label: 'Override Gate',   value: halted ? '⛔ Closed' : '✓ Open',                      color: halted ? 'red' : 'emerald' as any },
+        { label: 'Strategies',      value: String(rows.length),                                   color: 'white'   as const },
+      ],
+    },
+    {
+      title: 'Mode Distribution', subtitle: 'Strategy Modes', accent: 'purple' as const,
+      stats: [
+        { label: 'LIVE',     value: String(liveCount),     color: 'emerald' as const },
+        { label: 'APPROVED', value: String(approvedCount), color: 'purple'  as const },
+        { label: 'PAPER',    value: String(paperCount),    color: 'yellow'  as const },
+        { label: 'Total',    value: String(rows.length),   color: 'white'   as const },
+        { label: 'Status',   value: halted ? 'HALTED' : 'Active', color: halted ? 'red' : 'emerald' as any },
+      ],
+    },
+    {
+      title: 'Manual Controls', subtitle: 'Override Tools', accent: 'orange' as const,
+      stats: [
+        { label: 'Halt Control',  value: halted ? 'Release Ready' : 'Halt Ready',  color: halted ? 'yellow' : 'orange' as any },
+        { label: 'Mode Override', value: 'Available',                               color: 'blue'    as const },
+        { label: 'Manual Trade',  value: 'Available',                               color: 'emerald' as const },
+        { label: 'Live Bots',     value: String(liveCount),                         color: liveCount > 0 ? 'emerald' : 'slate' as any },
+        { label: 'Authority',     value: 'Full Override',                           color: 'orange'  as const },
+      ],
+    },
+  ]
+
   return (
-    <div className="p-6 space-y-6 animate-fade-in max-w-[1400px]">
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-[1400px]">
 
       {/* ── page header ─────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
@@ -274,11 +314,10 @@ export default function HumanOverride() {
         </div>
       </div>
 
-      {/* ── main grid ───────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-
-        {/* LEFT COL: Emergency + Manual Trade ─────────────────────────────── */}
-        <div className="space-y-4">
+      {/* ── top row: control boxes side by side ────────────────────────────── */}
+      <div className="flex gap-4 flex-wrap">
+        {/* BOXES ROW — Emergency Controls | System Check | Manual Trade */}
+        <div className="flex-1 min-w-[280px]">
 
           {/* Emergency controls */}
           <div className="card p-5 space-y-4">
@@ -472,8 +511,10 @@ export default function HumanOverride() {
 
         </div>
 
-        {/* RIGHT COL (spanning 2): Strategy Promotion Grid ────────────────── */}
-        <div className="xl:col-span-2 card p-5">
+        </div>{/* end top row */}
+
+      {/* ── strategy override (full width below) ────────────────────────────── */}
+      <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
               <ArrowUp size={13} className="text-accent-green" /> Strategy Mode Override
@@ -643,7 +684,7 @@ export default function HumanOverride() {
           </p>
         </div>
 
-      </div>
+      </div>{/* end scrollable */}
     </div>
   )
 }

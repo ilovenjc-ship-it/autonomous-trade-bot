@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
+import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -206,8 +207,43 @@ export default function AlertInbox() {
 
   const unreadCount = stats?.unread ?? 0
 
+  const heroSlides = [
+    {
+      title: 'Alert Overview', subtitle: 'Inbox Status', accent: 'red' as const,
+      stats: [
+        { label: 'Total Alerts', value: String(stats?.total ?? alerts.length),   color: 'white'   as const },
+        { label: 'Unread',       value: String(unreadCount),                     color: unreadCount > 0 ? 'red' : 'emerald' as any },
+        { label: 'Critical',     value: String(alerts.filter(a => a.level === 'CRITICAL').length), color: alerts.filter(a=>a.level==='CRITICAL').length > 0 ? 'red' : 'slate' as any },
+        { label: 'Filtered',     value: String(filtered.length),                 color: 'white'   as const },
+        { label: 'Auto-Refresh', value: '5s',                                    color: 'slate'   as const },
+      ],
+    },
+    {
+      title: 'Alert Levels', subtitle: 'By Severity', accent: 'orange' as const,
+      stats: [
+        { label: 'INFO',     value: String(alerts.filter(a => a.level === 'INFO').length),     color: 'blue'    as const },
+        { label: 'WARNING',  value: String(alerts.filter(a => a.level === 'WARNING').length),  color: 'yellow'  as const },
+        { label: 'CRITICAL', value: String(alerts.filter(a => a.level === 'CRITICAL').length), color: 'red'     as const },
+        { label: 'SYSTEM',   value: String(alerts.filter(a => a.level === 'SYSTEM').length),   color: 'purple'  as const },
+        { label: 'Read',     value: String(alerts.filter(a => a.read).length),                 color: 'emerald' as const },
+      ],
+    },
+    {
+      title: 'Alert Activity', subtitle: 'By Type', accent: 'blue' as const,
+      stats: [
+        { label: 'Trade',    value: String(alerts.filter(a => a.type === 'TRADE').length),     color: 'emerald' as const },
+        { label: 'Gate',     value: String(alerts.filter(a => a.type === 'GATE').length),      color: 'purple'  as const },
+        { label: 'Risk',     value: String(alerts.filter(a => a.type === 'RISK').length),      color: 'orange'  as const },
+        { label: 'Signal',   value: String(alerts.filter(a => a.type === 'SIGNAL').length),    color: 'blue'    as const },
+        { label: 'System',   value: String(alerts.filter(a => a.type === 'SYSTEM').length),    color: 'slate'   as const },
+      ],
+    },
+  ]
+
   return (
-    <div className="p-6 space-y-6">
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
       {/* ── Header ── */}
       <div className="flex items-start justify-between flex-wrap gap-4">
         <div className="flex items-center gap-3">
@@ -374,6 +410,7 @@ export default function AlertInbox() {
           })}
         </div>
       </div>
+      </div>{/* end scrollable */}
     </div>
   )
 }

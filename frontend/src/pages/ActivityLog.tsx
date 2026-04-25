@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
+import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Event {
@@ -130,8 +131,43 @@ export default function ActivityLog() {
     return acc
   }, {})
 
+  const heroSlides = [
+    {
+      title: 'Activity Overview', subtitle: 'Live Stream', accent: 'blue' as const,
+      stats: [
+        { label: 'Total Events', value: String(events.length),          color: 'white'   as const },
+        { label: 'Filtered',     value: String(filtered.length),        color: 'blue'    as const },
+        { label: 'Live',         value: live ? 'ON' : 'OFF',           color: live ? 'emerald' : 'slate' as any },
+        { label: 'Filter',       value: filter.toUpperCase(),           color: 'slate'   as const },
+        { label: 'Refresh',      value: '5s',                           color: 'slate'   as const },
+      ],
+    },
+    {
+      title: 'Event Breakdown', subtitle: 'By Type', accent: 'purple' as const,
+      stats: [
+        { label: 'Trade',  value: String(counts.trade  ?? 0), color: 'emerald' as const },
+        { label: 'Signal', value: String(counts.signal ?? 0), color: 'yellow'  as const },
+        { label: 'Gate',   value: String(counts.gate   ?? 0), color: 'purple'  as const },
+        { label: 'System', value: String(counts.system ?? 0), color: 'slate'   as const },
+        { label: 'Alert',  value: String(counts.alert  ?? 0), color: 'orange'  as const },
+      ],
+    },
+    {
+      title: 'System Status', subtitle: 'Health Check', accent: 'emerald' as const,
+      stats: [
+        { label: 'Events Logged', value: String(events.length),                                           color: 'white'   as const },
+        { label: 'Last Kind',     value: events[0]?.kind?.toUpperCase() ?? '—',                          color: 'blue'    as const },
+        { label: 'Strategy',      value: events[0]?.strategy ?? '—',                                     color: 'slate'   as const },
+        { label: 'Log Limit',     value: '200',                                                          color: 'slate'   as const },
+        { label: 'Search',        value: search || 'None',                                               color: search ? 'yellow' : 'slate' as any },
+      ],
+    },
+  ]
+
   return (
-    <div className="flex flex-col flex-1 bg-dark-900">
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex flex-col flex-1 bg-dark-900 overflow-hidden">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-dark-600">
@@ -283,7 +319,7 @@ export default function ActivityLog() {
           <ArrowDownCircle size={12} /> Jump to latest
         </button>
       </div>
-
+      </div>{/* end inner flex-col */}
     </div>
   )
 }

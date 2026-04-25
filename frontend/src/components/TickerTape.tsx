@@ -1,9 +1,11 @@
 /**
  * TickerTape — always-visible bottom strip on every page.
  *
- * Shows: TAO/USD price + 24h change · top subnet tickers with APY & trend
- * Infinite CSS scroll — no JS animation loop, zero jank.
- * Refreshes data every 30 seconds.
+ * Shows: TAO/USD (highlighted) + all major crypto assets whose market cap
+ * exceeds Bittensor TAO's — data from CoinGecko public API via backend proxy.
+ *
+ * Infinite CSS scroll, zero JS animation loop, zero jank.
+ * Refreshes every 90 s (backend caches to respect CoinGecko free tier).
  */
 import { useEffect, useState } from 'react'
 import { TrendingUp, TrendingDown, Minus, Zap } from 'lucide-react'
@@ -11,11 +13,11 @@ import clsx from 'clsx'
 
 interface TickerItem {
   key: string
-  label: string
-  value: string
-  change?: string
-  up?: boolean | null   // null = neutral
-  highlight?: boolean
+  symbol: string
+  name: string
+  price: number
+  change24h: number | null
+  highlight?: boolean   // TAO — yellow treatment
 }
 
 // ── CSS keyframe injected once ────────────────────────────────────────────────
@@ -32,7 +34,7 @@ function ensureStyles() {
     .ticker-track {
       display: flex;
       width: max-content;
-      animation: ticker-scroll 60s linear infinite;
+      animation: ticker-scroll 80s linear infinite;
     }
     .ticker-track:hover { animation-play-state: paused; }
   `
@@ -41,30 +43,36 @@ function ensureStyles() {
 
 // ── pill ──────────────────────────────────────────────────────────────────────
 function Pill({ item }: { item: TickerItem }) {
-  const color =
-    item.up === true  ? 'text-accent-green' :
-    item.up === false ? 'text-red-400'       :
-                        'text-slate-300'
+  const chg = item.change24h
+  const up: boolean | null = chg === null ? null : chg >= 0
+  const color = item.highlight
+    ? 'text-yellow-300'
+    : up === true  ? 'text-emerald-400'
+    : up === false ? 'text-red-400'
+    : 'text-slate-300'
 
-  const Icon = item.up === true ? TrendingUp : item.up === false ? TrendingDown : Minus
+  const Icon = up === true ? TrendingUp : up === false ? TrendingDown : Minus
+
+  // Format price nicely
+  const fmtPrice = (p: number) =>
+    p >= 10_000 ? `$${p.toLocaleString(undefined, { maximumFractionDigits: 0 })}`
+    : p >= 100   ? `$${p.toFixed(2)}`
+    : p >= 1     ? `$${p.toFixed(3)}`
+    :              `$${p.toFixed(5)}`
 
   return (
-    <span className={clsx(
-      'inline-flex items-center gap-1.5 px-3 whitespace-nowrap',
-      item.highlight && 'text-yellow-300',
-    )}>
-      <Icon size={10} className={item.highlight ? 'text-yellow-300' : color} />
-      <span className="text-[13px] font-mono text-slate-400">{item.label}</span>
-      <span className={clsx('text-[14px] font-mono font-bold', item.highlight ? 'text-yellow-300' : color)}>
-        {item.value}
+    <span className={clsx('inline-flex items-center gap-1.5 px-3 whitespace-nowrap', color)}>
+      <Icon size={10} className={color} />
+      <span className="text-[13px] font-mono text-slate-400">{item.symbol}</span>
+      <span className={clsx('text-[14px] font-mono font-bold', color)}>
+        {fmtPrice(item.price)}
       </span>
-      {item.change && (
-        <span className={clsx('text-[13px] font-mono', color)}>
-          {item.change}
+      {chg !== null && (
+        <span className={clsx('text-[12px] font-mono', color)}>
+          {chg >= 0 ? '+' : ''}{chg.toFixed(2)}%
         </span>
       )}
-      {/* separator dot */}
-      <span className="text-dark-600 ml-1 select-none">·</span>
+      <span className="text-slate-700 ml-1 select-none">·</span>
     </span>
   )
 }
@@ -77,40 +85,17 @@ export default function TickerTape() {
 
   const fetchData = async () => {
     try {
-      const [priceRes, subnetRes] = await Promise.all([
-        fetch('/api/price/current').then(r => r.json()).catch(() => null),
-        fetch('/api/market/subnets?limit=12').then(r => r.json()).catch(() => null),
-      ])
+      const res = await fetch('/api/market/crypto-ticker').then(r => r.json()).catch(() => null)
+      if (!res?.coins?.length) return
 
-      const next: TickerItem[] = []
-
-      // TAO price — always first, highlighted
-      if (priceRes) {
-        const p = priceRes.price_usd ?? priceRes.price ?? null
-        const chg = priceRes.price_change_pct_24h ?? priceRes.price_change_24h ?? null
-        const up = chg != null ? chg >= 0 : null
-        next.push({
-          key: 'tao',
-          label: 'TAO/USD',
-          value: p != null ? `$${p.toFixed(2)}` : '—',
-          change: chg != null ? `${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%` : undefined,
-          up,
-          highlight: true,
-        })
-      }
-
-      // Top subnets
-      if (subnetRes?.subnets) {
-        for (const s of subnetRes.subnets.slice(0, 12)) {
-          next.push({
-            key: `sn-${s.uid}`,
-            label: `SN${s.uid} ${s.name.slice(0, 8)}`,
-            value: `APY ${s.apy.toFixed(1)}%`,
-            change: `${(s.stake_tao / 1e6).toFixed(1)}M τ`,
-            up: s.trend === 'up' ? true : s.trend === 'down' ? false : null,
-          })
-        }
-      }
+      const next: TickerItem[] = res.coins.map((c: any) => ({
+        key:       c.id,
+        symbol:    c.symbol,
+        name:      c.name,
+        price:     c.price ?? 0,
+        change24h: c.change_24h ?? null,
+        highlight: c.highlight ?? false,
+      }))
 
       if (next.length > 0) setItems(next)
     } catch (e) {
@@ -120,25 +105,25 @@ export default function TickerTape() {
 
   useEffect(() => {
     fetchData()
-    const id = setInterval(fetchData, 30_000)
+    const id = setInterval(fetchData, 90_000)
     return () => clearInterval(id)
   }, [])
 
   if (items.length === 0) return null
 
-  // Duplicate items so the loop is seamless
+  // Duplicate for seamless loop
   const doubled = [...items, ...items]
 
   return (
-    <div className="flex-shrink-0 h-7 bg-dark-950 border-t border-dark-700/80 flex items-center overflow-hidden relative"
-      style={{ background: '#070d14' }}>
+    <div className="flex-shrink-0 h-8 bg-dark-950 border-t border-dark-700/80 flex items-center overflow-hidden relative"
+      style={{ background: '#060c13' }}>
 
       {/* left badge */}
       <div className="flex-shrink-0 flex items-center gap-1.5 px-3 h-full
-                      bg-accent-green/10 border-r border-accent-green/20 z-10">
-        <Zap size={10} className="text-accent-green" />
-        <span className="text-[15px] font-mono font-bold text-accent-green tracking-widest uppercase">
-          Live
+                      bg-emerald-500/8 border-r border-emerald-500/20 z-10">
+        <Zap size={10} className="text-emerald-400" />
+        <span className="text-[12px] font-mono font-bold text-emerald-400 tracking-widest uppercase">
+          Crypto
         </span>
       </div>
 
@@ -152,8 +137,8 @@ export default function TickerTape() {
       </div>
 
       {/* right fade mask */}
-      <div className="absolute right-0 top-0 bottom-0 w-12 pointer-events-none z-10"
-        style={{ background: 'linear-gradient(to right, transparent, #070d14)' }} />
+      <div className="absolute right-0 top-0 bottom-0 w-16 pointer-events-none z-10"
+        style={{ background: 'linear-gradient(to right, transparent, #060c13)' }} />
     </div>
   )
 }

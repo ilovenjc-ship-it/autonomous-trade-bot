@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
 import StatCard from '@/components/StatCard'
+import PageHeroSlider from '@/components/PageHeroSlider'
 
 interface TradingMode {
   overall_mode: 'LIVE' | 'PAPER'
@@ -97,6 +98,39 @@ export default function Trades() {
 
   const isLive = tradingMode?.overall_mode === 'LIVE'
 
+  const heroSlides = [
+    {
+      title: 'Trade Overview', subtitle: isLive ? 'LIVE Mode' : 'Paper Mode', accent: isLive ? 'emerald' : 'yellow' as any,
+      stats: [
+        { label: 'Total Trades',  value: String(tradeTotal ?? 0),                                        color: 'white'   as const },
+        { label: 'Mode',          value: isLive ? 'LIVE' : 'PAPER',                                      color: isLive ? 'emerald' : 'yellow' as any },
+        { label: 'Win Rate',      value: tradeStats ? `${tradeStats.win_rate.toFixed(1)}%` : '—',        color: (tradeStats?.win_rate ?? 0) >= 55 ? 'emerald' : 'yellow' as any },
+        { label: 'Total PnL',     value: '—',                                                                                            color: 'white' as const },
+        { label: 'Filter',        value: filter.toUpperCase(),                                           color: 'slate'   as const },
+      ],
+    },
+    {
+      title: 'Win / Loss Stats', subtitle: 'Trade Outcomes', accent: 'blue' as const,
+      stats: [
+        { label: 'Wins',          value: tradeStats ? String(Math.round((tradeStats.win_rate/100) * (tradeTotal ?? 0))) : '—', color: 'emerald' as const },
+        { label: 'Losses',        value: tradeStats ? String(Math.round(((100-tradeStats.win_rate)/100) * (tradeTotal ?? 0))) : '—', color: 'red' as const },
+        { label: 'Avg Win',       value: '—',                                                                          color: 'emerald' as const },
+        { label: 'Avg Loss',      value: '—',                                                                          color: 'red'     as const },
+        { label: 'Page',          value: `${page}/${Math.max(1,Math.ceil((tradeTotal??0)/20))}`,        color: 'slate'   as const },
+      ],
+    },
+    {
+      title: 'Strategy Modes', subtitle: 'Live Distribution', accent: 'purple' as const,
+      stats: [
+        { label: 'LIVE',          value: String(Object.values(strategyModes).filter(m => m === 'LIVE').length),              color: 'emerald' as const },
+        { label: 'APPROVED',      value: String(Object.values(strategyModes).filter(m => m === 'APPROVED_FOR_LIVE').length), color: 'purple'  as const },
+        { label: 'PAPER',         value: String(Object.values(strategyModes).filter(m => m === 'PAPER_ONLY').length),        color: 'yellow'  as const },
+        { label: 'Strategies',    value: String(Object.keys(strategyModes).length || 12),                                   color: 'white'   as const },
+        { label: 'Last Trade',    value: tradeResult ? 'Complete' : '—',                                                   color: tradeResult ? 'emerald' : 'slate' as any },
+      ],
+    },
+  ]
+
   // Step 1: show confirm for LIVE trades
   const handleFireClick = () => {
     const amount = parseFloat(manualAmount)
@@ -136,7 +170,9 @@ export default function Trades() {
   const filtered = filter === 'all' ? trades : trades.filter((t) => t.trade_type === filter)
 
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold text-white">Trade History</h1>
         <button onClick={() => { fetchTrades(page); fetchTradeStats() }} className="btn-secondary p-2">
@@ -528,6 +564,7 @@ export default function Trades() {
           </table>
         </div>
       </div>
+      </div>{/* end scrollable */}
     </div>
   )
 }

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import type { Strategy } from '@/types'
+import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── performance tier engine ───────────────────────────────────────────────────
 type Tier = 'elite' | 'solid' | 'neutral' | 'weak' | 'failing'
@@ -320,8 +321,49 @@ export default function Strategies() {
     { key: 'failing', label: '❌ Failing' },
   ]
 
+  const liveCount     = strategies.filter(s => s.mode === 'LIVE').length
+  const approvedCount = strategies.filter(s => s.mode === 'APPROVED_FOR_LIVE').length
+  const paperCount    = strategies.filter(s => s.mode === 'PAPER_ONLY').length
+  const bestWR = strategies.length ? Math.max(...strategies.map(s => s.win_rate)) : 0
+  const topPnL = strategies.length ? Math.max(...strategies.map(s => s.total_pnl)) : 0
+
+  const heroSlides = [
+    {
+      title: 'Strategy Fleet', subtitle: '12 Autonomous Bots', accent: 'purple' as const,
+      stats: [
+        { label: 'Total',    value: String(strategies.length || 12), color: 'white'   as const },
+        { label: 'LIVE',     value: String(liveCount),               color: 'emerald' as const },
+        { label: 'APPROVED', value: String(approvedCount),           color: 'purple'  as const },
+        { label: 'PAPER',    value: String(paperCount),              color: 'yellow'  as const },
+        { label: 'Showing',  value: String(sorted.length),           color: 'slate'   as const },
+      ],
+    },
+    {
+      title: 'Performance', subtitle: 'Fleet Stats', accent: 'emerald' as const,
+      stats: [
+        { label: 'Best Win Rate', value: strategies.length ? `${bestWR.toFixed(0)}%` : '—',  color: 'emerald' as const },
+        { label: 'Avg Win Rate',  value: strategies.length ? `${(strategies.reduce((s,x)=>s+x.win_rate,0)/strategies.length).toFixed(0)}%` : '—', color: 'blue' as const },
+        { label: 'Top PnL',      value: strategies.length ? `+${topPnL.toFixed(3)}τ` : '—', color: 'emerald' as const },
+        { label: 'Fleet PnL',    value: strategies.length ? `${strategies.reduce((s,x)=>s+x.total_pnl,0) >= 0 ? '+' : ''}${strategies.reduce((s,x)=>s+x.total_pnl,0).toFixed(3)}τ` : '—', color: strategies.reduce((s,x)=>s+x.total_pnl,0) >= 0 ? 'emerald' : 'red' as any },
+        { label: 'Sort By',      value: sortKey.replace('_', ' ').toUpperCase(),             color: 'slate'   as const },
+      ],
+    },
+    {
+      title: 'Gate Progress', subtitle: 'Live Qualification', accent: 'blue' as const,
+      stats: [
+        { label: 'Gates Passed', value: String(strategies.filter(s => (s as any).gate_passed).length),    color: 'emerald' as const },
+        { label: 'High Traders', value: String(strategies.filter(s => s.total_trades >= 50).length),      color: 'blue'    as const },
+        { label: 'WR ≥ 55%',    value: String(strategies.filter(s => s.win_rate >= 55).length),          color: 'emerald' as const },
+        { label: 'WR < 45%',    value: String(strategies.filter(s => s.win_rate < 45 && s.total_trades > 10).length), color: 'red' as const },
+        { label: 'Filter',      value: modeFilter === 'all' ? 'All' : modeFilter.replace('_FOR_LIVE','').replace('_ONLY',''), color: 'slate' as const },
+      ],
+    },
+  ]
+
   return (
-    <div className="p-6 space-y-6 animate-fade-in">
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── page header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -467,7 +509,7 @@ export default function Strategies() {
           </p>
         </div>
       </div>
-
+      </div>{/* end scrollable */}
     </div>
   )
 }

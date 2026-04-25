@@ -12,10 +12,14 @@ and APY are real for TRADING_NETUIDS; simulated for display-only subnets.
 """
 import math
 import random
+import time
+import logging
 from datetime import datetime
 from fastapi import APIRouter, Query
 from services.price_service import price_service
 from services.subnet_cache_service import subnet_cache_service
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/market", tags=["market"])
 
@@ -215,7 +219,81 @@ async def get_subnets(
 
 @router.get("/overview")
 async def market_overview():
-    """Top-level market summary stats."""
+
+
+# ── CoinGecko crypto ticker ────────────────────────────────────────────────────
+# In-memory cache — refreshed at most every 90s to respect CoinGecko free tier.
+_CG_CACHE: dict = {"coins": [], "ts": 0.0, "tao_mcap": 0.0}
+
+@router.get("/crypto-ticker")
+async def crypto_ticker():
+    """
+    Return a ticker list of major crypto assets with market cap ≥ Bittensor TAO.
+    Data source: CoinGecko public API (no key required, 90-second server-side cache).
+    Response: { coins: [{symbol, name, price, change_24h, market_cap, highlight}], cached: bool }
+    """
+    import httpx
+
+    now = time.time()
+    if now - _CG_CACHE["ts"] < 90 and _CG_CACHE["coins"]:
+        return {"coins": _CG_CACHE["coins"], "cached": True}
+
+    try:
+        async with httpx.AsyncClient(timeout=12.0) as client:
+            resp = await client.get(
+                "https://api.coingecko.com/api/v3/coins/markets",
+                params={
+                    "vs_currency": "usd",
+                    "order": "market_cap_desc",
+                    "per_page": 120,
+                    "page": 1,
+                    "sparkline": "false",
+                    "price_change_percentage": "24h",
+                },
+                headers={"Accept": "application/json"},
+            )
+            resp.raise_for_status()
+            raw: list = resp.json()
+    except Exception as exc:
+        logger.warning(f"CoinGecko fetch failed: {exc}")
+        # Return stale cache if available, else empty
+        return {"coins": _CG_CACHE.get("coins", []), "cached": True, "error": str(exc)}
+
+    # Locate TAO (Bittensor) to get its market cap as the threshold
+    tao_raw = next((c for c in raw if c.get("id") == "bittensor"), None)
+    tao_mcap = (tao_raw or {}).get("market_cap") or _CG_CACHE["tao_mcap"] or 2_000_000_000
+
+    def _coin(c: dict, highlight: bool = False) -> dict:
+        return {
+            "id":         c.get("id", ""),
+            "symbol":     (c.get("symbol") or "").upper(),
+            "name":       c.get("name", ""),
+            "price":      c.get("current_price") or 0.0,
+            "change_24h": c.get("price_change_percentage_24h") or 0.0,
+            "market_cap": c.get("market_cap") or 0,
+            "highlight":  highlight,
+        }
+
+    coins: list[dict] = []
+    # TAO always first (highlighted)
+    if tao_raw:
+        coins.append(_coin(tao_raw, highlight=True))
+
+    # Coins with market cap strictly greater than TAO's (and not TAO itself)
+    for c in raw:
+        if c.get("id") == "bittensor":
+            continue
+        if (c.get("market_cap") or 0) > tao_mcap:
+            coins.append(_coin(c))
+
+    _CG_CACHE["coins"]    = coins
+    _CG_CACHE["ts"]       = now
+    _CG_CACHE["tao_mcap"] = tao_mcap
+
+    return {"coins": coins, "cached": False}
+
+
+"""Top-level market summary stats."""
     tao_price = price_service.current_price or 250.0
     all_s = [_live_subnet(uid, tao_price) for uid in _DISPLAY_UIDS]
 
@@ -224,12 +302,12 @@ async def market_overview():
     top_subnet  = max(all_s, key=lambda s: s["stake_tao"])
 
     return {
-        "tao_price":     round(tao_price, 2),
-        "total_subnets": 64,
+        "tao_price":       round(tao_price, 2),
+        "total_subnets":   64,
         "total_stake_tao": round(total_stake, 0),
         "total_stake_usd": round(total_stake * tao_price, 0),
-        "avg_apy":       round(avg_apy, 1),
-        "top_subnet":    top_subnet,
-        "up_subnets":    sum(1 for s in all_s if s["trend"] == "up"),
-        "down_subnets":  sum(1 for s in all_s if s["trend"] == "down"),
+        "avg_apy":         round(avg_apy, 1),
+        "top_subnet":      top_subnet,
+        "up_subnets":      sum(1 for s in all_s if s["trend"] == "up"),
+        "down_subnets":    sum(1 for s in all_s if s["trend"] == "down"),
     }

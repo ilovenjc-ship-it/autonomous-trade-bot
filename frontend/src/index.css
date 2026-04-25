@@ -7,11 +7,11 @@
     box-sizing: border-box;
   }
 
-  /* Global font scale — browser default is 16px; 118.75% lifts it to ~19px.
+  /* Global font scale — browser default is 16px; 131.25% lifts it to ~21px.
      All rem-based Tailwind sizes (text-xs, text-sm, text-base, text-lg …)
      scale proportionally. Fixed-pixel classes are handled individually. */
   html {
-    font-size: 118.75%;
+    font-size: 131.25%;
   }
 
   html, body, #root {
@@ -88,6 +88,13 @@
 /* Glow effects */
 .glow-green { box-shadow: 0 0 20px rgba(0, 229, 160, 0.15); }
 .glow-red   { box-shadow: 0 0 20px rgba(255, 77, 109, 0.15); }
+
+/* Page hero slider slide transition */
+@keyframes fadeInSlide {
+  from { opacity: 0; transform: translateX(12px); }
+  to   { opacity: 1; transform: translateX(0);    }
+}
+.animate-fade-in { animation: fadeInSlide 0.35s ease-out both; }
 
 /* Running indicator pulse */
 @keyframes runPulse {

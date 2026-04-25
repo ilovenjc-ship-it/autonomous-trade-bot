@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
+import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function fmtInterval(s: number): string {
@@ -120,8 +121,43 @@ export default function Settings() {
   const simMode      = status?.simulation_mode ?? true
   const tradeInterval = config.trade_interval ?? 0
 
+  const heroSlides = [
+    {
+      title: 'System Config', subtitle: 'Bot Settings', accent: 'blue' as const,
+      stats: [
+        { label: 'Trading',      value: isRunning ? 'Running' : 'Stopped',                 color: isRunning ? 'emerald' : 'red' as any },
+        { label: 'Mode',         value: simMode ? 'Simulation' : 'LIVE',                  color: simMode ? 'yellow' : 'emerald' as any },
+        { label: 'Network',      value: isMainnet ? 'Finney' : 'Testnet',                 color: isMainnet ? 'emerald' : 'yellow' as any },
+        { label: 'Trade Every',  value: tradeInterval ? `${tradeInterval}s` : '300s',     color: 'slate'   as const },
+        { label: 'Config',       value: saving ? 'Saving…' : 'Saved',                    color: saving ? 'yellow' : 'emerald' as any },
+      ],
+    },
+    {
+      title: 'Network Settings', subtitle: 'Bittensor Chain', accent: 'emerald' as const,
+      stats: [
+        { label: 'Endpoint',     value: 'Finney RPC',                                     color: 'white'   as const },
+        { label: 'Chain',        value: 'Finney Mainnet',                                 color: 'emerald' as const },
+        { label: 'Protocol',     value: 'WebSocket',                                      color: 'blue'    as const },
+        { label: 'Timeout',      value: '35s',                                            color: 'slate'   as const },
+        { label: 'Status',       value: isRunning ? '✓ Active' : '✗ Idle',              color: isRunning ? 'emerald' : 'slate' as any },
+      ],
+    },
+    {
+      title: 'Risk Parameters', subtitle: 'Trade Safety', accent: 'orange' as const,
+      stats: [
+        { label: 'Min Confidence', value: '—',                                                         color: 'purple' as const },
+        { label: 'Max Position',   value: '—',                                                         color: 'orange' as const },
+        { label: 'Sim Mode',       value: simMode ? 'ON' : 'OFF',                                  color: simMode ? 'yellow' : 'emerald' as any },
+        { label: 'Reset Armed',    value: resetArmed ? 'YES' : 'No',                              color: resetArmed ? 'red' : 'slate' as any },
+        { label: 'Resetting',      value: resetting ? 'Yes' : 'No',                              color: resetting ? 'yellow' : 'slate' as any },
+      ],
+    },
+  ]
+
   return (
-    <div className="p-6 space-y-6 animate-fade-in max-w-3xl">
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -309,7 +345,7 @@ export default function Settings() {
           </div>
         )}
       </div>
-
+      </div>{/* end scrollable */}
     </div>
   )
 }

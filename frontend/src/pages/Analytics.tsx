@@ -9,6 +9,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
+import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── colours ───────────────────────────────────────────────────────────────────
 const C_GREEN  = '#00ff88'
@@ -214,8 +215,44 @@ export default function Analytics() {
   // ── min drawdown for Y axis ────────────────────────────────────────────────
   const minDD = Math.min(0, ...drawdown.map(d => d.drawdown)) * 1.1 || -0.01
 
+  const bestStr  = strategies.length ? strategies.reduce((a, b) => a.win_rate > b.win_rate ? a : b) : null
+  const heroSlides = [
+    {
+      title: 'Performance Overview', subtitle: 'All Time', accent: 'emerald' as const,
+      stats: [
+        { label: 'Total PnL',   value: summary ? `${summary.total_pnl >= 0 ? '+' : ''}${summary.total_pnl.toFixed(4)}τ` : '—', color: (summary?.total_pnl ?? 0) >= 0 ? 'emerald' : 'red' as any },
+        { label: 'Win Rate',    value: summary ? `${summary.win_rate.toFixed(1)}%` : '—',                  color: (summary?.win_rate ?? 0) >= 55 ? 'emerald' : 'yellow' as any },
+        { label: 'Total Trades',value: summary ? String(summary.total_trades) : '—',                      color: 'white' as const },
+        { label: 'Strategies',  value: String(strategies.length),                                         color: 'blue'  as const },
+        { label: 'Data Range',  value: timeRange.toUpperCase(),                                           color: 'slate' as const },
+      ],
+    },
+    {
+      title: 'Strategy Analysis', subtitle: 'Fleet Breakdown', accent: 'blue' as const,
+      stats: [
+        { label: 'Best WR',     value: bestStr ? `${bestStr.win_rate.toFixed(0)}%` : '—',                 color: 'emerald' as const },
+        { label: 'Best Name',   value: bestStr ? bestStr.name.split('_')[0] : '—',                        color: 'white'   as const },
+        { label: 'Avg Win Rate',value: strategies.length ? `${(strategies.reduce((s,x)=>s+x.win_rate,0)/strategies.length).toFixed(0)}%` : '—', color: 'yellow' as const },
+        { label: 'Profitable',  value: String(strategies.filter(s => s.total_pnl > 0).length),            color: 'emerald' as const },
+        { label: 'Losing',      value: String(strategies.filter(s => s.total_pnl < 0).length),            color: 'red'     as const },
+      ],
+    },
+    {
+      title: 'Risk Profile', subtitle: 'Drawdown & Volatility', accent: 'orange' as const,
+      stats: [
+        { label: 'Max Drawdown', value: drawdown.length ? `${(Math.abs(Math.min(0,...drawdown.map(d=>d.drawdown)))*100).toFixed(2)}%` : '—', color: 'orange' as const },
+        { label: 'Data Points',  value: String(equity.length),                                            color: 'blue'    as const },
+        { label: 'Avg Trade τ',  value: summary && summary.total_trades > 0 ? `${(summary.total_pnl / summary.total_trades).toFixed(4)}τ` : '—', color: 'white' as const },
+        { label: 'Winners',      value: strategies.length ? String(strategies.filter(s => s.total_pnl > 0).length) : '—', color: 'emerald' as const },
+        { label: 'Losers',       value: strategies.length ? String(strategies.filter(s => s.total_pnl < 0).length) : '—', color: 'red'     as const },
+      ],
+    },
+  ]
+
   return (
-    <div className="p-6 space-y-6 min-h-screen bg-dark-900">
+    <div className="flex flex-col h-full overflow-hidden">
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-dark-900">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -579,7 +616,7 @@ export default function Analytics() {
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
         </div>
       </div>
-
+      </div>{/* end scrollable */}
     </div>
   )
 }
