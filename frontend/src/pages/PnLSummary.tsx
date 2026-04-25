@@ -202,7 +202,7 @@ export default function PnLSummary() {
           {
             icon: TrendingUp,
             label: 'Total PnL',
-            value: `${fleet.total_pnl_tau >= 0 ? '+' : ''}${fleet.total_pnl_tau.toFixed(4)} τ`,
+            value: `${fleet.total_pnl_tau >= 0 ? '+' : ''}${(fleet.total_pnl_tau ?? 0).toFixed(4)} τ`,
             sub:   fmtUSD(fleet.total_pnl_usd),
             color: fleet.total_pnl_tau >= 0 ? 'text-emerald-400' : 'text-red-400',
             glow:  fleet.total_pnl_tau >= 0 ? 'shadow-emerald-500/10' : 'shadow-red-500/10',

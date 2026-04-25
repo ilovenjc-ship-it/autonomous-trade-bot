@@ -220,7 +220,7 @@ export default function Analytics() {
     {
       title: 'Performance Overview', subtitle: 'All Time', accent: 'emerald' as const,
       stats: [
-        { label: 'Total PnL',   value: summary ? `${summary.total_pnl >= 0 ? '+' : ''}${summary.total_pnl.toFixed(4)}τ` : '—', color: (summary?.total_pnl ?? 0) >= 0 ? 'emerald' : 'red' as any },
+        { label: 'Total PnL',   value: summary ? `${summary.total_pnl >= 0 ? '+' : ''}${(summary.total_pnl ?? 0).toFixed(4)}τ` : '—', color: (summary?.total_pnl ?? 0) >= 0 ? 'emerald' : 'red' as any },
         { label: 'Win Rate',    value: summary ? `${summary.win_rate.toFixed(1)}%` : '—',                  color: (summary?.win_rate ?? 0) >= 55 ? 'emerald' : 'yellow' as any },
         { label: 'Total Trades',value: summary ? String(summary.total_trades) : '—',                      color: 'white' as const },
         { label: 'Strategies',  value: String(strategies.length),                                         color: 'blue'  as const },

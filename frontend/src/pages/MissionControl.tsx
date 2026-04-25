@@ -167,7 +167,7 @@ function BotCard({ bot, selected, onClick }: { bot: FleetBot; selected: boolean;
         </span>
         <span className={clsx('text-[10px] font-mono truncate',
           bot.total_pnl >= 0 ? 'text-emerald-400/70' : 'text-red-400/70')}>
-          {bot.total_pnl >= 0 ? '+' : ''}{bot.total_pnl.toFixed(2)}τ
+          {bot.total_pnl >= 0 ? '+' : ''}{(bot.total_pnl ?? 0).toFixed(2)}τ
         </span>
       </div>
 
@@ -670,7 +670,7 @@ export default function MissionControl() {
                     <div className="flex-1" />
                     <div className={clsx('text-[12px] font-bold font-mono leading-none',
                       summary.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                      {summary.total_pnl >= 0 ? '+' : ''}{summary.total_pnl.toFixed(3)}τ
+                      {summary.total_pnl >= 0 ? '+' : ''}{(summary.total_pnl ?? 0).toFixed(3)}τ
                     </div>
                   </div>
                 </>

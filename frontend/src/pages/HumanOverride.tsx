@@ -607,7 +607,7 @@ export default function HumanOverride() {
                       </div>
                     ) : (
                       <button
-                        onClick={() => { setStakeEditing(s.name); setStakeInput(s.stake_amount != null ? s.stake_amount.toFixed(4) : '') }}
+                        onClick={() => { setStakeEditing(s.name); setStakeInput(s.stake_amount != null ? (s.stake_amount ?? 0).toFixed(4) : '') }}
                         className="text-right group/stake"
                         title="Click to edit stake per trade"
                       >
@@ -615,7 +615,7 @@ export default function HumanOverride() {
                           'text-xs font-mono font-bold group-hover/stake:text-accent-blue transition-colors',
                           s.mode === 'LIVE' ? 'text-white' : 'text-slate-500',
                         )}>
-                          {s.stake_amount != null ? `${s.stake_amount.toFixed(4)} τ` : '—'}
+                          {s.stake_amount != null ? `${(s.stake_amount ?? 0).toFixed(4)} τ` : '—'}
                         </p>
                         <p className="text-[15px] text-slate-500">stake/trade</p>
                       </button>

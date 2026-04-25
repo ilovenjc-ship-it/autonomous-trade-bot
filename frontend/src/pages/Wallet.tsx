@@ -75,7 +75,7 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
             {achieved ? 'Target Achieved 🎉' : 'Recovery Tracker'}
           </h2>
           <span className="text-[13px] text-slate-500 font-mono ml-1">
-            {achieved ? 'Next milestone?' : `toward τ${target.toFixed(3)}`}
+            {achieved ? 'Next milestone?' : `toward τ${(target ?? 0).toFixed(3)}`}
           </span>
         </div>
 
@@ -164,7 +164,7 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
         <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
           <p className="text-[15px] text-slate-500 uppercase tracking-wider font-mono mb-1">Current</p>
           <p className={clsx('text-lg font-black font-mono', balance != null ? 'text-white' : 'text-slate-600')}>
-            {balance != null ? `τ${balance.toFixed(4)}` : '—'}
+            {balance != null ? `τ${(balance ?? 0).toFixed(4)}` : '—'}
           </p>
           {balance != null && taoPrice && (
             <p className="text-[13px] text-slate-400 font-mono mt-0.5">
@@ -176,9 +176,9 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
         {/* target */}
         <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
           <p className="text-[15px] text-slate-500 uppercase tracking-wider font-mono mb-1">Target</p>
-          <p className="text-lg font-black font-mono text-accent-blue">τ{target.toFixed(3)}</p>
+          <p className="text-lg font-black font-mono text-accent-blue">τ{(target ?? 0).toFixed(3)}</p>
           {usdTarget && (
-            <p className="text-[13px] text-slate-400 font-mono mt-0.5">${usdTarget.toFixed(2)}</p>
+            <p className="text-[13px] text-slate-400 font-mono mt-0.5">${(usdTarget ?? 0).toFixed(2)}</p>
           )}
         </div>
 
@@ -186,10 +186,10 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
         <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
           <p className="text-[15px] text-slate-500 uppercase tracking-wider font-mono mb-1">Remaining</p>
           <p className={clsx('text-lg font-black font-mono', achieved ? 'text-accent-green' : 'text-yellow-400')}>
-            {achieved ? '✓ Done' : remaining != null ? `τ${remaining.toFixed(4)}` : '—'}
+            {achieved ? '✓ Done' : remaining != null ? `τ${(remaining ?? 0).toFixed(4)}` : '—'}
           </p>
           {!achieved && usdRemain != null && (
-            <p className="text-[13px] text-slate-400 font-mono mt-0.5">${usdRemain.toFixed(2)} to go</p>
+            <p className="text-[13px] text-slate-400 font-mono mt-0.5">${(usdRemain ?? 0).toFixed(2)} to go</p>
           )}
         </div>
 
@@ -197,7 +197,7 @@ function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPri
         <div className="bg-dark-900 rounded-lg px-3 py-2.5 text-center border border-dark-700">
           <p className="text-[15px] text-slate-500 uppercase tracking-wider font-mono mb-1">Progress</p>
           <p className="text-lg font-black font-mono" style={{ color: barColor }}>
-            {balance != null ? `${pct.toFixed(1)}%` : '—'}
+            {balance != null ? `${(pct ?? 0).toFixed(1)}%` : '—'}
           </p>
           <p className="text-[13px] text-slate-400 font-mono mt-0.5">
             {pct >= 75 ? 'Almost there' : pct >= 50 ? 'Halfway' : pct >= 25 ? 'Building' : 'Starting'}
@@ -398,9 +398,9 @@ export default function WalletPage() {
     {
       title: 'Wallet Overview', subtitle: 'Finney Mainnet', accent: 'emerald' as const,
       stats: [
-        { label: 'Balance',     value: `${balance.toFixed(4)} τ`,                          color: balance > 0 ? 'emerald' : 'slate' as any },
-        { label: 'USD Value',   value: usdValue != null ? `$${usdValue.toFixed(2)}` : '—', color: 'white'   as const },
-        { label: 'TAO Price',   value: taoPrice != null ? `$${taoPrice.toFixed(2)}` : '—', color: 'yellow'  as const },
+        { label: 'Balance',     value: `${(balance ?? 0).toFixed(4)} τ`,                          color: balance > 0 ? 'emerald' : 'slate' as any },
+        { label: 'USD Value',   value: usdValue != null ? `$${(usdValue ?? 0).toFixed(2)}` : '—', color: 'white'   as const },
+        { label: 'TAO Price',   value: taoPrice != null ? `$${(taoPrice ?? 0).toFixed(2)}` : '—', color: 'yellow'  as const },
         { label: 'Status',      value: isConnected ? 'Connected' : 'Disconnected',         color: isConnected ? 'emerald' : 'red' as any },
         { label: 'Network',     value: 'Finney',                                           color: 'blue'    as const },
       ],
@@ -467,7 +467,7 @@ export default function WalletPage() {
         {block && (<><span className="text-slate-300">·</span>
           <span className="text-slate-300">Block #{block.toLocaleString()}</span></>)}
         {balance != null && (<><span className="text-slate-300">·</span>
-          <span className="text-indigo-400 font-bold">τ{balance.toFixed(6)}</span></>)}
+          <span className="text-indigo-400 font-bold">τ{(balance ?? 0).toFixed(6)}</span></>)}
         <span className="ml-auto text-slate-300">finney.opentensor.ai</span>
       </div>
 
@@ -506,7 +506,7 @@ export default function WalletPage() {
               <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
                 <p className="text-slate-400 mb-0.5">TAO Balance</p>
                 <p className={clsx('font-mono font-bold', balance ? 'text-indigo-400' : 'text-slate-500')}>
-                  {querying ? 'Querying…' : balance ? `τ${balance.toFixed(4)}` : '—'}
+                  {querying ? 'Querying…' : balance ? `τ${(balance ?? 0).toFixed(4)}` : '—'}
                 </p>
               </div>
               <div className="bg-dark-700 rounded-lg px-3 py-2 text-center">
@@ -543,7 +543,7 @@ export default function WalletPage() {
               <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
                 <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono mb-1">TAO Balance</p>
                 <p className={clsx('text-2xl font-black font-mono', balance ? 'text-white' : 'text-slate-600')}>
-                  {balance ? `τ ${balance.toFixed(4)}` : 'τ —'}
+                  {balance ? `τ ${(balance ?? 0).toFixed(4)}` : 'τ —'}
                 </p>
                 <p className="text-xs text-slate-500 mt-1 font-mono">Free · unstaked</p>
               </div>
@@ -555,7 +555,7 @@ export default function WalletPage() {
                     : '$ —'}
                 </p>
                 <p className="text-xs text-slate-500 mt-1 font-mono">
-                  {taoPrice ? `@ $${taoPrice.toFixed(2)} / TAO` : 'Price unavailable'}
+                  {taoPrice ? `@ $${(taoPrice ?? 0).toFixed(2)} / TAO` : 'Price unavailable'}
                 </p>
               </div>
             </div>

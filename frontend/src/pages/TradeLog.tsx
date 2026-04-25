@@ -379,17 +379,17 @@ export default function TradeLog() {
 
                 {/* Amount */}
                 <td className="px-4 py-2.5 text-right font-mono text-slate-300">
-                  {t.amount.toFixed(4)}
+                  {(t.amount ?? 0).toFixed(4)}
                 </td>
 
                 {/* Price */}
                 <td className="px-4 py-2.5 text-right font-mono text-slate-300">
-                  ${t.price_at_trade.toFixed(2)}
+                  ${(t.price_at_trade ?? 0).toFixed(2)}
                 </td>
 
                 {/* USD Value */}
                 <td className="px-4 py-2.5 text-right font-mono text-slate-300">
-                  ${t.usd_value.toFixed(4)}
+                  ${(t.usd_value ?? 0).toFixed(4)}
                 </td>
 
                 {/* PnL */}

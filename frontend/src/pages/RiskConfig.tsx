@@ -247,14 +247,14 @@ export default function RiskConfig() {
         { label: 'Global Halt',    value: isHalted ? 'HALTED' : 'ACTIVE',               color: isHalted ? 'red' : 'emerald' as any },
         { label: 'Circuit Breaker',value: isCBTripped ? 'TRIPPED' : 'OK',               color: isCBTripped ? 'red' : 'emerald' as any },
         { label: 'Open Positions', value: `${openPos}/${maxPos}`,                       color: openPos >= maxPos ? 'red' : 'white' as any },
-        { label: 'Drawdown',       value: `${drawdown.toFixed(2)}%`,                    color: drawdown > config.max_drawdown_pct * 0.8 ? 'red' : 'orange' as any },
-        { label: 'Daily Loss',     value: `${dailyLoss.toFixed(2)}%`,                  color: 'slate' as const },
+        { label: 'Drawdown',       value: `${(drawdown ?? 0).toFixed(2)}%`,                    color: drawdown > config.max_drawdown_pct * 0.8 ? 'red' : 'orange' as any },
+        { label: 'Daily Loss',     value: `${(dailyLoss ?? 0).toFixed(2)}%`,                  color: 'slate' as const },
       ],
     },
     {
       title: 'Capital Config', subtitle: 'Position Limits', accent: 'blue' as const,
       stats: [
-        { label: 'Max Drawdown',  value: `${config.max_drawdown_pct.toFixed(1)}%`,      color: 'orange' as const },
+        { label: 'Max Drawdown',  value: `${(config.max_drawdown_pct ?? 0).toFixed(1)}%`,      color: 'orange' as const },
         { label: 'Max Daily Loss',value: '—',                                           color: 'orange' as const },
         { label: 'Max Positions', value: String(config.max_concurrent_positions),       color: 'white'  as const },
         { label: 'Max Per Trade', value: '—',                                          color: 'blue'   as const },
@@ -309,7 +309,7 @@ export default function RiskConfig() {
         </span>
         {!isHalted && status && (
           <span className="text-xs text-slate-400 ml-1">
-            Running normally · drawdown {drawdown.toFixed(1)}% of {config.max_drawdown_pct}% limit
+            Running normally · drawdown {(drawdown ?? 0).toFixed(1)}% of {config.max_drawdown_pct}% limit
           </span>
         )}
         {isHalted && (
@@ -338,15 +338,15 @@ export default function RiskConfig() {
         <StatusCard
           icon={TrendingDown}
           label="Drawdown"
-          value={`${drawdown.toFixed(1)}%`}
-          sub={`${drawdownPct.toFixed(0)}% of ${config.max_drawdown_pct}% limit`}
+          value={`${(drawdown ?? 0).toFixed(1)}%`}
+          sub={`${(drawdownPct ?? 0).toFixed(0)}% of ${config.max_drawdown_pct}% limit`}
           danger={drawdownPct >= 80}
           warn={drawdownPct >= 50}
         />
         <StatusCard
           icon={BarChart2}
           label="Daily Loss"
-          value={`${dailyLoss.toFixed(1)}%`}
+          value={`${(dailyLoss ?? 0).toFixed(1)}%`}
           sub={`Limit: ${config.daily_loss_circuit_breaker_pct}%`}
           danger={dailyLoss >= config.daily_loss_circuit_breaker_pct * 0.85}
           warn={dailyLoss >= config.daily_loss_circuit_breaker_pct * 0.5}

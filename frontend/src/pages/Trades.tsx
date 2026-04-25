@@ -104,7 +104,7 @@ export default function Trades() {
       stats: [
         { label: 'Total Trades',  value: String(tradeTotal ?? 0),                                        color: 'white'   as const },
         { label: 'Mode',          value: isLive ? 'LIVE' : 'PAPER',                                      color: isLive ? 'emerald' : 'yellow' as any },
-        { label: 'Win Rate',      value: tradeStats ? `${tradeStats.win_rate.toFixed(1)}%` : '—',        color: (tradeStats?.win_rate ?? 0) >= 55 ? 'emerald' : 'yellow' as any },
+        { label: 'Win Rate',      value: tradeStats ? `${(tradeStats.win_rate ?? 0).toFixed(1)}%` : '—',        color: (tradeStats?.win_rate ?? 0) >= 55 ? 'emerald' : 'yellow' as any },
         { label: 'Total PnL',     value: '—',                                                                                            color: 'white' as const },
         { label: 'Filter',        value: filter.toUpperCase(),                                           color: 'slate'   as const },
       ],

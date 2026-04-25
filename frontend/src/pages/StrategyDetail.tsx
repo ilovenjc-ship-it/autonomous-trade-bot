@@ -132,7 +132,7 @@ export default function StrategyDetail() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
           { label: 'Total Trades', value: String(detail.total_trades), color: 'text-white' },
-          { label: 'Win Rate',     value: `${detail.win_rate.toFixed(1)}%`,
+          { label: 'Win Rate',     value: `${(detail.win_rate ?? 0).toFixed(1)}%`,
             color: detail.win_rate >= 55 ? 'text-accent-green' : 'text-yellow-400' },
           { label: 'W / L',        value: `${detail.win_trades} / ${detail.loss_trades}`, color: 'text-white' },
           { label: 'Total PnL',    value: `${fmt(detail.total_pnl)} τ`,
@@ -252,8 +252,8 @@ export default function StrategyDetail() {
                       {t.type.toUpperCase()}
                     </span>
                   </td>
-                  <td className="px-4 py-2 text-right font-mono text-slate-300">{t.amount.toFixed(4)} τ</td>
-                  <td className="px-4 py-2 text-right font-mono text-slate-300">${t.price.toFixed(2)}</td>
+                  <td className="px-4 py-2 text-right font-mono text-slate-300">{(t.amount ?? 0).toFixed(4)} τ</td>
+                  <td className="px-4 py-2 text-right font-mono text-slate-300">${(t.price ?? 0).toFixed(2)}</td>
                   <td className={clsx('px-4 py-2 text-right font-mono font-semibold',
                     t.pnl > 0 ? 'text-accent-green' : t.pnl < 0 ? 'text-red-400' : 'text-slate-300')}>
                     {fmt(t.pnl, 4)}

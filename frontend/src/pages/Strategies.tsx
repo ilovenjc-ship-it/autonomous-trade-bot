@@ -84,7 +84,7 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
         {[
           { label: 'Strategies',      value: String(n),                          color: 'text-white',        icon: <Layers size={12} className="text-accent-blue" /> },
           { label: 'Fleet Trades',    value: trades.toLocaleString(),            color: 'text-white',        icon: <Activity size={12} className="text-accent-blue" /> },
-          { label: 'Avg Win Rate',    value: `${winRate.toFixed(1)}%`,           color: winRate >= 55 ? 'text-accent-green' : 'text-yellow-400', icon: <TrendingUp size={12} className="text-accent-green" /> },
+          { label: 'Avg Win Rate',    value: `${(winRate ?? 0).toFixed(1)}%`,           color: winRate >= 55 ? 'text-accent-green' : 'text-yellow-400', icon: <TrendingUp size={12} className="text-accent-green" /> },
           { label: 'Fleet PnL (τ)',   value: fmt(pnl),                           color: pnl >= 0 ? 'text-accent-green' : 'text-red-400', icon: pnl >= 0 ? <TrendingUp size={12} className="text-accent-green" /> : <TrendingDown size={12} className="text-red-400" /> },
           { label: 'Live / Approved', value: `${live} / ${approved}`,            color: 'text-accent-green', icon: <Shield size={12} className="text-yellow-400" /> },
         ].map(({ label, value, color, icon }) => (
@@ -108,7 +108,7 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
             </span>
           </div>
           <span className="text-base font-bold font-mono text-accent-green">
-            {maxCycleStake.toFixed(4)} τ
+            {(maxCycleStake ?? 0).toFixed(4)} τ
           </span>
         </div>
       )}
@@ -199,7 +199,7 @@ function StrategyCard({ s }: { s: Strategy }) {
         </div>
         <div className="text-center">
           <p className={clsx('text-sm font-mono font-semibold', tierMeta.allocClass)}>
-            {s.win_rate.toFixed(1)}%
+            {(s.win_rate ?? 0).toFixed(1)}%
           </p>
           <p className="text-[13px] text-slate-500 mt-0.5">Win Rate</p>
         </div>
@@ -232,7 +232,7 @@ function StrategyCard({ s }: { s: Strategy }) {
         {s.mode === 'LIVE' && s.stake_amount != null ? (
           <div className="flex items-center gap-1.5">
             <span className={clsx('text-sm font-bold font-mono', tierMeta.allocClass)}>
-              {s.stake_amount.toFixed(4)} τ
+              {(s.stake_amount ?? 0).toFixed(4)} τ
             </span>
             <span className="text-[13px] font-mono text-slate-500">{tierMeta.label}</span>
           </div>
@@ -341,9 +341,9 @@ export default function Strategies() {
     {
       title: 'Performance', subtitle: 'Fleet Stats', accent: 'emerald' as const,
       stats: [
-        { label: 'Best Win Rate', value: strategies.length ? `${bestWR.toFixed(0)}%` : '—',  color: 'emerald' as const },
+        { label: 'Best Win Rate', value: strategies.length ? `${(bestWR ?? 0).toFixed(0)}%` : '—',  color: 'emerald' as const },
         { label: 'Avg Win Rate',  value: strategies.length ? `${(strategies.reduce((s,x)=>s+x.win_rate,0)/strategies.length).toFixed(0)}%` : '—', color: 'blue' as const },
-        { label: 'Top PnL',      value: strategies.length ? `+${topPnL.toFixed(3)}τ` : '—', color: 'emerald' as const },
+        { label: 'Top PnL',      value: strategies.length ? `+${(topPnL ?? 0).toFixed(3)}τ` : '—', color: 'emerald' as const },
         { label: 'Fleet PnL',    value: strategies.length ? `${strategies.reduce((s,x)=>s+x.total_pnl,0) >= 0 ? '+' : ''}${strategies.reduce((s,x)=>s+x.total_pnl,0).toFixed(3)}τ` : '—', color: strategies.reduce((s,x)=>s+x.total_pnl,0) >= 0 ? 'emerald' : 'red' as any },
         { label: 'Sort By',      value: sortKey.replace('_', ' ').toUpperCase(),             color: 'slate'   as const },
       ],

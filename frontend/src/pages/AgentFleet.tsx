@@ -60,7 +60,7 @@ function AllocationBar({ pct, max }: { pct: number; max: number }) {
       <div className="flex-1 h-1 bg-slate-800 rounded-full overflow-hidden">
         <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(pct / max) * 100}%` }} />
       </div>
-      <span className="text-[13px] text-slate-300 font-mono w-8 text-right">{pct.toFixed(1)}%</span>
+      <span className="text-[13px] text-slate-300 font-mono w-8 text-right">{(pct ?? 0).toFixed(1)}%</span>
     </div>
   )
 }
@@ -160,7 +160,7 @@ function ScoreBar({ score }: { score: number }) {
         <div className={clsx('h-full rounded-full', score >= 60 ? 'bg-emerald-500' : score >= 30 ? 'bg-yellow-500' : 'bg-red-500')}
           style={{ width: `${score}%` }} />
       </div>
-      <span className="text-[13px] text-slate-300 font-mono">{score.toFixed(0)}</span>
+      <span className="text-[13px] text-slate-300 font-mono">{(score ?? 0).toFixed(0)}</span>
     </div>
   )
 }
@@ -234,8 +234,8 @@ export default function AgentFleet() {
     {
       title: 'Fleet Performance', subtitle: 'All Strategies', accent: 'emerald' as const,
       stats: [
-        { label: 'Avg Win Rate', value: bots.length ? `${fleetWR.toFixed(0)}%` : '—', color: fleetWR >= 55 ? 'emerald' : 'yellow' as any },
-        { label: 'Fleet PnL',   value: `${fleetPnL >= 0 ? '+' : ''}${fleetPnL.toFixed(3)}τ`, color: fleetPnL >= 0 ? 'emerald' : 'red' as any },
+        { label: 'Avg Win Rate', value: bots.length ? `${(fleetWR ?? 0).toFixed(0)}%` : '—', color: fleetWR >= 55 ? 'emerald' : 'yellow' as any },
+        { label: 'Fleet PnL',   value: `${fleetPnL >= 0 ? '+' : ''}${(fleetPnL ?? 0).toFixed(3)}τ`, color: fleetPnL >= 0 ? 'emerald' : 'red' as any },
         { label: 'Total Trades',value: String(bots.reduce((s,b) => s + b.total_trades, 0)), color: 'white'  as const },
         { label: 'Green Health',value: String(summary?.green ?? 0),                  color: 'emerald' as const },
         { label: 'Promotions',  value: String(summary?.promotions_this_session ?? 0),color: 'purple'  as const },

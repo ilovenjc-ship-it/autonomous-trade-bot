@@ -234,7 +234,7 @@ function BotVoteCard({ vote }: { vote: BotVote }) {
       <div>
         <div className="flex justify-between text-[13px] font-mono mb-1">
           <span className="text-slate-300">Confidence</span>
-          <span className={meta.text}>{(vote.confidence * 100).toFixed(0)}%</span>
+          <span className={meta.text}>{((vote.confidence ?? 0) * 100).toFixed(0)}%</span>
         </div>
         <div className="h-1.5 rounded-full bg-dark-700 overflow-hidden">
           <div
@@ -284,7 +284,7 @@ function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
         <span className="text-slate-300 mx-1">/</span>
         <span className="text-amber-400">{round.hold_count}H</span>
       </td>
-      <td className="px-3 py-2 text-[14px] text-slate-300 font-mono">${round.price_at_round.toFixed(2)}</td>
+      <td className="px-3 py-2 text-[14px] text-slate-300 font-mono">${(round.price_at_round ?? 0).toFixed(2)}</td>
       <td className="px-3 py-2 text-[14px] text-slate-300">{timeSince(round.timestamp)}</td>
       <td className="px-3 py-2 text-[13px] text-slate-300 font-mono">{round.duration_ms}ms</td>
     </tr>
@@ -357,7 +357,7 @@ export default function OpenClaw() {
     {
       title: 'BFT Consensus', subtitle: 'OpenClaw Council', accent: 'purple' as const,
       stats: [
-        { label: 'Approval Rate', value: stats ? `${stats.approval_rate_pct.toFixed(1)}%` : '—', color: 'emerald' as const },
+        { label: 'Approval Rate', value: stats ? `${(stats.approval_rate_pct ?? 0).toFixed(1)}%` : '—', color: 'emerald' as const },
         { label: 'Total Rounds',  value: stats ? String(stats.total_rounds) : '—',             color: 'white'   as const },
         { label: 'Approved',      value: stats ? String(stats.approved_rounds) : '—',          color: 'emerald' as const },
         { label: 'Rejected',      value: stats ? String(stats.rejected_rounds ?? (stats.total_rounds - stats.approved_rounds)) : '—', color: 'orange' as const },
@@ -486,7 +486,7 @@ export default function OpenClaw() {
               <span className="text-slate-300">·</span>
               <span className="text-slate-300 text-xs font-mono">triggered by <span className="text-indigo-400">{latestRound.triggered_by}</span></span>
               <span className="text-slate-300">·</span>
-              <span className="text-slate-300 text-xs font-mono">${latestRound.price_at_round.toFixed(2)} TAO</span>
+              <span className="text-slate-300 text-xs font-mono">${(latestRound.price_at_round ?? 0).toFixed(2)} TAO</span>
             </div>
             <div className="flex items-center gap-3">
               {rm && (
