@@ -9,7 +9,7 @@ import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
 import api from '@/api/client'
 import clsx from 'clsx'
-import NotificationBell from '@/components/NotificationBell'
+// NotificationBell removed — alerts accessible via sidebar Alerts link
 import TickerTape from '@/components/TickerTape'
 
 const navItems = [
@@ -335,11 +335,7 @@ export default function Layout() {
 
       {/* Main content */}
       <main className="flex-1 overflow-y-auto flex flex-col">
-        {/* Top bar — notification bell only (Finney status moved to sidebar bottom) */}
-        <div className="flex-shrink-0 flex items-center justify-end gap-3 px-4 py-2 bg-dark-900 border-b border-dark-700/50">
-          <NotificationBell unreadCount={unreadCount} />
-        </div>
-        {/* TradingModeBanner removed from universal layout — shown per-page where relevant */}
+        {/* No top bar — bell removed; alerts accessible via sidebar Alerts link */}
         <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
           <Outlet />
         </div>

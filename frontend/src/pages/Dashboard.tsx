@@ -3,8 +3,8 @@ import {
   Play, Square, RefreshCw, TrendingUp, TrendingDown,
   Activity, Zap, Bot, Shield, BarChart2, Clock, Award, Radio,
   Brain, Vote, Bell, Wallet, ArrowUp, ArrowDown, Minus,
-  ChevronLeft, ChevronRight,
 } from 'lucide-react'
+import PageHeroSlider, { SliderSlide } from '@/components/PageHeroSlider'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
@@ -301,197 +301,6 @@ function SubnetMiniRow({ subnets }: { subnets: Subnet[] }) {
           Loading subnet data…
         </div>
       )}
-    </div>
-  )
-}
-
-// ── Hero Slider ───────────────────────────────────────────────────────────────
-function HeroSlider({
-  price, change24h, agentStatus, summary, consensusStats, botStatus, walletStatus,
-}: {
-  price: number | null | undefined
-  change24h: number | null | undefined
-  agentStatus: AgentStatus | null
-  summary: Summary | null
-  consensusStats: ConsensusStats | null
-  botStatus: BotStatus | null
-  walletStatus: WalletStatus | null
-}) {
-  const [idx, setIdx] = useState(0)
-  const SLIDE_COUNT = 3
-  const next = () => setIdx(i => (i + 1) % SLIDE_COUNT)
-  const prev = () => setIdx(i => (i - 1 + SLIDE_COUNT) % SLIDE_COUNT)
-
-  useEffect(() => {
-    const t = setInterval(next, 6000)
-    return () => clearInterval(t)
-  }, [])
-
-  const ind = botStatus?.indicators ?? {}
-  const rsi = ind.rsi_14 as number | null
-  const regime = agentStatus?.current_regime ?? 'UNKNOWN'
-  const regimeColor = agentStatus?.regime_color ?? '#6b7280'
-  const up24h = (change24h ?? 0) >= 0
-  const totalRounds = consensusStats?.total_rounds ?? 0
-  const approvalRate = consensusStats?.approval_rate_pct ?? 0
-  const buyVotes = consensusStats?.total_buy_votes ?? 0
-  const sellVotes = consensusStats?.total_sell_votes ?? 0
-  const bias = buyVotes > sellVotes ? 'BULLISH' : buyVotes < sellVotes ? 'BEARISH' : 'NEUTRAL'
-  const biasColor = bias === 'BULLISH' ? '#00e5a0' : bias === 'BEARISH' ? '#f87171' : '#94a3b8'
-
-  const slides = [
-    /* ── Slide 0: Market Pulse ── */
-    <div key="market" className="h-full flex items-center px-8 gap-10">
-      <div>
-        <p className="text-[13px] font-mono text-slate-400 uppercase tracking-widest mb-1">TAO / USD · Market Pulse</p>
-        <div className="flex items-baseline gap-3">
-          <span className="text-5xl font-black font-mono text-white">
-            {price ? `$${price.toFixed(2)}` : '—'}
-          </span>
-          {change24h != null && (
-            <span className={clsx('text-xl font-bold font-mono', up24h ? 'text-accent-green' : 'text-red-400')}>
-              {up24h ? '+' : ''}{change24h.toFixed(2)}% 24h
-            </span>
-          )}
-        </div>
-      </div>
-      <div className="h-16 w-px bg-dark-600" />
-      <div>
-        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">II Agent Regime</p>
-        <p className="text-2xl font-extrabold font-mono" style={{ color: regimeColor }}>
-          {regime === 'BULL' ? '🐂 BULL' : regime === 'BEAR' ? '🐻 BEAR' : regime === 'SIDEWAYS' ? '↔ SIDEWAYS' : regime === 'VOLATILE' ? '⚡ VOLATILE' : '⟳ SCANNING'}
-        </p>
-      </div>
-      <div className="h-16 w-px bg-dark-600" />
-      <div>
-        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">RSI-14</p>
-        <p className={clsx('text-2xl font-bold font-mono',
-          rsi == null ? 'text-slate-400' : rsi < 35 ? 'text-accent-green' : rsi > 65 ? 'text-red-400' : 'text-yellow-400'
-        )}>
-          {rsi != null ? rsi.toFixed(1) : '—'}
-        </p>
-        <p className="text-[13px] font-mono text-slate-500">
-          {rsi == null ? '' : rsi < 35 ? 'Oversold' : rsi > 65 ? 'Overbought' : 'Neutral'}
-        </p>
-      </div>
-      <div className="h-16 w-px bg-dark-600" />
-      <div>
-        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Chain</p>
-        <p className="text-[14px] font-mono text-indigo-400">Block #{walletStatus?.block_cached?.toLocaleString() ?? '—'}</p>
-        <p className={clsx('text-[14px] font-mono mt-0.5', walletStatus?.connected ? 'text-accent-green' : 'text-slate-500')}>
-          {walletStatus?.connected ? '● Finney Connected' : '○ Offline'}
-        </p>
-      </div>
-    </div>,
-
-    /* ── Slide 1: Fleet Performance ── */
-    <div key="fleet" className="h-full flex items-center px-8 gap-10">
-      <div>
-        <p className="text-[13px] font-mono text-slate-400 uppercase tracking-widest mb-1">Fleet Performance</p>
-        <p className={clsx('text-5xl font-black font-mono',
-          (summary?.total_pnl ?? 0) >= 0 ? 'text-accent-green' : 'text-red-400'
-        )}>
-          {summary ? fmt(summary.total_pnl, 4) + ' τ' : '—'}
-        </p>
-        <p className="text-[14px] font-mono text-slate-500 mt-1">Cumulative PnL · All Strategies</p>
-      </div>
-      <div className="h-16 w-px bg-dark-600" />
-      <div>
-        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Win Rate</p>
-        <p className={clsx('text-3xl font-bold font-mono',
-          (summary?.win_rate ?? 0) >= 55 ? 'text-accent-green' : 'text-yellow-400'
-        )}>
-          {summary ? `${summary.win_rate.toFixed(1)}%` : '—'}
-        </p>
-        <p className="text-[14px] font-mono text-slate-500">{summary ? `${summary.wins}W / ${summary.losses}L` : ''}</p>
-      </div>
-      <div className="h-16 w-px bg-dark-600" />
-      <div>
-        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Active Strategies</p>
-        <p className="text-3xl font-bold font-mono text-accent-blue">{summary?.active_strategies ?? '—'}</p>
-        <p className="text-[14px] font-mono text-slate-500">in fleet</p>
-      </div>
-      <div className="h-16 w-px bg-dark-600" />
-      <div>
-        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Total Trades</p>
-        <p className="text-3xl font-bold font-mono text-white">{summary?.total_trades?.toLocaleString() ?? '—'}</p>
-        <p className="text-[14px] font-mono text-slate-500">all time</p>
-      </div>
-    </div>,
-
-    /* ── Slide 2: OpenClaw Status ── */
-    <div key="openclaw" className="h-full flex items-center px-8 gap-10">
-      <div>
-        <p className="text-[13px] font-mono text-slate-400 uppercase tracking-widest mb-1">OpenClaw BFT Council</p>
-        <p className="text-5xl font-black font-mono text-white">{approvalRate.toFixed(1)}%</p>
-        <p className="text-[14px] font-mono text-slate-500 mt-1">Approval Rate · 7/12 threshold</p>
-      </div>
-      <div className="h-16 w-px bg-dark-600" />
-      <div>
-        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Rounds Completed</p>
-        <p className="text-3xl font-bold font-mono text-accent-blue">{totalRounds.toLocaleString()}</p>
-        <p className="text-[14px] font-mono text-slate-500">consensus rounds</p>
-      </div>
-      <div className="h-16 w-px bg-dark-600" />
-      <div>
-        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Vote Bias</p>
-        <p className="text-3xl font-bold font-mono" style={{ color: biasColor }}>{bias}</p>
-        <p className="text-[14px] font-mono text-slate-500">{buyVotes}B · {sellVotes}S</p>
-      </div>
-      <div className="h-16 w-px bg-dark-600" />
-      <div>
-        <p className="text-[13px] font-mono text-slate-500 uppercase tracking-widest mb-1">Status</p>
-        <p className={clsx('text-[14px] font-bold font-mono',
-          approvalRate >= 45 && approvalRate <= 65 ? 'text-accent-green' : 'text-yellow-400'
-        )}>
-          {approvalRate >= 45 && approvalRate <= 65 ? '✅ CALIBRATED' : '⚠ REVIEW'}
-        </p>
-        <p className="text-[14px] font-mono text-slate-500">12-bot fleet</p>
-      </div>
-    </div>,
-  ]
-
-  const gradients = [
-    'from-indigo-950/60 via-dark-800 to-dark-800',
-    'from-emerald-950/60 via-dark-800 to-dark-800',
-    'from-violet-950/60 via-dark-800 to-dark-800',
-  ]
-
-  return (
-    <div className={clsx(
-      'relative w-full rounded-xl border border-dark-600 overflow-hidden bg-gradient-to-r',
-      gradients[idx]
-    )} style={{ height: 120, transition: 'background 0.5s ease' }}>
-
-      {/* slide content with fade transition */}
-      <div className="absolute inset-0" style={{ transition: 'opacity 0.4s ease' }}>
-        {slides[idx]}
-      </div>
-
-      {/* nav arrows */}
-      <button onClick={prev}
-        className="absolute left-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-dark-900/70 border border-dark-600 flex items-center justify-center text-slate-400 hover:text-white hover:bg-dark-700 transition-all z-10">
-        <ChevronLeft size={13} />
-      </button>
-      <button onClick={next}
-        className="absolute right-2 top-1/2 -translate-y-1/2 w-7 h-7 rounded-full bg-dark-900/70 border border-dark-600 flex items-center justify-center text-slate-400 hover:text-white hover:bg-dark-700 transition-all z-10">
-        <ChevronRight size={13} />
-      </button>
-
-      {/* dots */}
-      <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-        {Array.from({ length: SLIDE_COUNT }).map((_, i) => (
-          <button key={i} onClick={() => setIdx(i)}
-            className={clsx('rounded-full transition-all duration-300',
-              i === idx ? 'w-5 h-1.5 bg-white' : 'w-1.5 h-1.5 bg-slate-600 hover:bg-slate-400'
-            )} />
-        ))}
-      </div>
-
-      {/* slide label */}
-      <div className="absolute top-2.5 right-10 text-[12px] font-mono text-slate-600">
-        {idx + 1} / {SLIDE_COUNT}
-      </div>
     </div>
   )
 }
@@ -905,19 +714,58 @@ export default function Dashboard() {
   const secInCycle = tick % interval
   const secToNext  = interval - secInCycle
 
+  // ── Build PageHeroSlider slides from live data ──────────────────────────────
+  const _rsi        = ind.rsi_14 as number | null
+  const _regime     = agentStatus?.current_regime ?? 'UNKNOWN'
+  const _up24h      = (change24h ?? 0) >= 0
+  const _totalRounds   = consensusStats?.total_rounds ?? 0
+  const _approvalRate  = consensusStats?.approval_rate_pct ?? 0
+  const _buyVotes      = consensusStats?.total_buy_votes ?? 0
+  const _sellVotes     = consensusStats?.total_sell_votes ?? 0
+  const _bias = _buyVotes > _sellVotes ? 'BULLISH' : _buyVotes < _sellVotes ? 'BEARISH' : 'NEUTRAL'
+
+  const heroSlides: SliderSlide[] = [
+    {
+      title: 'Market Pulse',
+      subtitle: 'TAO / USD',
+      accent: 'blue',
+      stats: [
+        { label: 'TAO Price',     value: price ? `$${price.toFixed(2)}` : '—', color: 'blue' },
+        { label: '24h Change',    value: change24h != null ? `${_up24h ? '+' : ''}${change24h.toFixed(2)}%` : '—', color: _up24h ? 'emerald' : 'red' },
+        { label: 'II Agent',      value: REGIME_LABEL[_regime] ?? _regime, color: _regime === 'BULL' ? 'emerald' : _regime === 'BEAR' ? 'red' : 'slate' },
+        { label: 'RSI-14',        value: _rsi != null ? _rsi.toFixed(1) : '—', sub: _rsi == null ? '' : _rsi < 35 ? 'Oversold' : _rsi > 65 ? 'Overbought' : 'Neutral', color: _rsi == null ? 'slate' : _rsi < 35 ? 'emerald' : _rsi > 65 ? 'red' : 'yellow' },
+        { label: 'Block',         value: walletStatus?.block_cached ? `#${walletStatus.block_cached.toLocaleString()}` : '—', color: 'slate' },
+      ],
+    },
+    {
+      title: 'Fleet Performance',
+      subtitle: 'Fleet Stats',
+      accent: 'emerald',
+      stats: [
+        { label: 'Total PnL',        value: summary ? `${fmt(summary.total_pnl, 4)} τ` : '—', color: (summary?.total_pnl ?? 0) >= 0 ? 'emerald' : 'red' },
+        { label: 'Win Rate',         value: summary ? `${summary.win_rate.toFixed(1)}%` : '—', sub: summary ? `${summary.wins}W / ${summary.losses}L` : '', color: (summary?.win_rate ?? 0) >= 55 ? 'emerald' : 'yellow' },
+        { label: 'Active Strategies', value: `${summary?.active_strategies ?? '—'}`, sub: 'in fleet', color: 'blue' },
+        { label: 'Total Trades',     value: summary ? summary.total_trades.toLocaleString() : '—', sub: 'all time', color: 'white' },
+      ],
+    },
+    {
+      title: 'OpenClaw Status',
+      subtitle: 'BFT Council',
+      accent: 'purple',
+      stats: [
+        { label: 'Approval Rate', value: `${_approvalRate.toFixed(1)}%`, sub: '7/12 threshold', color: _approvalRate >= 45 && _approvalRate <= 65 ? 'emerald' : 'yellow' },
+        { label: 'Rounds',        value: _totalRounds.toLocaleString(), sub: 'consensus rounds', color: 'blue' },
+        { label: 'Vote Bias',     value: _bias, color: _bias === 'BULLISH' ? 'emerald' : _bias === 'BEARISH' ? 'red' : 'slate' },
+        { label: 'Status',        value: _approvalRate >= 45 && _approvalRate <= 65 ? 'CALIBRATED' : 'REVIEW', color: _approvalRate >= 45 && _approvalRate <= 65 ? 'emerald' : 'yellow' },
+      ],
+    },
+  ]
+
   return (
     <div className="p-6 space-y-5">
 
       {/* ── Hero Slider ────────────────────────────────────────────────────── */}
-      <HeroSlider
-        price={price}
-        change24h={change24h}
-        agentStatus={agentStatus}
-        summary={summary}
-        consensusStats={consensusStats}
-        botStatus={botStatus}
-        walletStatus={walletStatus}
-      />
+      <PageHeroSlider slides={heroSlides} />
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">

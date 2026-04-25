@@ -157,7 +157,7 @@ export default function SubnetHeatMap() {
 
       {/* ── Mode description ─────────────────────────────────────────────────── */}
       <div className="text-[10px] text-slate-500 font-mono mb-2 flex-shrink-0 leading-none">
-        {modeCfg.desc} · {subnets.length} subnets
+        {modeCfg.desc} · 8×8 · 64 subnets
       </div>
 
       {/* ── Heat grid ───────────────────────────────────────────────────────── */}
@@ -166,15 +166,21 @@ export default function SubnetHeatMap() {
           Loading subnet data…
         </div>
       ) : (() => {
-        const cols = Math.ceil(Math.sqrt(subnets.length))
-        const rows = Math.ceil(subnets.length / cols)
+        // Fixed 8×8 = 64 cells for uniformity (SN1–SN64, sorted by UID)
+        const COLS = 8, ROWS = 8, SIZE = COLS * ROWS
+        const display = subnets.slice(0, SIZE)
+        // Pad with nulls if fewer than 64 subnets loaded
+        const padded: (SubnetRow | null)[] = [...display, ...Array(Math.max(0, SIZE - display.length)).fill(null)]
         return (
           <div className="flex-1 relative min-h-0">
             <div className="h-full grid gap-1" style={{
-              gridTemplateColumns: `repeat(${cols}, 1fr)`,
-              gridTemplateRows:    `repeat(${rows}, 1fr)`,
+              gridTemplateColumns: `repeat(${COLS}, 1fr)`,
+              gridTemplateRows:    `repeat(${ROWS}, 1fr)`,
             }}>
-              {subnets.map(s => {
+              {padded.map((s, idx) => {
+                if (!s) {
+                  return <div key={`empty-${idx}`} className="rounded bg-dark-700/30 opacity-30" />
+                }
                 const raw      = modeCfg.getValue(s)
                 const n        = norm(raw)
                 const bg       = heatColor(n)
