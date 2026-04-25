@@ -114,18 +114,29 @@ async def get_status(db: AsyncSession = Depends(get_db)):
 
 @router.post("/start")
 async def start_bot():
-    if cycle_service.is_running:
-        return {"success": False, "message": "Bot already running"}
-    await cycle_service.start(interval_seconds=60)
-    return {"success": True, "message": "Autonomous cycle engine started"}
+    try:
+        if cycle_service.is_running:
+            # Already running (auto-started on boot) — treat as success
+            return {"success": True, "message": "Bot is already running"}
+        await cycle_service.start(interval_seconds=60)
+        return {"success": True, "message": "Autonomous cycle engine started"}
+    except Exception as exc:
+        import traceback
+        tb = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=f"Start failed: {exc} | {tb[-300:]}")
 
 
 @router.post("/stop")
 async def stop_bot():
-    if not cycle_service.is_running:
-        return {"success": False, "message": "Bot is not running"}
-    await cycle_service.stop()
-    return {"success": True, "message": "Cycle engine stopped"}
+    try:
+        if not cycle_service.is_running:
+            return {"success": True, "message": "Bot is already stopped"}
+        await cycle_service.stop()
+        return {"success": True, "message": "Cycle engine stopped"}
+    except Exception as exc:
+        import traceback
+        tb = traceback.format_exc()
+        raise HTTPException(status_code=500, detail=f"Stop failed: {exc} | {tb[-300:]}")
 
 
 @router.get("/config")

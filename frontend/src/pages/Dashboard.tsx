@@ -876,10 +876,18 @@ export default function Dashboard() {
         toast.success(res.data.message)
         await load()
       } else {
-        toast.error(res.data.message)
+        // "already running" is treated as success — just refresh status
+        if (res.data.message?.toLowerCase().includes('already')) {
+          toast.success('Bot is running')
+          await load()
+        } else {
+          toast.error(res.data.message || 'Failed to toggle bot')
+        }
       }
-    } catch {
-      toast.error('Failed to toggle bot')
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Failed to reach backend'
+      toast.error(`Bot toggle error: ${msg}`)
+      console.error('handleToggle error:', e)
     } finally {
       setBotBusy(false)
     }
