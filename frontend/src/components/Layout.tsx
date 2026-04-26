@@ -212,10 +212,10 @@ export default function Layout() {
 
           {/* ── Floating chat panel — fixed, right of sidebar ── */}
           {orbOpen && (
-            <div className="fixed bottom-6 left-[232px] w-[300px] z-50
+            <div className="fixed bottom-6 left-[232px] w-[440px] z-50
               bg-[#0d1526] border border-emerald-500/25 rounded-xl shadow-[0_0_40px_rgba(52,211,153,0.15)]
               flex flex-col overflow-hidden"
-              style={{ height: 360 }}>
+              style={{ height: 520 }}>
 
               {/* Panel header */}
               <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/60 flex-shrink-0">

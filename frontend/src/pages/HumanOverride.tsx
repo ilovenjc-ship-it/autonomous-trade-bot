@@ -261,7 +261,7 @@ export default function HumanOverride() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <PageHeroSlider slides={heroSlides} />
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-[1400px]">
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── page header ─────────────────────────────────────────────────────── */}
       <div className="flex items-start justify-between">
