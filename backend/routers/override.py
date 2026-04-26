@@ -347,7 +347,56 @@ async def override_status():
         "emergency_halted": _EMERGENCY_HALTED,
         "halted_at": _halted_at,
         "cycle_engine_running": cycle_service.is_running,
-        "trading_engine_running": trading_service.is_running,
+        # trading_engine_running mirrors cycle engine — the cycle service IS the
+        # execution engine; trading_service._running is a legacy flag never set.
+        "trading_engine_running": cycle_service.is_running,
+    }
+
+
+class SetModeRequest(BaseModel):
+    mode: Literal["PAPER_ONLY", "APPROVED_FOR_LIVE", "LIVE"]
+
+
+@router.post("/set-mode/{name}")
+async def set_strategy_mode(name: str, payload: SetModeRequest, db: AsyncSession = Depends(get_db)):
+    """Directly set a strategy's mode (bypasses step-by-step progression)."""
+    result = await db.execute(select(Strategy).where(Strategy.name == name))
+    s = result.scalar_one_or_none()
+    if not s:
+        raise HTTPException(status_code=404, detail=f"Strategy '{name}' not found")
+
+    current_mode = getattr(s, "mode", "PAPER_ONLY")
+    new_mode = payload.mode
+
+    if new_mode == current_mode:
+        return {
+            "success": False,
+            "message": f"{s.display_name} is already at {_MODE_LABEL.get(current_mode, current_mode)}",
+            "mode": current_mode,
+        }
+
+    s.mode = new_mode
+    await db.commit()
+
+    msg = (
+        f"🧑‍✈️ Human set {s.display_name}: "
+        f"{_MODE_LABEL.get(current_mode, current_mode)} → {_MODE_LABEL.get(new_mode, new_mode)}"
+    )
+    _push("promotion", msg, strategy=name)
+    alert_service.system_alert(
+        title=f"⚙️ {s.display_name} → {_MODE_LABEL.get(new_mode, new_mode)}",
+        message=f"Direct mode set by human override. Previous: {_MODE_LABEL.get(current_mode, current_mode)}. Capital rebalancing now.",
+        level="INFO" if new_mode == "LIVE" else "WARN",
+    )
+
+    await _auto_rebalance(f"direct mode set of {s.display_name} to {new_mode}")
+
+    return {
+        "success": True,
+        "message": msg,
+        "strategy": name,
+        "previous_mode": current_mode,
+        "new_mode": new_mode,
     }
 
 

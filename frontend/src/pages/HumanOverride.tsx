@@ -61,15 +61,29 @@ function StatusDot({ on, label }: { on: boolean; label: string }) {
   )
 }
 
-function ModeStep({ mode, active }: { mode: string; active: boolean }) {
+function ModeStep({
+  mode, active, onClick, pending,
+}: {
+  mode: string; active: boolean; onClick?: () => void; pending?: boolean
+}) {
   const m = MODE_META[mode]
   return (
-    <span className={clsx(
-      'px-2 py-0.5 rounded border text-[13px] font-mono font-bold transition-all',
-      active ? m.badge : 'bg-dark-900 text-slate-600 border-dark-700',
-    )}>
-      {m.prefix} {m.short}
-    </span>
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={active || pending}
+      title={active ? `Already at ${m.label}` : `Set to ${m.label}`}
+      className={clsx(
+        'px-2 py-0.5 rounded border text-[13px] font-mono font-bold transition-all',
+        active
+          ? m.badge + ' cursor-default'
+          : pending
+            ? 'bg-dark-900 text-slate-500 border-dark-700 cursor-wait opacity-60'
+            : 'bg-dark-900 text-slate-500 border-dark-700 hover:border-slate-500 hover:text-slate-300 cursor-pointer active:scale-95',
+      )}
+    >
+      {pending ? '…' : `${m.prefix} ${m.short}`}
+    </button>
   )
 }
 
@@ -185,6 +199,21 @@ export default function HumanOverride() {
         toast(`${res.data.message}`, { icon: '⚠️' })
       }
     } catch { toast.error('Demotion failed') }
+    finally { setOpPending(null) }
+  }
+
+  async function doSetMode(name: string, mode: 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'LIVE') {
+    const key = name + '_' + mode
+    setOpPending(key)
+    try {
+      const res = await api.post(`/override/set-mode/${name}`, { mode })
+      if (res.data.success) {
+        toast.success(res.data.message)
+        fetchStrategies()
+      } else {
+        toast(res.data.message, { icon: '⚠️' })
+      }
+    } catch { toast.error('Mode change failed') }
     finally { setOpPending(null) }
   }
 
@@ -535,12 +564,21 @@ export default function HumanOverride() {
                   )}
                 </div>
                 <div className="flex items-center gap-1 flex-shrink-0">
-                  {MODE_ORDER.map((m, i) => (
-                    <div key={m} className="flex items-center gap-1">
-                      <ModeStep mode={m} active={m === s.mode} />
-                      {i < MODE_ORDER.length - 1 && <ChevronRight size={10} className="text-slate-600" />}
-                    </div>
-                  ))}
+                  {MODE_ORDER.map((m, i) => {
+                    const modeKey = m as 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'LIVE'
+                    const isPending = opPending === s.name + '_' + m
+                    return (
+                      <div key={m} className="flex items-center gap-1">
+                        <ModeStep
+                          mode={m}
+                          active={m === s.mode}
+                          pending={isPending}
+                          onClick={() => doSetMode(s.name, modeKey)}
+                        />
+                        {i < MODE_ORDER.length - 1 && <ChevronRight size={10} className="text-slate-600" />}
+                      </div>
+                    )
+                  })}
                 </div>
                 <div className="flex gap-1.5 flex-shrink-0">
                   <button onClick={() => doPromote(s.name)} disabled={atCeiling || upPending || downPending}
