@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import SubnetHeatMap from '@/components/SubnetHeatMap'
 import {
-  Activity, Zap, Radio, Shield, TrendingUp,
-  TrendingDown, AlertTriangle, CheckCircle2,
-  Circle, Clock, BarChart3, Cpu, Lock
+  Activity, Zap, BarChart2, BarChart3, CheckCircle2,
+  TrendingUp, Radio, Shield, Cpu, AlertTriangle,
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
@@ -405,24 +404,11 @@ function OpenClawCouncil() {
 // ── Main component ────────────────────────────────────────────────────────────
 
 export default function MissionControl() {
-  const [fleet, setFleet] = useState<FleetBot[]>([])
-  const [summary, setSummary] = useState<FleetSummary | null>(null)
-  const [events, setEvents] = useState<ActivityEvent[]>([])
-  const [selectedBot, setSelectedBot] = useState<FleetBot | null>(null)
-  const [countdown, setCountdown] = useState(300) // 5 min cycle
-  const [liveTime, setLiveTime] = useState(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
+  const [events,   setEvents]   = useState<ActivityEvent[]>([])
+  const [_selectedBot, _setSelectedBot] = useState<FleetBot | null>(null)
+  const [subnets,  setSubnets]  = useState<{ uid: number; name: string; ticker: string; stake_tao: number; apy: number; trend: string }[]>([])
 
-  const activityRef    = useRef<HTMLDivElement>(null)
-  const countdownRef   = useRef(300)   // tracks real value synchronously — avoids setState-in-updater
-
-  // Fetch fleet status
-  const fetchFleet = useCallback(async () => {
-    try {
-      const data = await api.get('/fleet/status').then(r => r.data)
-      setFleet(data.fleet || [])
-      setSummary(data.summary || null)
-    } catch {}
-  }, [])
+  const activityRef = useRef<HTMLDivElement>(null)
 
   // Fetch activity
   const fetchActivity = useCallback(async () => {
@@ -432,293 +418,79 @@ export default function MissionControl() {
     } catch {}
   }, [])
 
-  // Initial load
+  // Fetch top subnets
+  const fetchSubnets = useCallback(async () => {
+    try {
+      const data = await api.get('/market/subnets?sort=stake_tao&order=desc').then(r => r.data)
+      setSubnets((data.subnets || []).slice(0, 16))
+    } catch {}
+  }, [])
+
   useEffect(() => {
-    fetchFleet()
     fetchActivity()
-  }, [fetchFleet, fetchActivity])
-
-  // Polling
-  useEffect(() => {
-    const fleetTimer = setInterval(fetchFleet, 10_000)
-    const actTimer   = setInterval(fetchActivity, 5_000)
-    return () => { clearInterval(fleetTimer); clearInterval(actTimer) }
-  }, [fetchFleet, fetchActivity])
-
-  // Countdown tick + live clock
-  useEffect(() => {
-    const t = setInterval(() => {
-      countdownRef.current -= 1
-      if (countdownRef.current <= 0) {
-        countdownRef.current = 300
-        fetchFleet()
-        fetchActivity()
-      }
-      setCountdown(countdownRef.current)
-      setLiveTime(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }))
-    }, 1000)
-    return () => clearInterval(t)
-  }, [fetchFleet, fetchActivity])
+    fetchSubnets()
+    const actTimer    = setInterval(fetchActivity, 5_000)
+    const subnetTimer = setInterval(fetchSubnets, 30_000)
+    return () => { clearInterval(actTimer); clearInterval(subnetTimer) }
+  }, [fetchActivity, fetchSubnets])
 
   // Auto-scroll activity
   useEffect(() => {
     if (activityRef.current) activityRef.current.scrollTop = 0
   }, [events])
 
-  const fmtCountdown = (s: number) => `${String(Math.floor(s / 60)).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`
-  const rsiTrend = (summary?.rsi ?? 50) > 60 ? 'Overbought' : (summary?.rsi ?? 50) < 40 ? 'Oversold' : 'Neutral'
-
   return (
     <div className="flex-1 flex flex-col bg-[#080d18] text-slate-100 overflow-hidden font-mono">
 
-      {/* ══ TOP SECTION: left info panel + right strips (h = 2 × 162px) ══ */}
-      <div className="flex flex-shrink-0 h-[324px] border-b border-slate-800/60">
-
-        {/* Left panel: Clock → Market Intel → System */}
-        <div className="w-56 flex-shrink-0 border-r border-slate-800/60 flex flex-col overflow-hidden">
-
-          {/* Clock + Next Cycle */}
-          <div className="flex-shrink-0 border-b border-slate-800/50 px-4 py-3 bg-slate-900/50">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="text-[11px] text-slate-500 uppercase tracking-wider flex items-center gap-1">
-                <Clock size={8} /> Local Time
-              </span>
-              <span className="text-[11px] text-slate-500 uppercase tracking-wider">Next Cycle</span>
-            </div>
-            <div className="flex items-baseline justify-between gap-2">
-              <div className="text-[17px] font-bold text-slate-100 font-mono leading-none">{liveTime}</div>
-              <div className="text-[17px] font-bold text-blue-300 font-mono leading-none">{fmtCountdown(countdown)}</div>
-            </div>
-            <div className="mt-2 h-0.5 bg-slate-700/60 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-blue-500 to-emerald-500 transition-all duration-1000 rounded-full"
-                style={{ width: `${((300 - countdown) / 300) * 100}%` }}
-              />
-            </div>
-          </div>
-
-          {/* Market Intel */}
-          <div className="flex-shrink-0 border-b border-slate-800/50 px-3 py-2.5">
-            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-bold mb-2">Market Intel</div>
-            {summary ? (
-              <div className="space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-[12px] text-slate-400">TAO/USD</span>
-                  <span className="text-[13px] font-bold text-white">${(summary.tao_price ?? 0).toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[12px] text-slate-400">RSI-14</span>
-                  <span className={clsx('text-[13px] font-bold', summary.rsi > 60 ? 'text-red-400' : summary.rsi < 40 ? 'text-emerald-400' : 'text-slate-300')}>
-                    {(summary.rsi ?? 0).toFixed(1)}
+      {/* ══ TOP SUBNETS BAR ══ */}
+      <div className="flex-shrink-0 border-b border-slate-800/60">
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-800/40">
+          <BarChart2 size={12} className="text-accent-blue" />
+          <span className="text-[12px] font-bold tracking-widest text-slate-300 uppercase">Top Subnets</span>
+          <span className="text-[11px] text-slate-600 font-mono ml-1">by stake · live</span>
+          <span className="ml-auto text-[11px] text-slate-600 font-mono">{subnets.length} subnets</span>
+        </div>
+        <div className="flex gap-2 overflow-x-auto px-4 py-2 scrollbar-thin">
+          {subnets.length === 0 ? (
+            <div className="text-[11px] text-slate-600 font-mono py-2">Loading subnets…</div>
+          ) : subnets.map(s => {
+            const trendColor = s.trend === 'up' ? 'text-emerald-400' : s.trend === 'down' ? 'text-red-400' : 'text-slate-500'
+            return (
+              <div key={s.uid} className="flex-shrink-0 w-[120px] bg-slate-900/60 border border-slate-700/50 rounded-lg px-2.5 py-2 hover:border-slate-600 transition-colors">
+                <div className="flex items-start justify-between mb-1">
+                  <span className="text-[11px] font-semibold text-white truncate">{s.name.split(' ')[0]}</span>
+                  <span className={clsx('text-[9px] font-bold font-mono flex-shrink-0 ml-1', trendColor)}>
+                    {s.trend === 'up' ? '▲' : s.trend === 'down' ? '▼' : '—'}
                   </span>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[12px] text-slate-400">Momentum</span>
-                  <div className="flex items-center gap-1">
-                    {summary.rsi > 55 ? <TrendingUp size={10} className="text-emerald-400" />
-                      : summary.rsi < 45 ? <TrendingDown size={10} className="text-red-400" />
-                      : <Circle size={10} className="text-slate-400" />}
-                    <span className="text-[12px] text-slate-300">{rsiTrend}</span>
-                  </div>
+                <div className="text-[9px] text-slate-500 font-mono uppercase mb-1.5">{s.ticker}</div>
+                <div className="flex justify-between text-[9px] font-mono">
+                  <span className="text-slate-500">Stake</span>
+                  <span className="text-slate-300">{((s.stake_tao ?? 0) / 1e6).toFixed(1)}Mτ</span>
+                </div>
+                <div className="flex justify-between text-[9px] font-mono">
+                  <span className="text-slate-500">APY</span>
+                  <span className="text-emerald-400">{(s.apy ?? 0).toFixed(1)}%</span>
                 </div>
               </div>
-            ) : <div className="text-xs text-slate-500">Loading…</div>}
-          </div>
-
-          {/* System */}
-          <div className="flex-shrink-0 border-b border-slate-800/50 px-3 py-2.5">
-            <div className="text-[11px] text-slate-400 uppercase tracking-wider font-bold mb-2">System</div>
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1.5">
-              {[
-                { label: 'Price Feed',   ok: true },
-                { label: 'Database',     ok: true },
-                { label: 'Strategy Eng', ok: true },
-                { label: 'Risk Guard',   ok: true },
-              ].map(({ label, ok }) => (
-                <div key={label} className="flex items-center gap-1.5">
-                  <div className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0', ok ? 'bg-emerald-400' : 'bg-red-400')} />
-                  <span className="text-[12px] text-slate-300 truncate">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-        </div>{/* end left panel */}
-
-        {/* Right: Fleet strip (h-162) + Gate Summary strip (h-162) — symmetric rows */}
-        <div className="flex-1 flex flex-col min-w-0">
-
-          {/* ── Row 1: Agent Fleet ─────────────────────────────────────────── */}
-          <div className="h-[162px] flex flex-col border-b border-slate-800/60">
-
-            {/* Uniform header */}
-            <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-800/40 flex-shrink-0 h-10">
-              <div className="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse flex-shrink-0" />
-              <span className="text-sm font-bold tracking-wide text-white uppercase">Agent Fleet</span>
-              {summary && (
-                <div className="ml-auto flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded border text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border-emerald-500/35">
-                    {summary.live} LIVE
-                  </span>
-                  <span className="px-2.5 py-1 rounded border text-[11px] font-bold bg-purple-500/15 text-purple-400 border-purple-500/35">
-                    {summary.approved} APPROVED
-                  </span>
-                  <span className="px-2.5 py-1 rounded border text-[11px] font-bold bg-yellow-500/10 text-yellow-400 border-yellow-500/25">
-                    {summary.paper} PAPER
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {/* Bot cards — auto-fill columns, no overflow scroll */}
-            <div className="flex-1 grid gap-1.5 px-3 py-1.5 overflow-hidden"
-              style={{ gridAutoFlow: 'column', gridAutoColumns: 'minmax(0, 1fr)' }}>
-              {fleet.length === 0 ? (
-                <div className="text-slate-500 text-xs py-2 font-mono col-span-full">Loading fleet…</div>
-              ) : (
-                fleet.map(bot => (
-                  <BotCard key={bot.id} bot={bot}
-                    selected={selectedBot?.id === bot.id}
-                    onClick={() => setSelectedBot(prev => prev?.id === bot.id ? null : bot)} />
-                ))
-              )}
-              {/* Paper Trading summary cell */}
-              {summary && (
-                <div className="w-full h-full px-2 py-1.5 rounded-lg border bg-yellow-500/5 border-yellow-500/20 flex flex-col justify-center">
-                  <div className="text-[9px] text-yellow-400/60 uppercase tracking-wider font-bold">Paper</div>
-                  <div className="text-lg font-bold text-yellow-400 font-mono leading-none">{summary.paper}</div>
-                  <div className="text-[9px] text-yellow-400/40 leading-tight">in simulation</div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* ── Row 2: Gate Summary ─────────────────────────────────────────── */}
-          <div className="h-[162px] flex flex-col">
-
-            {/* Uniform header — mirrors Row 1 exactly */}
-            <div className="flex items-center gap-3 px-4 py-2.5 border-b border-slate-800/40 flex-shrink-0 h-10">
-              <div className="w-2 h-2 rounded-full bg-purple-400 shadow-[0_0_8px_#a78bfa] animate-pulse flex-shrink-0" />
-              <span className="text-sm font-bold tracking-wide text-white uppercase">Gate Summary</span>
-              <span className="ml-auto text-[11px] font-mono text-slate-500">Cyc · WR · Margin · PnL</span>
-            </div>
-
-            {/* Gate chips — same auto-fill grid, no overflow scroll */}
-            <div className="flex-1 grid gap-1.5 px-3 py-1.5 overflow-hidden"
-              style={{ gridAutoFlow: 'column', gridAutoColumns: 'minmax(0, 1fr)' }}>
-              {fleet.map(bot => {
-                const modeColor  = bot.mode === 'LIVE' ? 'bg-emerald-500'   : bot.mode === 'APPROVED_FOR_LIVE' ? 'bg-purple-500' : 'bg-slate-600'
-                const modeBorder = bot.mode === 'LIVE' ? 'border-l-emerald-500/60' : bot.mode === 'APPROVED_FOR_LIVE' ? 'border-l-purple-500/60' : 'border-l-slate-600/60'
-                return (
-                  <div key={bot.id}
-                    className={clsx(
-                      'flex flex-col bg-slate-800/50 border border-slate-700/40 border-l-2 rounded-md px-1.5 py-1.5 h-full justify-between min-w-0',
-                      modeBorder
-                    )}>
-                    <div className="flex items-center gap-1 mb-0.5 min-w-0">
-                      <div className={clsx('w-1 h-1 rounded-full flex-shrink-0', modeColor)} />
-                      <div className="text-[10px] text-slate-200 font-semibold truncate leading-none">
-                        {bot.display_name.split(' ')[0]}
-                      </div>
-                    </div>
-                    <div className="space-y-0.5 flex-1">
-                      {([
-                        { ok: bot.gate.cycles.ok,    val: `${bot.gate.cycles.value}/${bot.gate.cycles.required}` },
-                        { ok: bot.gate.win_rate.ok,  val: `${(bot.gate.win_rate?.value ?? 0).toFixed(0)}%` },
-                        { ok: bot.gate.win_margin.ok,val: `${(bot.gate.win_margin?.value ?? 0).toFixed(1)}%` },
-                        { ok: bot.gate.pnl.ok,       val: `${(bot.gate.pnl?.value ?? 0).toFixed(2)}τ` },
-                      ] as const).map(({ ok, val }, idx) => (
-                        <div key={idx} className="flex items-center gap-1">
-                          <div className={clsx('h-0.5 rounded-full flex-shrink-0', ok ? 'bg-emerald-500' : 'bg-slate-700')}
-                            style={{ width: 20 }} />
-                          <span className={clsx('text-[8px] font-mono ml-auto', ok ? 'text-emerald-400' : 'text-slate-600')}>
-                            {ok ? '✓' : val}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className={clsx('text-[11px] font-bold font-mono mt-1 leading-none',
-                      bot.win_rate >= 55 ? 'text-emerald-400' : bot.win_rate >= 45 ? 'text-yellow-400' : 'text-red-400')}>
-                      {(bot.win_rate ?? 0).toFixed(0)}%
-                    </div>
-                  </div>
-                )
-              })}
-
-              {/* Gate Enforced chip */}
-              {summary && (
-                <>
-                  <div className="flex flex-col bg-yellow-500/5 border border-yellow-500/20 border-l-2 border-l-yellow-500/40 rounded-md px-1.5 py-1.5 h-full justify-between min-w-0">
-                    <div className="flex items-center gap-1 mb-0.5">
-                      <Lock size={7} className="text-yellow-400 flex-shrink-0" />
-                      <div className="text-[10px] text-yellow-400 font-semibold truncate leading-none">Gate</div>
-                    </div>
-                    <div className="space-y-0.5 flex-1">
-                      {[['100+', '55%', '>0', '>0τ']].flat().map((v, i) => (
-                        <div key={i} className="flex items-center gap-1">
-                          <div className="h-0.5 rounded-full flex-shrink-0 bg-yellow-500/30" style={{ width: 20 }} />
-                          <span className="text-[8px] font-mono ml-auto text-yellow-400/60">{v}</span>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="text-[9px] text-yellow-400/40 font-mono mt-1">min</div>
-                  </div>
-
-                  {/* Fleet PnL chip */}
-                  <div className="flex flex-col bg-slate-800/50 border border-slate-700/40 border-l-2 border-l-emerald-500/60 rounded-md px-1.5 py-1.5 h-full justify-between min-w-0">
-                    <div className="text-[10px] text-slate-300 font-semibold leading-none mb-0.5">Fleet</div>
-                    <div className="flex-1" />
-                    <div className={clsx('text-[12px] font-bold font-mono leading-none',
-                      summary.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                      {summary.total_pnl >= 0 ? '+' : ''}{(summary.total_pnl ?? 0).toFixed(3)}τ
-                    </div>
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-
-        </div>{/* end right strips */}
-      </div>{/* end TOP SECTION */}
+            )
+          })}
+        </div>
+      </div>{/* end TOP SUBNETS */}
 
       {/* ══ BOTTOM SECTION: OpenClaw Council | Activity Stream | Subnet Heat Map ══ */}
       <div className="flex flex-1 min-h-0">
 
-        {/* OpenClaw Council Monitor */}
-        <div className="w-[520px] flex-shrink-0 border-r border-slate-800/60 flex flex-col">
+        {/* OpenClaw Council Monitor — fills its box fully */}
+        <div className="w-[480px] flex-shrink-0 border-r border-slate-800/60 flex flex-col overflow-hidden">
           <OpenClawCouncil />
         </div>
 
-        {/* Right side: activity stream (half) + heat map (half) — equal split */}
+        {/* Right side: activity stream + heat map */}
         <div className="flex-1 flex min-w-0 min-h-0">
 
-          {/* Activity stream — equal width, content capped + contained */}
+          {/* Activity stream */}
           <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden p-3 border-r border-slate-800/60">
-
-            {/* Selected bot gate detail */}
-            {selectedBot && (
-              <div className="flex-shrink-0 mb-2 rounded-lg border border-blue-500/30 bg-blue-500/5 px-4 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <BarChart3 size={13} className="text-blue-400" />
-                    <span className="text-xs font-bold text-blue-300">{selectedBot.display_name} — Gate Detail</span>
-                  </div>
-                  <ModeBadge mode={selectedBot.mode} />
-                </div>
-                <div className="grid grid-cols-4 gap-3">
-                  <GateBar label="Cycles"     check={selectedBot.gate.cycles} />
-                  <GateBar label="Win %"      check={selectedBot.gate.win_rate} />
-                  <GateBar label="Win Margin" check={selectedBot.gate.win_margin} />
-                  <GateBar label="PnL TAO"    check={selectedBot.gate.pnl} />
-                </div>
-                {selectedBot.gate.all_clear && (
-                  <div className="mt-2 flex items-center gap-2 text-purple-400">
-                    <CheckCircle2 size={12} />
-                    <span className="text-[13px] font-bold tracking-wider">ALL GATES CLEAR — READY FOR LIVE PROMOTION</span>
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Activity stream — 50 most-recent events, scrolls inside box */}
             <div className="flex-1 flex flex-col min-h-0 rounded-lg border border-slate-700/50 bg-slate-800/30">

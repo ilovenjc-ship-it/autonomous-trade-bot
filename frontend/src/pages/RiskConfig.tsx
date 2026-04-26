@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { AlertOctagon, CheckCircle2, RefreshCw, ShieldAlert, Zap, BarChart2, TrendingDown, Layers } from 'lucide-react'
+import { AlertOctagon, CheckCircle2, RefreshCw, ShieldAlert, Zap, BarChart2, TrendingDown, Layers, Save } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 import toast from 'react-hot-toast'
@@ -181,21 +181,23 @@ function StatusCard({
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default function RiskConfig() {
-  const [config, setConfig] = useState<Config>(DEFAULTS)
-  const [status, setStatus] = useState<RiskStatus | null>(null)
-  const [saving,  setSaving]  = useState(false)
-  const [halting, setHalting] = useState(false)
+  const [config,   setConfig]   = useState<Config>(DEFAULTS)
+  const [status,   setStatus]   = useState<RiskStatus | null>(null)
+  const [saving,   setSaving]   = useState(false)
+  const [halting,  setHalting]  = useState(false)
+  const [isDirty,  setIsDirty]  = useState(false)  // true while user is editing — prevents poll overwrite
 
   const fetchConfig = useCallback(async () => {
     const [cfgRes, stRes] = await Promise.allSettled([
       api.get('/fleet/risk/config').then(r => r.data),
       api.get('/fleet/risk/status').then(r => r.data),
     ])
-    if (cfgRes.status === 'fulfilled' && cfgRes.value && typeof cfgRes.value.max_drawdown_pct === 'number')
+    // Only overwrite config from server if user hasn't made unsaved changes
+    if (!isDirty && cfgRes.status === 'fulfilled' && cfgRes.value && typeof cfgRes.value.max_drawdown_pct === 'number')
       setConfig(cfgRes.value)
     if (stRes.status === 'fulfilled' && stRes.value)
       setStatus(stRes.value)
-  }, [])
+  }, [isDirty])
 
   useEffect(() => {
     fetchConfig()
@@ -208,6 +210,7 @@ export default function RiskConfig() {
     try {
       await api.post('/fleet/risk/config', config)
       toast.success('Risk configuration applied')
+      setIsDirty(false)
       await fetchConfig()
     } catch {
       toast.error('Failed to apply configuration')
@@ -216,7 +219,11 @@ export default function RiskConfig() {
     }
   }
 
-  const handleReset = () => { setConfig(DEFAULTS); toast.success('Reset to defaults') }
+  const handleReset = () => {
+    setConfig(DEFAULTS)
+    setIsDirty(false)
+    toast.success('Reset to defaults')
+  }
 
   const handleHalt = async () => {
     setHalting(true)
@@ -384,7 +391,7 @@ export default function RiskConfig() {
             min={5} max={50} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
             rangeLabel="5% — 50%"
-            onChange={v => setConfig(c => ({ ...c, max_drawdown_pct: v }))}
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, max_drawdown_pct: v })) }}
           />
           <RiskSlider
             label="Stop Loss"
@@ -393,7 +400,7 @@ export default function RiskConfig() {
             min={0.5} max={20} step={0.5} riskDir="down"
             format={v => `${v.toFixed(1)}%`}
             rangeLabel="0.5% — 20%"
-            onChange={v => setConfig(c => ({ ...c, stop_loss_pct: v }))}
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, stop_loss_pct: v })) }}
           />
           <RiskSlider
             label="Take Profit"
@@ -402,7 +409,7 @@ export default function RiskConfig() {
             min={1} max={50} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
             rangeLabel="1% — 50%"
-            onChange={v => setConfig(c => ({ ...c, take_profit_pct: v }))}
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, take_profit_pct: v })) }}
           />
           <RiskSlider
             label="Max Position Size"
@@ -411,7 +418,7 @@ export default function RiskConfig() {
             min={1} max={50} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
             rangeLabel="1% — 50%"
-            onChange={v => setConfig(c => ({ ...c, max_position_size_pct: v }))}
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, max_position_size_pct: v })) }}
           />
           <RiskSlider
             label="Max Concurrent Positions"
@@ -420,7 +427,7 @@ export default function RiskConfig() {
             min={1} max={20} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}`}
             rangeLabel="1 — 20"
-            onChange={v => setConfig(c => ({ ...c, max_concurrent_positions: v }))}
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, max_concurrent_positions: v })) }}
           />
           <RiskSlider
             label="Daily Circuit Breaker"
@@ -429,7 +436,7 @@ export default function RiskConfig() {
             min={2} max={50} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
             rangeLabel="2% — 50%"
-            onChange={v => setConfig(c => ({ ...c, daily_loss_circuit_breaker_pct: v }))}
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, daily_loss_circuit_breaker_pct: v })) }}
           />
           <RiskSlider
             label="Min AI Confidence"
@@ -438,7 +445,7 @@ export default function RiskConfig() {
             min={0.4} max={0.95} step={0.05} riskDir="down"
             format={v => v.toFixed(2)}
             rangeLabel="0.40 — 0.95"
-            onChange={v => setConfig(c => ({ ...c, min_confidence_score: v }))}
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, min_confidence_score: v })) }}
           />
           <RiskSlider
             label="OpenClaw Consensus"
@@ -447,7 +454,7 @@ export default function RiskConfig() {
             min={0.4} max={0.9} step={0.05} riskDir="down"
             format={v => `${(v * 100).toFixed(0)}%  (${Math.ceil(v * 12)}/12 bots)`}
             rangeLabel="40% — 90%"
-            onChange={v => setConfig(c => ({ ...c, consensus_threshold: v }))}
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, consensus_threshold: v })) }}
           />
           <RiskSlider
             label="Cycle Interval"
@@ -456,7 +463,7 @@ export default function RiskConfig() {
             min={60} max={3600} step={60} riskDir="down"
             format={v => v >= 3600 ? '1 hr' : `${(v / 60).toFixed(0)} min`}
             rangeLabel="60 s — 60 min"
-            onChange={v => setConfig(c => ({ ...c, cycle_interval_seconds: v }))}
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, cycle_interval_seconds: v })) }}
           />
 
           {/* Phase indicator — spans full width */}
@@ -475,10 +482,22 @@ export default function RiskConfig() {
       </div>
 
       {/* ── Apply / Reset ───────────────────────────────────────────────────── */}
+      {isDirty && (
+        <div className="flex items-center gap-2 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/25 rounded-xl text-yellow-400 text-xs font-mono">
+          <Zap size={12} className="text-yellow-400" />
+          Unsaved changes — click Apply Configuration to save
+        </div>
+      )}
       <div className="flex gap-4 pb-6">
         <button
           onClick={handleApply} disabled={saving}
-          className="flex-1 flex items-center justify-center gap-2 py-3.5 bg-emerald-500/15 border border-emerald-500/40 rounded-xl text-emerald-400 text-sm font-bold hover:bg-emerald-500/25 disabled:opacity-50 transition-colors tracking-wider"
+          className={clsx(
+            'flex-1 flex items-center justify-center gap-2 py-3.5 rounded-xl text-sm font-bold transition-colors tracking-wider border',
+            isDirty
+              ? 'bg-emerald-500/25 border-emerald-400/60 text-emerald-300 hover:bg-emerald-500/35'
+              : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25',
+            saving && 'opacity-50 cursor-not-allowed',
+          )}
         >
           <CheckCircle2 size={15} />
           {saving ? 'Applying…' : 'Apply Configuration'}

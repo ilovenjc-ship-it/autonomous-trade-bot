@@ -157,7 +157,8 @@ export default function Settings() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <PageHeroSlider slides={heroSlides} />
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 max-w-3xl">
+      <div className="flex-1 overflow-y-auto p-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 max-w-[1400px]">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between">
@@ -345,6 +346,7 @@ export default function Settings() {
           </div>
         )}
       </div>
+      </div>{/* end grid */}
       </div>{/* end scrollable */}
     </div>
   )

@@ -426,14 +426,14 @@ function SentimentGauge({
   ]
 
   return (
-    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 flex flex-col">
-      <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 flex flex-col h-full">
+      <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
         <Activity size={14} className="text-yellow-400" /> Market Sentiment
       </h2>
 
-      {/* Gauge SVG */}
-      <div className="flex justify-center">
-        <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`}>
+      {/* Gauge SVG — fills remaining box space */}
+      <div className="flex-1 flex items-center justify-center min-h-0">
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 180 }} preserveAspectRatio="xMidYMid meet">
           {/* background arc */}
           <path d={arcPath(180, 360, R)} fill="none" stroke="#1e293b" strokeWidth={14} />
 
@@ -469,7 +469,7 @@ function SentimentGauge({
       </div>
 
       {/* Input breakdown */}
-      <div className="mt-2 space-y-2 border-t border-dark-600 pt-3">
+      <div className="space-y-1.5 border-t border-dark-600 pt-2 mt-auto">
         {inputs.map(inp => (
           <div key={inp.label} className="flex items-center justify-between">
             <span className="text-[13px] font-mono text-slate-400">{inp.label}</span>

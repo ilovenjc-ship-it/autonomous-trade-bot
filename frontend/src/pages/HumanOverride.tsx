@@ -314,10 +314,11 @@ export default function HumanOverride() {
         </div>
       </div>
 
-      {/* ── top row: control boxes side by side ────────────────────────────── */}
-      <div className="flex gap-4 flex-wrap">
-        {/* BOXES ROW — Emergency Controls | System Check | Manual Trade */}
-        <div className="flex-1 min-w-[280px]">
+      {/* ── Two-column layout: Strategy Override LEFT | Controls RIGHT ─────── */}
+      <div className="flex gap-4 items-start flex-wrap xl:flex-nowrap">
+
+        {/* RIGHT column — Emergency Controls + Fleet Controls + Manual Trade */}
+        <div className="w-full xl:w-80 flex-shrink-0 space-y-4 xl:order-2">
 
           {/* Emergency controls */}
           <div className="card p-5 space-y-4">
@@ -509,12 +510,11 @@ export default function HumanOverride() {
             </p>
           </div>
 
-        </div>
+        </div>{/* end right column */}
 
-        </div>{/* end top row */}
-
-      {/* ── strategy override (full width below) ────────────────────────────── */}
-      <div className="card p-5">
+        {/* LEFT column — Strategy Mode Override */}
+        <div className="flex-1 min-w-0 xl:order-1">
+        <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
               <ArrowUp size={13} className="text-accent-green" /> Strategy Mode Override
@@ -684,6 +684,9 @@ export default function HumanOverride() {
           </p>
         </div>
 
+      </div>{/* end left column */}
+
+      </div>{/* end two-column layout */}
       </div>{/* end scrollable */}
     </div>
   )
