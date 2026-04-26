@@ -157,196 +157,191 @@ export default function Settings() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       <PageHeroSlider slides={heroSlides} />
-      <div className="flex-1 overflow-y-auto p-6">
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 max-w-[1400px]">
+      <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-white flex items-center gap-2">
-            <SettingsIcon size={18} className="text-slate-400" /> Settings
-          </h1>
-          <p className="text-xs text-slate-500 mt-0.5">Bot behaviour, trade sizing, network identity</p>
-        </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="flex items-center gap-2 px-4 py-2 bg-accent-blue/15 border border-accent-blue/30 rounded-lg text-accent-blue text-xs font-semibold hover:bg-accent-blue/25 disabled:opacity-50 transition-colors"
-        >
-          <Save size={13} />
-          {saving ? 'Saving…' : 'Save Config'}
-        </button>
-      </div>
-
-      {/* ── Status banners ─────────────────────────────────────────────────── */}
-      {isRunning && (
-        <div className="flex items-center gap-2 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-xs">
-          <AlertTriangle size={13} />
-          Bot is running — changes apply from the next trading cycle.
-        </div>
-      )}
-
-      {/* Mode badge row */}
-      <div className="flex flex-wrap items-center gap-2">
-        <span className={clsx(
-          'flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-mono font-semibold border',
-          simMode
-            ? 'bg-slate-700/60 text-slate-300 border-slate-600'
-            : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-        )}>
-          <FlaskConical size={11} />
-          {simMode ? 'PAPER MODE — no real funds at risk' : 'LIVE MODE — real TAO executing'}
-        </span>
-
-        {isMainnet && (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-mono font-semibold border bg-amber-500/10 text-amber-400 border-amber-500/30">
-            <AlertTriangle size={11} />
-            FINNEY MAINNET — real money
-          </span>
-        )}
-      </div>
-
-      {/* ── Trade Execution ────────────────────────────────────────────────── */}
-      <Section title="Trade Execution">
-        <FieldRow icon={ArrowLeftRight} label="Trade Amount (TAO)"
-          hint="Default TAO amount placed per individual trade">
-          <NumberInput
-            value={config.trade_amount} min={0.001} max={100} step={0.001} suffix="τ"
-            onChange={v => set('trade_amount', v)}
-          />
-        </FieldRow>
-        <FieldRow icon={ArrowLeftRight} label="Max Trade Amount (TAO)"
-          hint="Hard ceiling — no single trade can exceed this regardless of signal strength">
-          <NumberInput
-            value={config.max_trade_amount} min={0.001} max={1000} step={0.001} suffix="τ"
-            onChange={v => set('max_trade_amount', v)}
-          />
-        </FieldRow>
-        <FieldRow icon={ArrowLeftRight} label="Min Trade Amount (TAO)"
-          hint="Trades smaller than this are skipped — prevents dust transactions">
-          <NumberInput
-            value={config.min_trade_amount} min={0.0001} max={10} step={0.0001} suffix="τ"
-            onChange={v => set('min_trade_amount', v)}
-          />
-        </FieldRow>
-        <FieldRow icon={Clock} label="Trade Interval (seconds)"
-          hint={`How long each bot waits between evaluation cycles${tradeInterval > 0 ? ` — currently ${fmtInterval(tradeInterval)}` : ''}`}>
-          <NumberInput
-            value={config.trade_interval} min={60} max={86400} step={60} suffix="s"
-            onChange={v => set('trade_interval', v)}
-          />
-        </FieldRow>
-        <FieldRow icon={Hash} label="Max Daily Trades"
-          hint="Hard limit on total executions across all 12 bots per day">
-          <NumberInput
-            value={config.max_daily_trades} min={1} max={500} step={1}
-            onChange={v => set('max_daily_trades', v)}
-          />
-        </FieldRow>
-      </Section>
-
-      {/* ── Network & Identity ─────────────────────────────────────────────── */}
-      <Section title="Network &amp; Identity">
-
-        {/* Network selector */}
-        <FieldRow icon={Globe} label="Network"
-          hint={isMainnet ? '⚠ Finney mainnet — real TAO, real consequences' : 'Safe testing environment — no real funds'}>
-          <select
-            value={config.network ?? 'finney'}
-            onChange={e => set('network', e.target.value)}
-            className={clsx('input w-full', isMainnet && 'border-amber-500/40 text-amber-400')}
-          >
-            <option value="finney">Finney (Mainnet) — real TAO</option>
-            <option value="test">Testnet — no real funds</option>
-            <option value="local">Local — development only</option>
-          </select>
-        </FieldRow>
-
-        <FieldRow icon={Hash} label="Subnet UID (netuid)"
-          hint="Bittensor subnet the bot stakes and trades on — SN0 is the root network">
-          <NumberInput
-            value={config.netuid} min={0} max={512} step={1}
-            onChange={v => set('netuid', v)}
-          />
-        </FieldRow>
-
-        <FieldRow icon={User} label="Wallet Name (coldkey)"
-          hint="Name of the Bittensor coldkey wallet on disk">
-          <input
-            type="text"
-            value={(config.wallet_name as string | undefined) ?? ''}
-            onChange={e => set('wallet_name', e.target.value)}
-            className="input w-full font-mono"
-            placeholder="default"
-          />
-        </FieldRow>
-
-        <FieldRow icon={KeyRound} label="Hotkey Name"
-          hint="Hotkey associated with the coldkey — used for staking and voting">
-          <input
-            type="text"
-            value={(config.wallet_hotkey as string | undefined) ?? ''}
-            onChange={e => set('wallet_hotkey', e.target.value)}
-            className="input w-full font-mono"
-            placeholder="default"
-          />
-        </FieldRow>
-
-        <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-500/8 border border-blue-500/15 rounded-lg">
-          <Wifi size={12} className="text-blue-400 flex-shrink-0 mt-0.5" />
-          <p className="text-[14px] text-blue-400/80 leading-snug">
-            Stop-loss %, take-profit %, and consensus thresholds are managed on the{' '}
-            <span className="font-semibold text-blue-400">Risk Config</span> page.
-          </p>
-        </div>
-      </Section>
-
-      {/* ── Danger Zone ────────────────────────────────────────────────────── */}
-      <div className="bg-dark-800 border border-red-500/20 rounded-xl p-5">
-        <h2 className="text-xs font-bold text-red-400 uppercase tracking-widest border-b border-red-500/15 pb-3 mb-4">
-          Danger Zone
-        </h2>
-        <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-          Clears all trade history from the local database. Wallet, configuration, and strategy
-          state are preserved. This action cannot be undone.
-        </p>
-
-        {!resetArmed ? (
+        {/* ── Header row (full width) ─────────────────────────────────────── */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl font-semibold text-white flex items-center gap-2">
+              <SettingsIcon size={18} className="text-slate-400" /> Settings
+            </h1>
+            <p className="text-xs text-slate-500 mt-0.5">Bot behaviour, trade sizing, network identity</p>
+          </div>
           <button
-            onClick={() => setResetArmed(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs font-semibold hover:bg-red-500/20 transition-colors"
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-4 py-2 bg-accent-blue/15 border border-accent-blue/30 rounded-lg text-accent-blue text-xs font-semibold hover:bg-accent-blue/25 disabled:opacity-50 transition-colors"
           >
-            <AlertTriangle size={13} />
-            Reset All Trade Data
+            <Save size={13} />
+            {saving ? 'Saving…' : 'Save Config'}
           </button>
-        ) : (
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/30 rounded-lg">
-              <AlertTriangle size={13} className="text-red-400 flex-shrink-0" />
-              <p className="text-xs text-red-400 font-semibold">
-                This will permanently delete all trade history. Are you sure?
-              </p>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleReset}
-                disabled={resetting}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-xs font-bold hover:bg-red-500/30 disabled:opacity-50 transition-colors"
-              >
-                {resetting ? <RefreshCw size={12} className="animate-spin" /> : <AlertTriangle size={12} />}
-                {resetting ? 'Clearing…' : 'Yes, delete everything'}
-              </button>
-              <button
-                onClick={() => setResetArmed(false)}
-                className="px-4 py-2 bg-dark-700 border border-dark-600 rounded-lg text-slate-400 text-xs hover:text-white hover:border-dark-500 transition-colors"
-              >
-                Cancel
-              </button>
-            </div>
+        </div>
+
+        {/* ── Status banner (full width, conditional) ─────────────────────── */}
+        {isRunning && (
+          <div className="flex items-center gap-2 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-xs">
+            <AlertTriangle size={13} />
+            Bot is running — changes apply from the next trading cycle.
           </div>
         )}
-      </div>
-      </div>{/* end grid */}
+
+        {/* ── Mode badges (full width) ─────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className={clsx(
+            'flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-mono font-semibold border',
+            simMode
+              ? 'bg-slate-700/60 text-slate-300 border-slate-600'
+              : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
+          )}>
+            <FlaskConical size={11} />
+            {simMode ? 'PAPER MODE — no real funds at risk' : 'LIVE MODE — real TAO executing'}
+          </span>
+          {isMainnet && (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-mono font-semibold border bg-amber-500/10 text-amber-400 border-amber-500/30">
+              <AlertTriangle size={11} />
+              FINNEY MAINNET — real money
+            </span>
+          )}
+        </div>
+
+        {/* ── 3 sections in a row across full page width ───────────────────── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+          {/* Trade Execution */}
+          <Section title="Trade Execution">
+            <FieldRow icon={ArrowLeftRight} label="Trade Amount (TAO)"
+              hint="Default TAO amount placed per individual trade">
+              <NumberInput
+                value={config.trade_amount} min={0.001} max={100} step={0.001} suffix="τ"
+                onChange={v => set('trade_amount', v)}
+              />
+            </FieldRow>
+            <FieldRow icon={ArrowLeftRight} label="Max Trade Amount (TAO)"
+              hint="Hard ceiling — no single trade can exceed this regardless of signal strength">
+              <NumberInput
+                value={config.max_trade_amount} min={0.001} max={1000} step={0.001} suffix="τ"
+                onChange={v => set('max_trade_amount', v)}
+              />
+            </FieldRow>
+            <FieldRow icon={ArrowLeftRight} label="Min Trade Amount (TAO)"
+              hint="Trades smaller than this are skipped — prevents dust transactions">
+              <NumberInput
+                value={config.min_trade_amount} min={0.0001} max={10} step={0.0001} suffix="τ"
+                onChange={v => set('min_trade_amount', v)}
+              />
+            </FieldRow>
+            <FieldRow icon={Clock} label="Trade Interval (seconds)"
+              hint={`How long each bot waits between evaluation cycles${tradeInterval > 0 ? ` — currently ${fmtInterval(tradeInterval)}` : ''}`}>
+              <NumberInput
+                value={config.trade_interval} min={60} max={86400} step={60} suffix="s"
+                onChange={v => set('trade_interval', v)}
+              />
+            </FieldRow>
+            <FieldRow icon={Hash} label="Max Daily Trades"
+              hint="Hard limit on total executions across all 12 bots per day">
+              <NumberInput
+                value={config.max_daily_trades} min={1} max={500} step={1}
+                onChange={v => set('max_daily_trades', v)}
+              />
+            </FieldRow>
+          </Section>
+
+          {/* Network & Identity */}
+          <Section title="Network &amp; Identity">
+            <FieldRow icon={Globe} label="Network"
+              hint={isMainnet ? '⚠ Finney mainnet — real TAO, real consequences' : 'Safe testing environment — no real funds'}>
+              <select
+                value={config.network ?? 'finney'}
+                onChange={e => set('network', e.target.value)}
+                className={clsx('input w-full', isMainnet && 'border-amber-500/40 text-amber-400')}
+              >
+                <option value="finney">Finney (Mainnet) — real TAO</option>
+                <option value="test">Testnet — no real funds</option>
+                <option value="local">Local — development only</option>
+              </select>
+            </FieldRow>
+            <FieldRow icon={Hash} label="Subnet UID (netuid)"
+              hint="Bittensor subnet the bot stakes and trades on — SN0 is the root network">
+              <NumberInput
+                value={config.netuid} min={0} max={512} step={1}
+                onChange={v => set('netuid', v)}
+              />
+            </FieldRow>
+            <FieldRow icon={User} label="Wallet Name (coldkey)"
+              hint="Name of the Bittensor coldkey wallet on disk">
+              <input
+                type="text"
+                value={(config.wallet_name as string | undefined) ?? ''}
+                onChange={e => set('wallet_name', e.target.value)}
+                className="input w-full font-mono"
+                placeholder="default"
+              />
+            </FieldRow>
+            <FieldRow icon={KeyRound} label="Hotkey Name"
+              hint="Hotkey associated with the coldkey — used for staking and voting">
+              <input
+                type="text"
+                value={(config.wallet_hotkey as string | undefined) ?? ''}
+                onChange={e => set('wallet_hotkey', e.target.value)}
+                className="input w-full font-mono"
+                placeholder="default"
+              />
+            </FieldRow>
+            <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-500/8 border border-blue-500/15 rounded-lg">
+              <Wifi size={12} className="text-blue-400 flex-shrink-0 mt-0.5" />
+              <p className="text-[14px] text-blue-400/80 leading-snug">
+                Stop-loss %, take-profit %, and consensus thresholds are managed on the{' '}
+                <span className="font-semibold text-blue-400">Risk Config</span> page.
+              </p>
+            </div>
+          </Section>
+
+          {/* Danger Zone */}
+          <div className="bg-dark-800 border border-red-500/20 rounded-xl p-5">
+            <h2 className="text-xs font-bold text-red-400 uppercase tracking-widest border-b border-red-500/15 pb-3 mb-4">
+              Danger Zone
+            </h2>
+            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
+              Clears all trade history from the local database. Wallet, configuration, and strategy
+              state are preserved. This action cannot be undone.
+            </p>
+            {!resetArmed ? (
+              <button
+                onClick={() => setResetArmed(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs font-semibold hover:bg-red-500/20 transition-colors"
+              >
+                <AlertTriangle size={13} />
+                Reset All Trade Data
+              </button>
+            ) : (
+              <div className="space-y-3">
+                <div className="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/30 rounded-lg">
+                  <AlertTriangle size={13} className="text-red-400 flex-shrink-0" />
+                  <p className="text-xs text-red-400 font-semibold">
+                    This will permanently delete all trade history. Are you sure?
+                  </p>
+                </div>
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleReset}
+                    disabled={resetting}
+                    className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-xs font-bold hover:bg-red-500/30 disabled:opacity-50 transition-colors"
+                  >
+                    {resetting ? <RefreshCw size={12} className="animate-spin" /> : <AlertTriangle size={12} />}
+                    {resetting ? 'Clearing…' : 'Yes, delete everything'}
+                  </button>
+                  <button
+                    onClick={() => setResetArmed(false)}
+                    className="px-4 py-2 bg-dark-700 border border-dark-600 rounded-lg text-slate-400 text-xs hover:text-white hover:border-dark-500 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+        </div>{/* end 3-col row */}
       </div>{/* end scrollable */}
     </div>
   )

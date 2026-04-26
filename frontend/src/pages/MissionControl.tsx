@@ -3,11 +3,25 @@ import SubnetHeatMap from '@/components/SubnetHeatMap'
 import {
   Activity, Zap, BarChart2, BarChart3, CheckCircle2,
   TrendingUp, Radio, Shield, Cpu, AlertTriangle,
+  ArrowUp, ArrowDown, Minus,
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 
 // ── Types ────────────────────────────────────────────────────────────────────
+
+interface Subnet {
+  uid: number
+  name: string
+  ticker: string
+  stake_tao: number
+  stake_usd: number
+  emission: number
+  apy: number
+  miners: number
+  trend: 'up' | 'down' | 'neutral'
+  score: number
+}
 
 interface GateCheck {
   value: number
@@ -90,6 +104,74 @@ interface ConsensusStats {
   approval_rate_pct: number
   supermajority_threshold: number
   total_bots: number
+}
+
+// ── Subnet cards (same style as Dashboard) ────────────────────────────────────
+
+function TrendIcon({ trend }: { trend: string }) {
+  if (trend === 'up')   return <ArrowUp size={11} className="text-accent-green" />
+  if (trend === 'down') return <ArrowDown size={11} className="text-red-400" />
+  return <Minus size={11} className="text-slate-500" />
+}
+
+function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
+  const stakePct  = maxStake ? (s.stake_tao / maxStake) * 100 : 0
+  const trendColor = s.trend === 'up' ? 'text-accent-green' : s.trend === 'down' ? 'text-red-400' : 'text-slate-500'
+  const scoreColor = s.score >= 90 ? '#34d399' : s.score >= 70 ? '#60a5fa' : s.score >= 50 ? '#fbbf24' : '#f87171'
+
+  return (
+    <div className="flex-shrink-0 w-[168px] bg-dark-900 border border-dark-600 rounded-xl p-3 hover:border-dark-500 transition-colors">
+      {/* name + trend */}
+      <div className="flex items-start justify-between mb-2">
+        <div className="min-w-0">
+          <p className="text-[13px] font-semibold text-white truncate">{s.name}</p>
+          <p className="text-[11px] text-slate-500 font-mono uppercase">{s.ticker}</p>
+        </div>
+        <div className="flex items-center gap-0.5 flex-shrink-0 ml-1">
+          <TrendIcon trend={s.trend} />
+          <span className={clsx('text-[10px] font-mono font-bold', trendColor)}>
+            {s.trend.toUpperCase()}
+          </span>
+        </div>
+      </div>
+
+      {/* stake bar */}
+      <div className="mb-2">
+        <div className="flex justify-between text-[11px] font-mono mb-1">
+          <span className="text-slate-500">Stake</span>
+          <span className="text-slate-300">{((s.stake_tao ?? 0) / 1e6).toFixed(2)}M τ</span>
+        </div>
+        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
+          <div className="h-full bg-accent-blue/60 rounded-full transition-all"
+            style={{ width: `${stakePct}%` }} />
+        </div>
+      </div>
+
+      {/* stats row */}
+      <div className="grid grid-cols-2 gap-1.5 mb-2">
+        <div className="bg-dark-800 rounded px-2 py-1 text-center">
+          <p className="text-[10px] text-slate-500 font-mono">APY</p>
+          <p className="text-[12px] font-bold text-accent-green font-mono">{(s.apy ?? 0).toFixed(1)}%</p>
+        </div>
+        <div className="bg-dark-800 rounded px-2 py-1 text-center">
+          <p className="text-[10px] text-slate-500 font-mono">Emit</p>
+          <p className="text-[12px] font-bold text-yellow-400 font-mono">{((s.emission ?? 0) * 100).toFixed(2)}%</p>
+        </div>
+      </div>
+
+      {/* score gauge */}
+      <div>
+        <div className="flex justify-between text-[11px] font-mono mb-1">
+          <span className="text-slate-500">Score</span>
+          <span className="font-bold" style={{ color: scoreColor }}>{(s.score ?? 0).toFixed(1)}</span>
+        </div>
+        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
+          <div className="h-full rounded-full transition-all"
+            style={{ width: `${Math.min(100, s.score ?? 0)}%`, background: scoreColor }} />
+        </div>
+      </div>
+    </div>
+  )
 }
 
 // ── Mode badge ────────────────────────────────────────────────────────────────
@@ -295,8 +377,8 @@ function OpenClawCouncil() {
         )}
       </div>
 
-      {/* Bot vote grid — scrollable */}
-      <div className="flex-1 overflow-y-auto px-3 py-2.5 min-h-0">
+      {/* Bot vote grid + tally — natural height, no flex-1 stretch */}
+      <div className="flex-shrink-0 px-3 py-2.5">
         {latest?.votes && latest.votes.length > 0 ? (
           <>
             {/* Trigger context */}
@@ -324,7 +406,7 @@ function OpenClawCouncil() {
               })}
             </div>
 
-            {/* Vote tally bar */}
+            {/* Vote tally bars */}
             <div className="mt-3 space-y-1.5">
               <div className="flex items-center gap-2 text-[10px] font-mono">
                 <span className="text-emerald-400 w-12">BUY {latest.buy_count}</span>
@@ -357,7 +439,7 @@ function OpenClawCouncil() {
             </div>
           </>
         ) : (
-          <div className="flex flex-col items-center justify-center h-full py-6 text-center">
+          <div className="flex flex-col items-center justify-center py-6 text-center">
             <Zap size={32} className="text-purple-400/30 mb-3" />
             <div className="text-[13px] text-slate-400 font-mono">Waiting for consensus rounds…</div>
             <div className="text-[11px] text-slate-600 mt-1">Rounds fire when LIVE strategies trigger</div>
@@ -365,19 +447,19 @@ function OpenClawCouncil() {
         )}
       </div>
 
-      {/* History sparkline */}
-      <div className="flex-shrink-0 border-t border-slate-800/40 px-3 py-2.5">
-        <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-2 font-mono flex items-center justify-between">
+      {/* History sparkline — flex-1 fills all remaining vertical space */}
+      <div className="flex-1 min-h-0 border-t border-slate-800/40 px-3 py-2.5 flex flex-col">
+        <div className="text-[10px] text-slate-500 uppercase tracking-wider mb-2 font-mono flex items-center justify-between flex-shrink-0">
           <span>Round History</span>
           {history.length > 0 && (
             <span className="text-slate-600">{history.length} rounds</span>
           )}
         </div>
-        <div className="flex gap-0.5 items-end h-7">
+        {/* bars expand to fill all remaining height */}
+        <div className="flex gap-0.5 items-end flex-1 min-h-[40px]">
           {history.length === 0 ? (
-            <span className="text-[11px] text-slate-600 font-mono">No rounds yet</span>
+            <span className="text-[11px] text-slate-600 font-mono self-center">No rounds yet</span>
           ) : (
-            /* Render newest on right: history is newest-first, so reverse */
             [...history].reverse().map((r, i) => (
               <div
                 key={i}
@@ -386,12 +468,12 @@ function OpenClawCouncil() {
                   'flex-1 rounded-sm transition-all cursor-default',
                   r.approved ? 'bg-emerald-500/65 hover:bg-emerald-400/80' : 'bg-orange-500/55 hover:bg-orange-400/70'
                 )}
-                style={{ height: `${Math.max(25, Math.min(100, ((r.buy_count || 0) / 12) * 100))}%` }}
+                style={{ height: `${Math.max(15, Math.min(100, ((r.buy_count || 0) / 12) * 100))}%` }}
               />
             ))
           )}
         </div>
-        <div className="flex items-center gap-3 mt-1.5 text-[9px] font-mono text-slate-600">
+        <div className="flex items-center gap-3 mt-2 text-[9px] font-mono text-slate-600 flex-shrink-0">
           <span className="flex items-center gap-1"><span className="inline-block w-2 h-1.5 bg-emerald-500/65 rounded-sm" />Approved</span>
           <span className="flex items-center gap-1"><span className="inline-block w-2 h-1.5 bg-orange-500/55 rounded-sm" />Rejected</span>
         </div>
@@ -406,7 +488,7 @@ function OpenClawCouncil() {
 export default function MissionControl() {
   const [events,   setEvents]   = useState<ActivityEvent[]>([])
   const [_selectedBot, _setSelectedBot] = useState<FleetBot | null>(null)
-  const [subnets,  setSubnets]  = useState<{ uid: number; name: string; ticker: string; stake_tao: number; apy: number; trend: string }[]>([])
+  const [subnets,  setSubnets]  = useState<Subnet[]>([])
 
   const activityRef = useRef<HTMLDivElement>(null)
 
@@ -442,7 +524,7 @@ export default function MissionControl() {
   return (
     <div className="flex-1 flex flex-col bg-[#080d18] text-slate-100 overflow-hidden font-mono">
 
-      {/* ══ TOP SUBNETS BAR ══ */}
+      {/* ══ TOP SUBNETS BAR — full Dashboard-style cards ══ */}
       <div className="flex-shrink-0 border-b border-slate-800/60">
         <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-800/40">
           <BarChart2 size={12} className="text-accent-blue" />
@@ -450,31 +532,15 @@ export default function MissionControl() {
           <span className="text-[11px] text-slate-600 font-mono ml-1">by stake · live</span>
           <span className="ml-auto text-[11px] text-slate-600 font-mono">{subnets.length} subnets</span>
         </div>
-        <div className="flex gap-2 overflow-x-auto px-4 py-2 scrollbar-thin">
+        <div className="flex gap-3 overflow-x-auto px-4 py-3 scrollbar-thin">
           {subnets.length === 0 ? (
             <div className="text-[11px] text-slate-600 font-mono py-2">Loading subnets…</div>
-          ) : subnets.map(s => {
-            const trendColor = s.trend === 'up' ? 'text-emerald-400' : s.trend === 'down' ? 'text-red-400' : 'text-slate-500'
-            return (
-              <div key={s.uid} className="flex-shrink-0 w-[120px] bg-slate-900/60 border border-slate-700/50 rounded-lg px-2.5 py-2 hover:border-slate-600 transition-colors">
-                <div className="flex items-start justify-between mb-1">
-                  <span className="text-[11px] font-semibold text-white truncate">{s.name.split(' ')[0]}</span>
-                  <span className={clsx('text-[9px] font-bold font-mono flex-shrink-0 ml-1', trendColor)}>
-                    {s.trend === 'up' ? '▲' : s.trend === 'down' ? '▼' : '—'}
-                  </span>
-                </div>
-                <div className="text-[9px] text-slate-500 font-mono uppercase mb-1.5">{s.ticker}</div>
-                <div className="flex justify-between text-[9px] font-mono">
-                  <span className="text-slate-500">Stake</span>
-                  <span className="text-slate-300">{((s.stake_tao ?? 0) / 1e6).toFixed(1)}Mτ</span>
-                </div>
-                <div className="flex justify-between text-[9px] font-mono">
-                  <span className="text-slate-500">APY</span>
-                  <span className="text-emerald-400">{(s.apy ?? 0).toFixed(1)}%</span>
-                </div>
-              </div>
-            )
-          })}
+          ) : (
+            (() => {
+              const maxStake = Math.max(...subnets.map(s => s.stake_tao), 1)
+              return subnets.map(s => <SubnetCard key={s.uid} s={s} maxStake={maxStake} />)
+            })()
+          )}
         </div>
       </div>{/* end TOP SUBNETS */}
 

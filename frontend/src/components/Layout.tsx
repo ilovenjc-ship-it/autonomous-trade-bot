@@ -394,8 +394,8 @@ export default function Layout() {
           </h1>
 
           {/* Local time */}
-          <div className="flex items-center gap-1 text-[11px] font-mono text-slate-400">
-            <Clock size={10} className="text-slate-500" />
+          <div className="flex items-center gap-1.5 text-[13px] font-mono text-slate-400">
+            <Clock size={13} className="text-slate-500" />
             <span>{localTime}</span>
           </div>
 
@@ -403,19 +403,19 @@ export default function Layout() {
 
           {/* Next cycle */}
           {isRunning && (
-            <div className="text-[11px] font-mono text-slate-400">
+            <div className="text-[13px] font-mono text-slate-400">
               Next <span className="text-accent-green font-bold">{secToNext}s</span>
             </div>
           )}
 
           {/* Bot status pill */}
           <div className={clsx(
-            'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border font-mono',
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold border font-mono',
             isRunning
               ? 'bg-accent-green/10 text-accent-green border-accent-green/25'
               : 'bg-dark-700 text-slate-400 border-dark-600'
           )}>
-            <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0',
+            <span className={clsx('w-2 h-2 rounded-full flex-shrink-0',
               isRunning ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
             {isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
           </div>
@@ -425,14 +425,14 @@ export default function Layout() {
             onClick={handleToggle}
             disabled={botBusy}
             className={clsx(
-              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border font-mono transition-all',
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold border font-mono transition-all',
               isRunning
                 ? 'bg-red-500/15 text-red-400 border-red-500/30 hover:bg-red-500/25'
                 : 'bg-accent-green/15 text-accent-green border-accent-green/30 hover:bg-accent-green/25',
               botBusy && 'opacity-50 cursor-not-allowed'
             )}
           >
-            {isRunning ? <Square size={10} /> : <Play size={10} />}
+            {isRunning ? <Square size={12} /> : <Play size={12} />}
             {isRunning ? 'Stop Bot' : 'Start Bot'}
           </button>
 

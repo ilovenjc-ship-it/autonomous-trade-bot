@@ -314,13 +314,11 @@ export default function HumanOverride() {
         </div>
       </div>
 
-      {/* ── Two-column layout: Strategy Override LEFT | Controls RIGHT ─────── */}
+      {/* ── Row layout: Emergency | Fleet | Manual Trade | Strategy Override ── */}
       <div className="flex gap-4 items-start flex-wrap xl:flex-nowrap">
 
-        {/* RIGHT column — Emergency Controls + Fleet Controls + Manual Trade */}
-        <div className="w-full xl:w-80 flex-shrink-0 space-y-4 xl:order-2">
-
-          {/* Emergency controls */}
+        {/* Emergency controls */}
+        <div className="w-full xl:w-72 flex-shrink-0">
           <div className="card p-5 space-y-4">
             <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
               <AlertTriangle size={13} className="text-red-400" /> Emergency Controls
@@ -377,8 +375,10 @@ export default function HumanOverride() {
               Emergency Stop halts the cycle engine and trading engine immediately. No new trades will execute until Resume is called.
             </p>
           </div>
+        </div>{/* end Emergency Controls */}
 
-          {/* Fleet controls */}
+        {/* Fleet controls */}
+        <div className="w-full xl:w-72 flex-shrink-0">
           <div className="card p-5 space-y-3">
             <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
               <Zap size={13} className="text-accent-blue" /> Fleet Controls
@@ -400,8 +400,10 @@ export default function HumanOverride() {
               Gate check evaluates all 12 strategies for promotion eligibility right now, bypassing the 5-minute throttle. Capital rebalances automatically every 24h and on every promote/demote.
             </p>
           </div>
+        </div>{/* end Fleet Controls */}
 
-          {/* Manual trade */}
+        {/* Manual trade */}
+        <div className="w-full xl:w-72 flex-shrink-0">
           <div className="card p-5 space-y-4">
             <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
               <TrendingUp size={13} className="text-accent-green" /> Manual Trade
@@ -509,11 +511,10 @@ export default function HumanOverride() {
               First click stages the trade. Second click executes. In paper mode this records a simulated trade. In live mode this submits to chain.
             </p>
           </div>
+        </div>{/* end Manual Trade */}
 
-        </div>{/* end right column */}
-
-        {/* LEFT column — Strategy Mode Override */}
-        <div className="flex-1 min-w-0 xl:order-1">
+        {/* Strategy Mode Override — takes remaining width */}
+        <div className="flex-1 min-w-0">
         <div className="card p-5">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
@@ -683,10 +684,9 @@ export default function HumanOverride() {
             means it will execute real on-chain trades when live mode is enabled. Demoting from LIVE does not cancel open positions.
           </p>
         </div>
+        </div>{/* end Strategy Mode Override */}
 
-      </div>{/* end left column */}
-
-      </div>{/* end two-column layout */}
+      </div>{/* end row layout */}
       </div>{/* end scrollable */}
     </div>
   )

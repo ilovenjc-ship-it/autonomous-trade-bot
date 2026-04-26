@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Play, Square, RefreshCw, TrendingUp, TrendingDown,
   Activity, Zap, Bot, Shield, BarChart2, Clock, Award, Radio,
-  Brain, Vote, Bell, Wallet, ArrowUp, ArrowDown, Minus,
+  Brain, Vote, Bell, Wallet,
 } from 'lucide-react'
 import PageHeroSlider, { SliderSlide } from '@/components/PageHeroSlider'
 import {
@@ -64,19 +64,6 @@ interface PricePoint {
   price: number
   volume: number
   time: string   // formatted label
-}
-
-interface Subnet {
-  uid: number
-  name: string
-  ticker: string
-  stake_tao: number
-  stake_usd: number
-  emission: number
-  apy: number
-  miners: number
-  trend: 'up' | 'down' | 'neutral'
-  score: number
 }
 
 type PriceRange = '1H' | '6H' | '24H' | '7D'
@@ -207,98 +194,6 @@ function TaoPriceChart({ data, range, onRange }: {
       ) : (
         <div className="h-[180px] flex items-center justify-center text-slate-500 font-mono text-sm">
           Loading price data…
-        </div>
-      )}
-    </div>
-  )
-}
-
-// ── subnet mini cards ─────────────────────────────────────────────────────────
-function TrendIcon({ trend }: { trend: string }) {
-  if (trend === 'up')   return <ArrowUp size={11} className="text-accent-green" />
-  if (trend === 'down') return <ArrowDown size={11} className="text-red-400" />
-  return <Minus size={11} className="text-slate-500" />
-}
-
-function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
-  const stakePct = maxStake ? (s.stake_tao / maxStake) * 100 : 0
-  const trendColor = s.trend === 'up' ? 'text-accent-green' : s.trend === 'down' ? 'text-red-400' : 'text-slate-500'
-  const scoreColor = s.score >= 90 ? '#34d399' : s.score >= 70 ? '#60a5fa' : s.score >= 50 ? '#fbbf24' : '#f87171'
-
-  return (
-    <div className="flex-shrink-0 w-[168px] bg-dark-900 border border-dark-600 rounded-xl p-3 hover:border-dark-500 transition-colors">
-      {/* name + trend */}
-      <div className="flex items-start justify-between mb-2">
-        <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-white truncate">{s.name}</p>
-          <p className="text-[15px] text-slate-500 font-mono uppercase">{s.ticker}</p>
-        </div>
-        <div className="flex items-center gap-0.5 flex-shrink-0 ml-1">
-          <TrendIcon trend={s.trend} />
-          <span className={clsx('text-[15px] font-mono font-bold', trendColor)}>
-            {s.trend.toUpperCase()}
-          </span>
-        </div>
-      </div>
-
-      {/* stake bar */}
-      <div className="mb-2">
-        <div className="flex justify-between text-[15px] font-mono mb-1">
-          <span className="text-slate-500">Stake</span>
-          <span className="text-slate-300">{((s.stake_tao ?? 0) / 1e6).toFixed(2)}M τ</span>
-        </div>
-        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
-          <div className="h-full bg-accent-blue/60 rounded-full transition-all"
-            style={{ width: `${stakePct}%` }} />
-        </div>
-      </div>
-
-      {/* stats row */}
-      <div className="grid grid-cols-2 gap-1.5 mb-2">
-        <div className="bg-dark-800 rounded px-2 py-1 text-center">
-          <p className="text-[15px] text-slate-500 font-mono">APY</p>
-          <p className="text-[14px] font-bold text-accent-green font-mono">{(s.apy ?? 0).toFixed(1)}%</p>
-        </div>
-        <div className="bg-dark-800 rounded px-2 py-1 text-center">
-          <p className="text-[15px] text-slate-500 font-mono">Emit</p>
-          <p className="text-[14px] font-bold text-yellow-400 font-mono">{((s.emission ?? 0) * 100).toFixed(2)}%</p>
-        </div>
-      </div>
-
-      {/* score gauge */}
-      <div>
-        <div className="flex justify-between text-[15px] font-mono mb-1">
-          <span className="text-slate-500">Score</span>
-          <span className="font-bold" style={{ color: scoreColor }}>{(s.score ?? 0).toFixed(1)}</span>
-        </div>
-        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
-          <div className="h-full rounded-full transition-all"
-            style={{ width: `${Math.min(100, s.score)}%`, background: scoreColor }} />
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SubnetMiniRow({ subnets }: { subnets: Subnet[] }) {
-  const maxStake = subnets.length ? Math.max(...subnets.map(s => s.stake_tao)) : 1
-  return (
-    <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-          <BarChart2 size={14} className="text-accent-blue" />
-          Top Subnets
-          <span className="text-[13px] text-slate-500 font-mono font-normal">by stake · live</span>
-        </h2>
-        <span className="text-[13px] text-slate-500 font-mono">{subnets.length} subnets</span>
-      </div>
-      {subnets.length > 0 ? (
-        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-thin">
-          {subnets.map(s => <SubnetCard key={s.uid} s={s} maxStake={maxStake} />)}
-        </div>
-      ) : (
-        <div className="h-[120px] flex items-center justify-center text-slate-500 font-mono text-sm">
-          Loading subnet data…
         </div>
       )}
     </div>
@@ -599,7 +494,6 @@ export default function Dashboard() {
   // Charts
   const [priceHistory,   setPriceHistory]   = useState<PricePoint[]>([])
   const [priceRange,     setPriceRange]     = useState<PriceRange>('24H')
-  const [subnets,        setSubnets]        = useState<Subnet[]>([])
 
   // Recent trades (for bottom panel)
   const [recentTrades, setRecentTrades] = useState<RecentTrade[]>([])
@@ -607,10 +501,7 @@ export default function Dashboard() {
   const loadCharts = useCallback(async (range: PriceRange) => {
     try {
       const days = range === '7D' ? 7 : 1
-      const [priceRes, subnetRes] = await Promise.all([
-        fetch(`/api/price/history?days=${days}`).then(r => r.json()).catch(() => null),
-        fetch('/api/market/subnets?limit=8').then(r => r.json()).catch(() => null),
-      ])
+      const priceRes = await fetch(`/api/price/history?days=${days}`).then(r => r.json()).catch(() => null)
       if (priceRes?.data) {
         // Filter to the requested range
         const cutoffMs = Date.now() - RANGE_HOURS[range] * 3600 * 1000
@@ -626,7 +517,6 @@ export default function Dashboard() {
         const stride = Math.max(1, Math.floor(raw.length / 120))
         setPriceHistory(raw.filter((_, i) => i % stride === 0))
       }
-      if (subnetRes?.subnets) setSubnets(subnetRes.subnets)
     } catch (e) {
       console.error('Chart load error', e)
     }
@@ -939,9 +829,6 @@ export default function Dashboard() {
         range={priceRange}
         onRange={r => setPriceRange(r)}
       />
-
-      {/* ── Subnet Mini Charts ───────────────────────────────────────────────── */}
-      <SubnetMiniRow subnets={subnets} />
 
       {/* ── Main 2-col ───────────────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
