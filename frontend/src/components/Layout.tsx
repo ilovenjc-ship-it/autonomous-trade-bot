@@ -1,16 +1,38 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
   Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
-  Mic, Send, ChevronDown, DollarSign, ShieldOff,
+  Mic, Send, ChevronDown, DollarSign, ShieldOff, Clock, Play, Square,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
 import api from '@/api/client'
 import clsx from 'clsx'
-// NotificationBell removed — alerts accessible via sidebar Alerts link
+import toast from 'react-hot-toast'
+import NotificationBell from '@/components/NotificationBell'
 import TickerTape from '@/components/TickerTape'
+
+// ── Page title map ─────────────────────────────────────────────────────────────
+const PAGE_TITLES: Record<string, string> = {
+  '/':                'Dashboard',
+  '/mission-control': 'Mission Control',
+  '/fleet':           'Agent Fleet',
+  '/ii-agent':        'II Agent',
+  '/openclaw':        'OpenClaw BFT',
+  '/alerts':          'Alerts',
+  '/analytics':       'Analytics',
+  '/pnl':             'P&L Summary',
+  '/trades':          'Trades',
+  '/trade-log':       'Trade Log',
+  '/market':          'Market Data',
+  '/strategies':      'Strategies',
+  '/activity':        'Activity Log',
+  '/risk':            'Risk Config',
+  '/wallet':          'Wallet',
+  '/settings':        'Settings',
+  '/override':        'Human Override',
+}
 
 const navItems = [
   { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
@@ -36,15 +58,52 @@ export default function Layout() {
   const status      = useBotStore((s) => s.status)
   const fetchStatus = useBotStore((s) => s.fetchStatus)
   const isRunning   = status?.is_running ?? false
-  const price       = status?.current_price
   const { unreadCount } = useAlerts()
+  const { pathname }    = useLocation()
+  const pageTitle = PAGE_TITLES[pathname]
+    ?? (pathname.startsWith('/strategy/') ? 'Strategy Detail' : 'Dashboard')
 
   // ── Global status poller — keeps data alive on every page ─────────
   useEffect(() => {
-    fetchStatus()                                    // immediate on mount
-    const id = setInterval(fetchStatus, 15_000)      // refresh every 15 s
+    fetchStatus()
+    const id = setInterval(fetchStatus, 15_000)
     return () => clearInterval(id)
   }, [fetchStatus])
+
+  // ── Local clock + cycle tick ───────────────────────────────────────
+  const [localTime, setLocalTime] = useState(() =>
+    new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
+  )
+  const [tick, setTick] = useState(0)
+  useEffect(() => {
+    const t = setInterval(() => {
+      setLocalTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }))
+      setTick(n => n + 1)
+    }, 1000)
+    return () => clearInterval(t)
+  }, [])
+  const cycleInterval = (status as any)?.cycle_interval ?? status?.trade_interval ?? 60
+  const secToNext = cycleInterval - (tick % cycleInterval)
+
+  // ── Bot toggle (global — works from any page) ──────────────────────
+  const [botBusy, setBotBusy] = useState(false)
+  const handleToggle = useCallback(async () => {
+    setBotBusy(true)
+    try {
+      const endpoint = isRunning ? '/bot/stop' : '/bot/start'
+      const res = await api.post(endpoint)
+      if (res.data.success) {
+        toast.success(res.data.message)
+        await fetchStatus()
+      } else {
+        toast.error(res.data.message || 'Failed to toggle bot')
+      }
+    } catch {
+      toast.error('Bot toggle error — check connection')
+    } finally {
+      setBotBusy(false)
+    }
+  }, [isRunning, fetchStatus])
 
   // ── Orb toggle + floating chat state ─────────────────────────────
   const [orbOpen,     setOrbOpen]     = useState(false)
@@ -149,8 +208,8 @@ export default function Layout() {
           ))}
         </nav>
 
-        {/* II Agent Orb — toggle chat panel */}
-        <div className="px-4 py-5 border-t border-dark-600 flex flex-col items-center gap-3 relative">
+        {/* II Agent Orb — compact so Human Override is fully visible */}
+        <div className="px-4 py-2 border-t border-dark-600 flex flex-col items-center gap-1.5 relative">
 
           {/* ── Floating chat panel — fixed, right of sidebar ── */}
           {orbOpen && (
@@ -241,50 +300,41 @@ export default function Layout() {
             </div>
           )}
 
-          {/* ── The orb button (toggle) ── */}
+          {/* ── The orb button (compact) ── */}
           <button
             onClick={() => setOrbOpen(o => !o)}
             title={orbOpen ? 'Close II Agent' : 'Open II Agent chat'}
-            className="relative w-20 h-20 group focus:outline-none cursor-pointer"
+            className="relative w-14 h-14 group focus:outline-none cursor-pointer"
           >
-            {/* Active: strong outer pulse rings */}
             {orbOpen && (
-              <>
-                <span className="absolute inset-0 rounded-full border-2 border-emerald-400/50 animate-ping" />
-                <span className="absolute -inset-2 rounded-full border border-emerald-500/20 animate-ping"
-                  style={{ animationDuration: '1.8s', animationDelay: '0.4s' }} />
-              </>
+              <span className="absolute inset-0 rounded-full border-2 border-emerald-400/50 animate-ping" />
             )}
-            {/* Idle outer ping */}
             {!orbOpen && (
               <span className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-20" />
             )}
-            {/* Inner ring */}
             <span className={clsx(
               'absolute inset-1 rounded-full border transition-all duration-500',
               orbOpen ? 'border-emerald-500/40' : 'border-emerald-500/15'
             )} />
-            {/* Core shell */}
             <span className={clsx(
               'absolute inset-0 rounded-full flex items-center justify-center transition-all duration-300',
               'group-hover:scale-105 group-active:scale-95',
               orbOpen && 'scale-105',
             )}>
               <span className={clsx(
-                'w-14 h-14 rounded-full border flex items-center justify-center transition-all duration-500',
+                'w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-500',
                 orbOpen
-                  ? 'bg-gradient-to-br from-emerald-500/50 to-blue-500/30 border-emerald-400/60 shadow-[0_0_36px_rgba(52,211,153,0.55)]'
-                  : 'bg-gradient-to-br from-emerald-500/25 to-blue-500/15 border-emerald-500/35 group-hover:from-emerald-500/40 group-hover:border-emerald-400/55 group-hover:shadow-[0_0_22px_rgba(52,211,153,0.3)]',
+                  ? 'bg-gradient-to-br from-emerald-500/50 to-blue-500/30 border-emerald-400/60 shadow-[0_0_28px_rgba(52,211,153,0.55)]'
+                  : 'bg-gradient-to-br from-emerald-500/25 to-blue-500/15 border-emerald-500/35 group-hover:from-emerald-500/40 group-hover:border-emerald-400/55 group-hover:shadow-[0_0_18px_rgba(52,211,153,0.3)]',
               )}>
                 <div className={clsx(
                   'rounded-full transition-all duration-500',
                   orbOpen
-                    ? 'w-6 h-6 bg-emerald-300 shadow-[0_0_28px_#34d399,0_0_60px_rgba(52,211,153,0.4)]'
-                    : 'w-5 h-5 bg-emerald-400 shadow-[0_0_20px_#34d399] group-hover:shadow-[0_0_28px_#34d399]'
+                    ? 'w-4 h-4 bg-emerald-300 shadow-[0_0_20px_#34d399]'
+                    : 'w-3.5 h-3.5 bg-emerald-400 shadow-[0_0_14px_#34d399]'
                 )} />
               </span>
             </span>
-            {/* Orbit ring — spins faster when active */}
             <span
               className="absolute inset-0 rounded-full border border-dashed border-emerald-500/25"
               style={{ animation: orbOpen ? 'spin 2s linear infinite' : 'spin 8s linear infinite' }}
@@ -293,12 +343,11 @@ export default function Layout() {
 
           {/* Label */}
           <div className="text-center group/label cursor-pointer" onClick={() => setOrbOpen(o => !o)}>
-            <div className="text-[15px] font-extrabold tracking-widest text-emerald-400 uppercase leading-none drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]">
+            <div className="text-[11px] font-extrabold tracking-widest text-emerald-400 uppercase leading-none drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]">
               II Agent
             </div>
-            {/* Subtext — always visible when active, hover-reveal when idle */}
             <div className={clsx(
-              'text-[15px] mt-1 font-mono transition-all duration-200',
+              'text-[10px] mt-0.5 font-mono transition-all duration-200',
               orbOpen
                 ? 'text-emerald-400 animate-pulse opacity-100'
                 : 'text-slate-500 opacity-0 group-hover/label:opacity-100 group-hover/label:text-emerald-400/70'
@@ -308,15 +357,16 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Bottom-left — Finney mainnet · Live (relocated from top bar) */}
+        {/* Bottom-left — Finney mainnet · Live */}
         <div className="px-4 py-3 border-t border-dark-600">
           <div className="flex items-center gap-2">
-            <span className={clsx(
-              'w-2 h-2 rounded-full flex-shrink-0 transition-colors',
-              status?.network_connected ? 'bg-accent-green animate-pulse' : 'bg-slate-500'
+            {/* Activity icon replaces the dot next to "Finney mainnet" */}
+            <Activity size={14} className={clsx(
+              'flex-shrink-0 transition-colors',
+              status?.network_connected ? 'text-accent-green' : 'text-slate-500'
             )} />
             <div className="min-w-0">
-              <p className="text-sm font-semibold font-mono text-slate-200 leading-none">
+              <p className="text-sm font-semibold font-mono text-accent-green leading-none">
                 Finney mainnet
               </p>
               <p className={clsx(
@@ -334,8 +384,63 @@ export default function Layout() {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto flex flex-col">
-        {/* Content area — flex-1 so it fills between sidebar and TickerTape */}
+      <main className="flex-1 flex flex-col overflow-hidden">
+
+        {/* ── Global top bar ─────────────────────────────────────────────── */}
+        <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-dark-800 border-b border-dark-700/60">
+          {/* Page title */}
+          <h1 className="text-sm font-bold text-white font-mono flex-1 truncate">
+            {pageTitle}
+          </h1>
+
+          {/* Local time */}
+          <div className="flex items-center gap-1 text-[11px] font-mono text-slate-400">
+            <Clock size={10} className="text-slate-500" />
+            <span>{localTime}</span>
+          </div>
+
+          <div className="w-px h-4 bg-dark-600" />
+
+          {/* Next cycle */}
+          {isRunning && (
+            <div className="text-[11px] font-mono text-slate-400">
+              Next <span className="text-accent-green font-bold">{secToNext}s</span>
+            </div>
+          )}
+
+          {/* Bot status pill */}
+          <div className={clsx(
+            'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border font-mono',
+            isRunning
+              ? 'bg-accent-green/10 text-accent-green border-accent-green/25'
+              : 'bg-dark-700 text-slate-400 border-dark-600'
+          )}>
+            <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0',
+              isRunning ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
+            {isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
+          </div>
+
+          {/* Stop / Start Bot */}
+          <button
+            onClick={handleToggle}
+            disabled={botBusy}
+            className={clsx(
+              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold border font-mono transition-all',
+              isRunning
+                ? 'bg-red-500/15 text-red-400 border-red-500/30 hover:bg-red-500/25'
+                : 'bg-accent-green/15 text-accent-green border-accent-green/30 hover:bg-accent-green/25',
+              botBusy && 'opacity-50 cursor-not-allowed'
+            )}
+          >
+            {isRunning ? <Square size={10} /> : <Play size={10} />}
+            {isRunning ? 'Stop Bot' : 'Start Bot'}
+          </button>
+
+          {/* Notification Bell */}
+          <NotificationBell unreadCount={unreadCount} />
+        </div>
+
+        {/* Content area */}
         <div className="flex-1 min-h-0 flex flex-col overflow-y-auto">
           <Outlet />
         </div>
