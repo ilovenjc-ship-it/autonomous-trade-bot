@@ -426,7 +426,7 @@ export default function IIAgent() {
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-300 font-mono">↻ {lastRefresh.toLocaleTimeString()}</span>
+          <span className="text-xs text-slate-300 font-mono">↻ {lastRefresh.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'America/New_York' })}</span>
           <button
             onClick={handleAnalyze}
             disabled={analyzing}
@@ -799,7 +799,7 @@ export default function IIAgent() {
                       : <span key={j}>{part}</span>
                   )}
                   <p className="text-[15px] text-slate-500 mt-1.5 text-right">
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    {new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'America/New_York' })}
                   </p>
                 </div>
               </div>

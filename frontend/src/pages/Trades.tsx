@@ -4,7 +4,7 @@ import { useBotStore } from '@/store/botStore'
 import { ArrowUpDown, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw,
          ChevronLeft, ChevronRight, ExternalLink, Zap, AlertTriangle,
          CheckCircle2, Copy, ShieldAlert, Activity } from 'lucide-react'
-import { format } from 'date-fns'
+// date-fns not needed — using Intl for ET timezone
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
@@ -555,7 +555,7 @@ export default function Trades() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-slate-300 font-mono">
-                      {t.created_at ? format(new Date(t.created_at), 'MMM d HH:mm') : '—'}
+                      {t.created_at ? new Date(t.created_at).toLocaleString('en-US', { timeZone: 'America/New_York', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false }) : '—'}
                     </td>
                   </tr>
                 ))

@@ -38,7 +38,12 @@ function fmt4(n: number | null | undefined) {
 
 function ts(raw: string | null) {
   if (!raw) return '—'
-  return raw.replace('T', ' ').slice(0, 16)
+  try {
+    return new Date(raw).toLocaleString('en-US', {
+      timeZone: 'America/New_York', month: 'short', day: 'numeric',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    })
+  } catch { return raw.replace('T', ' ').slice(0, 16) }
 }
 
 const STRATEGIES = [

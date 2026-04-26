@@ -282,7 +282,7 @@ function EventIcon({ kind }: { kind: string }) {
 
 function fmtTime(ts: string) {
   try {
-    return new Date(ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    return new Date(ts).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'America/New_York' })
   } catch { return '' }
 }
 

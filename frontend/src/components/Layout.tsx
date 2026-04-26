@@ -71,13 +71,12 @@ export default function Layout() {
   }, [fetchStatus])
 
   // ── Local clock + cycle tick ───────────────────────────────────────
-  const [localTime, setLocalTime] = useState(() =>
-    new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true })
-  )
+  const ET_OPTS: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'America/New_York' }
+  const [localTime, setLocalTime] = useState(() => new Date().toLocaleTimeString('en-US', ET_OPTS))
   const [tick, setTick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => {
-      setLocalTime(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }))
+      setLocalTime(new Date().toLocaleTimeString('en-US', ET_OPTS))
       setTick(n => n + 1)
     }, 1000)
     return () => clearInterval(t)

@@ -314,379 +314,260 @@ export default function HumanOverride() {
         </div>
       </div>
 
-      {/* ── Row layout: Emergency | Fleet | Manual Trade | Strategy Override ── */}
-      <div className="flex gap-4 items-start flex-wrap xl:flex-nowrap">
+      {/* ── Row 1: 3 control boxes side by side ────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
         {/* Emergency controls */}
-        <div className="w-full xl:w-72 flex-shrink-0">
-          <div className="card p-5 space-y-4">
-            <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-              <AlertTriangle size={13} className="text-red-400" /> Emergency Controls
-            </h2>
-
-            {/* Emergency stop */}
-            {!halted ? (
-              <button
-                onClick={doEmergencyStop}
-                disabled={halting}
-                className={clsx(
-                  'w-full py-4 rounded-xl border-2 font-bold text-sm font-mono transition-all',
-                  'bg-red-500/10 border-red-500/50 text-red-400',
-                  'hover:bg-red-500/20 hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]',
-                  'active:scale-[0.98]',
-                  halting && 'opacity-50 cursor-not-allowed',
-                )}
-              >
-                {halting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <RefreshCw size={14} className="animate-spin" /> Halting…
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    <Square size={14} fill="currentColor" /> 🚨 EMERGENCY STOP
-                  </span>
-                )}
-              </button>
-            ) : (
-              <button
-                onClick={doResume}
-                disabled={resuming}
-                className={clsx(
-                  'w-full py-4 rounded-xl border-2 font-bold text-sm font-mono transition-all',
-                  'bg-accent-green/10 border-accent-green/50 text-accent-green',
-                  'hover:bg-accent-green/20 hover:border-accent-green hover:shadow-[0_0_20px_rgba(52,211,153,0.3)]',
-                  'active:scale-[0.98]',
-                  resuming && 'opacity-50 cursor-not-allowed',
-                )}
-              >
-                {resuming ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <RefreshCw size={14} className="animate-spin" /> Resuming…
-                  </span>
-                ) : (
-                  <span className="flex items-center justify-center gap-2">
-                    <Play size={14} fill="currentColor" /> ✅ RESUME TRADING
-                  </span>
-                )}
-              </button>
-            )}
-
-            <p className="text-[13px] text-slate-500 font-mono leading-relaxed">
-              Emergency Stop halts the cycle engine and trading engine immediately. No new trades will execute until Resume is called.
-            </p>
-          </div>
-        </div>{/* end Emergency Controls */}
-
-        {/* Fleet controls */}
-        <div className="w-full xl:w-72 flex-shrink-0">
-          <div className="card p-5 space-y-3">
-            <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-              <Zap size={13} className="text-accent-blue" /> Fleet Controls
-            </h2>
-
+        <div className="card p-5 space-y-4">
+          <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+            <AlertTriangle size={13} className="text-red-400" /> Emergency Controls
+          </h2>
+          {!halted ? (
             <button
-              onClick={doForcePromoCheck}
-              disabled={promoCheck}
-              className="w-full flex items-center justify-between px-4 py-3 bg-dark-900 border border-dark-600 rounded-lg hover:border-yellow-400/40 hover:bg-yellow-400/5 transition-all text-sm font-mono text-slate-300 hover:text-white"
-            >
-              <span className="flex items-center gap-2">
-                <ShieldCheck size={13} className={clsx('text-yellow-400', promoCheck && 'animate-spin')} />
-                Force Promotion Gate Check
-              </span>
-              <ChevronRight size={13} className="text-slate-500" />
-            </button>
-
-            <p className="text-[13px] text-slate-500 font-mono">
-              Gate check evaluates all 12 strategies for promotion eligibility right now, bypassing the 5-minute throttle. Capital rebalances automatically every 24h and on every promote/demote.
-            </p>
-          </div>
-        </div>{/* end Fleet Controls */}
-
-        {/* Manual trade */}
-        <div className="w-full xl:w-72 flex-shrink-0">
-          <div className="card p-5 space-y-4">
-            <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-              <TrendingUp size={13} className="text-accent-green" /> Manual Trade
-            </h2>
-
-            {halted && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-                <AlertTriangle size={11} className="text-red-400" />
-                <span className="text-[14px] text-red-400 font-mono">System halted — resume before trading</span>
-              </div>
-            )}
-
-            {/* BUY / SELL toggle */}
-            <div className="flex rounded-lg overflow-hidden border border-dark-600">
-              <button
-                onClick={() => { setTradeAction('buy'); setConfirmTrade(false) }}
-                className={clsx(
-                  'flex-1 py-2.5 text-sm font-bold font-mono transition-all flex items-center justify-center gap-1.5',
-                  tradeAction === 'buy'
-                    ? 'bg-accent-green/20 text-accent-green'
-                    : 'text-slate-500 hover:text-slate-300',
-                )}
-              >
-                <TrendingUp size={14} /> BUY
-              </button>
-              <button
-                onClick={() => { setTradeAction('sell'); setConfirmTrade(false) }}
-                className={clsx(
-                  'flex-1 py-2.5 text-sm font-bold font-mono transition-all flex items-center justify-center gap-1.5',
-                  tradeAction === 'sell'
-                    ? 'bg-red-500/20 text-red-400'
-                    : 'text-slate-500 hover:text-slate-300',
-                )}
-              >
-                <TrendingDown size={14} /> SELL
-              </button>
-            </div>
-
-            {/* Amount */}
-            <div>
-              <label className="text-[13px] text-slate-400 uppercase tracking-wider font-mono block mb-1.5">
-                Amount (τ)
-              </label>
-              <input
-                type="number"
-                min="0"
-                step="0.001"
-                value={tradeAmt}
-                onChange={e => { setTradeAmt(e.target.value); setConfirmTrade(false) }}
-                placeholder="e.g. 0.005"
-                className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder-slate-600 focus:outline-none focus:border-accent-blue/50"
-              />
-            </div>
-
-            {/* Reason */}
-            <div>
-              <label className="text-[13px] text-slate-400 uppercase tracking-wider font-mono block mb-1.5">
-                Reason (optional)
-              </label>
-              <input
-                type="text"
-                value={tradeReason}
-                onChange={e => setTradeReason(e.target.value)}
-                placeholder="Human override — manual buy"
-                className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2.5 text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-accent-blue/50"
-              />
-            </div>
-
-            {/* Execute button */}
-            <button
-              onClick={doManualTrade}
-              disabled={tradingNow || halted || !tradeAmt}
+              onClick={doEmergencyStop}
+              disabled={halting}
               className={clsx(
-                'w-full py-3 rounded-xl font-bold text-sm font-mono transition-all flex items-center justify-center gap-2',
-                confirmTrade
-                  ? tradeAction === 'buy'
-                    ? 'bg-accent-green text-dark-900 shadow-[0_0_16px_rgba(52,211,153,0.4)] animate-pulse'
-                    : 'bg-red-500 text-white shadow-[0_0_16px_rgba(239,68,68,0.4)] animate-pulse'
-                  : tradeAction === 'buy'
-                    ? 'bg-accent-green/15 border border-accent-green/40 text-accent-green hover:bg-accent-green/25'
-                    : 'bg-red-500/15 border border-red-500/40 text-red-400 hover:bg-red-500/25',
-                (tradingNow || halted || !tradeAmt) && 'opacity-40 cursor-not-allowed',
+                'w-full py-4 rounded-xl border-2 font-bold text-sm font-mono transition-all',
+                'bg-red-500/10 border-red-500/50 text-red-400',
+                'hover:bg-red-500/20 hover:border-red-500 hover:shadow-[0_0_20px_rgba(239,68,68,0.3)]',
+                'active:scale-[0.98]',
+                halting && 'opacity-50 cursor-not-allowed',
               )}
             >
-              {tradingNow ? (
-                <><RefreshCw size={14} className="animate-spin" /> Executing…</>
-              ) : confirmTrade ? (
-                <><CheckCircle2 size={14} /> CONFIRM — {tradeAction.toUpperCase()} {tradeAmt} τ</>
-              ) : (
-                <>{tradeAction === 'buy' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                  {tradeAction.toUpperCase()} {tradeAmt ? `${tradeAmt} τ` : '—'}</>
-              )}
+              {halting
+                ? <span className="flex items-center justify-center gap-2"><RefreshCw size={14} className="animate-spin" /> Halting…</span>
+                : <span className="flex items-center justify-center gap-2"><Square size={14} fill="currentColor" /> 🚨 EMERGENCY STOP</span>
+              }
             </button>
-
-            {confirmTrade && (
-              <button
-                onClick={() => setConfirmTrade(false)}
-                className="w-full text-xs text-slate-500 hover:text-slate-300 transition-colors font-mono flex items-center justify-center gap-1"
-              >
-                <XCircle size={11} /> Cancel
-              </button>
-            )}
-
-            <p className="text-[13px] text-slate-500 font-mono">
-              First click stages the trade. Second click executes. In paper mode this records a simulated trade. In live mode this submits to chain.
-            </p>
-          </div>
-        </div>{/* end Manual Trade */}
-
-        {/* Strategy Mode Override — takes remaining width */}
-        <div className="flex-1 min-w-0">
-        <div className="card p-5">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-              <ArrowUp size={13} className="text-accent-green" /> Strategy Mode Override
-            </h2>
-            <p className="text-[13px] text-slate-500 font-mono">bypasses gate · instant · permanent until changed</p>
-          </div>
-
-          {/* Mode legend */}
-          <div className="flex items-center gap-3 mb-4 flex-wrap">
-            {MODE_ORDER.map(m => {
-              const meta = MODE_META[m]
-              return (
-                <span key={m} className={clsx('px-2 py-0.5 rounded border text-[13px] font-mono font-bold', meta.badge)}>
-                  {meta.prefix} {meta.label}
-                </span>
-              )
-            })}
-            <span className="text-[13px] text-slate-500 ml-2">— click ↑ to promote, ↓ to demote</span>
-          </div>
-
-          {/* Strategy rows */}
-          <div className="space-y-1.5">
-            {rows.map(s => {
-              const mode = MODE_META[s.mode]
-              const atCeiling = s.mode === 'LIVE'
-              const atFloor   = s.mode === 'PAPER_ONLY'
-              const upPending = opPending === s.name + '_up'
-              const downPending = opPending === s.name + '_down'
-
-              return (
-                <div
-                  key={s.name}
-                  className="flex items-center gap-3 px-3 py-2.5 bg-dark-900 rounded-lg border border-dark-700/60 hover:border-dark-600 transition-colors group"
-                >
-                  {/* name */}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm text-white font-medium truncate">{s.display_name}</p>
-                    <p className="text-[13px] text-slate-500 font-mono">{s.name}</p>
-                  </div>
-
-                  {/* win rate */}
-                  <div className="text-right flex-shrink-0 w-16 hidden sm:block">
-                    <p className={clsx(
-                      'text-xs font-mono font-bold',
-                      s.win_rate >= 55 ? 'text-accent-green' : s.win_rate >= 40 ? 'text-yellow-400' : 'text-red-400',
-                    )}>
-                      {(s.win_rate ?? 0).toFixed(1)}%
-                    </p>
-                    <p className="text-[15px] text-slate-500">win rate</p>
-                  </div>
-
-                  {/* PnL */}
-                  <div className="text-right flex-shrink-0 w-24 hidden md:block">
-                    <p className={clsx(
-                      'text-xs font-mono font-bold',
-                      s.total_pnl > 0 ? 'text-accent-green' : s.total_pnl < 0 ? 'text-red-400' : 'text-slate-400',
-                    )}>
-                      {fmtTao(s.total_pnl)}
-                    </p>
-                    <p className="text-[15px] text-slate-500">PnL</p>
-                  </div>
-
-                  {/* Stake / Trade — inline editable */}
-                  <div className="flex-shrink-0 hidden lg:block">
-                    {stakeEditing === s.name ? (
-                      <div className="flex items-center gap-1">
-                        <input
-                          type="number"
-                          min="0.001"
-                          max="1.0"
-                          step="0.001"
-                          value={stakeInput}
-                          onChange={e => setStakeInput(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') doSetStake(s.name); if (e.key === 'Escape') setStakeEditing(null) }}
-                          autoFocus
-                          className="w-20 px-2 py-1 text-xs font-mono bg-dark-800 border border-accent-blue/50 rounded text-white focus:outline-none focus:border-accent-blue"
-                          placeholder="0.0100"
-                        />
-                        <span className="text-[13px] text-slate-500 font-mono">τ</span>
-                        <button
-                          onClick={() => doSetStake(s.name)}
-                          className="text-accent-green hover:text-white text-[13px] font-mono font-bold transition-colors"
-                          title="Save"
-                        >✓</button>
-                        <button
-                          onClick={() => setStakeEditing(null)}
-                          className="text-slate-500 hover:text-red-400 text-[13px] font-mono transition-colors"
-                          title="Cancel"
-                        >✗</button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => { setStakeEditing(s.name); setStakeInput(s.stake_amount != null ? (s.stake_amount ?? 0).toFixed(4) : '') }}
-                        className="text-right group/stake"
-                        title="Click to edit stake per trade"
-                      >
-                        <p className={clsx(
-                          'text-xs font-mono font-bold group-hover/stake:text-accent-blue transition-colors',
-                          s.mode === 'LIVE' ? 'text-white' : 'text-slate-500',
-                        )}>
-                          {s.stake_amount != null ? `${(s.stake_amount ?? 0).toFixed(4)} τ` : '—'}
-                        </p>
-                        <p className="text-[15px] text-slate-500">stake/trade</p>
-                      </button>
-                    )}
-                  </div>
-
-                  {/* mode progression steps */}
-                  <div className="flex items-center gap-1 flex-shrink-0">
-                    {MODE_ORDER.map((m, i) => (
-                      <div key={m} className="flex items-center gap-1">
-                        <ModeStep mode={m} active={m === s.mode} />
-                        {i < MODE_ORDER.length - 1 && (
-                          <ChevronRight size={10} className="text-slate-600" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* action buttons */}
-                  <div className="flex gap-1.5 flex-shrink-0">
-                    {/* promote ↑ */}
-                    <button
-                      onClick={() => doPromote(s.name)}
-                      disabled={atCeiling || upPending || downPending}
-                      title={atCeiling ? 'Already at LIVE' : `Promote to ${MODE_META[['APPROVED_FOR_LIVE', 'APPROVED_FOR_LIVE', 'LIVE'][MODE_ORDER.indexOf(s.mode)]]?.label}`}
-                      className={clsx(
-                        'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all',
-                        atCeiling
-                          ? 'text-slate-600 border-dark-700 cursor-not-allowed'
-                          : 'text-accent-green border-accent-green/30 bg-accent-green/5 hover:bg-accent-green/15 hover:border-accent-green/50 active:scale-95',
-                      )}
-                    >
-                      {upPending
-                        ? <RefreshCw size={10} className="animate-spin" />
-                        : <ArrowUp size={10} />}
-                      UP
-                    </button>
-
-                    {/* demote ↓ */}
-                    <button
-                      onClick={() => doDemote(s.name)}
-                      disabled={atFloor || upPending || downPending}
-                      title={atFloor ? 'Already at PAPER' : 'Demote one level'}
-                      className={clsx(
-                        'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all',
-                        atFloor
-                          ? 'text-slate-600 border-dark-700 cursor-not-allowed'
-                          : 'text-red-400 border-red-500/30 bg-red-500/5 hover:bg-red-500/15 hover:border-red-500/50 active:scale-95',
-                      )}
-                    >
-                      {downPending
-                        ? <RefreshCw size={10} className="animate-spin" />
-                        : <ArrowDown size={10} />}
-                      DOWN
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-
-          {/* footer note */}
-          <p className="text-[13px] text-slate-500 font-mono mt-4 leading-relaxed">
-            Mode changes are instant and persistent (written to DB). Promoting a strategy to LIVE while in paper trading mode
-            means it will execute real on-chain trades when live mode is enabled. Demoting from LIVE does not cancel open positions.
+          ) : (
+            <button
+              onClick={doResume}
+              disabled={resuming}
+              className={clsx(
+                'w-full py-4 rounded-xl border-2 font-bold text-sm font-mono transition-all',
+                'bg-accent-green/10 border-accent-green/50 text-accent-green',
+                'hover:bg-accent-green/20 hover:border-accent-green hover:shadow-[0_0_20px_rgba(52,211,153,0.3)]',
+                'active:scale-[0.98]',
+                resuming && 'opacity-50 cursor-not-allowed',
+              )}
+            >
+              {resuming
+                ? <span className="flex items-center justify-center gap-2"><RefreshCw size={14} className="animate-spin" /> Resuming…</span>
+                : <span className="flex items-center justify-center gap-2"><Play size={14} fill="currentColor" /> ✅ RESUME TRADING</span>
+              }
+            </button>
+          )}
+          <p className="text-[13px] text-slate-500 font-mono leading-relaxed">
+            Emergency Stop halts the cycle engine and trading engine immediately. No new trades will execute until Resume is called.
           </p>
         </div>
-        </div>{/* end Strategy Mode Override */}
 
-      </div>{/* end row layout */}
+        {/* Fleet controls */}
+        <div className="card p-5 space-y-3">
+          <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+            <Zap size={13} className="text-accent-blue" /> Fleet Controls
+          </h2>
+          <button
+            onClick={doForcePromoCheck}
+            disabled={promoCheck}
+            className="w-full flex items-center justify-between px-4 py-3 bg-dark-900 border border-dark-600 rounded-lg hover:border-yellow-400/40 hover:bg-yellow-400/5 transition-all text-sm font-mono text-slate-300 hover:text-white"
+          >
+            <span className="flex items-center gap-2">
+              <ShieldCheck size={13} className={clsx('text-yellow-400', promoCheck && 'animate-spin')} />
+              Force Promotion Gate Check
+            </span>
+            <ChevronRight size={13} className="text-slate-500" />
+          </button>
+          <p className="text-[13px] text-slate-500 font-mono">
+            Gate check evaluates all 12 strategies for promotion eligibility right now, bypassing the 5-minute throttle. Capital rebalances automatically every 24h and on every promote/demote.
+          </p>
+        </div>
+
+        {/* Manual trade */}
+        <div className="card p-5 space-y-4">
+          <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+            <TrendingUp size={13} className="text-accent-green" /> Manual Trade
+          </h2>
+          {halted && (
+            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
+              <AlertTriangle size={11} className="text-red-400" />
+              <span className="text-[14px] text-red-400 font-mono">System halted — resume before trading</span>
+            </div>
+          )}
+          <div className="flex rounded-lg overflow-hidden border border-dark-600">
+            <button
+              onClick={() => { setTradeAction('buy'); setConfirmTrade(false) }}
+              className={clsx('flex-1 py-2.5 text-sm font-bold font-mono transition-all flex items-center justify-center gap-1.5',
+                tradeAction === 'buy' ? 'bg-accent-green/20 text-accent-green' : 'text-slate-500 hover:text-slate-300')}
+            >
+              <TrendingUp size={14} /> BUY
+            </button>
+            <button
+              onClick={() => { setTradeAction('sell'); setConfirmTrade(false) }}
+              className={clsx('flex-1 py-2.5 text-sm font-bold font-mono transition-all flex items-center justify-center gap-1.5',
+                tradeAction === 'sell' ? 'bg-red-500/20 text-red-400' : 'text-slate-500 hover:text-slate-300')}
+            >
+              <TrendingDown size={14} /> SELL
+            </button>
+          </div>
+          <div>
+            <label className="text-[13px] text-slate-400 uppercase tracking-wider font-mono block mb-1.5">Amount (τ)</label>
+            <input type="number" min="0" step="0.001" value={tradeAmt}
+              onChange={e => { setTradeAmt(e.target.value); setConfirmTrade(false) }}
+              placeholder="e.g. 0.005"
+              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder-slate-600 focus:outline-none focus:border-accent-blue/50"
+            />
+          </div>
+          <div>
+            <label className="text-[13px] text-slate-400 uppercase tracking-wider font-mono block mb-1.5">Reason (optional)</label>
+            <input type="text" value={tradeReason} onChange={e => setTradeReason(e.target.value)}
+              placeholder="Human override — manual buy"
+              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2.5 text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-accent-blue/50"
+            />
+          </div>
+          <button
+            onClick={doManualTrade}
+            disabled={tradingNow || halted || !tradeAmt}
+            className={clsx(
+              'w-full py-3 rounded-xl font-bold text-sm font-mono transition-all flex items-center justify-center gap-2',
+              confirmTrade
+                ? tradeAction === 'buy'
+                  ? 'bg-accent-green text-dark-900 shadow-[0_0_16px_rgba(52,211,153,0.4)] animate-pulse'
+                  : 'bg-red-500 text-white shadow-[0_0_16px_rgba(239,68,68,0.4)] animate-pulse'
+                : tradeAction === 'buy'
+                  ? 'bg-accent-green/15 border border-accent-green/40 text-accent-green hover:bg-accent-green/25'
+                  : 'bg-red-500/15 border border-red-500/40 text-red-400 hover:bg-red-500/25',
+              (tradingNow || halted || !tradeAmt) && 'opacity-40 cursor-not-allowed',
+            )}
+          >
+            {tradingNow ? <><RefreshCw size={14} className="animate-spin" /> Executing…</>
+              : confirmTrade ? <><CheckCircle2 size={14} /> CONFIRM — {tradeAction.toUpperCase()} {tradeAmt} τ</>
+              : <>{tradeAction === 'buy' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
+                  {tradeAction.toUpperCase()} {tradeAmt ? `${tradeAmt} τ` : '—'}</>
+            }
+          </button>
+          {confirmTrade && (
+            <button onClick={() => setConfirmTrade(false)}
+              className="w-full text-xs text-slate-500 hover:text-slate-300 transition-colors font-mono flex items-center justify-center gap-1">
+              <XCircle size={11} /> Cancel
+            </button>
+          )}
+          <p className="text-[13px] text-slate-500 font-mono">
+            First click stages the trade. Second click executes. In paper mode this records a simulated trade. In live mode this submits to chain.
+          </p>
+        </div>
+
+      </div>{/* end 3-box control row */}
+
+      {/* ── Row 2: Strategy Mode Override — full page width ─────────────────── */}
+      <div className="card p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
+            <ArrowUp size={13} className="text-accent-green" /> Strategy Mode Override
+          </h2>
+          <p className="text-[13px] text-slate-500 font-mono">bypasses gate · instant · permanent until changed</p>
+        </div>
+
+        {/* Mode legend */}
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
+          {MODE_ORDER.map(m => {
+            const meta = MODE_META[m]
+            return (
+              <span key={m} className={clsx('px-2 py-0.5 rounded border text-[13px] font-mono font-bold', meta.badge)}>
+                {meta.prefix} {meta.label}
+              </span>
+            )
+          })}
+          <span className="text-[13px] text-slate-500 ml-2">— click ↑ to promote, ↓ to demote</span>
+        </div>
+
+        {/* Strategy rows */}
+        <div className="space-y-1.5">
+          {rows.map(s => {
+            const atCeiling  = s.mode === 'LIVE'
+            const atFloor    = s.mode === 'PAPER_ONLY'
+            const upPending  = opPending === s.name + '_up'
+            const downPending = opPending === s.name + '_down'
+            return (
+              <div key={s.name}
+                className="flex items-center gap-3 px-3 py-2.5 bg-dark-900 rounded-lg border border-dark-700/60 hover:border-dark-600 transition-colors group">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm text-white font-medium truncate">{s.display_name}</p>
+                  <p className="text-[13px] text-slate-500 font-mono">{s.name}</p>
+                </div>
+                <div className="text-right flex-shrink-0 w-16 hidden sm:block">
+                  <p className={clsx('text-xs font-mono font-bold',
+                    s.win_rate >= 55 ? 'text-accent-green' : s.win_rate >= 40 ? 'text-yellow-400' : 'text-red-400')}>
+                    {(s.win_rate ?? 0).toFixed(1)}%
+                  </p>
+                  <p className="text-[15px] text-slate-500">win rate</p>
+                </div>
+                <div className="text-right flex-shrink-0 w-24 hidden md:block">
+                  <p className={clsx('text-xs font-mono font-bold',
+                    s.total_pnl > 0 ? 'text-accent-green' : s.total_pnl < 0 ? 'text-red-400' : 'text-slate-400')}>
+                    {fmtTao(s.total_pnl)}
+                  </p>
+                  <p className="text-[15px] text-slate-500">PnL</p>
+                </div>
+                <div className="flex-shrink-0 hidden lg:block">
+                  {stakeEditing === s.name ? (
+                    <div className="flex items-center gap-1">
+                      <input type="number" min="0.001" max="1.0" step="0.001" value={stakeInput}
+                        onChange={e => setStakeInput(e.target.value)}
+                        onKeyDown={e => { if (e.key === 'Enter') doSetStake(s.name); if (e.key === 'Escape') setStakeEditing(null) }}
+                        autoFocus
+                        className="w-20 px-2 py-1 text-xs font-mono bg-dark-800 border border-accent-blue/50 rounded text-white focus:outline-none focus:border-accent-blue"
+                        placeholder="0.0100"
+                      />
+                      <span className="text-[13px] text-slate-500 font-mono">τ</span>
+                      <button onClick={() => doSetStake(s.name)} className="text-accent-green hover:text-white text-[13px] font-mono font-bold transition-colors" title="Save">✓</button>
+                      <button onClick={() => setStakeEditing(null)} className="text-slate-500 hover:text-red-400 text-[13px] font-mono transition-colors" title="Cancel">✗</button>
+                    </div>
+                  ) : (
+                    <button onClick={() => { setStakeEditing(s.name); setStakeInput(s.stake_amount != null ? (s.stake_amount ?? 0).toFixed(4) : '') }}
+                      className="text-right group/stake" title="Click to edit stake per trade">
+                      <p className={clsx('text-xs font-mono font-bold group-hover/stake:text-accent-blue transition-colors',
+                        s.mode === 'LIVE' ? 'text-white' : 'text-slate-500')}>
+                        {s.stake_amount != null ? `${(s.stake_amount ?? 0).toFixed(4)} τ` : '—'}
+                      </p>
+                      <p className="text-[15px] text-slate-500">stake/trade</p>
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  {MODE_ORDER.map((m, i) => (
+                    <div key={m} className="flex items-center gap-1">
+                      <ModeStep mode={m} active={m === s.mode} />
+                      {i < MODE_ORDER.length - 1 && <ChevronRight size={10} className="text-slate-600" />}
+                    </div>
+                  ))}
+                </div>
+                <div className="flex gap-1.5 flex-shrink-0">
+                  <button onClick={() => doPromote(s.name)} disabled={atCeiling || upPending || downPending}
+                    title={atCeiling ? 'Already at LIVE' : 'Promote one level'}
+                    className={clsx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all',
+                      atCeiling ? 'text-slate-600 border-dark-700 cursor-not-allowed'
+                        : 'text-accent-green border-accent-green/30 bg-accent-green/5 hover:bg-accent-green/15 hover:border-accent-green/50 active:scale-95')}>
+                    {upPending ? <RefreshCw size={10} className="animate-spin" /> : <ArrowUp size={10} />} UP
+                  </button>
+                  <button onClick={() => doDemote(s.name)} disabled={atFloor || upPending || downPending}
+                    title={atFloor ? 'Already at PAPER' : 'Demote one level'}
+                    className={clsx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all',
+                      atFloor ? 'text-slate-600 border-dark-700 cursor-not-allowed'
+                        : 'text-red-400 border-red-500/30 bg-red-500/5 hover:bg-red-500/15 hover:border-red-500/50 active:scale-95')}>
+                    {downPending ? <RefreshCw size={10} className="animate-spin" /> : <ArrowDown size={10} />} DOWN
+                  </button>
+                </div>
+              </div>
+            )
+          })}
+        </div>
+
+        <p className="text-[13px] text-slate-500 font-mono mt-4 leading-relaxed">
+          Mode changes are instant and persistent (written to DB). Promoting a strategy to LIVE while in paper trading mode
+          means it will execute real on-chain trades when live mode is enabled. Demoting from LIVE does not cancel open positions.
+        </p>
+      </div>{/* end Strategy Mode Override */}
       </div>{/* end scrollable */}
     </div>
   )
