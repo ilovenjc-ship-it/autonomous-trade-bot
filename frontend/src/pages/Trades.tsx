@@ -50,6 +50,7 @@ export default function Trades() {
   const { trades, tradeStats, tradeTotal, fetchTrades, fetchTradeStats, manualTrade, status } = useBotStore()
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState<'all' | 'buy' | 'sell'>('all')
+  const [liveOnly, setLiveOnly] = useState(false)
 
   // Manual trade panel state
   const [manualAction, setManualAction]   = useState<'buy' | 'sell'>('buy')
@@ -75,7 +76,7 @@ export default function Trades() {
     fetchTradeStats()
   }, [page])
 
-  useEffect(() => { setPage(1) }, [filter])
+  useEffect(() => { setPage(1) }, [filter, liveOnly])
 
   useEffect(() => {
     loadTradingMode()
@@ -167,7 +168,15 @@ export default function Trades() {
     }
   }
 
-  const filtered = filter === 'all' ? trades : trades.filter((t) => t.trade_type === filter)
+  // A trade is "live/on-chain" if it has a tx_hash that isn't a simulation placeholder
+  const isOnChain = (t: { tx_hash?: string | null }) =>
+    !!t.tx_hash && !t.tx_hash.startsWith('block:sim')
+
+  const filtered = trades.filter((t) => {
+    if (filter !== 'all' && t.trade_type !== filter) return false
+    if (liveOnly && !isOnChain(t)) return false
+    return true
+  })
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -180,35 +189,19 @@ export default function Trades() {
         </button>
       </div>
 
-      {/* Trading mode disclosure — updates dynamically */}
-      {isLive ? (
-        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-emerald-500/10 border border-emerald-500/25 rounded-lg">
-          <span className="text-emerald-400 text-sm">🟢</span>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[14px] font-bold text-emerald-400 font-mono uppercase tracking-wider">
-              Live Trading — Real TAO
-            </span>
-            <span className="text-[13px] text-emerald-400/70 font-mono">
-              System is armed. Strategies with LIVE status fire real <code className="font-mono">add_stake()</code> calls on Finney mainnet.
-              Stats include both paper history and confirmed on-chain trades.
-              Win rate = execution success rate (executed ÷ total).
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="flex items-center gap-2.5 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/25 rounded-lg">
-          <span className="text-yellow-400 text-sm">📄</span>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-[14px] font-bold text-yellow-400 font-mono uppercase tracking-wider">
-              Paper Trading — Simulated
-            </span>
-            <span className="text-[13px] text-yellow-400/70 font-mono">
-              These figures reflect paper trading only — no real TAO has moved. Volume and P&amp;L are simulated.
-              Win rate = execution success rate (executed ÷ total), not PnL-based.
-            </span>
-          </div>
-        </div>
-      )}
+      {/* Trading mode — compact status pill */}
+      <div className={clsx(
+        'inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full border text-[13px] font-mono font-semibold',
+        isLive
+          ? 'bg-emerald-500/12 border-emerald-500/30 text-emerald-400'
+          : 'bg-amber-500/10 border-amber-500/25 text-amber-400'
+      )}>
+        <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0',
+          isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400')} />
+        {isLive
+          ? 'LIVE — real add_stake() on Finney mainnet'
+          : 'PAPER — simulated · no real TAO moving'}
+      </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -446,7 +439,27 @@ export default function Trades() {
               {f.toUpperCase()}
             </button>
           ))}
-          <span className="text-xs text-slate-300 ml-2">{tradeTotal ?? 0} total</span>
+
+          {/* Live-Only toggle — separates on-chain trades from paper history */}
+          <div className="w-px h-4 bg-dark-600 mx-1" />
+          <button
+            onClick={() => setLiveOnly(v => !v)}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1 rounded text-xs font-mono font-semibold border transition-all',
+              liveOnly
+                ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
+                : 'text-slate-400 border-dark-600 hover:text-slate-200 hover:border-dark-500'
+            )}
+          >
+            <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0',
+              liveOnly ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600')} />
+            ⛓ Live Only
+          </button>
+
+          <span className="text-xs text-slate-500 ml-1">
+            {filtered.length} shown
+            {liveOnly && <span className="text-emerald-500 ml-1">· on-chain only</span>}
+          </span>
 
           {/* Pagination controls */}
           <div className="ml-auto flex items-center gap-1.5">

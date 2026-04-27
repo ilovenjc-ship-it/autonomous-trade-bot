@@ -409,14 +409,32 @@ export default function Layout() {
 
           {/* Bot status pill */}
           <div className={clsx(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold border font-mono',
-            isRunning
-              ? 'bg-accent-green/10 text-accent-green border-accent-green/25'
-              : 'bg-dark-700 text-slate-400 border-dark-600'
+            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-bold border font-mono transition-all duration-300',
+            botBusy
+              ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
+              : isRunning
+                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/50 shadow-[0_0_10px_rgba(52,211,153,0.18)]'
+                : 'bg-red-500/15 text-red-400 border-red-500/40 shadow-[0_0_10px_rgba(239,68,68,0.15)]'
           )}>
-            <span className={clsx('w-2 h-2 rounded-full flex-shrink-0',
-              isRunning ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
-            {isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
+            {botBusy ? (
+              /* spinner during transition */
+              <svg className="w-2 h-2 animate-spin text-amber-400 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+              </svg>
+            ) : (
+              <span className={clsx(
+                'w-2 h-2 rounded-full flex-shrink-0',
+                isRunning
+                  ? 'bg-emerald-400 animate-pulse'
+                  : 'bg-red-500 animate-[pulse_1.2s_ease-in-out_infinite]'
+              )} />
+            )}
+            {botBusy
+              ? (isRunning ? 'STOPPING…' : 'STARTING…')
+              : isRunning
+                ? 'BOT RUNNING'
+                : 'BOT STOPPED'}
           </div>
 
           {/* Stop / Start Bot */}
@@ -424,15 +442,18 @@ export default function Layout() {
             onClick={handleToggle}
             disabled={botBusy}
             className={clsx(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold border font-mono transition-all',
-              isRunning
-                ? 'bg-red-500/15 text-red-400 border-red-500/30 hover:bg-red-500/25'
-                : 'bg-accent-green/15 text-accent-green border-accent-green/30 hover:bg-accent-green/25',
-              botBusy && 'opacity-50 cursor-not-allowed'
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-bold border font-mono transition-all duration-200',
+              botBusy
+                ? 'opacity-40 cursor-not-allowed bg-dark-700 border-dark-600 text-slate-400'
+                : isRunning
+                  ? 'bg-red-500/20 text-red-300 border-red-500/50 hover:bg-red-500/30 hover:border-red-400/60 hover:shadow-[0_0_8px_rgba(239,68,68,0.25)]'
+                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/30 hover:border-emerald-400/60 hover:shadow-[0_0_8px_rgba(52,211,153,0.25)]'
             )}
           >
             {isRunning ? <Square size={12} /> : <Play size={12} />}
-            {isRunning ? 'Stop Bot' : 'Start Bot'}
+            {botBusy
+              ? (isRunning ? 'Stopping…' : 'Starting…')
+              : isRunning ? 'Stop Bot' : 'Start Bot'}
           </button>
 
           {/* Notification Bell */}
