@@ -538,7 +538,7 @@ export default function WalletPage() {
         <div className="min-w-0">
           <h1 className="text-sm font-bold text-white leading-none">Wallet</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            Bittensor Finney mainnet · Coldkey management
+            Coldkey management
             {isConnected && block ? ` · Block #${block.toLocaleString()}` : ''}
           </p>
         </div>

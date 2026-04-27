@@ -181,14 +181,6 @@ export default function Settings() {
             {simMode ? 'PAPER MODE — no real funds at risk' : 'LIVE MODE — real TAO executing'}
           </span>
 
-          {/* Mainnet warning pill */}
-          {isMainnet && (
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-mono font-semibold border bg-amber-500/10 text-amber-400 border-amber-500/30">
-              <AlertTriangle size={11} />
-              FINNEY MAINNET — real money
-            </span>
-          )}
-
           {/* Bot-is-running — compact pill, matches badge height */}
           {isRunning && (
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-mono font-semibold border bg-yellow-500/10 text-yellow-400 border-yellow-500/25">
