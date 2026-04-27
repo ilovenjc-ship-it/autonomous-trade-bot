@@ -251,45 +251,44 @@ export default function Analytics() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeroSlider slides={heroSlides} />
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-dark-900">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <BarChart2 size={24} className="text-accent-blue" />
-            Analytics
-          </h1>
-          <p className="text-sm text-slate-300 mt-0.5">
-            {summary?.total_trades ?? 0} trades across {summary?.active_strategies ?? 0} strategies
-          </p>
+      {/* ── Page header bar — Analytics ────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-2.5 bg-dark-800/80 border-b border-dark-700/60">
+        {/* Icon */}
+        <div className="w-8 h-8 rounded-xl bg-accent-blue/15 border border-accent-blue/30 flex items-center justify-center flex-shrink-0">
+          <BarChart2 size={15} className="text-accent-blue" />
         </div>
-        <div className="flex items-center gap-2">
-          {/* Time range selector */}
-          <div className="flex items-center gap-1 bg-dark-800 border border-dark-600 rounded-lg p-1">
-            <Clock size={11} className="text-slate-400 ml-1" />
-            {(['1h', '6h', '24h', '7d', 'all'] as TimeRange[]).map(r => (
-              <button key={r}
-                onClick={() => handleTimeRange(r)}
-                className={clsx(
-                  'px-2.5 py-1 rounded text-[13px] font-mono font-bold transition-colors',
-                  timeRange === r
-                    ? 'bg-accent-blue/20 text-accent-blue'
-                    : 'text-slate-400 hover:text-slate-200'
-                )}>
-                {r.toUpperCase()}
-              </button>
-            ))}
-          </div>
-          <button
-            onClick={() => load()}
-            className="flex items-center gap-2 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white hover:border-accent-blue transition-colors font-mono"
-          >
-            <RefreshCw size={12} /> Refresh
-          </button>
+
+        {/* Live trade + strategy count */}
+        <div className="flex flex-col justify-center min-w-0">
+          <span className="text-sm font-bold text-white tracking-tight leading-none">Analytics</span>
+          <span className="text-xs font-mono text-slate-400 mt-0.5 leading-none">
+            {summary?.total_trades ?? 0} trades across {summary?.active_strategies ?? 0} strategies
+          </span>
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Time range selector — functional, stays in header */}
+        <div className="flex items-center gap-1 bg-dark-700 border border-dark-600 rounded-lg p-1 flex-shrink-0">
+          <Clock size={11} className="text-slate-400 ml-1" />
+          {(['1h', '6h', '24h', '7d', 'all'] as TimeRange[]).map(r => (
+            <button key={r}
+              onClick={() => handleTimeRange(r)}
+              className={clsx(
+                'px-2.5 py-1 rounded text-[13px] font-mono font-bold transition-colors',
+                timeRange === r
+                  ? 'bg-accent-blue/20 text-accent-blue'
+                  : 'text-slate-400 hover:text-slate-200'
+              )}>
+              {r.toUpperCase()}
+            </button>
+          ))}
         </div>
       </div>
+
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-dark-900">
 
       {/* ── Fetch error banner ──────────────────────────────────────────────── */}
       {fetchErrors.length > 0 && (
