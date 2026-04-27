@@ -509,7 +509,7 @@ export default function WalletPage() {
 
   const heroSlides = [
     {
-      title: 'Wallet Overview', subtitle: 'Finney Mainnet', accent: 'emerald' as const,
+      title: 'Wallet Overview', subtitle: 'Coldkey & Portfolio', accent: 'emerald' as const,
       stats: [
         { label: 'Balance',     value: `${(balance ?? 0).toFixed(4)} τ`,                          color: balance > 0 ? 'emerald' : 'slate' as any },
         { label: 'USD Value',   value: usdValue != null ? `$${(usdValue ?? 0).toFixed(2)}` : '—', color: 'white'   as const },
@@ -556,7 +556,7 @@ export default function WalletPage() {
         <span className={clsx('w-2.5 h-2.5 rounded-full flex-shrink-0',
           isConnected ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600')} />
         <span className={isConnected ? 'text-emerald-400 font-semibold' : 'text-slate-300'}>
-          {isConnected ? '⛓ FINNEY MAINNET CONNECTED' : '○ CHAIN OFFLINE'}
+          {isConnected ? '⛓ Chain Connected' : '○ Chain Offline'}
         </span>
         {block && (<><span className="text-slate-300">·</span>
           <span className="text-slate-300">Block #{block.toLocaleString()}</span></>)}
