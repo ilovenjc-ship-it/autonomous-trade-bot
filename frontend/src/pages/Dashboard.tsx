@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import {
-  Play, Square, RefreshCw, TrendingUp, TrendingDown,
-  Activity, Zap, Bot, Shield, BarChart2, Clock, Award, Radio,
+  TrendingUp, TrendingDown,
+  Activity, Bot, Shield, BarChart2, Clock, Award, Radio,
   Brain, Vote, Bell, Wallet, Gauge, ShieldAlert, ChevronRight,
   ArrowUpRight, ArrowDownRight, Layers,
 } from 'lucide-react'
@@ -12,7 +12,6 @@ import {
   Tooltip, ResponsiveContainer, ReferenceLine,
   ComposedChart, Bar,
 } from 'recharts'
-import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
 
@@ -491,7 +490,6 @@ export default function Dashboard() {
   const [equity,     setEquity]     = useState<EquityPoint[]>([])
   const [activity,   setActivity]   = useState<ActivityEvent[]>([])
   const [loading,    setLoading]    = useState(true)
-  const [botBusy,    setBotBusy]    = useState(false)
   const [tick,       setTick]       = useState(0)  // countdown tick
   // Intelligence layer
   const [agentStatus,    setAgentStatus]    = useState<AgentStatus | null>(null)
@@ -580,32 +578,6 @@ export default function Dashboard() {
     return () => { clearInterval(refresh); clearInterval(chartRefresh); clearInterval(countdown) }
   }, [load, loadCharts, priceRange])
 
-  const handleToggle = async () => {
-    setBotBusy(true)
-    try {
-      const endpoint = botStatus?.is_running ? '/bot/stop' : '/bot/start'
-      const res = await api.post(endpoint)
-      if (res.data.success) {
-        toast.success(res.data.message)
-        await load()
-      } else {
-        // "already running" is treated as success — just refresh status
-        if (res.data.message?.toLowerCase().includes('already')) {
-          toast.success('Bot is running')
-          await load()
-        } else {
-          toast.error(res.data.message || 'Failed to toggle bot')
-        }
-      }
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : 'Failed to reach backend'
-      toast.error(`Bot toggle error: ${msg}`)
-      console.error('handleToggle error:', e)
-    } finally {
-      setBotBusy(false)
-    }
-  }
-
   const navigate = useNavigate()
   const ind = botStatus?.indicators ?? {}
   const price = botStatus?.current_price
@@ -671,49 +643,6 @@ export default function Dashboard() {
 
       {/* ── Hero Slider ────────────────────────────────────────────────────── */}
       <PageHeroSlider slides={heroSlides} />
-
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-white flex items-center gap-2">
-            <Zap size={20} className="text-accent-green" /> Command Dashboard
-          </h1>
-          <p className="text-xs text-slate-300 mt-0.5 font-mono">
-            Finney Mainnet · {botStatus?.simulation_mode ? 'Paper Trading' : 'Live Trading'} · {isRunning ? `Cycle #${cycleN}` : 'Stopped'}
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button onClick={load} disabled={loading}
-            className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white transition-colors">
-            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          </button>
-          {/* Bot status pill — same size as Stop Bot button */}
-          <div className={clsx(
-            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border',
-            isRunning
-              ? 'bg-accent-green/10 text-accent-green border-accent-green/25'
-              : 'bg-dark-700 text-slate-400 border-dark-600'
-          )}>
-            <span className={clsx('w-2 h-2 rounded-full flex-shrink-0',
-              isRunning ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
-            {isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
-          </div>
-          <button
-            onClick={handleToggle}
-            disabled={botBusy}
-            className={clsx(
-              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold transition-all border',
-              isRunning
-                ? 'bg-red-500/15 text-red-400 border-red-500/30 hover:bg-red-500/30'
-                : 'bg-accent-green/15 text-accent-green border-accent-green/30 hover:bg-accent-green/30',
-              botBusy && 'opacity-50 cursor-not-allowed'
-            )}
-          >
-            {isRunning ? <Square size={13} /> : <Play size={13} />}
-            {isRunning ? 'Stop Bot' : 'Start Bot'}
-          </button>
-        </div>
-      </div>
 
       {/* ── Cycle status bar ─────────────────────────────────────────────────── */}
       <div className={clsx(

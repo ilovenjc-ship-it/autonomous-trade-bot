@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
   Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
-  Mic, Send, ChevronDown, DollarSign, ShieldOff, Clock, Play, Square,
+  Mic, Send, ChevronDown, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -386,75 +386,88 @@ export default function Layout() {
       <main className="flex-1 flex flex-col overflow-hidden">
 
         {/* ── Global top bar ─────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-dark-800 border-b border-dark-700/60">
-          {/* Page title */}
-          <h1 className="text-sm font-bold text-white font-mono flex-1 truncate">
-            {pageTitle}
-          </h1>
+        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 bg-dark-800 border-b border-dark-700/60">
 
-          {/* Local time */}
-          <div className="flex items-center gap-1.5 text-[13px] font-mono text-slate-400">
-            <Clock size={13} className="text-slate-500" />
-            <span>{localTime}</span>
+          {/* Finney Mainnet · Live / Paper Trading — left anchor */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <span className={clsx(
+              'w-2.5 h-2.5 rounded-full flex-shrink-0',
+              status?.network_connected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'
+            )} />
+            <span className="text-sm font-bold font-mono text-emerald-400 leading-none tracking-wide">
+              Finney Mainnet
+            </span>
+            <span className="text-slate-600 select-none">·</span>
+            <span className="text-sm font-semibold font-mono text-slate-300 leading-none">
+              {status?.simulation_mode ? 'Paper Trading' : 'Live Trading'}
+            </span>
           </div>
 
-          <div className="w-px h-4 bg-dark-600" />
+          {/* Push everything else to the right */}
+          <div className="flex-1" />
 
-          {/* Next cycle */}
-          {isRunning && (
-            <div className="text-[13px] font-mono text-slate-400">
-              Next <span className="text-accent-green font-bold">{secToNext}s</span>
-            </div>
-          )}
+          {/* Reload / reset page — universal */}
+          <button
+            onClick={() => window.location.reload()}
+            title="Reload page"
+            className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white hover:bg-dark-600 transition-colors flex-shrink-0"
+          >
+            <RefreshCw size={14} />
+          </button>
 
-          {/* Bot status pill */}
+          <div className="w-px h-5 bg-dark-600 flex-shrink-0" />
+
+          {/* Bot status pill — Command Dashboard sizing (px-4 py-2 text-sm) */}
           <div className={clsx(
-            'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-bold border font-mono transition-all duration-300',
+            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border flex-shrink-0 transition-all duration-300',
             botBusy
               ? 'bg-amber-500/10 text-amber-300 border-amber-500/30'
               : isRunning
-                ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/50 shadow-[0_0_10px_rgba(52,211,153,0.18)]'
-                : 'bg-red-500/15 text-red-400 border-red-500/40 shadow-[0_0_10px_rgba(239,68,68,0.15)]'
+                ? 'bg-accent-green/10 text-accent-green border-accent-green/30 shadow-[0_0_10px_rgba(52,211,153,0.15)]'
+                : 'bg-dark-700 text-slate-400 border-dark-600'
           )}>
             {botBusy ? (
-              /* spinner during transition */
-              <svg className="w-2 h-2 animate-spin text-amber-400 flex-shrink-0" viewBox="0 0 24 24" fill="none">
+              <svg className="w-2.5 h-2.5 animate-spin text-amber-400 flex-shrink-0" viewBox="0 0 24 24" fill="none">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
               </svg>
             ) : (
               <span className={clsx(
-                'w-2 h-2 rounded-full flex-shrink-0',
-                isRunning
-                  ? 'bg-emerald-400 animate-pulse'
-                  : 'bg-red-500 animate-[pulse_1.2s_ease-in-out_infinite]'
+                'w-2.5 h-2.5 rounded-full flex-shrink-0',
+                isRunning ? 'bg-accent-green animate-pulse' : 'bg-slate-600'
               )} />
             )}
             {botBusy
               ? (isRunning ? 'STOPPING…' : 'STARTING…')
-              : isRunning
-                ? 'BOT RUNNING'
-                : 'BOT STOPPED'}
+              : isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
           </div>
 
-          {/* Stop / Start Bot */}
+          {/* Stop / Start Bot — Command Dashboard sizing */}
           <button
             onClick={handleToggle}
             disabled={botBusy}
             className={clsx(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-bold border font-mono transition-all duration-200',
+              'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-semibold border flex-shrink-0 transition-all duration-200',
               botBusy
                 ? 'opacity-40 cursor-not-allowed bg-dark-700 border-dark-600 text-slate-400'
                 : isRunning
-                  ? 'bg-red-500/20 text-red-300 border-red-500/50 hover:bg-red-500/30 hover:border-red-400/60 hover:shadow-[0_0_8px_rgba(239,68,68,0.25)]'
-                  : 'bg-emerald-500/20 text-emerald-300 border-emerald-500/50 hover:bg-emerald-500/30 hover:border-emerald-400/60 hover:shadow-[0_0_8px_rgba(52,211,153,0.25)]'
+                  ? 'bg-red-500/15 text-red-400 border-red-500/30 hover:bg-red-500/30 hover:border-red-400/50 hover:shadow-[0_0_8px_rgba(239,68,68,0.2)]'
+                  : 'bg-accent-green/15 text-accent-green border-accent-green/30 hover:bg-accent-green/30 hover:border-accent-green/50 hover:shadow-[0_0_8px_rgba(52,211,153,0.2)]'
             )}
           >
-            {isRunning ? <Square size={12} /> : <Play size={12} />}
+            {isRunning ? <Square size={13} /> : <Play size={13} />}
             {botBusy
               ? (isRunning ? 'Stopping…' : 'Starting…')
               : isRunning ? 'Stop Bot' : 'Start Bot'}
           </button>
+
+          <div className="w-px h-5 bg-dark-600 flex-shrink-0" />
+
+          {/* Local time */}
+          <div className="flex items-center gap-1.5 text-sm font-mono text-slate-400 flex-shrink-0">
+            <Clock size={14} className="text-slate-500" />
+            <span>{localTime}</span>
+          </div>
 
           {/* Notification Bell */}
           <NotificationBell unreadCount={unreadCount} />
