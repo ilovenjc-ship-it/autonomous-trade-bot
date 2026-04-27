@@ -6,6 +6,7 @@ import {
 import clsx from 'clsx'
 import api from '@/api/client'
 import PageHeroSlider from '@/components/PageHeroSlider'
+import { useBotStore } from '@/store/botStore'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Event {
@@ -126,6 +127,13 @@ export default function ActivityLog() {
     return true
   })
 
+  const setActivityPageStats = useBotStore(s => s.setActivityPageStats)
+  const toggleLive = useCallback(() => setLive(v => !v), [])
+  useEffect(() => {
+    setActivityPageStats({ filtered: filtered.length, total: events.length, isLive: live, toggleLive })
+    return () => setActivityPageStats(null)
+  }, [filtered.length, events.length, live, toggleLive, setActivityPageStats])
+
   const counts = ALL_KINDS.reduce<Record<string, number>>((acc, k) => {
     acc[k] = events.filter(e => e.kind === k).length
     return acc
@@ -167,29 +175,6 @@ export default function ActivityLog() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
-        <Activity size={18} className="text-accent-blue flex-shrink-0" />
-        <div className="min-w-0">
-          <h1 className="text-sm font-bold text-white leading-none">Activity Log</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {filtered.length} events{filter !== 'all' ? ` (${filter})` : ''} — {events.length} total · 5s refresh
-          </p>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setLive(!live)}
-            className={clsx(
-              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border transition-colors',
-              live
-                ? 'bg-accent-green/15 text-accent-green border-accent-green/30'
-                : 'bg-dark-700 text-slate-300 border-dark-600'
-            )}
-          >
-            <span className={clsx('w-1.5 h-1.5 rounded-full', live ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
-            {live ? 'FEED: LIVE' : 'FEED: PAUSED'}
-          </button>
-        </div>
-      </div>
       <PageHeroSlider slides={heroSlides} />
       <div className="flex flex-col flex-1 bg-dark-900 overflow-hidden">
 

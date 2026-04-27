@@ -13,6 +13,7 @@ import {
 import clsx from 'clsx'
 import api from '@/api/client'
 import PageHeroSlider from '@/components/PageHeroSlider'
+import { useBotStore } from '@/store/botStore'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -305,6 +306,8 @@ export default function IIAgent() {
     return () => clearInterval(t)
   }, [load])
 
+  const setIIAgentStats = useBotStore(s => s.setIIAgentStats)
+
   const handleAnalyze = async () => {
     setAnalyzing(true)
     try {
@@ -361,6 +364,13 @@ export default function IIAgent() {
   const hotCount        = lastReport?.hot_bots?.length        ?? Object.values(status?.fleet_health ?? {}).filter(h => h === 'HOT').length
   const strugglingCount = lastReport?.struggling_bots?.length ?? Object.values(status?.fleet_health ?? {}).filter(h => h === 'STRUGGLING').length
 
+  const stableAnalyze = useCallback(() => { handleAnalyze() }, [analyzing])
+
+  useEffect(() => {
+    setIIAgentStats({ analyzing, handleAnalyze: stableAnalyze })
+    return () => setIIAgentStats(null)
+  }, [analyzing, stableAnalyze, setIIAgentStats])
+
   const heroSlides = [
     {
       title: 'Agent Intelligence', subtitle: 'Master Orchestrator', accent: 'blue' as const,
@@ -396,53 +406,6 @@ export default function IIAgent() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-
-      {/* ── Page header bar — Master Orchestrator ──────────────────────── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-2.5 bg-dark-800/80 border-b border-dark-700/60">
-        {/* Brain icon */}
-        <div className={clsx(
-          'w-8 h-8 rounded-xl flex items-center justify-center shadow-lg transition-all duration-700 flex-shrink-0',
-          flash
-            ? 'bg-indigo-500 shadow-indigo-500/50'
-            : 'bg-gradient-to-br from-indigo-600 to-purple-700 shadow-indigo-500/20',
-        )}>
-          <Brain size={15} className="text-white" />
-        </div>
-
-        {/* Master Orchestrator pill */}
-        <span className="text-xs font-mono text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 rounded-full flex-shrink-0">
-          Master Orchestrator
-        </span>
-
-        <span className="text-slate-600 select-none">·</span>
-
-        {/* Subtitle + last analysis */}
-        <span className="text-sm font-mono text-slate-400 truncate">
-          Regime · Fleet · Consensus · Recommendations
-          {status?.last_analysis_at && (
-            <span className="text-slate-500 ml-2">· Last analysis {timeSince(status.last_analysis_at)}</span>
-          )}
-        </span>
-
-        <div className="flex-1" />
-
-        {/* Run Analysis button */}
-        <button
-          onClick={handleAnalyze}
-          disabled={analyzing}
-          className={clsx(
-            'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 flex-shrink-0',
-            analyzing
-              ? 'bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 cursor-wait'
-              : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40'
-          )}
-        >
-          {analyzing
-            ? <><RefreshCw size={14} className="animate-spin" /> Analysing…</>
-            : <><Brain size={14} /> Run Analysis</>
-          }
-        </button>
-      </div>
 
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">

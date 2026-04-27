@@ -61,6 +61,13 @@ export default function Layout() {
   const fleetStats   = useBotStore((s) => s.fleetStats)
   const alertStats      = useBotStore((s) => s.alertStats)
   const analyticsStats  = useBotStore((s) => s.analyticsStats)
+  const tradesPageStats = useBotStore((s) => s.tradesPageStats)
+  const tradeLogStats   = useBotStore((s) => s.tradeLogStats)
+  const marketPageStats = useBotStore((s) => s.marketPageStats)
+  const strategiesStats = useBotStore((s) => s.strategiesStats)
+  const activityStats   = useBotStore((s) => s.activityPageStats)
+  const walletPageStats = useBotStore((s) => s.walletPageStats)
+  const iiAgentStats    = useBotStore((s) => s.iiAgentStats)
   const isRunning   = status?.is_running ?? false
   const { unreadCount } = useAlerts()
   const { pathname }    = useLocation()
@@ -435,6 +442,93 @@ export default function Layout() {
                   </span>
                 </>
               )}
+              {/* Trades inline stats */}
+              {pathname === '/trades' && tradesPageStats && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">
+                    {tradesPageStats.total.toLocaleString()} trades · {tradesPageStats.mode} · {tradesPageStats.winRate} win rate
+                  </span>
+                </>
+              )}
+              {/* Trade Log inline stats */}
+              {pathname === '/trade-log' && tradeLogStats && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">
+                    {tradeLogStats.total.toLocaleString()} trades · p{tradeLogStats.page}/{tradeLogStats.pages}
+                    {tradeLogStats.realCount !== null && (
+                      <span className="text-emerald-400 ml-1">· ⛓ {tradeLogStats.realCount} real</span>
+                    )}
+                  </span>
+                </>
+              )}
+              {/* Market Data inline stats */}
+              {pathname === '/market' && marketPageStats && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">
+                    {marketPageStats.subnets} subnets
+                    <span className="text-emerald-400 ml-1">↑{marketPageStats.upCount}</span>
+                    <span className="text-red-400 ml-1">↓{marketPageStats.downCount}</span>
+                  </span>
+                </>
+              )}
+              {/* Strategies inline stats */}
+              {pathname === '/strategies' && strategiesStats && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">
+                    {strategiesStats.total} strategies · {strategiesStats.live} live · {strategiesStats.approved} approved · {strategiesStats.paper} paper
+                  </span>
+                </>
+              )}
+              {/* Activity Log inline stats */}
+              {pathname === '/activity' && activityStats && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">
+                    {activityStats.filtered} / {activityStats.total} events
+                  </span>
+                </>
+              )}
+              {/* Wallet inline stats */}
+              {pathname === '/wallet' && walletPageStats && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">
+                    Coldkey management{walletPageStats.isConnected && walletPageStats.block ? ` · Block #${walletPageStats.block.toLocaleString()}` : ''}
+                  </span>
+                </>
+              )}
+              {/* Settings subtitle */}
+              {pathname === '/settings' && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">Bot behaviour, trade sizing, network identity</span>
+                </>
+              )}
+              {/* Risk Config subtitle */}
+              {pathname === '/risk' && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">Pre-trade guardrails · position limits</span>
+                </>
+              )}
+              {/* Human Override subtitle */}
+              {pathname === '/override' && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">Full command authority · manual trades · emergency stop</span>
+                </>
+              )}
+              {/* II Agent inline subtitle */}
+              {pathname === '/ii-agent' && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-indigo-400/80 leading-none">Master Orchestrator · Regime · Fleet · Consensus</span>
+                </>
+              )}
               {/* Analytics inline stats */}
               {pathname === '/analytics' && analyticsStats && (
                 <>
@@ -474,6 +568,102 @@ export default function Layout() {
 
           {/* Push everything else to the right */}
           <div className="flex-1" />
+
+          {/* II Agent — Run Analysis button */}
+          {pathname === '/ii-agent' && iiAgentStats && (
+            <button
+              onClick={iiAgentStats.handleAnalyze}
+              disabled={iiAgentStats.analyzing}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all flex-shrink-0 mr-1',
+                iiAgentStats.analyzing
+                  ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 cursor-wait'
+                  : 'bg-indigo-600/80 text-white hover:bg-indigo-500 border border-indigo-500/50'
+              )}
+            >
+              {iiAgentStats.analyzing
+                ? <><RefreshCw size={11} className="animate-spin" /> Analysing…</>
+                : <><Brain size={11} /> Run Analysis</>
+              }
+            </button>
+          )}
+
+          {/* Wallet — Query Chain button */}
+          {pathname === '/wallet' && walletPageStats && (
+            <button
+              onClick={walletPageStats.queryChain}
+              disabled={walletPageStats.querying}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-[13px] font-semibold hover:bg-indigo-500/25 transition-colors disabled:opacity-50 flex-shrink-0 mr-1"
+            >
+              <RefreshCw size={11} className={walletPageStats.querying ? 'animate-spin' : ''} />
+              {walletPageStats.querying ? 'Querying…' : 'Query Chain'}
+            </button>
+          )}
+
+          {/* Market Data — AUTO/MANUAL toggle */}
+          {pathname === '/market' && marketPageStats && (
+            <button
+              onClick={marketPageStats.toggleAutoRef}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-mono border transition-colors flex-shrink-0 mr-1',
+                marketPageStats.autoRef
+                  ? 'bg-accent-green/15 text-accent-green border-accent-green/30'
+                  : 'bg-dark-700 text-slate-300 border-dark-600'
+              )}
+            >
+              <span className={clsx('w-1.5 h-1.5 rounded-full', marketPageStats.autoRef ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
+              {marketPageStats.autoRef ? 'AUTO' : 'MANUAL'}
+            </button>
+          )}
+
+          {/* Activity Log — FEED toggle */}
+          {pathname === '/activity' && activityStats && (
+            <button
+              onClick={activityStats.toggleLive}
+              className={clsx(
+                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-mono border transition-colors flex-shrink-0 mr-1',
+                activityStats.isLive
+                  ? 'bg-accent-green/15 text-accent-green border-accent-green/30'
+                  : 'bg-dark-700 text-slate-300 border-dark-600'
+              )}
+            >
+              <span className={clsx('w-1.5 h-1.5 rounded-full', activityStats.isLive ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
+              {activityStats.isLive ? 'FEED: LIVE' : 'FEED: PAUSED'}
+            </button>
+          )}
+
+          {/* Strategies — Refresh */}
+          {pathname === '/strategies' && strategiesStats && (
+            <button
+              onClick={strategiesStats.refresh}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-[13px] text-slate-300 hover:text-white transition-colors font-mono flex-shrink-0 mr-1"
+            >
+              <RefreshCw size={11} />
+              Refresh
+            </button>
+          )}
+
+          {/* Trades — Refresh */}
+          {pathname === '/trades' && tradesPageStats && (
+            <button
+              onClick={tradesPageStats.refresh}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-[13px] text-slate-300 hover:text-white transition-colors font-mono flex-shrink-0 mr-1"
+            >
+              <RefreshCw size={11} />
+              Refresh
+            </button>
+          )}
+
+          {/* Trade Log — Refresh */}
+          {pathname === '/trade-log' && tradeLogStats && (
+            <button
+              onClick={tradeLogStats.refresh}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-[13px] text-slate-300 hover:text-white transition-colors font-mono flex-shrink-0 mr-1"
+            >
+              <RefreshCw size={11} />
+              Refresh
+            </button>
+          )}
 
           {/* Analytics — time range selector */}
           {pathname === '/analytics' && analyticsStats && (

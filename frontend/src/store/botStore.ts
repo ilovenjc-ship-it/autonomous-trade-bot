@@ -30,6 +30,56 @@ interface AnalyticsStats {
   handleTimeRange: (r: string) => void
 }
 
+interface TradesPageStats {
+  total: number
+  mode: string
+  winRate: string
+  refresh: () => void
+}
+
+interface TradeLogPageStats {
+  total: number
+  page: number
+  pages: number
+  realCount: number | null
+  refresh: () => void
+}
+
+interface MarketPageStats {
+  subnets: number
+  upCount: number
+  downCount: number
+  autoRef: boolean
+  toggleAutoRef: () => void
+}
+
+interface StrategiesPageStats {
+  total: number
+  live: number
+  approved: number
+  paper: number
+  refresh: () => void
+}
+
+interface ActivityPageStats {
+  filtered: number
+  total: number
+  isLive: boolean
+  toggleLive: () => void
+}
+
+interface WalletPageStats {
+  block: number | null
+  isConnected: boolean
+  querying: boolean
+  queryChain: () => void
+}
+
+interface IIAgentPageStats {
+  analyzing: boolean
+  handleAnalyze: () => void
+}
+
 interface BotStore {
   // State
   status: BotStatus | null
@@ -44,14 +94,28 @@ interface BotStore {
   lastUpdated: Date | null
   missionStats: MissionStats | null
   fleetStats: FleetStats | null
-  alertStats:     AlertStats | null
-  analyticsStats: AnalyticsStats | null
+  alertStats:        AlertStats | null
+  analyticsStats:    AnalyticsStats | null
+  tradesPageStats:   TradesPageStats | null
+  tradeLogStats:     TradeLogPageStats | null
+  marketPageStats:   MarketPageStats | null
+  strategiesStats:   StrategiesPageStats | null
+  activityPageStats: ActivityPageStats | null
+  walletPageStats:   WalletPageStats | null
+  iiAgentStats:      IIAgentPageStats | null
 
   // Actions
-  setMissionStats:   (stats: MissionStats | null) => void
-  setFleetStats:     (stats: FleetStats | null) => void
-  setAlertStats:     (stats: AlertStats | null) => void
-  setAnalyticsStats: (stats: AnalyticsStats | null) => void
+  setMissionStats:      (stats: MissionStats | null) => void
+  setFleetStats:        (stats: FleetStats | null) => void
+  setAlertStats:        (stats: AlertStats | null) => void
+  setAnalyticsStats:    (stats: AnalyticsStats | null) => void
+  setTradesPageStats:   (stats: TradesPageStats | null) => void
+  setTradeLogStats:     (stats: TradeLogPageStats | null) => void
+  setMarketPageStats:   (stats: MarketPageStats | null) => void
+  setStrategiesStats:   (stats: StrategiesPageStats | null) => void
+  setActivityPageStats: (stats: ActivityPageStats | null) => void
+  setWalletPageStats:   (stats: WalletPageStats | null) => void
+  setIIAgentStats:      (stats: IIAgentPageStats | null) => void
   fetchStatus: () => Promise<void>
   fetchTrades: (page?: number) => Promise<void>
   fetchTradeStats: () => Promise<void>
@@ -76,15 +140,29 @@ export const useBotStore = create<BotStore>((set, get) => ({
   loading: false,
   error: null,
   lastUpdated: null,
-  missionStats:   null,
-  fleetStats:     null,
-  alertStats:     null,
-  analyticsStats: null,
+  missionStats:      null,
+  fleetStats:        null,
+  alertStats:        null,
+  analyticsStats:    null,
+  tradesPageStats:   null,
+  tradeLogStats:     null,
+  marketPageStats:   null,
+  strategiesStats:   null,
+  activityPageStats: null,
+  walletPageStats:   null,
+  iiAgentStats:      null,
 
-  setMissionStats:   (stats) => set({ missionStats: stats }),
-  setFleetStats:     (stats) => set({ fleetStats: stats }),
-  setAlertStats:     (stats) => set({ alertStats: stats }),
-  setAnalyticsStats: (stats) => set({ analyticsStats: stats }),
+  setMissionStats:      (stats) => set({ missionStats: stats }),
+  setFleetStats:        (stats) => set({ fleetStats: stats }),
+  setAlertStats:        (stats) => set({ alertStats: stats }),
+  setAnalyticsStats:    (stats) => set({ analyticsStats: stats }),
+  setTradesPageStats:   (stats) => set({ tradesPageStats: stats }),
+  setTradeLogStats:     (stats) => set({ tradeLogStats: stats }),
+  setMarketPageStats:   (stats) => set({ marketPageStats: stats }),
+  setStrategiesStats:   (stats) => set({ strategiesStats: stats }),
+  setActivityPageStats: (stats) => set({ activityPageStats: stats }),
+  setWalletPageStats:   (stats) => set({ walletPageStats: stats }),
+  setIIAgentStats:      (stats) => set({ iiAgentStats: stats }),
 
   fetchStatus: async () => {
     try {

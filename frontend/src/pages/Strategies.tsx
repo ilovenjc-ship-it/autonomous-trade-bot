@@ -265,7 +265,7 @@ function StrategyCard({ s }: { s: Strategy }) {
 
 // ═════════════════════════════════════════════════════════════════════════════
 export default function Strategies() {
-  const { strategies, fetchStrategies } = useBotStore()
+  const { strategies, fetchStrategies, setStrategiesStats } = useBotStore()
   const [sortKey,    setSortKey]    = useState<SortKey>('win_rate')
   const [sortDir,    setSortDir]    = useState<SortDir>('desc')
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all')
@@ -324,6 +324,11 @@ export default function Strategies() {
   const liveCount     = strategies.filter(s => s.mode === 'LIVE').length
   const approvedCount = strategies.filter(s => s.mode === 'APPROVED_FOR_LIVE').length
   const paperCount    = strategies.filter(s => s.mode === 'PAPER_ONLY').length
+
+  useEffect(() => {
+    setStrategiesStats({ total: strategies.length, live: liveCount, approved: approvedCount, paper: paperCount, refresh: fetchStrategies })
+    return () => setStrategiesStats(null)
+  }, [strategies.length, liveCount, approvedCount, paperCount, fetchStrategies, setStrategiesStats])
   const bestWR = strategies.length ? Math.max(...strategies.map(s => s.win_rate)) : 0
   const topPnL = strategies.length ? Math.max(...strategies.map(s => s.total_pnl)) : 0
 
@@ -363,24 +368,6 @@ export default function Strategies() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
-        <Layers size={18} className="text-accent-blue flex-shrink-0" />
-        <div className="min-w-0">
-          <h1 className="text-sm font-bold text-white leading-none">Strategy Fleet</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {strategies.length} strategies · {liveCount} live · {approvedCount} approved · {paperCount} paper
-          </p>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => fetchStrategies()}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
-          >
-            <RefreshCw size={12} />
-            Refresh
-          </button>
-        </div>
-      </div>
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 

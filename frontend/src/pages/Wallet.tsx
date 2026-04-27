@@ -10,6 +10,7 @@ import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
 import PageHeroSlider from '@/components/PageHeroSlider'
+import { useBotStore } from '@/store/botStore'
 
 // ── Recovery Tracker ──────────────────────────────────────────────────────────
 const TARGET_STORAGE_KEY = 'tao_recovery_target'
@@ -488,9 +489,18 @@ export default function WalletPage() {
     }
   }
 
+  const setWalletPageStats = useBotStore(s => s.setWalletPageStats)
+  const stableQueryChain   = useCallback(() => { queryChain() }, [])
+
   const isConnected    = chainInfo?.connected ?? false
   const balance        = chainInfo?.balance_cached ?? 0
   const block          = chainInfo?.block_cached
+
+  useEffect(() => {
+    setWalletPageStats({ block: block ?? null, isConnected, querying, queryChain: stableQueryChain })
+    return () => setWalletPageStats(null)
+  }, [block, isConnected, querying, stableQueryChain, setWalletPageStats])
+
   const displayAddr    = chainInfo?.address || generated?.address || '—'
   const stakedTao      = stakes?.total_tao_value ?? 0
   const portfolioTotal = balance + stakedTao
@@ -533,26 +543,6 @@ export default function WalletPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
-        <WalletIcon size={18} className="text-accent-blue flex-shrink-0" />
-        <div className="min-w-0">
-          <h1 className="text-sm font-bold text-white leading-none">Wallet</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Coldkey management
-            {isConnected && block ? ` · Block #${block.toLocaleString()}` : ''}
-          </p>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={queryChain}
-            disabled={querying}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-semibold hover:bg-indigo-500/25 transition-colors disabled:opacity-50"
-          >
-            <RefreshCw size={12} className={querying ? 'animate-spin' : ''} />
-            {querying ? 'Querying…' : 'Query Chain'}
-          </button>
-        </div>
-      </div>
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-5 w-full">
 

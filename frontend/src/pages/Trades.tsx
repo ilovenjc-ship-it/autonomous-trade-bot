@@ -47,7 +47,7 @@ const PAGE_SIZE = 20
 
 export default function Trades() {
   const navigate = useNavigate()
-  const { trades, tradeStats, tradeTotal, fetchTrades, fetchTradeStats, manualTrade, status } = useBotStore()
+  const { trades, tradeStats, tradeTotal, fetchTrades, fetchTradeStats, manualTrade, status, setTradesPageStats } = useBotStore()
   const [page, setPage] = useState(1)
   const [filter, setFilter] = useState<'all' | 'buy' | 'sell'>('all')
   const [liveOnly, setLiveOnly] = useState(false)
@@ -98,6 +98,13 @@ export default function Trades() {
   }, [])
 
   const isLive = tradingMode?.overall_mode === 'LIVE'
+
+  const stableRefresh = useCallback(() => { fetchTrades(page); fetchTradeStats() }, [fetchTrades, fetchTradeStats, page])
+
+  useEffect(() => {
+    setTradesPageStats({ total: tradeTotal ?? 0, mode: isLive ? 'LIVE' : 'Paper', winRate: tradeStats ? `${(tradeStats.win_rate ?? 0).toFixed(1)}%` : '—', refresh: stableRefresh })
+    return () => setTradesPageStats(null)
+  }, [tradeTotal, isLive, tradeStats?.win_rate, stableRefresh, setTradesPageStats])
 
   const heroSlides = [
     {
@@ -181,24 +188,6 @@ export default function Trades() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
-        <ArrowUpDown size={18} className="text-accent-green flex-shrink-0" />
-        <div className="min-w-0">
-          <h1 className="text-sm font-bold text-white leading-none">Trade History</h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            {tradeTotal ?? 0} trades · {isLive ? 'LIVE' : 'Paper'} mode · {tradeStats ? `${(tradeStats.win_rate ?? 0).toFixed(1)}% win rate` : '—'}
-          </p>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => { fetchTrades(page); fetchTradeStats() }}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
-          >
-            <RefreshCw size={12} />
-            Refresh
-          </button>
-        </div>
-      </div>
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
