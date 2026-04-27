@@ -15,6 +15,7 @@ from pydantic import BaseModel
 from db.database import get_db
 from models.strategy import Strategy
 from models.trade import Trade
+from models.stake_position import StakePosition
 from services.price_service import price_service
 from services.activity_service import push_event as _push_event_raw, get_events
 
@@ -646,3 +647,91 @@ async def risk_release():
     _RISK_STATUS["global_halt"] = False
     _push_event("system", "Global halt released — trading resumed")
     return {"success": True, "global_halt": False}
+
+
+# ── Live Stake Positions ──────────────────────────────────────────────────────
+
+@router.get("/positions")
+async def get_positions(db: AsyncSession = Depends(get_db)):
+    """
+    Return all StakePositions (open + recently closed) enriched with:
+      - current α-price from bittensor_service cache
+      - unrealized P&L % and TAO estimate
+      - distance to stop-loss and take-profit levels
+      - risk config thresholds active at query time
+
+    Frontend uses this to render the Live Positions panel in the Wallet page.
+    """
+    from services.bittensor_service import bittensor_service
+
+    # Fetch all positions (open + closed in last 7 days for history)
+    from datetime import timezone as _tz
+    cutoff = datetime.now(_tz.utc) - timedelta(days=7)
+    result = await db.execute(
+        select(StakePosition)
+        .where(
+            (StakePosition.status == "open") |
+            (StakePosition.opened_at >= cutoff)
+        )
+        .order_by(StakePosition.opened_at.desc())
+    )
+    positions = result.scalars().all()
+
+    if not positions:
+        return {"positions": [], "open_count": 0, "sl_pct": _RISK_CONFIG.get("stop_loss_pct", 8.0),
+                "tp_pct": _RISK_CONFIG.get("take_profit_pct", 25.0)}
+
+    # Enrich with current α-prices
+    netuids = list({p.netuid for p in positions if p.status == "open"})
+    current_prices: dict = {}
+    if netuids:
+        try:
+            current_prices = await bittensor_service.get_prices_for_netuids(netuids)
+        except Exception:
+            pass
+
+    sl_pct_cfg = _RISK_CONFIG.get("stop_loss_pct",   8.0)
+    tp_pct_cfg = _RISK_CONFIG.get("take_profit_pct", 25.0)
+
+    enriched = []
+    for pos in positions:
+        cur = current_prices.get(pos.netuid, 0.0) if pos.status == "open" else 0.0
+
+        pnl_pct = 0.0
+        if pos.status == "open" and cur > 0 and pos.entry_alpha_price > 0:
+            pnl_pct = (cur - pos.entry_alpha_price) / pos.entry_alpha_price * 100
+
+        # Levels relative to entry
+        sl_level = pos.entry_alpha_price * (1 - (pos.sl_pct or sl_pct_cfg / 100))
+        tp_level = pos.entry_alpha_price * (1 + (pos.tp_pct or tp_pct_cfg / 100))
+
+        enriched.append({
+            "id":                pos.id,
+            "netuid":            pos.netuid,
+            "hotkey":            pos.hotkey,
+            "strategy":          pos.strategy,
+            "entry_alpha_price": pos.entry_alpha_price,
+            "current_alpha_price": cur,
+            "tao_staked":        pos.tao_staked,
+            "current_tao_value": pos.tao_staked * (cur / pos.entry_alpha_price) if pos.entry_alpha_price > 0 and cur > 0 else pos.tao_staked,
+            "pnl_pct":           round(pnl_pct, 2),
+            "pnl_tao":           round(pos.tao_staked * pnl_pct / 100, 6),
+            "sl_level":          round(sl_level, 6),
+            "tp_level":          round(tp_level, 6),
+            "sl_pct":            (pos.sl_pct or sl_pct_cfg / 100) * 100,
+            "tp_pct":            (pos.tp_pct or tp_pct_cfg / 100) * 100,
+            "status":            pos.status,
+            "open_tx_hash":      pos.open_tx_hash,
+            "close_tx_hash":     pos.close_tx_hash,
+            "realized_pnl_tao":  pos.realized_pnl_tao,
+            "opened_at":         pos.opened_at.isoformat() if pos.opened_at else None,
+            "closed_at":         pos.closed_at.isoformat() if pos.closed_at else None,
+        })
+
+    open_count = sum(1 for p in positions if p.status == "open")
+    return {
+        "positions":   enriched,
+        "open_count":  open_count,
+        "sl_pct":      sl_pct_cfg,
+        "tp_pct":      tp_pct_cfg,
+    }

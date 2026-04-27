@@ -22,6 +22,7 @@ from db.database import AsyncSessionLocal
 from models.strategy import Strategy
 from models.bot_config import BotConfig
 from models.trade import Trade
+from models.stake_position import StakePosition
 from services.price_service import price_service
 from services.activity_service import push_event
 from services.consensus_service import consensus_service
@@ -125,6 +126,169 @@ def _record_stake(amount: float) -> None:
     """Record a completed stake against today's deployment total."""
     global _daily_staked_tao
     _daily_staked_tao += amount
+
+
+def _get_risk_value(key: str, default: float) -> float:
+    """Read a value from the live risk config (fleet router) safely."""
+    try:
+        from routers.fleet import _RISK_CONFIG
+        return float(_RISK_CONFIG.get(key, default))
+    except Exception:
+        return default
+
+
+# ── Stop-loss / Take-profit monitor ──────────────────────────────────────────
+# Runs at the TOP of every cycle, before strategy signals fire.
+# Checks all open LIVE positions against current α-price.
+# Stop-loss exits BYPASS OpenClaw consensus — they are unconditional.
+# Take-profit exits also bypass consensus (a gain is never vetoed).
+#
+# Design rationale: consensus is for entry signals where bots debate direction.
+# Exit triggers (SL/TP) are deterministic arithmetic on a single price data
+# point — no debate needed.  Speed matters: a falling position that has
+# already pierced the SL level should not wait for a 7/12 vote to exit.
+
+async def _check_stop_loss(db: AsyncSession) -> None:
+    """
+    Scan all open StakePositions.  For each one that has crossed the
+    stop-loss or take-profit threshold, execute an immediate unstake.
+
+    Called at the start of every cycle.  Safe to call even when the
+    chain is unreachable — guard conditions exit early in that case.
+    """
+    # Need chain + wallet to do anything useful
+    if not (bittensor_service.connected and bittensor_service.wallet_loaded):
+        return
+
+    # Read thresholds from live risk config
+    sl_pct = _get_risk_value("stop_loss_pct",   8.0)  / 100.0   # e.g. 8% → 0.08
+    tp_pct = _get_risk_value("take_profit_pct", 25.0) / 100.0   # e.g. 25% → 0.25
+
+    # Load all open positions
+    result = await db.execute(
+        select(StakePosition).where(StakePosition.status == "open")
+    )
+    positions = result.scalars().all()
+    if not positions:
+        return
+
+    # Fetch current α-prices for all staked subnets (1 chain call covers all)
+    netuids = list({p.netuid for p in positions})
+    current_prices = await bittensor_service.get_prices_for_netuids(netuids)
+
+    # ── Evaluate each open position ───────────────────────────────────────
+    triggered = []
+    for pos in positions:
+        cur = current_prices.get(pos.netuid, 0.0)
+        if cur <= 0 or pos.entry_alpha_price <= 0:
+            continue   # can't evaluate without a valid price pair
+
+        pnl_pct = (cur - pos.entry_alpha_price) / pos.entry_alpha_price
+
+        if pnl_pct <= -sl_pct:
+            triggered.append((pos, pnl_pct, "sl_hit"))
+        elif pnl_pct >= tp_pct:
+            triggered.append((pos, pnl_pct, "tp_hit"))
+
+    if not triggered:
+        return
+
+    # ── Get actual on-chain α-balances for triggered positions ────────────
+    # We need the real α-amount held on-chain to pass the correct quantity
+    # to remove_stake.  One get_stake_info() call covers all positions.
+    stake_info = await bittensor_service.get_stake_info()
+    # Build lookup: (netuid, hotkey) → alpha_amount
+    stake_lookup: Dict[tuple, float] = {}
+    for s in stake_info.get("stakes", []):
+        key = (s.get("netuid"), s.get("hotkey"))
+        stake_lookup[key] = float(s.get("stake", 0.0))
+
+    # ── Execute exits ─────────────────────────────────────────────────────
+    for pos, pnl_pct, reason in triggered:
+        emoji = "🛑" if reason == "sl_hit" else "🎯"
+        label = "STOP-LOSS" if reason == "sl_hit" else "TAKE-PROFIT"
+        display_strat = DISPLAY_NAMES.get(pos.strategy or "", pos.strategy or "?")
+
+        push_event(
+            "alert",
+            f"{emoji} {label} — SN{pos.netuid} {display_strat} "
+            f"{pnl_pct * 100:+.1f}%  "
+            f"(entry={pos.entry_alpha_price:.4f}τ → "
+            f"now={current_prices.get(pos.netuid, 0):.4f}τ)",
+            strategy=pos.strategy,
+            detail=f"Staked={pos.tao_staked:.4f}τ | exits now — no consensus required",
+        )
+        alert_service.push_alert(
+            type    = "RISK",
+            level   = "CRITICAL" if reason == "sl_hit" else "INFO",
+            title   = f"{emoji} {label} triggered — SN{pos.netuid}",
+            message = (
+                f"{display_strat} position P&L: {pnl_pct * 100:+.1f}%. "
+                f"Forced exit initiated — bypasses OpenClaw consensus."
+            ),
+            strategy = pos.strategy,
+            detail   = (
+                f"entry={pos.entry_alpha_price:.5f}τ | "
+                f"current={current_prices.get(pos.netuid, 0):.5f}τ | "
+                f"staked={pos.tao_staked:.4f}τ"
+            ),
+        )
+
+        # Determine actual α-amount to unstake
+        actual_alpha = stake_lookup.get((pos.netuid, pos.hotkey), 0.0)
+        if actual_alpha <= 0:
+            logger.warning(
+                f"[SL/TP] No on-chain stake found for SN{pos.netuid} "
+                f"{(pos.hotkey or '')[:16]}… — marking failed_exit, will retry"
+            )
+            pos.status = "failed_exit"
+            await db.flush()
+            continue
+
+        exec_result = await bittensor_service.unstake(
+            pos.hotkey, actual_alpha, pos.netuid
+        )
+
+        if exec_result.get("success"):
+            pos.status          = reason
+            pos.closed_at       = datetime.utcnow()
+            pos.close_tx_hash   = exec_result.get("tx_hash")
+            pos.realized_pnl_tao = round(pos.tao_staked * pnl_pct, 6)
+            await db.flush()
+
+            push_event(
+                "trade",
+                f"{'✅' if reason == 'tp_hit' else '❌'} {label} EXIT CONFIRMED — "
+                f"SN{pos.netuid} | {pnl_pct * 100:+.1f}% | "
+                f"P&L ≈ {pos.realized_pnl_tao:+.4f}τ",
+                strategy=pos.strategy,
+                detail=f"tx={exec_result.get('tx_hash', 'pending')}",
+            )
+            logger.info(
+                f"[SL/TP] {pos.strategy}: {reason} exit SN{pos.netuid} "
+                f"pnl={pnl_pct * 100:+.2f}% alpha={actual_alpha:.5f} "
+                f"tx={exec_result.get('tx_hash')}"
+            )
+        else:
+            err = exec_result.get("error", "unknown error")
+            pos.status = "failed_exit"
+            await db.flush()
+            push_event(
+                "alert",
+                f"❌ {label} EXIT FAILED — SN{pos.netuid}: {err}",
+                strategy=pos.strategy,
+            )
+            alert_service.push_alert(
+                type    = "RISK",
+                level   = "CRITICAL",
+                title   = f"⚠️ {label} exit FAILED — SN{pos.netuid}",
+                message = f"Could not unstake for {label}. Status set to failed_exit — will retry next cycle.",
+                strategy= pos.strategy,
+                detail  = f"Error: {err} | pnl={pnl_pct * 100:+.1f}% | alpha={actual_alpha:.5f}",
+            )
+            logger.error(
+                f"[SL/TP] {pos.strategy}: exit failed SN{pos.netuid} — {err}"
+            )
 
 
 # ── Signal engine — replaces random.choice(["buy","sell"]) ───────────────────
@@ -355,6 +519,16 @@ async def _run_one_cycle() -> None:
             except Exception as _e:
                 logger.debug(f"Chain reconnect attempt failed: {_e}")
 
+        # ── Stop-loss / Take-profit monitor ──────────────────────────────
+        # Runs BEFORE strategy signals so an exiting position can free up
+        # α-balance before new BUY signals fire this same cycle.
+        try:
+            await _check_stop_loss(db)
+            await db.flush()
+        except Exception as _sl_err:
+            logger.error(f"Stop-loss monitor error: {_sl_err}", exc_info=True)
+        # ─────────────────────────────────────────────────────────────────
+
         # Keep consensus service in sync with current bot modes
         mode_map = {s.name: (s.mode or "PAPER_ONLY") for s in strategies}
         consensus_service.update_bot_modes(mode_map)
@@ -490,9 +664,62 @@ async def _run_one_cycle() -> None:
                     if exec_result.get("success"):
                         amount   = live_amount
                         tx_hash  = exec_result.get("tx_hash") or exec_result.get("block_hash")
-                        # Record BUY against the daily deployment cap
+
                         if side == "buy":
+                            # ── Daily cap accounting ──────────────────────
                             _record_stake(live_amount)
+
+                            # ── Open a StakePosition for SL/TP monitoring ─
+                            alpha_entry = bittensor_service._subnet_prices.get(target_netuid, 0.0)
+                            if alpha_entry > 0:
+                                sl_snap = _get_risk_value("stop_loss_pct",   8.0)  / 100.0
+                                tp_snap = _get_risk_value("take_profit_pct", 25.0) / 100.0
+                                stake_pos = StakePosition(
+                                    netuid            = target_netuid,
+                                    hotkey            = hotkey,
+                                    strategy          = s.name,
+                                    entry_alpha_price = alpha_entry,
+                                    tao_staked        = live_amount,
+                                    sl_pct            = sl_snap,
+                                    tp_pct            = tp_snap,
+                                    open_tx_hash      = tx_hash,
+                                    status            = "open",
+                                )
+                                db.add(stake_pos)
+                                logger.info(
+                                    f"[POSITION] Opened SN{target_netuid} entry_α={alpha_entry:.5f}τ "
+                                    f"staked={live_amount}τ SL={sl_snap*100:.0f}% "
+                                    f"TP={tp_snap*100:.0f}%"
+                                )
+                            else:
+                                logger.warning(
+                                    f"[POSITION] α-price unavailable for SN{target_netuid} "
+                                    f"— position NOT recorded (SL/TP won't monitor this stake)"
+                                )
+
+                        else:  # side == "sell"
+                            # ── Close matching open StakePosition ─────────
+                            close_res = await db.execute(
+                                select(StakePosition)
+                                .where(StakePosition.netuid  == target_netuid)
+                                .where(StakePosition.hotkey  == hotkey)
+                                .where(StakePosition.status  == "open")
+                                .order_by(StakePosition.opened_at.asc())
+                                .limit(1)
+                            )
+                            pos_obj = close_res.scalar_one_or_none()
+                            if pos_obj:
+                                cur_alpha = bittensor_service._subnet_prices.get(target_netuid, 0.0)
+                                pnl_est   = (
+                                    (cur_alpha - pos_obj.entry_alpha_price)
+                                    / pos_obj.entry_alpha_price
+                                    * pos_obj.tao_staked
+                                ) if pos_obj.entry_alpha_price > 0 else 0.0
+                                pos_obj.status           = "closed"
+                                pos_obj.closed_at        = datetime.utcnow()
+                                pos_obj.close_tx_hash    = tx_hash
+                                pos_obj.realized_pnl_tao = round(pnl_est, 6)
+
                         push_event(
                             "trade",
                             f"🔴 LIVE {side.upper()} {live_amount:.4f}τ @ ${price:.2f} "
