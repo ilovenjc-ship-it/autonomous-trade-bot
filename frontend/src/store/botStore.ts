@@ -2,6 +2,12 @@ import { create } from 'zustand'
 import { botApi, tradesApi, priceApi, strategiesApi } from '@/api/client'
 import type { BotStatus, Trade, TradeStats, PriceData, PricePoint, Strategy } from '@/types'
 
+interface MissionStats {
+  subnets: number
+  events: number
+  refresh: () => void
+}
+
 interface BotStore {
   // State
   status: BotStatus | null
@@ -14,8 +20,10 @@ interface BotStore {
   loading: boolean
   error: string | null
   lastUpdated: Date | null
+  missionStats: MissionStats | null
 
   // Actions
+  setMissionStats: (stats: MissionStats | null) => void
   fetchStatus: () => Promise<void>
   fetchTrades: (page?: number) => Promise<void>
   fetchTradeStats: () => Promise<void>
@@ -40,6 +48,9 @@ export const useBotStore = create<BotStore>((set, get) => ({
   loading: false,
   error: null,
   lastUpdated: null,
+  missionStats: null,
+
+  setMissionStats: (stats) => set({ missionStats: stats }),
 
   fetchStatus: async () => {
     try {

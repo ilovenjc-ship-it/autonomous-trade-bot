@@ -55,8 +55,9 @@ const navItems = [
 ]
 
 export default function Layout() {
-  const status      = useBotStore((s) => s.status)
-  const fetchStatus = useBotStore((s) => s.fetchStatus)
+  const status       = useBotStore((s) => s.status)
+  const fetchStatus  = useBotStore((s) => s.fetchStatus)
+  const missionStats = useBotStore((s) => s.missionStats)
   const isRunning   = status?.is_running ?? false
   const { unreadCount } = useAlerts()
   const { pathname }    = useLocation()
@@ -404,7 +405,7 @@ export default function Layout() {
               </span>
             </div>
           ) : (
-            /* All other pages: page title · Live / Paper Trading */
+            /* All other pages: page title · [mission stats] · Live / Paper Trading */
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className={clsx(
                 'w-2.5 h-2.5 rounded-full flex-shrink-0',
@@ -413,6 +414,15 @@ export default function Layout() {
               <span className="text-sm font-bold font-mono text-white leading-none tracking-wide">
                 {pageTitle}
               </span>
+              {/* Mission Control inline stats */}
+              {pathname === '/mission-control' && missionStats && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">
+                    {missionStats.subnets} subnets · {missionStats.events} events
+                  </span>
+                </>
+              )}
               <span className="text-slate-600 select-none">·</span>
               <span className="text-sm font-semibold font-mono text-slate-400 leading-none">
                 {status?.simulation_mode ? 'Paper Trading' : 'Live Trading'}
@@ -423,10 +433,13 @@ export default function Layout() {
           {/* Push everything else to the right */}
           <div className="flex-1" />
 
-          {/* Reload / reset page — universal */}
+          {/* Reload / reset page — universal; mission-control uses live refresh */}
           <button
-            onClick={() => window.location.reload()}
-            title="Reload page"
+            onClick={() => pathname === '/mission-control' && missionStats
+              ? missionStats.refresh()
+              : window.location.reload()
+            }
+            title={pathname === '/mission-control' ? 'Refresh subnets & events' : 'Reload page'}
             className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white hover:bg-dark-600 transition-colors flex-shrink-0"
           >
             <RefreshCw size={14} />
