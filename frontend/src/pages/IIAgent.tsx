@@ -274,7 +274,6 @@ export default function IIAgent() {
   const [recommendations,setRecs]     = useState<Recommendation[]>([])
   const [lastReport,  setLastReport]  = useState<AnalysisReport | null>(null)
   const [analyzing,   setAnalyzing]   = useState(false)
-  const [lastRefresh, setLastRefresh] = useState(new Date())
   const [flash,       setFlash]       = useState(false)
   const [cStats,      setCStats]      = useState<{total_rounds:number,approved_rounds:number,approval_rate_pct:number}|null>(null)
 
@@ -298,7 +297,6 @@ export default function IIAgent() {
       setRecs(recsRes.value.data.recommendations)
     if (cStatsRes.status === 'fulfilled' && cStatsRes.value.data.total_rounds != null)
       setCStats(cStatsRes.value.data)
-    setLastRefresh(new Date())
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -398,56 +396,56 @@ export default function IIAgent() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeroSlider slides={heroSlides} />
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3">
-          <div className={clsx(
-            'w-12 h-12 rounded-2xl flex items-center justify-center shadow-xl transition-all duration-700',
-            flash ? 'bg-indigo-500 shadow-indigo-500/50' : 'bg-gradient-to-br from-indigo-600 to-purple-700 shadow-indigo-500/20',
-          )}>
-            <Brain size={22} className="text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-xl font-black text-white tracking-tight">II Agent</h1>
-              <span className="text-xs font-mono text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2 py-0.5 rounded-full">
-                Master Orchestrator
-              </span>
-            </div>
-            <p className="text-xs text-slate-300 font-mono">
-              Regime · Fleet · Consensus · Recommendations
-              {status?.last_analysis_at && (
-                <span className="ml-2 text-slate-300">· Last analysis {timeSince(status.last_analysis_at)}</span>
-              )}
-            </p>
-          </div>
+
+      {/* ── Page header bar — Master Orchestrator ──────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-2.5 bg-dark-800/80 border-b border-dark-700/60">
+        {/* Brain icon */}
+        <div className={clsx(
+          'w-8 h-8 rounded-xl flex items-center justify-center shadow-lg transition-all duration-700 flex-shrink-0',
+          flash
+            ? 'bg-indigo-500 shadow-indigo-500/50'
+            : 'bg-gradient-to-br from-indigo-600 to-purple-700 shadow-indigo-500/20',
+        )}>
+          <Brain size={15} className="text-white" />
         </div>
 
-        <div className="flex items-center gap-3">
-          <span className="text-xs text-slate-300 font-mono">↻ {lastRefresh.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'America/New_York' })}</span>
-          <button
-            onClick={handleAnalyze}
-            disabled={analyzing}
-            className={clsx(
-              'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300',
-              analyzing
-                ? 'bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 cursor-wait'
-                : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40'
-            )}
-          >
-            {analyzing ? (
-              <><RefreshCw size={14} className="animate-spin" /> Analysing…</>
-            ) : (
-              <><Brain size={14} /> Run Analysis</>
-            )}
-          </button>
-          <button onClick={load} className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white transition-colors">
-            <RefreshCw size={14} />
-          </button>
-        </div>
+        {/* Master Orchestrator pill */}
+        <span className="text-xs font-mono text-indigo-400 bg-indigo-500/15 border border-indigo-500/30 px-2.5 py-1 rounded-full flex-shrink-0">
+          Master Orchestrator
+        </span>
+
+        <span className="text-slate-600 select-none">·</span>
+
+        {/* Subtitle + last analysis */}
+        <span className="text-sm font-mono text-slate-400 truncate">
+          Regime · Fleet · Consensus · Recommendations
+          {status?.last_analysis_at && (
+            <span className="text-slate-500 ml-2">· Last analysis {timeSince(status.last_analysis_at)}</span>
+          )}
+        </span>
+
+        <div className="flex-1" />
+
+        {/* Run Analysis button */}
+        <button
+          onClick={handleAnalyze}
+          disabled={analyzing}
+          className={clsx(
+            'flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-300 flex-shrink-0',
+            analyzing
+              ? 'bg-indigo-600/40 text-indigo-300 border border-indigo-500/30 cursor-wait'
+              : 'bg-indigo-600 text-white hover:bg-indigo-500 shadow-lg shadow-indigo-500/20 hover:shadow-indigo-500/40'
+          )}
+        >
+          {analyzing
+            ? <><RefreshCw size={14} className="animate-spin" /> Analysing…</>
+            : <><Brain size={14} /> Run Analysis</>
+          }
+        </button>
       </div>
+
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── Top row: Regime + Stats ── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
