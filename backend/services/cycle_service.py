@@ -12,7 +12,7 @@ Every cycle (default 60 s):
 import asyncio
 import logging
 import random
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
 from sqlalchemy import select, update
@@ -90,23 +90,231 @@ DISPLAY_NAMES = {
 }
 
 
-def _build_signal_reason(strategy: str, indicators: Dict[str, Any], price: float) -> str:
-    """Build a human-readable signal reason from indicators."""
+# ── Daily deployment cap ──────────────────────────────────────────────────────
+# Prevents the bot from consuming all liquid TAO within a single day.
+# Resets at midnight UTC. Cap is expressed as a fraction of liquid balance
+# at the time each trade fires.
+MAX_DAILY_STAKE_FRACTION = 0.40   # never stake more than 40 % of liquid per day
+_daily_staked_tao: float = 0.0
+_daily_reset_date: Optional[str] = None   # YYYY-MM-DD UTC
+
+
+def _check_daily_cap(amount: float, liquid_balance: float) -> bool:
+    """
+    Return True (allow trade) if staking `amount` would keep total daily
+    deployment below MAX_DAILY_STAKE_FRACTION of `liquid_balance`.
+    Resets the counter at midnight UTC automatically.
+    """
+    global _daily_staked_tao, _daily_reset_date
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    if _daily_reset_date != today:
+        _daily_staked_tao  = 0.0
+        _daily_reset_date  = today
+        logger.info(f"Daily stake cap reset for {today}")
+    cap = max(liquid_balance * MAX_DAILY_STAKE_FRACTION, 0.02)   # floor: at least 1 trade allowed
+    allowed = (_daily_staked_tao + amount) <= cap
+    if not allowed:
+        logger.info(
+            f"Daily cap reached — staked {_daily_staked_tao:.4f}τ today "
+            f"(cap={cap:.4f}τ, 40% of {liquid_balance:.4f}τ liquid)"
+        )
+    return allowed
+
+
+def _record_stake(amount: float) -> None:
+    """Record a completed stake against today's deployment total."""
+    global _daily_staked_tao
+    _daily_staked_tao += amount
+
+
+# ── Signal engine — replaces random.choice(["buy","sell"]) ───────────────────
+
+def _compute_signal(strategy: str, indicators: Dict[str, Any], price: float) -> Optional[str]:
+    """
+    Return the real indicator-driven trade direction for each strategy.
+
+    Returns:
+        "buy"  — clear bullish signal
+        "sell" — clear bearish signal
+        None   — no edge detected this cycle (skip trade entirely)
+
+    Each strategy name encodes its logic:
+        momentum_cascade   → EMA crossover + RSI filter
+        dtao_flow_momentum → MACD histogram direction
+        liquidity_hunter   → Price vs BB mid + RSI
+        breakout_hunter    → Price vs EMA9 + RSI momentum
+        yield_maximizer    → Simple EMA trend (buy-and-hold bias)
+        contrarian_flow    → RSI extreme reversal (buys dips, sells rips)
+        volatility_arb     → Bollinger Band position (buys near lower, sells near upper)
+        sentiment_surge    → RSI direction + MACD confirmation (weak, noisy)
+        balanced_risk      → Multi-confirmation: EMA + RSI + MACD must ALL agree
+        mean_reversion     → Pure RSI extremes (only trades at <33 or >67)
+        emission_momentum  → EMA AND MACD must both agree (strict dual-confirm)
+        macro_correlation  → Price vs SMA50 + RSI (longer-term view)
+    """
+    rsi   = indicators.get("rsi_14")
+    ema9  = indicators.get("ema_9")
+    ema21 = indicators.get("ema_21")
+    sma50 = indicators.get("sma_50")
+    macd  = indicators.get("macd")
+    sig   = indicators.get("macd_signal")
+    bb_up = indicators.get("bb_upper")
+    bb_lo = indicators.get("bb_lower")
+    bb_md = indicators.get("bb_mid")
+    hist  = (macd - sig) if (macd is not None and sig is not None) else None
+
+    # ── momentum_cascade ──────────────────────────────────────────────
+    if strategy == "momentum_cascade":
+        if ema9 and ema21:
+            if ema9 > ema21 and (rsi is None or rsi < 68):
+                return "buy"    # trend up, not overbought
+            if ema9 < ema21 or (rsi is not None and rsi > 72):
+                return "sell"   # trend down or overbought → exit
+        return None
+
+    # ── dtao_flow_momentum ────────────────────────────────────────────
+    elif strategy == "dtao_flow_momentum":
+        if hist is not None:
+            return "buy" if hist > 0 else "sell"    # MACD histogram direction
+        if ema9 and ema21:                           # fallback
+            return "buy" if ema9 > ema21 else "sell"
+        return None
+
+    # ── liquidity_hunter ──────────────────────────────────────────────
+    elif strategy == "liquidity_hunter":
+        if bb_md is not None and rsi is not None:
+            # Buy: above mid-band with momentum but NOT overbought
+            if price > bb_md and 52 < rsi < 70:
+                return "buy"
+            # Sell: below mid-band OR overbought (RSI > 70 = exit regardless)
+            if price < bb_md and rsi < 48 or rsi > 70:
+                return "sell"
+        if ema9 and ema21:
+            return "buy" if ema9 > ema21 else "sell"
+        return None
+
+    # ── breakout_hunter ───────────────────────────────────────────────
+    elif strategy == "breakout_hunter":
+        # Use EMA21 (trend-direction) + RSI momentum confirmation.
+        # EMA9 is too sensitive — a $0.50 dip below it would falsely trigger SELL.
+        if ema21 is not None and rsi is not None:
+            if price > ema21 and rsi > 55:
+                return "buy"    # price above trend MA with momentum
+            if price < ema21 or rsi < 45:
+                return "sell"   # below trend line or momentum lost
+        return None
+
+    # ── yield_maximizer ───────────────────────────────────────────────
+    elif strategy == "yield_maximizer":
+        # Emission-first: stay with the trend, exit on crossover only
+        if ema9 and ema21:
+            return "buy" if ema9 > ema21 else "sell"
+        return None
+
+    # ── contrarian_flow ───────────────────────────────────────────────
+    elif strategy == "contrarian_flow":
+        # Buys extreme fear, sells extreme greed — neutral zone = no trade
+        if rsi is not None:
+            if rsi < 35:
+                return "buy"    # extreme oversold → expect bounce
+            if rsi > 65:
+                return "sell"   # extreme overbought → expect decline
+        return None             # mid-range: no edge for contrarian
+
+    # ── volatility_arb ────────────────────────────────────────────────
+    elif strategy == "volatility_arb":
+        if bb_up and bb_lo and bb_md:
+            bb_range = bb_up - bb_lo
+            if bb_range > 0:
+                pct_in_band = (price - bb_lo) / bb_range
+                if pct_in_band < 0.20:
+                    return "buy"    # near lower band — oversold in volatility context
+                if pct_in_band > 0.80:
+                    return "sell"   # near upper band — overbought
+        return None
+
+    # ── sentiment_surge ───────────────────────────────────────────────
+    elif strategy == "sentiment_surge":
+        # Weak noisy signal — RSI direction + optional MACD confirm
+        if rsi is not None:
+            if rsi > 55 and (hist is None or hist > 0):
+                return "buy"
+            if rsi < 45 or (hist is not None and hist < -0.001):
+                return "sell"
+        return None
+
+    # ── balanced_risk ─────────────────────────────────────────────────
+    elif strategy == "balanced_risk":
+        # Conservative: ALL indicators must agree to enter; exit on any warning
+        if ema9 and ema21 and rsi is not None:
+            fully_bullish = (ema9 > ema21) and (42 <= rsi <= 65) and (hist is None or hist > 0)
+            any_danger    = (ema9 < ema21) or rsi > 72 or rsi < 30
+            if fully_bullish:
+                return "buy"
+            if any_danger:
+                return "sell"
+        return None
+
+    # ── mean_reversion ────────────────────────────────────────────────
+    elif strategy == "mean_reversion":
+        # Only trade at genuine RSI extremes — wide neutral zone
+        if rsi is not None:
+            if rsi < 33:
+                return "buy"    # extremely oversold
+            if rsi > 67:
+                return "sell"   # extremely overbought
+        return None             # 33–67: no edge for mean reversion
+
+    # ── emission_momentum ─────────────────────────────────────────────
+    elif strategy == "emission_momentum":
+        # Strict dual confirmation: EMA AND MACD must agree
+        if ema9 and ema21 and hist is not None:
+            if ema9 > ema21 and hist > 0:
+                return "buy"
+            if ema9 < ema21 and hist < 0:
+                return "sell"
+        elif ema9 and ema21:    # only one confirm available
+            return "buy" if ema9 > ema21 else "sell"
+        return None
+
+    # ── macro_correlation ─────────────────────────────────────────────
+    elif strategy == "macro_correlation":
+        # Long-timeframe view: price relative to SMA50 + RSI
+        if sma50 is not None and rsi is not None:
+            if price > sma50 and rsi > 47:
+                return "buy"    # macro bullish
+            if price < sma50 or rsi < 43:
+                return "sell"   # macro bearish
+        if ema9 and ema21:      # SMA50 not ready yet (need 50 data points)
+            return "buy" if ema9 > ema21 else "sell"
+        return None
+
+    return None   # unknown strategy
+
+
+def _build_signal_reason(strategy: str, indicators: Dict[str, Any], price: float, side: str) -> str:
+    """
+    Build a human-readable reason that explains WHY the signal fired,
+    referencing the actual indicator values that drove the decision.
+    """
     rsi   = indicators.get("rsi_14")
     ema9  = indicators.get("ema_9")
     ema21 = indicators.get("ema_21")
     macd  = indicators.get("macd")
     sig   = indicators.get("macd_signal")
+    hist  = (macd - sig) if (macd is not None and sig is not None) else None
+    bb_up = indicators.get("bb_upper")
+    bb_lo = indicators.get("bb_lower")
 
     parts = []
-    if rsi:   parts.append(f"RSI={rsi:.1f}")
-    if ema9:  parts.append(f"EMA9={ema9:.3f}")
-    if ema21: parts.append(f"EMA21={ema21:.3f}")
-    if macd and sig:
-        parts.append(f"MACD_hist={macd-sig:.5f}")
+    if rsi   is not None: parts.append(f"RSI={rsi:.1f}")
+    if ema9  and ema21:   parts.append(f"EMA9{'>'if ema9>ema21 else '<'}EMA21")
+    if hist  is not None: parts.append(f"MACD_hist={hist:+.5f}")
+    if bb_up and bb_lo:   parts.append(f"BB_pct={((price-bb_lo)/(bb_up-bb_lo)*100):.0f}%")
 
-    base = ", ".join(parts) if parts else f"price=${price:.2f}"
-    return f"{DISPLAY_NAMES.get(strategy, strategy)}: {base}"
+    indicator_str = ", ".join(parts) if parts else f"price=${price:.2f}"
+    name = DISPLAY_NAMES.get(strategy, strategy)
+    return f"{name}: {side.upper()} — {indicator_str}"
 
 
 def _gate_check(s: Strategy) -> Dict[str, bool]:
@@ -162,17 +370,29 @@ async def _run_one_cycle() -> None:
                 await db.flush()
                 continue
 
-            # Win / loss outcome
+            # ── Real indicator-driven signal ──────────────────────────
+            # Replaces random.choice(["buy","sell"]).
+            # Each strategy uses its own indicator logic to determine
+            # direction. None = no clear edge this cycle → skip.
+            side = _compute_signal(s.name, indicators, price)
+            if side is None:
+                # No clear signal — don't force a trade
+                s.cycles_completed = (s.cycles_completed or 0) + 1
+                await db.flush()
+                continue
+
+            # Win / loss outcome for paper simulation
+            # (actual on-chain PnL is determined by α-price movement,
+            #  but we keep the simulation for stats/gate tracking)
             is_win  = random.random() < p["win_bias"]
             raw_pnl = abs(random.gauss(p["pnl_mean"], p["pnl_std"]))
-            pnl     = raw_pnl if is_win else -raw_pnl * 0.7   # losses smaller than wins
+            pnl     = raw_pnl if is_win else -raw_pnl * 0.7
             pnl     = round(pnl, 6)
 
-            # TAO amount (small paper trade)
+            # TAO amount — tier-based for LIVE, small fixed for paper
             amount = round(random.uniform(0.01, 0.05), 4)
-            side   = random.choice(["buy", "sell"])
 
-            reason = _build_signal_reason(s.name, indicators, price)
+            reason = _build_signal_reason(s.name, indicators, price, side)
 
             # ── OpenClaw BFT Gate (ALL strategy modes) ───────────────────────
             # Consensus runs for PAPER_ONLY, APPROVED_FOR_LIVE, and LIVE.
@@ -234,6 +454,23 @@ async def _run_one_cycle() -> None:
                 # Tier: ELITE 0.020τ / STRONG 0.015τ / SOLID 0.010τ / CAUTIOUS 0.008/0.006τ
                 live_amount = s.stake_amount if s.stake_amount else (config.trade_amount if config else 0.1)
 
+                # ── Daily deployment cap (BUY side only) ─────────────────
+                # Prevents the bot from consuming all liquid TAO in a
+                # single day. Resets at midnight UTC.
+                if side == "buy":
+                    liquid = await bittensor_service.get_balance() or 0.0
+                    if not _check_daily_cap(live_amount, liquid):
+                        push_event(
+                            "system",
+                            f"⛽ Daily cap reached — {display} BUY skipped "
+                            f"(staked {_daily_staked_tao:.4f}τ today, "
+                            f"cap=40% of {liquid:.4f}τ liquid)",
+                            strategy=s.name,
+                        )
+                        s.cycles_completed = (s.cycles_completed or 0) + 1
+                        await db.flush()
+                        continue
+
                 # Ask the subnet router for the best (netuid, hotkey) pair
                 target_netuid, hotkey = await get_stake_target(s.name)
 
@@ -253,6 +490,9 @@ async def _run_one_cycle() -> None:
                     if exec_result.get("success"):
                         amount   = live_amount
                         tx_hash  = exec_result.get("tx_hash") or exec_result.get("block_hash")
+                        # Record BUY against the daily deployment cap
+                        if side == "buy":
+                            _record_stake(live_amount)
                         push_event(
                             "trade",
                             f"🔴 LIVE {side.upper()} {live_amount:.4f}τ @ ${price:.2f} "
