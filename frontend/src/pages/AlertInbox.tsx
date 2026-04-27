@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import {
-  Bell, BellOff, Check, CheckCheck, RefreshCw,
+  Bell, BellOff, Check, CheckCheck,
   TrendingUp, Zap, ShieldCheck, ShieldX, Flame,
   AlertTriangle, Trophy, TrendingDown, Cpu, Filter,
 } from 'lucide-react'
@@ -165,7 +165,6 @@ export default function AlertInbox() {
   const [levelFilter, setLevelFilter] = useState<string>('ALL')
   const [typeFilter,  setTypeFilter]  = useState<string>('ALL')
   const [unreadOnly,  setUnreadOnly]  = useState(false)
-  const [lastRefresh, setLastRefresh] = useState(new Date())
 
   const load = useCallback(async () => {
     const [alertsRes, statsRes] = await Promise.allSettled([
@@ -176,7 +175,6 @@ export default function AlertInbox() {
       setAlerts(alertsRes.value.data.alerts)
     if (statsRes.status === 'fulfilled')
       setStats(statsRes.value.data)
-    setLastRefresh(new Date())
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -197,13 +195,16 @@ export default function AlertInbox() {
     setStats(prev => prev ? { ...prev, unread: 0 } : prev)
   }
 
-  // Filter
+  // Filter — PRIORITY is a special shorthand for CRITICAL + WARNING
   const filtered = alerts.filter(a => {
-    if (unreadOnly && a.read)           return false
-    if (levelFilter !== 'ALL' && a.level !== levelFilter) return false
-    if (typeFilter  !== 'ALL' && a.type  !== typeFilter)  return false
+    if (unreadOnly && a.read) return false
+    if (levelFilter === 'PRIORITY' && a.level !== 'CRITICAL' && a.level !== 'WARNING') return false
+    if (levelFilter !== 'ALL' && levelFilter !== 'PRIORITY' && a.level !== levelFilter) return false
+    if (typeFilter  !== 'ALL' && a.type !== typeFilter) return false
     return true
   })
+
+  const priorityCount = alerts.filter(a => a.level === 'CRITICAL' || a.level === 'WARNING').length
 
   const unreadCount = stats?.unread ?? 0
 
@@ -242,47 +243,51 @@ export default function AlertInbox() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeroSlider slides={heroSlides} />
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center shadow-lg shadow-red-500/20">
-              <Bell size={18} className="text-white" />
-            </div>
-            {unreadCount > 0 && (
-              <span className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] bg-red-500 text-white text-[13px] font-bold rounded-full flex items-center justify-center px-1">
-                {unreadCount > 99 ? '99+' : unreadCount}
-              </span>
-            )}
+
+      {/* ── Page header bar — Alert Inbox ──────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-2.5 bg-dark-800/80 border-b border-dark-700/60">
+        {/* Bell icon with live unread badge */}
+        <div className="relative flex-shrink-0">
+          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center shadow-lg shadow-red-500/20">
+            <Bell size={15} className="text-white" />
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">Alert Inbox</h1>
-            <p className="text-xs text-slate-300 font-mono">
-              {unreadCount > 0
-                ? <span className="text-red-400">{unreadCount} unread alerts</span>
-                : <span className="text-emerald-400">All caught up</span>}
-              <span className="text-slate-300 ml-2">· ↻ {lastRefresh.toLocaleTimeString()}</span>
-            </p>
-          </div>
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center px-0.5 animate-pulse">
+              {unreadCount > 99 ? '99+' : unreadCount}
+            </span>
+          )}
         </div>
 
-        <div className="flex items-center gap-2">
-          {unreadCount > 0 && (
-            <button
-              onClick={handleMarkAllRead}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors"
-            >
-              <CheckCheck size={13} />
-              Mark All Read
-            </button>
-          )}
-          <button onClick={load} className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white">
-            <RefreshCw size={14} />
-          </button>
+        {/* Title + status */}
+        <div className="flex flex-col justify-center min-w-0">
+          <span className="text-sm font-bold text-white tracking-tight leading-none">Alert Inbox</span>
+          <span className="text-xs font-mono mt-0.5 leading-none">
+            {unreadCount > 0
+              ? <span className="text-red-400">{unreadCount} unread alerts</span>
+              : <span className="text-emerald-400">All caught up</span>
+            }
+            {priorityCount > 0 && (
+              <span className="text-amber-400 ml-2">· {priorityCount} need attention</span>
+            )}
+          </span>
         </div>
+
+        <div className="flex-1" />
+
+        {/* Mark All Read */}
+        {unreadCount > 0 && (
+          <button
+            onClick={handleMarkAllRead}
+            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors flex-shrink-0"
+          >
+            <CheckCheck size={13} />
+            Mark All Read
+          </button>
+        )}
       </div>
+
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── Stats row ── */}
       {stats && (
@@ -303,45 +308,76 @@ export default function AlertInbox() {
 
       {/* ── Filters ── */}
       <div className="flex flex-wrap gap-3 items-center">
-        <Filter size={14} className="text-slate-300" />
+        <Filter size={14} className="text-slate-300 flex-shrink-0" />
 
-        {/* Level filter */}
-        <div className="flex gap-1">
-          {['ALL', ...ALL_LEVELS].map(level => (
+        {/* Priority + Level filter pills */}
+        <div className="flex gap-1 flex-wrap">
+          {/* ALL */}
+          <button
+            onClick={() => setLevelFilter('ALL')}
+            className={clsx(
+              'px-3 py-1 rounded-lg text-[13px] font-mono font-semibold transition-colors',
+              levelFilter === 'ALL' ? 'bg-slate-600 text-white' : 'bg-dark-700 text-slate-300 hover:text-white',
+            )}
+          >
+            All
+          </button>
+
+          {/* PRIORITY — CRITICAL + WARNING combined */}
+          <button
+            onClick={() => setLevelFilter('PRIORITY')}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1 rounded-lg text-[13px] font-mono font-semibold transition-colors border',
+              levelFilter === 'PRIORITY'
+                ? 'bg-orange-500/15 text-orange-400 border-orange-500/40'
+                : 'bg-dark-700 text-slate-300 border-transparent hover:text-orange-400 hover:border-orange-500/30',
+            )}
+          >
+            ⚡ Priority
+            {priorityCount > 0 && (
+              <span className={clsx(
+                'text-[11px] font-bold px-1.5 py-0.5 rounded-full',
+                levelFilter === 'PRIORITY' ? 'bg-orange-500/30 text-orange-300' : 'bg-red-500/20 text-red-400',
+              )}>
+                {priorityCount}
+              </span>
+            )}
+          </button>
+
+          {/* Individual level pills */}
+          {ALL_LEVELS.map(level => (
             <button
               key={level}
               onClick={() => setLevelFilter(level)}
               className={clsx(
-                'px-3 py-1 rounded-lg text-[14px] font-mono font-semibold transition-colors',
+                'px-3 py-1 rounded-lg text-[13px] font-mono font-semibold transition-colors border',
                 levelFilter === level
-                  ? level === 'ALL'
-                    ? 'bg-slate-600 text-white'
-                    : `${LEVEL_CFG[level]?.bg ?? ''} ${LEVEL_CFG[level]?.text ?? ''} border ${LEVEL_CFG[level]?.border ?? ''}`
-                  : 'bg-dark-700 text-slate-300 hover:text-white',
+                  ? `${LEVEL_CFG[level]?.bg ?? ''} ${LEVEL_CFG[level]?.text ?? ''} ${LEVEL_CFG[level]?.border ?? ''}`
+                  : 'bg-dark-700 text-slate-300 border-transparent hover:text-white',
               )}
             >
-              {level}
+              {level.charAt(0) + level.slice(1).toLowerCase()}
             </button>
           ))}
         </div>
 
-        <div className="h-4 w-px bg-dark-600" />
+        <div className="h-4 w-px bg-dark-600 flex-shrink-0" />
 
-        {/* Unread toggle */}
+        {/* Unread Only toggle */}
         <button
           onClick={() => setUnreadOnly(v => !v)}
           className={clsx(
-            'flex items-center gap-1.5 px-3 py-1 rounded-lg text-[14px] font-mono font-semibold transition-colors',
+            'flex items-center gap-1.5 px-3 py-1 rounded-lg text-[13px] font-mono font-semibold transition-colors border',
             unreadOnly
-              ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30'
-              : 'bg-dark-700 text-slate-300 hover:text-white',
+              ? 'bg-indigo-500/20 text-indigo-400 border-indigo-500/30'
+              : 'bg-dark-700 text-slate-300 border-transparent hover:text-white',
           )}
         >
           {unreadOnly ? <Bell size={11} /> : <BellOff size={11} />}
           Unread Only
         </button>
 
-        {/* Type filter */}
+        {/* Type filter — pushed to far right */}
         <select
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}

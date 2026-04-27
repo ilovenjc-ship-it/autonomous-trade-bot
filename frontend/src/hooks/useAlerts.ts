@@ -20,8 +20,9 @@ interface Alert {
   timestamp: string
 }
 
-const POLL_INTERVAL = 4000   // ms
-const STORAGE_KEY   = 'tao_last_seen_alert_id'
+const POLL_INTERVAL  = 6000                       // ms — 6s is plenty for real-time feel
+const STORAGE_KEY    = 'tao_last_seen_alert_id'
+const TOAST_LEVELS   = new Set(['CRITICAL', 'WARNING'])  // INFO is status noise, skip toasts
 
 function getLevelStyle(level: string): { background: string; color: string; border: string } {
   switch (level) {
@@ -59,21 +60,25 @@ export function useAlerts() {
       // Update badge count
       setUnreadCount(data.unread_count ?? 0)
 
-      // Find alerts newer than last seen
+      // Find ALL alerts newer than last seen — track by ID only (read status is irrelevant
+      // for tracking; an alert marked read in another tab still happened and was new)
       const alerts: Alert[] = data.alerts ?? []
-      const newAlerts = alerts.filter(
-        a => a.id > lastSeenId.current && !a.read
-      )
+      const newAlerts = alerts.filter(a => a.id > lastSeenId.current)
 
       if (newAlerts.length === 0) return
 
-      // Update last seen to highest ID
+      // Advance the watermark to the highest new ID seen (regardless of what we toast)
       const maxId = Math.max(...newAlerts.map(a => a.id))
       lastSeenId.current = maxId
       localStorage.setItem(STORAGE_KEY, String(maxId))
 
-      // Fire toasts — newest last (so they stack oldest→newest), cap at 3
-      const toShow = [...newAlerts].reverse().slice(0, 3)
+      // Only toast CRITICAL and WARNING — INFO is status noise that fills the screen
+      // Cap at 3 per poll; reverse so newest appears on top of the stack
+      const toShow = newAlerts
+        .filter(a => TOAST_LEVELS.has(a.level))
+        .reverse()
+        .slice(0, 3)
+
       for (const alert of toShow) {
         const style = getLevelStyle(alert.level)
         const text  = alert.strategy
@@ -86,7 +91,7 @@ export function useAlerts() {
           style: {
             ...style,
             fontFamily: '"Space Grotesk", system-ui',
-            fontSize:   12,
+            fontSize:   13,
             padding:    '10px 14px',
             maxWidth:   380,
             lineHeight: 1.5,
