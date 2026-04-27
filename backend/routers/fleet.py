@@ -735,3 +735,30 @@ async def get_positions(db: AsyncSession = Depends(get_db)):
         "sl_pct":      sl_pct_cfg,
         "tp_pct":      tp_pct_cfg,
     }
+
+# ── Daily Cap Status ──────────────────────────────────────────────────────────
+
+@router.get("/daily-cap")
+async def get_daily_cap():
+    """
+    Return today's deployment cap status so the Dashboard can show
+    a live progress bar: how much TAO has been staked today vs. the cap.
+    """
+    from services.cycle_service import (
+        _daily_staked_tao, _daily_reset_date, MAX_DAILY_STAKE_FRACTION
+    )
+    from services.bittensor_service import bittensor_service
+
+    liquid = bittensor_service._last_balance or 0.0
+    cap    = max(liquid * MAX_DAILY_STAKE_FRACTION, 0.02)
+    pct    = min(100, (_daily_staked_tao / cap * 100)) if cap > 0 else 0
+
+    return {
+        "staked_today_tao":  round(_daily_staked_tao, 6),
+        "cap_tao":           round(cap, 6),
+        "liquid_tao":        round(liquid, 6),
+        "pct_used":          round(pct, 1),
+        "remaining_tao":     round(max(0, cap - _daily_staked_tao), 6),
+        "reset_date":        _daily_reset_date,
+        "fraction":          MAX_DAILY_STAKE_FRACTION,
+    }

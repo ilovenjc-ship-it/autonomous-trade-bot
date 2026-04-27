@@ -2,8 +2,10 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import {
   Play, Square, RefreshCw, TrendingUp, TrendingDown,
   Activity, Zap, Bot, Shield, BarChart2, Clock, Award, Radio,
-  Brain, Vote, Bell, Wallet,
+  Brain, Vote, Bell, Wallet, Gauge, ShieldAlert, ChevronRight,
+  ArrowUpRight, ArrowDownRight, Layers,
 } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import PageHeroSlider, { SliderSlide } from '@/components/PageHeroSlider'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
@@ -18,6 +20,11 @@ import api from '@/api/client'
 interface AgentStatus { current_regime: string; regime_color: string; analysis_count: number; total_pnl: number }
 interface ConsensusStats { total_rounds: number; approval_rate_pct: number; total_buy_votes: number; total_sell_votes: number }
 interface WalletStatus { balance_cached: number | null; connected: boolean; block_cached: number | null }
+interface DailyCap {
+  staked_today_tao: number; cap_tao: number; liquid_tao: number
+  pct_used: number; remaining_tao: number; reset_date: string | null; fraction: number
+}
+interface OpenPositionsSummary { open_count: number; sl_pct: number; tp_pct: number }
 
 const REGIME_LABEL: Record<string, string> = {
   BULL: '🐂 BULL', BEAR: '🐻 BEAR', SIDEWAYS: '↔ SIDEWAYS', VOLATILE: '⚡ VOLATILE', UNKNOWN: '⟳ SCANNING',
@@ -491,6 +498,8 @@ export default function Dashboard() {
   const [consensusStats, setConsensusStats] = useState<ConsensusStats | null>(null)
   const [walletStatus,   setWalletStatus]   = useState<WalletStatus | null>(null)
   const [unreadAlerts,   setUnreadAlerts]   = useState(0)
+  const [dailyCap,       setDailyCap]       = useState<DailyCap | null>(null)
+  const [openPositions,  setOpenPositions]  = useState<OpenPositionsSummary | null>(null)
   // Charts
   const [priceHistory,   setPriceHistory]   = useState<PricePoint[]>([])
   const [priceRange,     setPriceRange]     = useState<PriceRange>('24H')
@@ -525,7 +534,8 @@ export default function Dashboard() {
   const load = useCallback(async () => {
     try {
       const [statusRes, sumRes, stratRes, eqRes,
-             agentRes, consensusRes, walletRes, alertsRes, tradesRes] = await Promise.all([
+             agentRes, consensusRes, walletRes, alertsRes, tradesRes,
+             capRes, posRes] = await Promise.all([
         api.get('/bot/status'),
         fetch('/api/analytics/summary'),
         fetch('/api/analytics/strategies'),
@@ -535,6 +545,8 @@ export default function Dashboard() {
         fetch('/api/wallet/status').then(r => r.json()).catch(() => null),
         fetch('/api/alerts/unread-count').then(r => r.json()).catch(() => null),
         fetch('/api/trades?limit=8').then(r => r.json()).catch(() => []),
+        fetch('/api/fleet/daily-cap').then(r => r.json()).catch(() => null),
+        fetch('/api/fleet/positions').then(r => r.json()).catch(() => null),
       ])
       setBotStatus(statusRes.data)
       setSummary(await sumRes.json())
@@ -548,6 +560,8 @@ export default function Dashboard() {
       if (consensusRes)setConsensusStats(consensusRes)
       if (walletRes)   setWalletStatus(walletRes)
       if (alertsRes)   setUnreadAlerts(alertsRes.unread_count ?? 0)
+      if (capRes)      setDailyCap(capRes)
+      if (posRes)      setOpenPositions({ open_count: posRes.open_count ?? 0, sl_pct: posRes.sl_pct ?? 8, tp_pct: posRes.tp_pct ?? 25 })
     } catch (e) {
       console.error('Dashboard load error', e)
     } finally {
@@ -592,6 +606,7 @@ export default function Dashboard() {
     }
   }
 
+  const navigate = useNavigate()
   const ind = botStatus?.indicators ?? {}
   const price = botStatus?.current_price
   const change24h = botStatus?.price_change_24h
@@ -728,96 +743,220 @@ export default function Dashboard() {
         </span>
       </div>
 
-      {/* ── KPI row ──────────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-        {/* Account Balance — live from Finney chain */}
-        <KPI label="Account Balance" icon={Wallet}
-          value={walletStatus?.balance_cached != null
-            ? `τ${(walletStatus.balance_cached ?? 0).toFixed(4)}`
-            : '—'}
-          sub={walletStatus?.balance_cached != null && price
-            ? `$${(walletStatus.balance_cached * price).toFixed(2)} USD`
-            : walletStatus?.connected ? 'Querying chain…' : 'Offline'}
-          color="text-indigo-400"
-        />
-        <KPI label="TAO Price" icon={TrendingUp}
-          value={price ? `$${price.toFixed(2)}` : '—'}
-          sub={change24h != null ? `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}% 24h` : undefined}
-          color={change24h != null ? (change24h >= 0 ? 'text-accent-green' : 'text-red-400') : 'text-accent-blue'}
-        />
-        <KPI label="Total PnL" icon={BarChart2}
-          value={summary ? `${fmt(summary.total_pnl, 4)} τ` : '—'}
-          sub={summary ? `${summary.total_trades} trades` : undefined}
-          color={summary && summary.total_pnl >= 0 ? 'text-accent-green' : 'text-red-400'}
-        />
-        <KPI label="Win Rate" icon={Shield}
-          value={summary ? `${summary.win_rate.toFixed(1)}%` : '—'}
-          sub={summary ? `${summary.wins}W / ${summary.losses}L` : undefined}
-          color={summary && summary.win_rate >= 55 ? 'text-accent-green' : 'text-yellow-400'}
-        />
-        <KPI label="Strategies" icon={Bot}
-          value={summary ? `${summary.active_strategies}` : '—'}
-          sub="active in fleet"
-          color="text-accent-blue"
-        />
+      {/* ══════════════════════════════════════════════════════════════════════
+          COMMAND STRIP — 6 operator-critical metrics at a glance
+          ══════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 gap-3">
+
+        {/* 1 — Liquid Balance */}
+        <button onClick={() => navigate('/wallet')}
+          className="bg-dark-800 border border-dark-600 hover:border-indigo-500/40 rounded-xl px-4 py-3.5 flex items-start gap-3 text-left transition-all group">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+            <Wallet size={14} className="text-indigo-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Liquid TAO</p>
+            <p className="text-base font-black font-mono text-indigo-400 mt-0.5">
+              {walletStatus?.balance_cached != null ? `τ${(walletStatus.balance_cached).toFixed(4)}` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+              {walletStatus?.balance_cached != null && price
+                ? `$${(walletStatus.balance_cached * price).toFixed(2)}`
+                : 'free · unstaked'}
+            </p>
+          </div>
+          <ChevronRight size={12} className="text-slate-600 group-hover:text-indigo-400 mt-1 transition-colors" />
+        </button>
+
+        {/* 2 — Daily Cap meter */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+            <Gauge size={14} className="text-amber-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Daily Cap</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              (dailyCap?.pct_used ?? 0) >= 90 ? 'text-red-400' :
+              (dailyCap?.pct_used ?? 0) >= 60 ? 'text-amber-400' : 'text-emerald-400'
+            )}>
+              {dailyCap ? `${dailyCap.pct_used.toFixed(0)}%` : '—'}
+            </p>
+            <div className="mt-1 h-1 bg-dark-600 rounded-full overflow-hidden">
+              <div className={clsx('h-full rounded-full transition-all',
+                (dailyCap?.pct_used ?? 0) >= 90 ? 'bg-red-500' :
+                (dailyCap?.pct_used ?? 0) >= 60 ? 'bg-amber-400' : 'bg-emerald-500'
+              )} style={{ width: `${Math.min(100, dailyCap?.pct_used ?? 0)}%` }} />
+            </div>
+            <p className="text-[11px] font-mono text-slate-500 mt-1">
+              {dailyCap ? `${dailyCap.staked_today_tao.toFixed(3)} / ${dailyCap.cap_tao.toFixed(3)}τ` : 'no data'}
+            </p>
+          </div>
+        </div>
+
+        {/* 3 — Open Positions */}
+        <button onClick={() => navigate('/wallet')}
+          className="bg-dark-800 border border-dark-600 hover:border-purple-500/40 rounded-xl px-4 py-3.5 flex items-start gap-3 text-left transition-all group">
+          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+            <Layers size={14} className="text-purple-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Positions</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              (openPositions?.open_count ?? 0) > 0 ? 'text-purple-400' : 'text-slate-500'
+            )}>
+              {openPositions?.open_count ?? 0}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+              {(openPositions?.open_count ?? 0) > 0
+                ? `SL ${openPositions?.sl_pct ?? 8}% · TP ${openPositions?.tp_pct ?? 25}% active`
+                : 'no open positions'}
+            </p>
+          </div>
+          <ChevronRight size={12} className="text-slate-600 group-hover:text-purple-400 mt-1 transition-colors" />
+        </button>
+
+        {/* 4 — Fleet Win Rate */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            (summary?.win_rate ?? 0) >= 55 ? 'bg-emerald-500/10' : 'bg-yellow-500/10'
+          )}>
+            <Shield size={14} className={(summary?.win_rate ?? 0) >= 55 ? 'text-emerald-400' : 'text-yellow-400'} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Win Rate</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              (summary?.win_rate ?? 0) >= 55 ? 'text-emerald-400' : 'text-yellow-400'
+            )}>
+              {summary ? `${summary.win_rate.toFixed(1)}%` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+              {summary ? `${summary.wins}W · ${summary.losses}L` : 'no trades yet'}
+            </p>
+          </div>
+        </div>
+
+        {/* 5 — Total PnL */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            (summary?.total_pnl ?? 0) >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
+          )}>
+            {(summary?.total_pnl ?? 0) >= 0
+              ? <ArrowUpRight size={14} className="text-emerald-400" />
+              : <ArrowDownRight size={14} className="text-red-400" />}
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total P&L</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              (summary?.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
+            )}>
+              {summary ? `${fmt(summary.total_pnl, 4)}τ` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+              {summary ? `${summary.total_trades} trades` : '—'}
+            </p>
+          </div>
+        </div>
+
+        {/* 6 — Next Cycle countdown */}
+        <div className={clsx(
+          'rounded-xl px-4 py-3.5 flex items-start gap-3 border',
+          isRunning ? 'bg-emerald-500/5 border-emerald-500/20' : 'bg-dark-800 border-dark-600'
+        )}>
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            isRunning ? 'bg-emerald-500/15' : 'bg-dark-700'
+          )}>
+            <Clock size={14} className={isRunning ? 'text-emerald-400' : 'text-slate-500'} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">
+              {isRunning ? 'Next Cycle' : 'Bot Status'}
+            </p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              isRunning ? 'text-emerald-400' : 'text-slate-500'
+            )}>
+              {isRunning ? `${secToNext}s` : 'STOPPED'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+              {isRunning ? `Cycle #${cycleN} · ${summary?.active_strategies ?? 0} active` : 'click Start Bot'}
+            </p>
+          </div>
+        </div>
       </div>
 
-      {/* ── Intelligence Row ─────────────────────────────────────────────────── */}
+      {/* ── Intelligence strip ───────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {/* II Agent Regime */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
+        <button onClick={() => navigate('/ii-agent')}
+          className="bg-dark-800 border border-dark-600 hover:border-slate-500 rounded-xl px-4 py-3 flex items-center gap-3 text-left transition-all group">
           <Brain size={15} style={{ color: agentStatus?.regime_color ?? '#6b7280' }} />
-          <div className="min-w-0">
-            <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">II Agent Regime</p>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-wider font-mono">II Agent</p>
             <p className="text-sm font-bold font-mono mt-0.5" style={{ color: agentStatus?.regime_color ?? '#6b7280' }}>
               {REGIME_LABEL[agentStatus?.current_regime ?? 'UNKNOWN'] ?? '⟳ SCANNING'}
             </p>
-            <p className="text-[13px] text-slate-300 font-mono">{agentStatus?.analysis_count ?? 0} analyses</p>
+            <p className="text-[11px] text-slate-500 font-mono">{agentStatus?.analysis_count ?? 0} analyses</p>
           </div>
-        </div>
+          <ChevronRight size={11} className="text-slate-600 group-hover:text-white transition-colors" />
+        </button>
 
-        {/* OpenClaw consensus */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
-          <Vote size={15} className={
-            (consensusStats?.approval_rate_pct ?? 0) >= 50 ? 'text-emerald-400' : 'text-amber-400'
-          } />
-          <div className="min-w-0">
-            <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">Consensus Rate</p>
+        {/* OpenClaw */}
+        <button onClick={() => navigate('/openclaw')}
+          className="bg-dark-800 border border-dark-600 hover:border-slate-500 rounded-xl px-4 py-3 flex items-center gap-3 text-left transition-all group">
+          <Vote size={15} className={(consensusStats?.approval_rate_pct ?? 0) >= 50 ? 'text-emerald-400' : 'text-amber-400'} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-wider font-mono">OpenClaw BFT</p>
             <p className={clsx('text-sm font-bold font-mono mt-0.5',
               (consensusStats?.approval_rate_pct ?? 0) >= 50 ? 'text-emerald-400' : 'text-amber-400'
             )}>
-              {consensusStats ? `${consensusStats.approval_rate_pct.toFixed(1)}%` : '—'}
+              {consensusStats ? `${consensusStats.approval_rate_pct.toFixed(1)}% approval` : '—'}
             </p>
-            <p className="text-[13px] text-slate-300 font-mono">{consensusStats?.total_rounds ?? 0} rounds</p>
+            <p className="text-[11px] text-slate-500 font-mono">{consensusStats?.total_rounds ?? 0} rounds · 7/12 threshold</p>
           </div>
-        </div>
+          <ChevronRight size={11} className="text-slate-600 group-hover:text-white transition-colors" />
+        </button>
 
-        {/* Alerts */}
+        {/* Alerts — clickable */}
+        <button onClick={() => navigate('/alerts')}
+          className={clsx(
+            'rounded-xl px-4 py-3 flex items-center gap-3 text-left transition-all group border',
+            unreadAlerts > 0
+              ? 'bg-red-500/5 border-red-500/25 hover:border-red-500/50'
+              : 'bg-dark-800 border-dark-600 hover:border-slate-500'
+          )}>
+          <Bell size={15} className={unreadAlerts > 0 ? 'text-red-400' : 'text-slate-400'} />
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-wider font-mono">Alerts</p>
+            <p className={clsx('text-sm font-bold font-mono mt-0.5', unreadAlerts > 0 ? 'text-red-400' : 'text-emerald-400')}>
+              {unreadAlerts > 0 ? `${unreadAlerts} unread` : 'All clear ✓'}
+            </p>
+            <p className="text-[11px] text-slate-500 font-mono">
+              {unreadAlerts > 0 ? 'click to review' : 'no new alerts'}
+            </p>
+          </div>
+          {unreadAlerts > 0 && (
+            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex-shrink-0">
+              {unreadAlerts}
+            </span>
+          )}
+          <ChevronRight size={11} className="text-slate-600 group-hover:text-white transition-colors" />
+        </button>
+
+        {/* TAO 24h price move */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
-          <Bell size={15} className={unreadAlerts > 0 ? 'text-red-400' : 'text-slate-300'} />
+          {(change24h ?? 0) >= 0
+            ? <TrendingUp size={15} className="text-emerald-400" />
+            : <TrendingDown size={15} className="text-red-400" />}
           <div className="min-w-0">
-            <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">Unread Alerts</p>
-            <p className={clsx('text-sm font-bold font-mono mt-0.5',
-              unreadAlerts > 0 ? 'text-red-400' : 'text-emerald-400'
+            <p className="text-[11px] text-slate-500 uppercase tracking-wider font-mono">TAO / USD</p>
+            <p className="text-sm font-bold font-mono mt-0.5 text-white">
+              {price ? `$${price.toFixed(2)}` : '—'}
+            </p>
+            <p className={clsx('text-[11px] font-mono mt-0.5',
+              (change24h ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
             )}>
-              {unreadAlerts > 0 ? `${unreadAlerts} new` : 'All clear'}
-            </p>
-            <p className="text-[13px] text-slate-300 font-mono">auto-detected</p>
-          </div>
-        </div>
-
-        {/* Wallet chain */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex items-center gap-3">
-          <Wallet size={15} className={walletStatus?.connected ? 'text-indigo-400' : 'text-slate-300'} />
-          <div className="min-w-0">
-            <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">Chain Balance</p>
-            <p className="text-sm font-bold font-mono mt-0.5 text-indigo-400">
-              {walletStatus?.balance_cached != null
-                ? `τ${(walletStatus.balance_cached ?? 0).toFixed(6)}`
-                : walletStatus?.connected ? 'Querying…' : 'Offline'}
-            </p>
-            <p className="text-[13px] text-slate-300 font-mono">
-              {walletStatus?.block_cached ? `Block #${walletStatus.block_cached.toLocaleString()}` : 'Finney mainnet'}
+              {change24h != null
+                ? `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}% 24h`
+                : 'loading…'}
             </p>
           </div>
         </div>
