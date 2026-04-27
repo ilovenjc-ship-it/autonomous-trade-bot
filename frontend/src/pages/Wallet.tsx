@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Wallet as WalletIcon, Copy, ExternalLink, ShieldCheck,
   KeyRound, CheckCircle2, RefreshCw, Eye, EyeOff,
-  PieChart, AlertTriangle, Layers,
+  PieChart, AlertTriangle,
   Sparkles, RotateCcw, Send, Target, Edit3, Trophy,
   TrendingDown, TrendingUp, ShieldAlert, Activity,
 } from 'lucide-react'
@@ -337,8 +337,6 @@ export default function WalletPage() {
   const [stakesLoading, setStakesLoading] = useState(false)
   const [positions,    setPositions]    = useState<PositionsData | null>(null)
   const [posLoading,   setPosLoading]   = useState(false)
-  const [unstaking,    setUnstaking]    = useState<Record<string, boolean>>({})
-  const [unstakingAll, setUnstakingAll] = useState(false)
   const [words,        setWords]        = useState<string[]>(Array(12).fill(''))
   const [showWords,  setShowWords]  = useState(false)
   const [showAddr,   setShowAddr]   = useState(false)
@@ -382,62 +380,6 @@ export default function WalletPage() {
     } catch {}
     finally { setPosLoading(false) }
   }, [])
-
-  // Unstake a single position — reads exact α-amount from chain, then exits
-  const handleUnstake = async (netuid: number, hotkey: string, subnetName: string) => {
-    const key = `${netuid}-${hotkey}`
-    setUnstaking(prev => ({ ...prev, [key]: true }))
-    try {
-      const { data } = await api.post<{
-        success: boolean; alpha_amount?: number; tx_hash?: string; error?: string
-      }>('/wallet/unstake-position', { netuid, hotkey })
-
-      if (data.success) {
-        toast.success(
-          `✅ Unstaked ${(data.alpha_amount ?? 0).toFixed(4)} α from ${subnetName}`,
-          { duration: 6000 }
-        )
-        // Refresh balance + stakes after a short delay (chain needs ~12s to finalise)
-        setTimeout(() => { fetchStakes(); loadStatus() }, 4000)
-      } else {
-        toast.error(data.error ?? `Unstake failed for ${subnetName}`)
-      }
-    } catch {
-      toast.error(`Network error unstaking ${subnetName}`)
-    } finally {
-      setUnstaking(prev => ({ ...prev, [key]: false }))
-    }
-  }
-
-  // Unstake every position in one go
-  const handleUnstakeAll = async () => {
-    if (!window.confirm(
-      'Unstake ALL positions? This will withdraw every staked αTAO back to liquid TAO. Cannot be undone.'
-    )) return
-    setUnstakingAll(true)
-    try {
-      const { data } = await api.post<{
-        success: boolean
-        summary?: { total: number; succeeded: number; failed: number }
-        error?: string
-      }>('/wallet/unstake-all')
-
-      if (data.success) {
-        const s = data.summary
-        toast.success(
-          `✅ Unstake All complete — ${s?.succeeded ?? '?'} positions exited`,
-          { duration: 8000 }
-        )
-        setTimeout(() => { fetchStakes(); loadStatus() }, 5000)
-      } else {
-        toast.error(data.error ?? 'Unstake All failed')
-      }
-    } catch {
-      toast.error('Network error during Unstake All')
-    } finally {
-      setUnstakingAll(false)
-    }
-  }
 
   useEffect(() => {
     loadStatus()
@@ -590,28 +532,29 @@ export default function WalletPage() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeroSlider slides={heroSlides} />
-      <div className="flex-1 overflow-y-auto p-6 space-y-5 w-full">
-
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <WalletIcon size={22} className="text-accent-blue" /> Wallet
-          </h1>
-          <p className="text-sm text-slate-300 mt-0.5">
+      {/* ── Page Header Bar ───────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
+        <WalletIcon size={18} className="text-accent-blue flex-shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold text-white leading-none">Wallet</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
             Bittensor Finney mainnet · Coldkey management
+            {isConnected && block ? ` · Block #${block.toLocaleString()}` : ''}
           </p>
         </div>
-        <button
-          onClick={queryChain}
-          disabled={querying}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-semibold hover:bg-indigo-500/25 transition-colors disabled:opacity-50"
-        >
-          <RefreshCw size={12} className={querying ? 'animate-spin' : ''} />
-          {querying ? 'Querying…' : 'Query Chain'}
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={queryChain}
+            disabled={querying}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-400 text-xs font-semibold hover:bg-indigo-500/25 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={12} className={querying ? 'animate-spin' : ''} />
+            {querying ? 'Querying…' : 'Query Chain'}
+          </button>
+        </div>
       </div>
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-5 w-full">
 
       {/* ── Chain status ───────────────────────────────────────────────────── */}
       <div className={clsx(
@@ -961,158 +904,7 @@ export default function WalletPage() {
               </div>
             </div>
 
-            {/* ── Staking Positions — live per-subnet breakdown ── */}
-            <div>
-              <div className="flex items-center justify-between mb-3">
-                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono flex items-center gap-2">
-                  <Layers size={13} className="text-purple-400" /> Staking Positions
-                </p>
-                <button
-                  onClick={fetchStakes}
-                  disabled={stakesLoading}
-                  className="flex items-center gap-1.5 text-[13px] text-slate-400 hover:text-white font-mono transition-colors"
-                >
-                  <RefreshCw size={11} className={stakesLoading ? 'animate-spin' : ''} />
-                  {stakesLoading ? 'Loading…' : 'Refresh'}
-                </button>
-              </div>
-
-              {stakesLoading && !stakes ? (
-                <div className="flex items-center justify-center py-6 text-slate-500 text-xs font-mono gap-2">
-                  <RefreshCw size={12} className="animate-spin" /> Querying Finney mainnet…
-                </div>
-              ) : stakes?.stakes && stakes.stakes.length > 0 ? (
-                <div className="space-y-2">
-                  {stakes.stakes.map((pos) => {
-                    const name    = SUBNET_NAMES[pos.netuid] ?? `Subnet ${pos.netuid}`
-                    const pct     = portfolioTotal > 0 ? (pos.tao_value / portfolioTotal) * 100 : 0
-                    const usd     = taoPrice ? pos.tao_value * taoPrice : null
-                    const isRoot  = pos.netuid === 0
-
-                    return (
-                      <div
-                        key={`${pos.netuid}-${pos.hotkey}`}
-                        className="bg-dark-700/80 border border-dark-600 rounded-xl p-3.5 space-y-2.5"
-                      >
-                        {/* Row 1: subnet name + badge + TAO value */}
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className={clsx(
-                              'text-[11px] font-bold font-mono px-1.5 py-0.5 rounded',
-                              isRoot
-                                ? 'bg-amber-500/20 text-amber-400'
-                                : 'bg-purple-500/20 text-purple-400'
-                            )}>
-                              SN{pos.netuid}
-                            </span>
-                            <span className="text-sm font-semibold text-white">{name}</span>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-sm font-bold font-mono text-emerald-400">
-                              τ{pos.tao_value.toFixed(4)}
-                            </p>
-                            {usd != null && (
-                              <p className="text-[11px] font-mono text-slate-400">
-                                ${usd.toFixed(2)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-
-                        {/* Row 2: αTAO amount × price + bar */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-[12px] font-mono text-slate-400">
-                            <span>
-                              <span className="text-slate-300">{pos.stake.toFixed(4)}</span>
-                              <span className="text-slate-500"> αTAO</span>
-                              {!isRoot && (
-                                <>
-                                  <span className="text-slate-600 mx-1">×</span>
-                                  <span className="text-slate-400">τ{pos.alpha_price.toFixed(5)}</span>
-                                  <span className="text-slate-600 text-[10px] ml-1">/ αTAO</span>
-                                </>
-                              )}
-                            </span>
-                            <span className="text-slate-500">{pct.toFixed(1)}% of portfolio</span>
-                          </div>
-                          {/* position bar */}
-                          <div className="h-1 bg-dark-600 rounded-full overflow-hidden">
-                            <div
-                              className={clsx(
-                                'h-full rounded-full transition-all duration-700',
-                                isRoot ? 'bg-amber-400' : 'bg-purple-400'
-                              )}
-                              style={{ width: `${Math.min(100, pct)}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Row 3: hotkey + Unstake button */}
-                        <div className="flex items-center justify-between gap-2">
-                          <p className="text-[10px] font-mono text-slate-600 truncate flex-1">
-                            {pos.hotkey}
-                          </p>
-                          <button
-                            onClick={() => handleUnstake(pos.netuid, pos.hotkey, name)}
-                            disabled={unstaking[`${pos.netuid}-${pos.hotkey}`] || unstakingAll}
-                            className={clsx(
-                              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold font-mono transition-all flex-shrink-0 border',
-                              unstaking[`${pos.netuid}-${pos.hotkey}`]
-                                ? 'bg-red-500/10 text-red-400 border-red-500/30 cursor-wait'
-                                : 'bg-red-500/10 text-red-400 border-red-500/25 hover:bg-red-500/20 hover:border-red-500/50 active:scale-95'
-                            )}
-                          >
-                            {unstaking[`${pos.netuid}-${pos.hotkey}`]
-                              ? <><RefreshCw size={9} className="animate-spin" /> Unstaking…</>
-                              : <>↩ Unstake</>
-                            }
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })}
-
-                  {/* Portfolio total footer + Unstake All */}
-                  <div className="flex items-center justify-between px-3.5 py-2.5 bg-dark-700/40 border border-dark-600/50 rounded-xl mt-1">
-                    <span className="text-[13px] font-mono text-slate-400">Total Deployed</span>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-sm font-bold font-mono text-purple-400">
-                          τ{stakedTao.toFixed(4)}
-                        </span>
-                        {taoPrice && (
-                          <span className="text-[11px] font-mono text-slate-500 ml-2">
-                            ${(stakedTao * taoPrice).toFixed(2)}
-                          </span>
-                        )}
-                      </div>
-                      <button
-                        onClick={handleUnstakeAll}
-                        disabled={unstakingAll || Object.values(unstaking).some(Boolean)}
-                        className={clsx(
-                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold font-mono transition-all border',
-                          unstakingAll
-                            ? 'bg-red-600/20 text-red-300 border-red-500/40 cursor-wait'
-                            : 'bg-red-600/15 text-red-400 border-red-500/30 hover:bg-red-600/25 hover:border-red-500/60 active:scale-95'
-                        )}
-                      >
-                        {unstakingAll
-                          ? <><RefreshCw size={10} className="animate-spin" /> Unstaking All…</>
-                          : <>↩ Unstake All</>
-                        }
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-center py-6 text-slate-500 text-xs font-mono space-y-1">
-                  <Layers size={20} className="mx-auto text-slate-700 mb-2" />
-                  <p>No open staking positions</p>
-                  <p className="text-slate-600">Positions appear here when the bot executes BUY trades</p>
-                </div>
-              )}
             </div>
-          </div>
         </div>
 
         {/* RIGHT — Bot Wallet Setup */}
