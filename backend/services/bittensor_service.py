@@ -305,25 +305,56 @@ class BittensorService:
     async def get_subnet_prices(self, limit: int = 20) -> List[Dict]:
         """
         Fetch dTAO alpha prices for top subnets from Finney.
-        Returns list of {netuid, price, exists} dicts.
+        Returns list of {netuid, price} dicts sorted by price descending.
         These prices drive the market regime + emission signals.
+
+        Fix: sort ALL prices by value descending before slicing so the top N
+        by price are always returned (previous code sliced an unordered dict,
+        causing staked subnets like SN8/SN9 to be silently excluded).
         """
         try:
             async with await self._subtensor() as sub:
                 prices = await asyncio.wait_for(sub.get_subnet_prices(), timeout=self._TIMEOUT_PRICE)
-                result = []
-                for netuid, price in list(prices.items())[:limit]:
+                # Build full list, cache all prices
+                all_prices = []
+                for netuid, price in prices.items():
                     p = float(price) if price else 0.0
-                    self._subnet_prices[netuid] = p
-                    result.append({"netuid": int(netuid), "price": p})
+                    self._subnet_prices[int(netuid)] = p
+                    all_prices.append({"netuid": int(netuid), "price": p})
                 self.connected = True
-                return sorted(result, key=lambda x: x["price"], reverse=True)
+                # Sort by price descending, return top N
+                all_prices.sort(key=lambda x: x["price"], reverse=True)
+                return all_prices[:limit]
         except asyncio.TimeoutError:
             logger.warning(f"get_subnet_prices timed out after {self._TIMEOUT_PRICE}s — returning empty")
             return []
         except Exception as e:
             logger.warning(f"get_subnet_prices error: {e}")
             return []
+
+    async def get_prices_for_netuids(self, netuids: List[int]) -> Dict[int, float]:
+        """
+        Fetch alpha prices for a specific set of netuids.
+        Used by wallet/stakes to value staked positions regardless of price ranking.
+        Returns {netuid: price_in_tao} dict.
+        """
+        # If we already have cached prices from a recent get_subnet_prices call, use them
+        cached = {n: self._subnet_prices[n] for n in netuids if n in self._subnet_prices}
+        missing = [n for n in netuids if n not in self._subnet_prices]
+
+        if not missing:
+            return cached
+
+        # Fetch all subnet prices to populate cache for missing netuids
+        try:
+            async with await self._subtensor() as sub:
+                prices = await asyncio.wait_for(sub.get_subnet_prices(), timeout=self._TIMEOUT_PRICE)
+                for netuid, price in prices.items():
+                    self._subnet_prices[int(netuid)] = float(price) if price else 0.0
+            return {n: self._subnet_prices.get(n, 0.0) for n in netuids}
+        except Exception as e:
+            logger.warning(f"get_prices_for_netuids error: {e}")
+            return {n: self._subnet_prices.get(n, 0.0) for n in netuids}
 
     async def get_stake_info(self) -> Dict[str, Any]:
         """Return staking positions for the coldkey."""

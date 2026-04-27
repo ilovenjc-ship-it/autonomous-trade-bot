@@ -55,15 +55,40 @@ async def wallet_chain():
 
 @router.get("/stakes")
 async def wallet_stakes():
-    """Return staking positions for the coldkey address."""
-    return await bittensor_service.get_stake_info()
+    """
+    Return staking positions for the coldkey address, enriched with
+    live TAO value per position. Fetches prices for staked subnets
+    specifically — not limited to the top-20 price feed.
+    """
+    stake_data = await bittensor_service.get_stake_info()
+    stakes = stake_data.get("stakes", [])
+
+    if stakes:
+        netuids = list({s["netuid"] for s in stakes})
+        prices = await bittensor_service.get_prices_for_netuids(netuids)
+
+        total_tao_value = 0.0
+        for s in stakes:
+            netuid = s["netuid"]
+            price = prices.get(netuid, 0.0)
+            alpha = s.get("stake", 0.0)
+            # SN0 (root) stakes are denominated in TAO directly — no conversion needed
+            tao_value = alpha if netuid == 0 else alpha * price
+            s["alpha_price"] = price          # TAO per αTAO
+            s["tao_value"]   = tao_value      # estimated TAO value of this position
+            total_tao_value += tao_value
+
+        stake_data["total_tao_value"] = total_tao_value
+
+    return stake_data
 
 
 @router.get("/subnet-prices")
-async def subnet_prices(limit: int = 20):
+async def subnet_prices(limit: int = 64):
     """
     Return dTAO alpha prices for the top N subnets from Finney.
-    Used by emission_momentum and dtao_flow_momentum strategies.
+    Default limit raised to 64 (full heat map) — covers all active subnets.
+    Used by emission_momentum, dtao_flow_momentum strategies, and Wallet heat map.
     """
     prices = await bittensor_service.get_subnet_prices(limit=limit)
     return {"prices": prices, "count": len(prices)}
