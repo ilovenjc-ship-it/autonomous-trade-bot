@@ -289,25 +289,27 @@ export default function HumanOverride() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeroSlider slides={heroSlides} />
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-
-      {/* ── page header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-white flex items-center gap-2">
-            <ShieldOff size={18} className="text-red-400" />
-            Human Override
-          </h1>
+      {/* ── Page Header Bar ───────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
+        <ShieldOff size={18} className="text-red-400 flex-shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold text-white leading-none">Human Override</h1>
           <p className="text-xs text-slate-400 mt-0.5">
             Full command authority — manual trades, instant mode changes, emergency stop
           </p>
         </div>
-        <button onClick={() => { fetchStatus(); fetchStrategies() }}
-          className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-400 hover:text-white transition-colors">
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => { fetchStatus(); fetchStrategies() }}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
+          >
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
+        </div>
       </div>
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── system status bar ───────────────────────────────────────────────── */}
       <div className={clsx(
