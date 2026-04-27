@@ -3,7 +3,7 @@ import SubnetHeatMap from '@/components/SubnetHeatMap'
 import {
   Activity, Zap, BarChart2, BarChart3, CheckCircle2,
   TrendingUp, Radio, Shield, Cpu, AlertTriangle,
-  ArrowUp, ArrowDown, Minus,
+  ArrowUp, ArrowDown, Minus, RefreshCw,
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
@@ -523,6 +523,21 @@ export default function MissionControl() {
 
   return (
     <div className="flex-1 flex flex-col bg-[#080d18] text-slate-100 overflow-hidden font-mono">
+
+      {/* ══ LINE 2 HEADER BAR ══ */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-slate-800/60 bg-slate-900/30">
+        <Cpu size={14} className="text-blue-400 flex-shrink-0" />
+        <span className="text-[14px] font-bold tracking-widest text-slate-100 uppercase">Mission Control</span>
+        <span className="text-slate-700 text-[12px] mx-1">·</span>
+        <span className="text-[12px] text-slate-400 font-mono">{subnets.length} subnets · {events.length} events</span>
+        <button
+          onClick={() => { fetchActivity(); fetchSubnets() }}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700/50 rounded text-[13px] text-slate-300 hover:text-white hover:border-slate-600 transition-colors"
+        >
+          <RefreshCw size={11} />
+          Refresh
+        </button>
+      </div>
 
       {/* ══ TOP SUBNETS BAR — full Dashboard-style cards ══ */}
       <div className="flex-shrink-0 border-b border-slate-800/60">

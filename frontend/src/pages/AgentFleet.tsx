@@ -255,6 +255,27 @@ export default function AgentFleet() {
 
   return (
     <div className="flex flex-col h-full bg-[#080d18] text-slate-100 font-mono overflow-hidden">
+
+      {/* ══ LINE 2 HEADER BAR ══ */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-slate-800/60 bg-slate-900/30">
+        <Zap size={14} className="text-blue-400 flex-shrink-0" />
+        <span className="text-[14px] font-bold tracking-widest text-slate-100 uppercase">Agent Fleet</span>
+        <span className="text-slate-700 text-[12px] mx-1">·</span>
+        <span className="text-[12px] text-slate-400 font-mono">
+          {bots.length} agents · {liveCount} LIVE · {approvedCount} Approved · {paperCount} Paper
+        </span>
+        <button
+          onClick={handleRebalance}
+          disabled={rebalancing || loading}
+          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded text-[13px] text-blue-400 hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+        >
+          {rebalancing
+            ? <><RefreshCw size={11} className="animate-spin" /> Rebalancing…</>
+            : <><BarChart2 size={11} /> Rebalance Capital</>
+          }
+        </button>
+      </div>
+
       <PageHeroSlider slides={heroSlides} />
       {/* Main content — fills rest of height */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -322,47 +343,6 @@ export default function AgentFleet() {
           <div className="flex items-start gap-2">
             <span className="w-2 h-2 rounded-full bg-red-400 flex-shrink-0 mt-1" />
             <span className="text-xs"><span className="text-red-400 font-bold">RED</span><span className="text-slate-400 ml-1.5">Critical — excluded from consensus</span></span>
-          </div>
-        </div>
-
-        {/* Title row */}
-        <div className="px-6 py-4 border-b border-slate-800/40 flex items-center justify-between">
-          <div>
-            <h1 className="text-lg font-bold text-white tracking-wide">AGENT FLEET</h1>
-            <p className="text-[14px] text-slate-400 mt-0.5">
-              {bots.length} Specialized Trading Bot Sub-Agents · Ranked by Performance
-            </p>
-          </div>
-          <div className="flex flex-col items-end gap-1">
-            <button
-              onClick={handleRebalance}
-              disabled={rebalancing || loading}
-              className="flex items-center gap-2 px-4 py-2 bg-blue-500/10 border border-blue-500/30 rounded text-blue-400 text-[14px] font-bold hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
-            >
-              {rebalancing
-                ? <><RefreshCw size={12} className="animate-spin" /> Rebalancing…</>
-                : <><BarChart2 size={12} /> Rebalance Capital</>
-              }
-            </button>
-            {/* Autonomous engine status */}
-            <div className="flex items-center gap-3 text-[15px] font-mono">
-              <span className="flex items-center gap-1 text-emerald-400/70">
-                <Zap size={9} />
-                Auto-engine active
-              </span>
-              {summary?.last_rebalanced_at ? (
-                <span className="text-slate-500">
-                  Last rebalanced: {new Date(summary.last_rebalanced_at).toLocaleTimeString()}
-                </span>
-              ) : (
-                <span className="text-slate-600">Next rebalance: 24h cycle</span>
-              )}
-              {summary && summary.promotions_this_session > 0 && (
-                <span className="text-amber-400/70">
-                  {summary.promotions_this_session} promoted
-                </span>
-              )}
-            </div>
           </div>
         </div>
 
