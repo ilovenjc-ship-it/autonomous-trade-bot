@@ -404,17 +404,17 @@ export default function Layout() {
               </span>
             </div>
           ) : (
-            /* All other pages: Finney Mainnet · Live / Paper Trading */
+            /* All other pages: page title · Live / Paper Trading */
             <div className="flex items-center gap-2 flex-shrink-0">
               <span className={clsx(
                 'w-2.5 h-2.5 rounded-full flex-shrink-0',
                 status?.network_connected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'
               )} />
-              <span className="text-sm font-bold font-mono text-emerald-400 leading-none tracking-wide">
-                Finney Mainnet
+              <span className="text-sm font-bold font-mono text-white leading-none tracking-wide">
+                {pageTitle}
               </span>
               <span className="text-slate-600 select-none">·</span>
-              <span className="text-sm font-semibold font-mono text-slate-300 leading-none">
+              <span className="text-sm font-semibold font-mono text-slate-400 leading-none">
                 {status?.simulation_mode ? 'Paper Trading' : 'Live Trading'}
               </span>
             </div>
