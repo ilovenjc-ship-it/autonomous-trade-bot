@@ -189,20 +189,6 @@ export default function Trades() {
         </button>
       </div>
 
-      {/* Trading mode — compact status pill */}
-      <div className={clsx(
-        'inline-flex items-center gap-2 self-start px-3 py-1.5 rounded-full border text-[13px] font-mono font-semibold',
-        isLive
-          ? 'bg-emerald-500/12 border-emerald-500/30 text-emerald-400'
-          : 'bg-amber-500/10 border-amber-500/25 text-amber-400'
-      )}>
-        <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0',
-          isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400')} />
-        {isLive
-          ? 'LIVE — real add_stake() on Finney mainnet'
-          : 'PAPER — simulated · no real TAO moving'}
-      </div>
-
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard label="Total Trades" value={tradeStats?.total_trades ?? 0} icon={ArrowUpDown} />
@@ -237,14 +223,18 @@ export default function Trades() {
             <Zap size={14} className={isLive ? 'text-emerald-400' : 'text-slate-500'} />
             Manual Trade
           </h2>
+          {/* Trading mode pill — lives here, in the Manual Trade header */}
           <div className={clsx(
-            'flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[13px] font-bold font-mono tracking-wider border',
+            'inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[13px] font-mono font-semibold',
             isLive
               ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-              : 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+              : 'bg-amber-500/10 border-amber-500/25 text-amber-400'
           )}>
-            <span className={clsx('w-1.5 h-1.5 rounded-full', isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400')} />
-            {isLive ? 'LIVE — REAL STAKE' : 'PAPER — SIMULATED'}
+            <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0',
+              isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400')} />
+            {isLive
+              ? 'LIVE — real add_stake() on Finney'
+              : 'PAPER — simulated · no real TAO moving'}
           </div>
         </div>
 
