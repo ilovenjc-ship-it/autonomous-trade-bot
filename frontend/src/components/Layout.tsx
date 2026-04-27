@@ -59,7 +59,8 @@ export default function Layout() {
   const fetchStatus  = useBotStore((s) => s.fetchStatus)
   const missionStats = useBotStore((s) => s.missionStats)
   const fleetStats   = useBotStore((s) => s.fleetStats)
-  const alertStats   = useBotStore((s) => s.alertStats)
+  const alertStats      = useBotStore((s) => s.alertStats)
+  const analyticsStats  = useBotStore((s) => s.analyticsStats)
   const isRunning   = status?.is_running ?? false
   const { unreadCount } = useAlerts()
   const { pathname }    = useLocation()
@@ -434,6 +435,22 @@ export default function Layout() {
                   </span>
                 </>
               )}
+              {/* Analytics inline stats */}
+              {pathname === '/analytics' && analyticsStats && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">
+                    {analyticsStats.totalTrades.toLocaleString()} trades · {analyticsStats.activeStrategies} strategies
+                  </span>
+                </>
+              )}
+              {/* P&L Summary inline subtitle */}
+              {pathname === '/pnl' && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">Fleet performance</span>
+                </>
+              )}
               {/* Alerts inline unread count */}
               {pathname === '/alerts' && alertStats && alertStats.unread > 0 && (
                 <>
@@ -457,6 +474,25 @@ export default function Layout() {
 
           {/* Push everything else to the right */}
           <div className="flex-1" />
+
+          {/* Analytics — time range selector */}
+          {pathname === '/analytics' && analyticsStats && (
+            <div className="flex items-center gap-0.5 bg-dark-700 border border-dark-600 rounded-lg p-1 flex-shrink-0 mr-1">
+              <Clock size={11} className="text-slate-400 ml-1 mr-0.5" />
+              {['1h', '6h', '24h', '7d', 'all'].map(r => (
+                <button key={r}
+                  onClick={() => analyticsStats.handleTimeRange(r)}
+                  className={clsx(
+                    'px-2.5 py-1 rounded text-[13px] font-mono font-bold transition-colors',
+                    analyticsStats.timeRange === r
+                      ? 'bg-accent-blue/20 text-accent-blue'
+                      : 'text-slate-400 hover:text-slate-200'
+                  )}>
+                  {r.toUpperCase()}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Alerts — Mark All Read button */}
           {pathname === '/alerts' && alertStats && alertStats.unread > 0 && (

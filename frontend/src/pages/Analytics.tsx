@@ -10,6 +10,7 @@ import {
 import clsx from 'clsx'
 import api from '@/api/client'
 import PageHeroSlider from '@/components/PageHeroSlider'
+import { useBotStore } from '@/store/botStore'
 
 // ── colours ───────────────────────────────────────────────────────────────────
 const C_GREEN  = '#00ff88'
@@ -132,6 +133,8 @@ export default function Analytics() {
   const [timeRange,  setTimeRange]  = useState<TimeRange>('all')
   const [wrWindow,   setWrWindow]   = useState<WrWindow>(20)
 
+  const setAnalyticsStats = useBotStore(s => s.setAnalyticsStats)
+
   const load = useCallback(async (range: TimeRange = timeRange, window: WrWindow = wrWindow) => {
     setLoading(true)
     setFetchErrors([])
@@ -169,14 +172,26 @@ export default function Analytics() {
 
   useEffect(() => { load() }, [load])
 
-  function handleTimeRange(r: TimeRange) {
+  const handleTimeRange = useCallback((r: TimeRange) => {
     setTimeRange(r)
     load(r, wrWindow)
-  }
+  }, [load, wrWindow])
+
   function handleWrWindow(w: WrWindow) {
     setWrWindow(w)
     load(timeRange, w)
   }
+
+  // Push stats + time-range control into shared store so Layout top bar can display them
+  useEffect(() => {
+    setAnalyticsStats({
+      totalTrades:      summary?.total_trades ?? 0,
+      activeStrategies: summary?.active_strategies ?? 0,
+      timeRange,
+      handleTimeRange:  (r: string) => handleTimeRange(r as TimeRange),
+    })
+    return () => setAnalyticsStats(null)
+  }, [summary?.total_trades, summary?.active_strategies, timeRange, handleTimeRange, setAnalyticsStats])
 
   // sort strategies
   const sorted = [...strategies].sort((a, b) => {
@@ -251,41 +266,6 @@ export default function Analytics() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-
-      {/* ── Page header bar — Analytics ────────────────────────────────────── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-2.5 bg-dark-800/80 border-b border-dark-700/60">
-        {/* Icon */}
-        <div className="w-8 h-8 rounded-xl bg-accent-blue/15 border border-accent-blue/30 flex items-center justify-center flex-shrink-0">
-          <BarChart2 size={15} className="text-accent-blue" />
-        </div>
-
-        {/* Live trade + strategy count */}
-        <div className="flex flex-col justify-center min-w-0">
-          <span className="text-sm font-bold text-white tracking-tight leading-none">Analytics</span>
-          <span className="text-xs font-mono text-slate-400 mt-0.5 leading-none">
-            {summary?.total_trades ?? 0} trades across {summary?.active_strategies ?? 0} strategies
-          </span>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Time range selector — functional, stays in header */}
-        <div className="flex items-center gap-1 bg-dark-700 border border-dark-600 rounded-lg p-1 flex-shrink-0">
-          <Clock size={11} className="text-slate-400 ml-1" />
-          {(['1h', '6h', '24h', '7d', 'all'] as TimeRange[]).map(r => (
-            <button key={r}
-              onClick={() => handleTimeRange(r)}
-              className={clsx(
-                'px-2.5 py-1 rounded text-[13px] font-mono font-bold transition-colors',
-                timeRange === r
-                  ? 'bg-accent-blue/20 text-accent-blue'
-                  : 'text-slate-400 hover:text-slate-200'
-              )}>
-              {r.toUpperCase()}
-            </button>
-          ))}
-        </div>
-      </div>
 
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-dark-900">

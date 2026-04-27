@@ -23,6 +23,13 @@ interface AlertStats {
   markAllRead: () => void
 }
 
+interface AnalyticsStats {
+  totalTrades: number
+  activeStrategies: number
+  timeRange: string
+  handleTimeRange: (r: string) => void
+}
+
 interface BotStore {
   // State
   status: BotStatus | null
@@ -37,12 +44,14 @@ interface BotStore {
   lastUpdated: Date | null
   missionStats: MissionStats | null
   fleetStats: FleetStats | null
-  alertStats: AlertStats | null
+  alertStats:     AlertStats | null
+  analyticsStats: AnalyticsStats | null
 
   // Actions
-  setMissionStats: (stats: MissionStats | null) => void
-  setFleetStats:   (stats: FleetStats | null) => void
-  setAlertStats:   (stats: AlertStats | null) => void
+  setMissionStats:   (stats: MissionStats | null) => void
+  setFleetStats:     (stats: FleetStats | null) => void
+  setAlertStats:     (stats: AlertStats | null) => void
+  setAnalyticsStats: (stats: AnalyticsStats | null) => void
   fetchStatus: () => Promise<void>
   fetchTrades: (page?: number) => Promise<void>
   fetchTradeStats: () => Promise<void>
@@ -67,13 +76,15 @@ export const useBotStore = create<BotStore>((set, get) => ({
   loading: false,
   error: null,
   lastUpdated: null,
-  missionStats: null,
-  fleetStats: null,
-  alertStats: null,
+  missionStats:   null,
+  fleetStats:     null,
+  alertStats:     null,
+  analyticsStats: null,
 
-  setMissionStats: (stats) => set({ missionStats: stats }),
-  setFleetStats:   (stats) => set({ fleetStats: stats }),
-  setAlertStats:   (stats) => set({ alertStats: stats }),
+  setMissionStats:   (stats) => set({ missionStats: stats }),
+  setFleetStats:     (stats) => set({ fleetStats: stats }),
+  setAlertStats:     (stats) => set({ alertStats: stats }),
+  setAnalyticsStats: (stats) => set({ analyticsStats: stats }),
 
   fetchStatus: async () => {
     try {
