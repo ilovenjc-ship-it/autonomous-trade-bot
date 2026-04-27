@@ -8,7 +8,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
-import { TrendingUp, TrendingDown, Activity, DollarSign, Trophy, Zap, RefreshCw, ArrowUp, ArrowDown } from 'lucide-react'
+import { TrendingUp, TrendingDown, Activity, DollarSign, Trophy, Zap, ArrowUp, ArrowDown } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 
@@ -142,13 +142,11 @@ export default function PnLSummary() {
   const [data,    setData]    = useState<PnLData | null>(null)
   const [loading, setLoading] = useState(true)
   const [view,    setView]    = useState<'day' | 'week'>('day')
-  const [lastAt,  setLastAt]  = useState(new Date())
 
   const load = useCallback(async () => {
     try {
       const res = await api.get('/pnl/summary')
       setData(res.data)
-      setLastAt(new Date())
     } catch (e) {
       console.error('PnL load error', e)
     } finally {
@@ -176,25 +174,24 @@ export default function PnLSummary() {
   const topStrategy = by_strategy[0]
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto">
+    <div className="flex flex-col h-full overflow-hidden">
 
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between flex-wrap gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-amber-500/20">
-            <TrendingUp size={18} className="text-white" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold text-white tracking-tight">P&L Summary</h1>
-            <p className="text-xs text-slate-400 font-mono">
-              Fleet performance · ↻ {lastAt.toLocaleTimeString()}
-            </p>
-          </div>
+      {/* ── Page header bar — P&L Summary ──────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-2.5 bg-dark-800/80 border-b border-dark-700/60">
+        {/* Icon */}
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-amber-500 to-emerald-500 flex items-center justify-center shadow-lg shadow-amber-500/20 flex-shrink-0">
+          <TrendingUp size={15} className="text-white" />
         </div>
-        <button onClick={load} className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-400 hover:text-white transition-colors">
-          <RefreshCw size={14} />
-        </button>
+
+        {/* Title + subtitle */}
+        <div className="flex flex-col justify-center min-w-0">
+          <span className="text-sm font-bold text-white tracking-tight leading-none">P&amp;L Summary</span>
+          <span className="text-xs font-mono text-slate-400 mt-0.5 leading-none">Fleet performance</span>
+        </div>
       </div>
+
+      {/* ── Scrollable content ── */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── Fleet Hero Cards ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -437,6 +434,7 @@ export default function PnLSummary() {
         </div>
       </div>
 
+      </div>{/* end scrollable */}
     </div>
   )
 }
