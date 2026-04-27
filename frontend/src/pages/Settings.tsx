@@ -156,37 +156,21 @@ export default function Settings() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* ── Page Header Bar ───────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
+        <SettingsIcon size={18} className="text-slate-400 flex-shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold text-white leading-none">Settings</h1>
+          <p className="text-xs text-slate-400 mt-0.5">Bot behaviour, trade sizing, network identity</p>
+        </div>
+      </div>
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
-        {/* ── Header row (full width) ─────────────────────────────────────── */}
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-xl font-semibold text-white flex items-center gap-2">
-              <SettingsIcon size={18} className="text-slate-400" /> Settings
-            </h1>
-            <p className="text-xs text-slate-500 mt-0.5">Bot behaviour, trade sizing, network identity</p>
-          </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-4 py-2 bg-accent-blue/15 border border-accent-blue/30 rounded-lg text-accent-blue text-xs font-semibold hover:bg-accent-blue/25 disabled:opacity-50 transition-colors"
-          >
-            <Save size={13} />
-            {saving ? 'Saving…' : 'Save Config'}
-          </button>
-        </div>
-
-        {/* ── Status banner (full width, conditional) ─────────────────────── */}
-        {isRunning && (
-          <div className="flex items-center gap-2 px-4 py-2.5 bg-yellow-500/10 border border-yellow-500/20 rounded-lg text-yellow-400 text-xs">
-            <AlertTriangle size={13} />
-            Bot is running — changes apply from the next trading cycle.
-          </div>
-        )}
-
-        {/* ── Mode badges (full width) ─────────────────────────────────────── */}
+        {/* ── Combined status / mode / save strip ──────────────────────────── */}
         <div className="flex flex-wrap items-center gap-2">
+
+          {/* Trading mode pill */}
           <span className={clsx(
             'flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-mono font-semibold border',
             simMode
@@ -196,12 +180,32 @@ export default function Settings() {
             <FlaskConical size={11} />
             {simMode ? 'PAPER MODE — no real funds at risk' : 'LIVE MODE — real TAO executing'}
           </span>
+
+          {/* Mainnet warning pill */}
           {isMainnet && (
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-mono font-semibold border bg-amber-500/10 text-amber-400 border-amber-500/30">
               <AlertTriangle size={11} />
               FINNEY MAINNET — real money
             </span>
           )}
+
+          {/* Bot-is-running — compact pill, matches badge height */}
+          {isRunning && (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-mono font-semibold border bg-yellow-500/10 text-yellow-400 border-yellow-500/25">
+              <AlertTriangle size={10} />
+              Bot is running — changes apply next cycle
+            </span>
+          )}
+
+          {/* Save Config — right-anchored */}
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="ml-auto flex items-center gap-2 px-4 py-1.5 bg-accent-blue/15 border border-accent-blue/30 rounded-full text-accent-blue text-[14px] font-mono font-semibold hover:bg-accent-blue/25 disabled:opacity-50 transition-colors"
+          >
+            <Save size={12} />
+            {saving ? 'Saving…' : 'Save Config'}
+          </button>
         </div>
 
         {/* ── 3 sections in a row across full page width ───────────────────── */}
