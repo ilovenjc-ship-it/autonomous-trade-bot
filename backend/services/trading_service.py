@@ -123,8 +123,10 @@ class TradingService:
             )
             return
 
-        # Risk check: balance
-        wallet_balance = await bittensor_service.get_balance() or config.wallet_balance
+        # Risk check: balance — always fetch fresh, never use stale cache for go/no-go
+        wallet_balance = await bittensor_service.get_balance()
+        if wallet_balance is None:
+            wallet_balance = config.wallet_balance  # last known fallback
         if action == Signal.BUY and wallet_balance < config.trade_amount:
             await self._update_bot_status(
                 is_running=True,

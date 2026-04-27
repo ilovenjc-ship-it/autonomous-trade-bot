@@ -364,11 +364,25 @@ class BittensorService:
         if not self._mnemonic_set or not self._keypair:
             return {"success": False, "error": "Mnemonic not loaded — restore wallet first"}
 
-        # Guard: don't attempt if amount clearly exceeds cached balance
-        if self._last_balance is not None and amount_tao > self._last_balance:
+        # Chain minimum stake — Bittensor rejects anything below this
+        MIN_STAKE_TAO = 0.001
+        if amount_tao < MIN_STAKE_TAO:
             return {
                 "success": False,
-                "error": f"Insufficient balance: have {self._last_balance:.6f}τ, need {amount_tao:.6f}τ"
+                "error": f"Amount {amount_tao:.6f}τ is below Bittensor minimum stake ({MIN_STAKE_TAO}τ)"
+            }
+
+        # Always fetch a fresh balance before attempting — never rely solely on cache.
+        # Stale cache is the root cause of 'amount is too low' errors on Railway:
+        # get_balance() times out → returns old cached (higher) value → check passes
+        # → chain call fires → Bittensor rejects because real balance is too low.
+        fresh_balance = await self.get_balance()
+        current_balance = fresh_balance if fresh_balance is not None else self._last_balance
+
+        if current_balance is not None and amount_tao > current_balance:
+            return {
+                "success": False,
+                "error": f"Insufficient balance: have {current_balance:.6f}τ, need {amount_tao:.6f}τ"
             }
 
         try:
