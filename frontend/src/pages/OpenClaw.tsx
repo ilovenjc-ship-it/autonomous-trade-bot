@@ -375,49 +375,33 @@ export default function OpenClaw() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
-      {/* ── Page header bar — OpenClaw BFT Consensus ───────────────────── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-2.5 bg-dark-800/80 border-b border-dark-700/60">
-        {/* Icon */}
-        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 flex-shrink-0">
-          <Vote size={15} className="text-white" />
-        </div>
-
-        {/* Title + subtitle */}
-        <div className="flex flex-col justify-center min-w-0">
-          <span className="text-sm font-bold text-white tracking-tight leading-none">
-            OpenClaw BFT Consensus
-          </span>
-          <span className="text-xs font-mono text-slate-400 mt-0.5 leading-none">
-            BFT Multi-Agent Voting Council · 7/12 supermajority
-          </span>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Manual trigger buttons */}
-        <button
-          onClick={() => handleTrigger('BUY')}
-          disabled={triggering}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50 flex-shrink-0"
-        >
-          <TrendingUp size={13} />
-          {triggering ? 'Voting…' : 'Trigger BUY'}
-        </button>
-        <button
-          onClick={() => handleTrigger('SELL')}
-          disabled={triggering}
-          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50 flex-shrink-0"
-        >
-          <TrendingDown size={13} />
-          {triggering ? 'Voting…' : 'Trigger SELL'}
-        </button>
-      </div>
-
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* ── Symbol Legend ── */}
-      <LegendBar />
+      {/* ── Symbol Legend + Manual Trigger Actions ── */}
+      <div className="space-y-2">
+        <LegendBar />
+        {/* Trigger buttons sit directly below the voting rules box */}
+        <div className="flex items-center gap-2 justify-end">
+          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mr-1">Manual trigger:</span>
+          <button
+            onClick={() => handleTrigger('BUY')}
+            disabled={triggering}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
+          >
+            <TrendingUp size={12} />
+            {triggering ? 'Voting…' : 'Trigger BUY'}
+          </button>
+          <button
+            onClick={() => handleTrigger('SELL')}
+            disabled={triggering}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50"
+          >
+            <TrendingDown size={12} />
+            {triggering ? 'Voting…' : 'Trigger SELL'}
+          </button>
+        </div>
+      </div>
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">

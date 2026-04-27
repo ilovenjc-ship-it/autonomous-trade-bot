@@ -388,20 +388,37 @@ export default function Layout() {
         {/* ── Global top bar ─────────────────────────────────────────────── */}
         <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 bg-dark-800 border-b border-dark-700/60">
 
-          {/* Finney Mainnet · Live / Paper Trading — left anchor */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className={clsx(
-              'w-2.5 h-2.5 rounded-full flex-shrink-0',
-              status?.network_connected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'
-            )} />
-            <span className="text-sm font-bold font-mono text-emerald-400 leading-none tracking-wide">
-              Finney Mainnet
-            </span>
-            <span className="text-slate-600 select-none">·</span>
-            <span className="text-sm font-semibold font-mono text-slate-300 leading-none">
-              {status?.simulation_mode ? 'Paper Trading' : 'Live Trading'}
-            </span>
-          </div>
+          {/* Left anchor — page-aware context label */}
+          {pathname === '/openclaw' ? (
+            /* OpenClaw page: show BFT identity instead of network status */
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow shadow-indigo-500/20">
+                <Vote size={12} className="text-white" />
+              </div>
+              <span className="text-sm font-bold font-mono text-white leading-none tracking-tight">
+                OpenClaw BFT Consensus
+              </span>
+              <span className="text-slate-600 select-none">·</span>
+              <span className="text-xs font-mono text-slate-400 leading-none">
+                BFT Multi-Agent Voting Council · 7/12 supermajority
+              </span>
+            </div>
+          ) : (
+            /* All other pages: Finney Mainnet · Live / Paper Trading */
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className={clsx(
+                'w-2.5 h-2.5 rounded-full flex-shrink-0',
+                status?.network_connected ? 'bg-emerald-400 animate-pulse' : 'bg-slate-600'
+              )} />
+              <span className="text-sm font-bold font-mono text-emerald-400 leading-none tracking-wide">
+                Finney Mainnet
+              </span>
+              <span className="text-slate-600 select-none">·</span>
+              <span className="text-sm font-semibold font-mono text-slate-300 leading-none">
+                {status?.simulation_mode ? 'Paper Trading' : 'Live Trading'}
+              </span>
+            </div>
+          )}
 
           {/* Push everything else to the right */}
           <div className="flex-1" />
