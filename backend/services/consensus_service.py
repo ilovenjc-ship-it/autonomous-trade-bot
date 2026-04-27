@@ -291,6 +291,18 @@ class ConsensusService:
         }
         # Bot mode cache (refreshed from DB on each round)
         self._bot_modes: Dict[str, str] = {b: "PAPER_ONLY" for b in BOT_PERSONALITIES}
+        # Runtime-adjustable supermajority threshold (default = module-level constant)
+        self._supermajority: int = SUPERMAJORITY
+
+    def set_supermajority(self, votes: int) -> None:
+        """
+        Dynamically update the supermajority vote threshold.
+        Called by Risk Config API when the user adjusts the OpenClaw slider.
+        Takes effect on the next consensus round.
+        """
+        clamped = max(1, min(12, int(votes)))
+        self._supermajority = clamped
+        logger.info(f"OpenClaw supermajority updated: {clamped}/12")
 
     def update_bot_modes(self, modes: Dict[str, str]) -> None:
         """Called by cycle engine to keep bot modes current."""
@@ -346,10 +358,13 @@ class ConsensusService:
                 round_.abstain_count += 1
 
         # ── Determine result ──
-        if round_.buy_count >= SUPERMAJORITY:
+        # Use runtime-adjustable threshold (default 7/12; updated by Risk Config).
+        effective_supermajority = self._supermajority
+        round_.supermajority = effective_supermajority
+        if round_.buy_count >= effective_supermajority:
             round_.result  = RESULT_APPROVED_BUY
             round_.approved = True
-        elif round_.sell_count >= SUPERMAJORITY:
+        elif round_.sell_count >= effective_supermajority:
             round_.result  = RESULT_APPROVED_SELL
             round_.approved = True
         elif round_.buy_count == round_.sell_count and round_.buy_count > 0:
@@ -383,7 +398,7 @@ class ConsensusService:
             f"{icon} OpenClaw #{round_id} — {round_.result} "
             f"({round_.buy_count}B/{round_.sell_count}S/{round_.hold_count}H)",
             strategy = triggered_by,
-            detail   = f"Direction={direction} | {SUPERMAJORITY}/12 threshold | {round_.duration_ms}ms",
+            detail   = f"Direction={direction} | {effective_supermajority}/12 threshold | {round_.duration_ms}ms",
         )
 
         # ── Alert ──
@@ -441,7 +456,7 @@ class ConsensusService:
         return {
             **self._stats,
             "approval_rate_pct": approval_rate,
-            "supermajority_threshold": SUPERMAJORITY,
+            "supermajority_threshold": self._supermajority,
             "total_bots": TOTAL_BOTS,
         }
 

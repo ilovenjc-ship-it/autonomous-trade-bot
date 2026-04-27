@@ -14,7 +14,8 @@ interface Config {
   max_concurrent_positions: number
   daily_loss_circuit_breaker_pct: number
   min_confidence_score: number
-  consensus_threshold: number
+  consensus_votes: number        // integer 1–12 — source of truth for OpenClaw
+  consensus_threshold: number    // kept in sync as votes/12
   cycle_interval_seconds: number
 }
 
@@ -36,7 +37,8 @@ const DEFAULTS: Config = {
   max_concurrent_positions: 4,
   daily_loss_circuit_breaker_pct: 40,
   min_confidence_score: 0.6,
-  consensus_threshold: 0.45,
+  consensus_votes: 7,            // 7/12 supermajority — OpenClaw rule
+  consensus_threshold: 7 / 12,   // ≈ 0.5833 — kept in sync
   cycle_interval_seconds: 600,
 }
 
@@ -193,8 +195,14 @@ export default function RiskConfig() {
       api.get('/fleet/risk/status').then(r => r.data),
     ])
     // Only overwrite config from server if user hasn't made unsaved changes
-    if (!isDirty && cfgRes.status === 'fulfilled' && cfgRes.value && typeof cfgRes.value.max_drawdown_pct === 'number')
-      setConfig(cfgRes.value)
+    if (!isDirty && cfgRes.status === 'fulfilled' && cfgRes.value && typeof cfgRes.value.max_drawdown_pct === 'number') {
+      const srv = cfgRes.value as Partial<Config>
+      // Derive consensus_votes from server value (support older server that only returns threshold)
+      if (srv.consensus_votes == null && srv.consensus_threshold != null) {
+        srv.consensus_votes = Math.ceil(srv.consensus_threshold * 12)
+      }
+      setConfig({ ...DEFAULTS, ...srv })
+    }
     if (stRes.status === 'fulfilled' && stRes.value)
       setStatus(stRes.value)
   }, [isDirty])
@@ -449,12 +457,19 @@ export default function RiskConfig() {
           />
           <RiskSlider
             label="OpenClaw Consensus"
-            description="Bot agreement % required — lower means fewer bots need to agree"
-            value={config.consensus_threshold}
-            min={0.4} max={0.9} step={0.05} riskDir="down"
-            format={v => `${(v * 100).toFixed(0)}%  (${Math.ceil(v * 12)}/12 bots)`}
-            rangeLabel="40% — 90%"
-            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, consensus_threshold: v })) }}
+            description="Minimum bot votes required for trade approval — 7/12 is the supermajority rule"
+            value={config.consensus_votes ?? 7}
+            min={6} max={12} step={1} riskDir="down"
+            format={v => `${v} / 12 votes`}
+            rangeLabel="6 votes — 12 votes (unanimous)"
+            onChange={v => {
+              setIsDirty(true)
+              setConfig(c => ({
+                ...c,
+                consensus_votes: v,
+                consensus_threshold: v / 12,
+              }))
+            }}
           />
           <RiskSlider
             label="Cycle Interval"

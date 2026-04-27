@@ -1,6 +1,9 @@
 """
 Fleet, Activity, and Chat routes for MissionControl.
 """
+import json
+import math
+import os
 import random
 from datetime import datetime, timedelta
 from typing import List, Optional
@@ -534,8 +537,9 @@ async def deactivate_bot(bot_name: str, db: AsyncSession = Depends(get_db)):
 
 # ── Risk Config ───────────────────────────────────────────────────────────────
 
-# In-memory risk config (matches original system's defaults)
-_RISK_CONFIG = {
+# Defaults — consensus_votes is the authoritative OpenClaw setting (integer).
+# consensus_threshold is kept in sync as votes/12 for backward compatibility.
+_RISK_CONFIG_DEFAULTS = {
     "max_drawdown_pct": 45.0,
     "stop_loss_pct": 8.0,
     "take_profit_pct": 25.0,
@@ -543,9 +547,40 @@ _RISK_CONFIG = {
     "max_concurrent_positions": 4,
     "daily_loss_circuit_breaker_pct": 40.0,
     "min_confidence_score": 0.6,
-    "consensus_threshold": 0.45,
+    "consensus_votes": 7,           # 7/12 supermajority — OpenClaw rule
+    "consensus_threshold": round(7 / 12, 6),  # ≈ 0.5833
     "cycle_interval_seconds": 600,
 }
+
+# Persist to a JSON file so Railway redeploys don't reset user settings.
+_RISK_CONFIG_PATH = os.path.join(os.path.dirname(__file__), "..", "risk_config.json")
+
+
+def _load_persisted_risk_config() -> dict:
+    try:
+        with open(_RISK_CONFIG_PATH) as f:
+            saved = json.load(f)
+        # Merge: saved values override defaults; unknown keys are dropped.
+        merged = {**_RISK_CONFIG_DEFAULTS}
+        for k in _RISK_CONFIG_DEFAULTS:
+            if k in saved:
+                merged[k] = saved[k]
+        return merged
+    except Exception:
+        return dict(_RISK_CONFIG_DEFAULTS)
+
+
+def _save_risk_config(cfg: dict) -> None:
+    try:
+        with open(_RISK_CONFIG_PATH, "w") as f:
+            json.dump(cfg, f, indent=2)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"Could not persist risk config: {e}")
+
+
+# Load persisted config at module startup (falls back to defaults if no file).
+_RISK_CONFIG: dict = _load_persisted_risk_config()
 
 _RISK_STATUS = {
     "global_halt": False,
@@ -565,7 +600,31 @@ async def get_risk_config():
 
 @router.post("/risk/config")
 async def update_risk_config(payload: dict):
-    _RISK_CONFIG.update({k: v for k, v in payload.items() if k in _RISK_CONFIG})
+    # Only accept keys we know about.
+    for k, v in payload.items():
+        if k in _RISK_CONFIG:
+            _RISK_CONFIG[k] = v
+
+    # Keep consensus_votes ↔ consensus_threshold in sync and enforce bounds.
+    if "consensus_votes" in payload:
+        votes = max(1, min(12, int(round(payload["consensus_votes"]))))
+        _RISK_CONFIG["consensus_votes"]    = votes
+        _RISK_CONFIG["consensus_threshold"] = round(votes / 12, 6)
+    elif "consensus_threshold" in payload:
+        votes = max(1, min(12, math.ceil(float(payload["consensus_threshold"]) * 12)))
+        _RISK_CONFIG["consensus_votes"]    = votes
+        _RISK_CONFIG["consensus_threshold"] = round(votes / 12, 6)
+
+    # Wire to live consensus service so the new threshold takes effect immediately.
+    try:
+        from services.consensus_service import consensus_service
+        consensus_service.set_supermajority(_RISK_CONFIG["consensus_votes"])
+    except Exception:
+        pass
+
+    # Persist so Railway redeploys don't reset user settings.
+    _save_risk_config(_RISK_CONFIG)
+
     _push_event("system", "Risk configuration updated", detail=str(payload)[:80])
     return {"success": True, "config": _RISK_CONFIG}
 

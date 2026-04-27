@@ -12,7 +12,7 @@ import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── Recovery Tracker ──────────────────────────────────────────────────────────
 const TARGET_STORAGE_KEY = 'tao_recovery_target'
-const DEFAULT_TARGET = 1.0
+const DEFAULT_TARGET = 2.0   // Always pushing forward — τ2.0 is the new baseline
 
 function RecoveryTracker({ balance, taoPrice }: { balance: number | null; taoPrice: number | null }) {
   const [target,    setTarget]    = useState<number>(() => {
