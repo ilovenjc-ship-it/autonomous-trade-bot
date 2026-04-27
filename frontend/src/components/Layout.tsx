@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
   Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
-  Mic, Send, ChevronDown, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw,
+  Mic, Send, ChevronDown, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw, CheckCheck,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -59,6 +59,7 @@ export default function Layout() {
   const fetchStatus  = useBotStore((s) => s.fetchStatus)
   const missionStats = useBotStore((s) => s.missionStats)
   const fleetStats   = useBotStore((s) => s.fleetStats)
+  const alertStats   = useBotStore((s) => s.alertStats)
   const isRunning   = status?.is_running ?? false
   const { unreadCount } = useAlerts()
   const { pathname }    = useLocation()
@@ -433,6 +434,20 @@ export default function Layout() {
                   </span>
                 </>
               )}
+              {/* Alerts inline unread count */}
+              {pathname === '/alerts' && alertStats && alertStats.unread > 0 && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-red-400 leading-none">
+                    {alertStats.unread} unread
+                  </span>
+                  {alertStats.priority > 0 && (
+                    <span className="text-xs font-mono text-amber-400 leading-none">
+                      · {alertStats.priority} priority
+                    </span>
+                  )}
+                </>
+              )}
               <span className="text-slate-600 select-none">·</span>
               <span className="text-sm font-semibold font-mono text-slate-400 leading-none">
                 {status?.simulation_mode ? 'Paper Trading' : 'Live Trading'}
@@ -442,6 +457,17 @@ export default function Layout() {
 
           {/* Push everything else to the right */}
           <div className="flex-1" />
+
+          {/* Alerts — Mark All Read button */}
+          {pathname === '/alerts' && alertStats && alertStats.unread > 0 && (
+            <button
+              onClick={alertStats.markAllRead}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-[13px] text-emerald-400 hover:bg-emerald-500/20 transition-colors flex-shrink-0 mr-1"
+            >
+              <CheckCheck size={11} />
+              Mark All Read
+            </button>
+          )}
 
           {/* Agent Fleet — Rebalance Capital button */}
           {pathname === '/fleet' && fleetStats && (

@@ -11,6 +11,7 @@ import {
 import clsx from 'clsx'
 import api from '@/api/client'
 import PageHeroSlider from '@/components/PageHeroSlider'
+import { useBotStore } from '@/store/botStore'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -166,6 +167,8 @@ export default function AlertInbox() {
   const [typeFilter,  setTypeFilter]  = useState<string>('ALL')
   const [unreadOnly,  setUnreadOnly]  = useState(false)
 
+  const setAlertStats = useBotStore(s => s.setAlertStats)
+
   const load = useCallback(async () => {
     const [alertsRes, statsRes] = await Promise.allSettled([
       api.get('/alerts', { params: { limit: 150 } }),
@@ -189,11 +192,11 @@ export default function AlertInbox() {
     setStats(prev => prev ? { ...prev, unread: Math.max(0, prev.unread - 1) } : prev)
   }
 
-  const handleMarkAllRead = async () => {
+  const handleMarkAllRead = useCallback(async () => {
     await api.post('/alerts/read-all')
     setAlerts(prev => prev.map(a => ({ ...a, read: true })))
     setStats(prev => prev ? { ...prev, unread: 0 } : prev)
-  }
+  }, [])
 
   // Filter — PRIORITY is a special shorthand for CRITICAL + WARNING
   const filtered = alerts.filter(a => {
@@ -207,6 +210,12 @@ export default function AlertInbox() {
   const priorityCount = alerts.filter(a => a.level === 'CRITICAL' || a.level === 'WARNING').length
 
   const unreadCount = stats?.unread ?? 0
+
+  // Push live alert counts into shared store so Layout top bar can display them
+  useEffect(() => {
+    setAlertStats({ unread: unreadCount, priority: priorityCount, markAllRead: handleMarkAllRead })
+    return () => setAlertStats(null)
+  }, [unreadCount, priorityCount, handleMarkAllRead, setAlertStats])
 
   const heroSlides = [
     {
@@ -243,48 +252,6 @@ export default function AlertInbox() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-
-      {/* ── Page header bar — Alert Inbox ──────────────────────────────── */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-2.5 bg-dark-800/80 border-b border-dark-700/60">
-        {/* Bell icon with live unread badge */}
-        <div className="relative flex-shrink-0">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-red-600 to-amber-600 flex items-center justify-center shadow-lg shadow-red-500/20">
-            <Bell size={15} className="text-white" />
-          </div>
-          {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center px-0.5 animate-pulse">
-              {unreadCount > 99 ? '99+' : unreadCount}
-            </span>
-          )}
-        </div>
-
-        {/* Title + status */}
-        <div className="flex flex-col justify-center min-w-0">
-          <span className="text-sm font-bold text-white tracking-tight leading-none">Alert Inbox</span>
-          <span className="text-xs font-mono mt-0.5 leading-none">
-            {unreadCount > 0
-              ? <span className="text-red-400">{unreadCount} unread alerts</span>
-              : <span className="text-emerald-400">All caught up</span>
-            }
-            {priorityCount > 0 && (
-              <span className="text-amber-400 ml-2">· {priorityCount} need attention</span>
-            )}
-          </span>
-        </div>
-
-        <div className="flex-1" />
-
-        {/* Mark All Read */}
-        {unreadCount > 0 && (
-          <button
-            onClick={handleMarkAllRead}
-            className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors flex-shrink-0"
-          >
-            <CheckCheck size={13} />
-            Mark All Read
-          </button>
-        )}
-      </div>
 
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">

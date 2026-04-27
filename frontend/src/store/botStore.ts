@@ -17,6 +17,12 @@ interface FleetStats {
   rebalance: () => void
 }
 
+interface AlertStats {
+  unread: number
+  priority: number
+  markAllRead: () => void
+}
+
 interface BotStore {
   // State
   status: BotStatus | null
@@ -31,10 +37,12 @@ interface BotStore {
   lastUpdated: Date | null
   missionStats: MissionStats | null
   fleetStats: FleetStats | null
+  alertStats: AlertStats | null
 
   // Actions
   setMissionStats: (stats: MissionStats | null) => void
-  setFleetStats: (stats: FleetStats | null) => void
+  setFleetStats:   (stats: FleetStats | null) => void
+  setAlertStats:   (stats: AlertStats | null) => void
   fetchStatus: () => Promise<void>
   fetchTrades: (page?: number) => Promise<void>
   fetchTradeStats: () => Promise<void>
@@ -61,9 +69,11 @@ export const useBotStore = create<BotStore>((set, get) => ({
   lastUpdated: null,
   missionStats: null,
   fleetStats: null,
+  alertStats: null,
 
   setMissionStats: (stats) => set({ missionStats: stats }),
   setFleetStats:   (stats) => set({ fleetStats: stats }),
+  setAlertStats:   (stats) => set({ alertStats: stats }),
 
   fetchStatus: async () => {
     try {
