@@ -396,7 +396,11 @@ class BittensorService:
             return {"success": False, "error": "Mnemonic not loaded — restore wallet first"}
 
         # Chain minimum stake — Bittensor rejects anything below this
-        MIN_STAKE_TAO = 0.001
+        MIN_STAKE_TAO    = 0.001
+        # Always keep at least this much liquid: covers extrinsic fees and
+        # ensures the wallet can never be fully drained by the staking loop.
+        LIQUID_RESERVE   = 0.01   # τ
+
         if amount_tao < MIN_STAKE_TAO:
             return {
                 "success": False,
@@ -410,11 +414,19 @@ class BittensorService:
         fresh_balance = await self.get_balance()
         current_balance = fresh_balance if fresh_balance is not None else self._last_balance
 
-        if current_balance is not None and amount_tao > current_balance:
-            return {
-                "success": False,
-                "error": f"Insufficient balance: have {current_balance:.6f}τ, need {amount_tao:.6f}τ"
-            }
+        if current_balance is not None:
+            # Must have enough to cover the stake AND maintain the liquid reserve.
+            # Without the reserve, fees for future transactions (including unstake)
+            # cannot be paid once balance hits zero.
+            if amount_tao > current_balance - LIQUID_RESERVE:
+                return {
+                    "success": False,
+                    "error": (
+                        f"Insufficient balance after reserve: have {current_balance:.6f}τ, "
+                        f"need {amount_tao:.6f}τ + {LIQUID_RESERVE}τ reserve = "
+                        f"{amount_tao + LIQUID_RESERVE:.6f}τ"
+                    )
+                }
 
         try:
             import bittensor as bt

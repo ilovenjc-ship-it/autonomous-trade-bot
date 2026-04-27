@@ -127,10 +127,15 @@ class TradingService:
         wallet_balance = await bittensor_service.get_balance()
         if wallet_balance is None:
             wallet_balance = config.wallet_balance  # last known fallback
-        if action == Signal.BUY and wallet_balance < config.trade_amount:
+        LIQUID_RESERVE = 0.01   # τ — always keep this much liquid for fees
+        if action == Signal.BUY and wallet_balance < config.trade_amount + LIQUID_RESERVE:
             await self._update_bot_status(
                 is_running=True,
-                message=f"Insufficient balance ({wallet_balance:.4f} TAO) to buy {config.trade_amount} TAO",
+                message=(
+                    f"Insufficient balance ({wallet_balance:.4f}τ) — need "
+                    f"{config.trade_amount + LIQUID_RESERVE:.4f}τ "
+                    f"({config.trade_amount}τ + {LIQUID_RESERVE}τ reserve)"
+                ),
             )
             return
 
