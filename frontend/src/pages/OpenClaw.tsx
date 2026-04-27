@@ -4,7 +4,7 @@
  */
 import { useState, useEffect, useCallback } from 'react'
 import {
-  ShieldCheck, ShieldX, Vote, Zap, RefreshCw,
+  ShieldCheck, ShieldX, Vote, Zap,
   TrendingUp, TrendingDown, Minus, HelpCircle,
   CheckCircle2, XCircle, AlertTriangle, Clock,
   Activity, BarChart3, Users,
@@ -80,17 +80,6 @@ function timeSince(iso: string): string {
   const m = Math.floor(s / 60)
   if (m < 60)  return `${m}m ago`
   return `${Math.floor(m / 60)}h ago`
-}
-
-/** Format a Date as HH:MM:SS Eastern time (24-hr military) */
-function toET(d: Date): string {
-  return d.toLocaleTimeString('en-US', {
-    timeZone: 'America/New_York',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false,
-  }) + ' ET'
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
@@ -298,8 +287,6 @@ export default function OpenClaw() {
   const [history,       setHistory]       = useState<ConsensusRound[]>([])
   const [stats,         setStats]         = useState<ConsensusStats | null>(null)
   const [triggering,    setTriggering]    = useState(false)
-  const [lastRefresh,   setLastRefresh]   = useState<Date>(new Date())
-  const [triggerDir,    setTriggerDir]    = useState<'BUY' | 'SELL'>('BUY')
   const [flashRound,    setFlashRound]    = useState(false)
 
   const load = useCallback(async () => {
@@ -314,7 +301,6 @@ export default function OpenClaw() {
       setHistory(histRes.value.data.rounds)
     if (statsRes.status === 'fulfilled')
       setStats(statsRes.value.data)
-    setLastRefresh(new Date())
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -388,55 +374,47 @@ export default function OpenClaw() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+
+      {/* ── Page header bar — OpenClaw BFT Consensus ───────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-2.5 bg-dark-800/80 border-b border-dark-700/60">
+        {/* Icon */}
+        <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 flex-shrink-0">
+          <Vote size={15} className="text-white" />
+        </div>
+
+        {/* Title + subtitle */}
+        <div className="flex flex-col justify-center min-w-0">
+          <span className="text-sm font-bold text-white tracking-tight leading-none">
+            OpenClaw BFT Consensus
+          </span>
+          <span className="text-xs font-mono text-slate-400 mt-0.5 leading-none">
+            BFT Multi-Agent Voting Council · 7/12 supermajority
+          </span>
+        </div>
+
+        <div className="flex-1" />
+
+        {/* Manual trigger buttons */}
+        <button
+          onClick={() => handleTrigger('BUY')}
+          disabled={triggering}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50 flex-shrink-0"
+        >
+          <TrendingUp size={13} />
+          {triggering ? 'Voting…' : 'Trigger BUY'}
+        </button>
+        <button
+          onClick={() => handleTrigger('SELL')}
+          disabled={triggering}
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50 flex-shrink-0"
+        >
+          <TrendingDown size={13} />
+          {triggering ? 'Voting…' : 'Trigger SELL'}
+        </button>
+      </div>
+
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
-      {/* ── Header ── */}
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/25">
-              <Vote size={20} className="text-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-white tracking-tight">OpenClaw Consensus</h1>
-              <p className="text-xs text-slate-300 font-mono">BFT Multi-Agent Voting Council · 7/12 supermajority</p>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* Last refresh — Eastern time */}
-          <span className="text-xs text-slate-300 font-mono">
-            ↻ {toET(lastRefresh)}
-          </span>
-
-          {/* Manual trigger */}
-          <div className="flex gap-2">
-            <button
-              onClick={() => handleTrigger('BUY')}
-              disabled={triggering}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
-            >
-              <TrendingUp size={13} />
-              {triggering ? 'Voting…' : 'Trigger BUY'}
-            </button>
-            <button
-              onClick={() => handleTrigger('SELL')}
-              disabled={triggering}
-              className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50"
-            >
-              <TrendingDown size={13} />
-              {triggering ? 'Voting…' : 'Trigger SELL'}
-            </button>
-            <button
-              onClick={load}
-              className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white transition-colors"
-            >
-              <RefreshCw size={14} />
-            </button>
-          </div>
-        </div>
-      </div>
 
       {/* ── Symbol Legend ── */}
       <LegendBar />
