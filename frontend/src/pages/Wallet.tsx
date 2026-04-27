@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import {
   Wallet as WalletIcon, Copy, ExternalLink, ShieldCheck,
   KeyRound, CheckCircle2, RefreshCw, Eye, EyeOff,
-  PieChart, Lock, AlertTriangle, Layers,
+  PieChart, AlertTriangle, Layers,
   Sparkles, RotateCcw, Send, Target, Edit3, Trophy,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
@@ -227,6 +227,34 @@ interface ChainInfo {
   error?:         string
 }
 
+interface StakePosition {
+  hotkey:      string
+  stake:       number   // αTAO amount
+  netuid:      number
+  alpha_price: number   // TAO per αTAO (1.0 for SN0 root)
+  tao_value:   number   // estimated TAO value of this position
+}
+
+interface StakesData {
+  stakes:          StakePosition[]
+  total:           number   // total αTAO
+  total_tao_value: number   // total estimated TAO value
+}
+
+// Known subnet names — expand as the fleet uses more subnets
+const SUBNET_NAMES: Record<number, string> = {
+  0:   'Root Network',
+  1:   'Apex',
+  3:   'MyShell',
+  8:   'Taoshi PTN',
+  9:   'Pretrain',
+  18:  'Cortex.t',
+  19:  'Vision',
+  21:  'Filetao',
+  24:  'Omega Labs',
+  64:  'Chutes',
+}
+
 function AddrBox({ label, addr, show }: { label: string; addr: string; show: boolean }) {
   const copy = () => { navigator.clipboard.writeText(addr); toast.success('Copied!') }
   return (
@@ -259,6 +287,8 @@ interface GeneratedWallet {
 
 export default function WalletPage() {
   const [chainInfo,  setChainInfo]  = useState<ChainInfo | null>(null)
+  const [stakes,     setStakes]     = useState<StakesData | null>(null)
+  const [stakesLoading, setStakesLoading] = useState(false)
   const [words,      setWords]      = useState<string[]>(Array(12).fill(''))
   const [showWords,  setShowWords]  = useState(false)
   const [showAddr,   setShowAddr]   = useState(false)
@@ -283,15 +313,26 @@ export default function WalletPage() {
     } catch {}
   }, [])
 
+  // Fetch live staking positions — enriched with alpha_price + tao_value
+  const fetchStakes = useCallback(async () => {
+    setStakesLoading(true)
+    try {
+      const { data } = await api.get<StakesData>('/wallet/stakes')
+      setStakes(data)
+    } catch {}
+    finally { setStakesLoading(false) }
+  }, [])
+
   useEffect(() => {
     loadStatus()
+    fetchStakes()
     // Also grab current TAO price for USD portfolio estimate
     api.get<{ price: number }>('/price/current')
       .then(r => setTaoPrice(r.data.price ?? null))
       .catch(() => {})
-    const t = setInterval(loadStatus, 30_000)
+    const t = setInterval(() => { loadStatus(); fetchStakes() }, 30_000)
     return () => clearInterval(t)
-  }, [loadStatus])
+  }, [loadStatus, fetchStakes])
 
   // Query live chain (slower — hits Finney mainnet directly)
   const queryChain = async () => {
@@ -388,11 +429,14 @@ export default function WalletPage() {
     }
   }
 
-  const isConnected   = chainInfo?.connected ?? false
-  const balance       = chainInfo?.balance_cached ?? 0
-  const block         = chainInfo?.block_cached
-  const displayAddr   = chainInfo?.address || generated?.address || '—'
-  const usdValue      = taoPrice != null && balance ? balance * taoPrice : null
+  const isConnected    = chainInfo?.connected ?? false
+  const balance        = chainInfo?.balance_cached ?? 0
+  const block          = chainInfo?.block_cached
+  const displayAddr    = chainInfo?.address || generated?.address || '—'
+  const stakedTao      = stakes?.total_tao_value ?? 0
+  const portfolioTotal = balance + stakedTao
+  const usdValue       = taoPrice != null && balance ? balance * taoPrice : null
+  const portfolioUsd   = taoPrice != null && portfolioTotal ? portfolioTotal * taoPrice : null
 
   const heroSlides = [
     {
@@ -473,7 +517,7 @@ export default function WalletPage() {
 
       {/* ── Recovery Tracker ────────────────────────────────────────────────── */}
       <RecoveryTracker
-        balance={chainInfo?.balance_cached ?? null}
+        balance={portfolioTotal > 0 ? portfolioTotal : (chainInfo?.balance_cached ?? null)}
         taoPrice={taoPrice}
       />
 
@@ -539,53 +583,172 @@ export default function WalletPage() {
               <PieChart size={15} className="text-accent-blue" /> Portfolio
             </h2>
 
+            {/* Portfolio summary cards */}
             <div className="grid grid-cols-2 gap-3">
-              <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
-                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono mb-1">TAO Balance</p>
-                <p className={clsx('text-2xl font-black font-mono', balance ? 'text-white' : 'text-slate-600')}>
-                  {balance ? `τ ${(balance ?? 0).toFixed(4)}` : 'τ —'}
-                </p>
-                <p className="text-xs text-slate-500 mt-1 font-mono">Free · unstaked</p>
+              {/* Total portfolio */}
+              <div className="bg-dark-700 border border-emerald-500/20 rounded-xl p-4 col-span-2">
+                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono mb-1">Total Portfolio Value</p>
+                <div className="flex items-end justify-between">
+                  <p className={clsx('text-3xl font-black font-mono', portfolioTotal > 0 ? 'text-emerald-400' : 'text-slate-600')}>
+                    {portfolioTotal > 0 ? `τ ${portfolioTotal.toFixed(4)}` : 'τ —'}
+                  </p>
+                  <p className={clsx('text-lg font-bold font-mono pb-0.5', portfolioUsd != null ? 'text-emerald-300' : 'text-slate-600')}>
+                    {portfolioUsd != null
+                      ? `$${portfolioUsd.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                      : '$ —'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 mt-2 text-[13px] font-mono">
+                  <span className="text-slate-400">
+                    <span className="text-slate-500">Liquid: </span>
+                    <span className="text-indigo-400">τ{(balance ?? 0).toFixed(4)}</span>
+                  </span>
+                  <span className="text-slate-600">+</span>
+                  <span className="text-slate-400">
+                    <span className="text-slate-500">Staked: </span>
+                    <span className="text-purple-400">τ{stakedTao.toFixed(4)}</span>
+                  </span>
+                  {taoPrice && <span className="text-slate-500 ml-auto">@ ${(taoPrice ?? 0).toFixed(2)} / TAO</span>}
+                </div>
               </div>
+
+              {/* Liquid TAO */}
               <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
-                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono mb-1">Est. USD Value</p>
-                <p className={clsx('text-2xl font-black font-mono', usdValue != null ? 'text-emerald-400' : 'text-slate-600')}>
-                  {usdValue != null
-                    ? `$${usdValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-                    : '$ —'}
+                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono mb-1">Liquid TAO</p>
+                <p className={clsx('text-xl font-black font-mono', balance > 0 ? 'text-indigo-400' : 'text-slate-600')}>
+                  {balance > 0 ? `τ ${(balance ?? 0).toFixed(4)}` : 'τ —'}
+                </p>
+                <p className="text-xs text-slate-500 mt-1 font-mono">Free · unstaked · available</p>
+              </div>
+
+              {/* Staked TAO */}
+              <div className="bg-dark-700 border border-dark-600 rounded-xl p-4">
+                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono mb-1">Staked (αTAO)</p>
+                <p className={clsx('text-xl font-black font-mono', stakedTao > 0 ? 'text-purple-400' : 'text-slate-600')}>
+                  {stakedTao > 0 ? `τ ${stakedTao.toFixed(4)}` : 'τ —'}
                 </p>
                 <p className="text-xs text-slate-500 mt-1 font-mono">
-                  {taoPrice ? `@ $${(taoPrice ?? 0).toFixed(2)} / TAO` : 'Price unavailable'}
+                  {stakes?.stakes?.length
+                    ? `${stakes.stakes.length} position${stakes.stakes.length > 1 ? 's' : ''} · deployed capital`
+                    : 'No open positions'}
                 </p>
               </div>
             </div>
 
-            {/* Staking positions */}
+            {/* ── Staking Positions — live per-subnet breakdown ── */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono">Staking Positions</p>
-                <span className="text-[13px] text-slate-600 font-mono">Per-subnet αTAO</span>
+              <div className="flex items-center justify-between mb-3">
+                <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono flex items-center gap-2">
+                  <Layers size={13} className="text-purple-400" /> Staking Positions
+                </p>
+                <button
+                  onClick={fetchStakes}
+                  disabled={stakesLoading}
+                  className="flex items-center gap-1.5 text-[13px] text-slate-400 hover:text-white font-mono transition-colors"
+                >
+                  <RefreshCw size={11} className={stakesLoading ? 'animate-spin' : ''} />
+                  {stakesLoading ? 'Loading…' : 'Refresh'}
+                </button>
               </div>
-              {isConnected ? (
-                <div className="text-xs text-slate-500 font-mono px-3 py-4 bg-dark-700/60 rounded-lg border border-dark-600 text-center">
-                  Subnet staking data loading… connect wallet to see αTAO per subnet
+
+              {stakesLoading && !stakes ? (
+                <div className="flex items-center justify-center py-6 text-slate-500 text-xs font-mono gap-2">
+                  <RefreshCw size={12} className="animate-spin" /> Querying Finney mainnet…
+                </div>
+              ) : stakes?.stakes && stakes.stakes.length > 0 ? (
+                <div className="space-y-2">
+                  {stakes.stakes.map((pos) => {
+                    const name    = SUBNET_NAMES[pos.netuid] ?? `Subnet ${pos.netuid}`
+                    const pct     = portfolioTotal > 0 ? (pos.tao_value / portfolioTotal) * 100 : 0
+                    const usd     = taoPrice ? pos.tao_value * taoPrice : null
+                    const isRoot  = pos.netuid === 0
+
+                    return (
+                      <div
+                        key={`${pos.netuid}-${pos.hotkey}`}
+                        className="bg-dark-700/80 border border-dark-600 rounded-xl p-3.5 space-y-2.5"
+                      >
+                        {/* Row 1: subnet name + badge + TAO value */}
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className={clsx(
+                              'text-[11px] font-bold font-mono px-1.5 py-0.5 rounded',
+                              isRoot
+                                ? 'bg-amber-500/20 text-amber-400'
+                                : 'bg-purple-500/20 text-purple-400'
+                            )}>
+                              SN{pos.netuid}
+                            </span>
+                            <span className="text-sm font-semibold text-white">{name}</span>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold font-mono text-emerald-400">
+                              τ{pos.tao_value.toFixed(4)}
+                            </p>
+                            {usd != null && (
+                              <p className="text-[11px] font-mono text-slate-400">
+                                ${usd.toFixed(2)}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Row 2: αTAO amount × price + bar */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-[12px] font-mono text-slate-400">
+                            <span>
+                              <span className="text-slate-300">{pos.stake.toFixed(4)}</span>
+                              <span className="text-slate-500"> αTAO</span>
+                              {!isRoot && (
+                                <>
+                                  <span className="text-slate-600 mx-1">×</span>
+                                  <span className="text-slate-400">τ{pos.alpha_price.toFixed(5)}</span>
+                                  <span className="text-slate-600 text-[10px] ml-1">/ αTAO</span>
+                                </>
+                              )}
+                            </span>
+                            <span className="text-slate-500">{pct.toFixed(1)}% of portfolio</span>
+                          </div>
+                          {/* position bar */}
+                          <div className="h-1 bg-dark-600 rounded-full overflow-hidden">
+                            <div
+                              className={clsx(
+                                'h-full rounded-full transition-all duration-700',
+                                isRoot ? 'bg-amber-400' : 'bg-purple-400'
+                              )}
+                              style={{ width: `${Math.min(100, pct)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Row 3: hotkey */}
+                        <p className="text-[10px] font-mono text-slate-600 truncate">
+                          {pos.hotkey}
+                        </p>
+                      </div>
+                    )
+                  })}
+
+                  {/* Portfolio total footer */}
+                  <div className="flex items-center justify-between px-3.5 py-2.5 bg-dark-700/40 border border-dark-600/50 rounded-xl mt-1">
+                    <span className="text-[13px] font-mono text-slate-400">Total Deployed</span>
+                    <div className="text-right">
+                      <span className="text-sm font-bold font-mono text-purple-400">
+                        τ{stakedTao.toFixed(4)}
+                      </span>
+                      {taoPrice && (
+                        <span className="text-[11px] font-mono text-slate-500 ml-2">
+                          ${(stakedTao * taoPrice).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="space-y-1.5">
-                  {['SN 1 — Apex', 'SN 8 — Taoshi PTN', 'SN 18 — Cortex.t', 'SN 64 — Chutes'].map(name => (
-                    <div key={name} className="flex items-center justify-between px-3 py-2 bg-dark-700/60 rounded-lg border border-dark-600/50">
-                      <div className="flex items-center gap-2">
-                        <Layers size={11} className="text-slate-600" />
-                        <span className="text-xs text-slate-500 font-mono">{name}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-[13px] text-slate-600 font-mono">
-                        <Lock size={10} /> Chain offline
-                      </div>
-                    </div>
-                  ))}
-                  <p className="text-[13px] text-slate-600 font-mono text-center pt-1">
-                    Query chain to load real αTAO staking positions
-                  </p>
+                <div className="text-center py-6 text-slate-500 text-xs font-mono space-y-1">
+                  <Layers size={20} className="mx-auto text-slate-700 mb-2" />
+                  <p>No open staking positions</p>
+                  <p className="text-slate-600">Positions appear here when the bot executes BUY trades</p>
                 </div>
               )}
             </div>
