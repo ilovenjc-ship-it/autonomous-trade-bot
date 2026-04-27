@@ -8,6 +8,15 @@ interface MissionStats {
   refresh: () => void
 }
 
+interface FleetStats {
+  agents: number
+  live: number
+  approved: number
+  paper: number
+  rebalancing: boolean
+  rebalance: () => void
+}
+
 interface BotStore {
   // State
   status: BotStatus | null
@@ -21,9 +30,11 @@ interface BotStore {
   error: string | null
   lastUpdated: Date | null
   missionStats: MissionStats | null
+  fleetStats: FleetStats | null
 
   // Actions
   setMissionStats: (stats: MissionStats | null) => void
+  setFleetStats: (stats: FleetStats | null) => void
   fetchStatus: () => Promise<void>
   fetchTrades: (page?: number) => Promise<void>
   fetchTradeStats: () => Promise<void>
@@ -49,8 +60,10 @@ export const useBotStore = create<BotStore>((set, get) => ({
   error: null,
   lastUpdated: null,
   missionStats: null,
+  fleetStats: null,
 
   setMissionStats: (stats) => set({ missionStats: stats }),
+  setFleetStats:   (stats) => set({ fleetStats: stats }),
 
   fetchStatus: async () => {
     try {

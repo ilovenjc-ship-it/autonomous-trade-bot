@@ -5,6 +5,7 @@ import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
 import PageHeroSlider from '@/components/PageHeroSlider'
+import { useBotStore } from '@/store/botStore'
 
 interface GateCheck { value: number; required: number; ok: boolean }
 interface Gate {
@@ -175,6 +176,8 @@ export default function AgentFleet() {
   const [lastUpdated, setLastUpdated] = useState<string>('')
   const [slide, setSlide] = useState(0) // 0 = radar profile, 1 = capital allocation
 
+  const setFleetStats = useBotStore(s => s.setFleetStats)
+
   const fetchBots = useCallback(async () => {
     setLoading(true)
     try {
@@ -217,6 +220,12 @@ export default function AgentFleet() {
   const liveCount     = bots.filter(b => b.mode === 'LIVE').length
   const approvedCount = bots.filter(b => b.mode === 'APPROVED_FOR_LIVE').length
   const paperCount    = bots.filter(b => b.mode === 'PAPER_ONLY').length
+
+  // Push live counts + rebalance fn into the shared store so Layout can display them
+  useEffect(() => {
+    setFleetStats({ agents: bots.length, live: liveCount, approved: approvedCount, paper: paperCount, rebalancing, rebalance: handleRebalance })
+    return () => setFleetStats(null)
+  }, [bots.length, liveCount, approvedCount, paperCount, rebalancing, handleRebalance, setFleetStats])
   const fleetWR = bots.length ? (bots.reduce((s,b) => s + b.win_rate, 0) / bots.length) : 0
   const fleetPnL = bots.reduce((s,b) => s + b.net_pnl_tao, 0)
 
@@ -255,26 +264,6 @@ export default function AgentFleet() {
 
   return (
     <div className="flex flex-col h-full bg-[#080d18] text-slate-100 font-mono overflow-hidden">
-
-      {/* ══ LINE 2 HEADER BAR ══ */}
-      <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 border-b border-slate-800/60 bg-slate-900/30">
-        <Zap size={14} className="text-blue-400 flex-shrink-0" />
-        <span className="text-[14px] font-bold tracking-widest text-slate-100 uppercase">Agent Fleet</span>
-        <span className="text-slate-700 text-[12px] mx-1">·</span>
-        <span className="text-[12px] text-slate-400 font-mono">
-          {bots.length} agents · {liveCount} LIVE · {approvedCount} Approved · {paperCount} Paper
-        </span>
-        <button
-          onClick={handleRebalance}
-          disabled={rebalancing || loading}
-          className="ml-auto flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded text-[13px] text-blue-400 hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-        >
-          {rebalancing
-            ? <><RefreshCw size={11} className="animate-spin" /> Rebalancing…</>
-            : <><BarChart2 size={11} /> Rebalance Capital</>
-          }
-        </button>
-      </div>
 
       <PageHeroSlider slides={heroSlides} />
       {/* Main content — fills rest of height */}

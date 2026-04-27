@@ -58,6 +58,7 @@ export default function Layout() {
   const status       = useBotStore((s) => s.status)
   const fetchStatus  = useBotStore((s) => s.fetchStatus)
   const missionStats = useBotStore((s) => s.missionStats)
+  const fleetStats   = useBotStore((s) => s.fleetStats)
   const isRunning   = status?.is_running ?? false
   const { unreadCount } = useAlerts()
   const { pathname }    = useLocation()
@@ -423,6 +424,15 @@ export default function Layout() {
                   </span>
                 </>
               )}
+              {/* Agent Fleet inline stats */}
+              {pathname === '/fleet' && fleetStats && (
+                <>
+                  <span className="text-slate-600 select-none">·</span>
+                  <span className="text-xs font-mono text-slate-400 leading-none">
+                    {fleetStats.agents} agents · {fleetStats.live} LIVE · {fleetStats.approved} Approved · {fleetStats.paper} Paper
+                  </span>
+                </>
+              )}
               <span className="text-slate-600 select-none">·</span>
               <span className="text-sm font-semibold font-mono text-slate-400 leading-none">
                 {status?.simulation_mode ? 'Paper Trading' : 'Live Trading'}
@@ -432,6 +442,20 @@ export default function Layout() {
 
           {/* Push everything else to the right */}
           <div className="flex-1" />
+
+          {/* Agent Fleet — Rebalance Capital button */}
+          {pathname === '/fleet' && fleetStats && (
+            <button
+              onClick={fleetStats.rebalance}
+              disabled={fleetStats.rebalancing}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/10 border border-blue-500/30 rounded text-[13px] text-blue-400 hover:bg-blue-500/20 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0 mr-1"
+            >
+              {fleetStats.rebalancing
+                ? <><RefreshCw size={11} className="animate-spin" /> Rebalancing…</>
+                : <><BarChart2 size={11} /> Rebalance Capital</>
+              }
+            </button>
+          )}
 
           {/* Reload / reset page — universal; mission-control uses live refresh */}
           <button
