@@ -335,9 +335,11 @@ export default function WalletPage() {
   const [chainInfo,  setChainInfo]  = useState<ChainInfo | null>(null)
   const [stakes,     setStakes]     = useState<StakesData | null>(null)
   const [stakesLoading, setStakesLoading] = useState(false)
-  const [positions,  setPositions]  = useState<PositionsData | null>(null)
-  const [posLoading, setPosLoading] = useState(false)
-  const [words,      setWords]      = useState<string[]>(Array(12).fill(''))
+  const [positions,    setPositions]    = useState<PositionsData | null>(null)
+  const [posLoading,   setPosLoading]   = useState(false)
+  const [unstaking,    setUnstaking]    = useState<Record<string, boolean>>({})
+  const [unstakingAll, setUnstakingAll] = useState(false)
+  const [words,        setWords]        = useState<string[]>(Array(12).fill(''))
   const [showWords,  setShowWords]  = useState(false)
   const [showAddr,   setShowAddr]   = useState(false)
   const [busy,       setBusy]       = useState(false)
@@ -380,6 +382,62 @@ export default function WalletPage() {
     } catch {}
     finally { setPosLoading(false) }
   }, [])
+
+  // Unstake a single position — reads exact α-amount from chain, then exits
+  const handleUnstake = async (netuid: number, hotkey: string, subnetName: string) => {
+    const key = `${netuid}-${hotkey}`
+    setUnstaking(prev => ({ ...prev, [key]: true }))
+    try {
+      const { data } = await api.post<{
+        success: boolean; alpha_amount?: number; tx_hash?: string; error?: string
+      }>('/wallet/unstake-position', { netuid, hotkey })
+
+      if (data.success) {
+        toast.success(
+          `✅ Unstaked ${(data.alpha_amount ?? 0).toFixed(4)} α from ${subnetName}`,
+          { duration: 6000 }
+        )
+        // Refresh balance + stakes after a short delay (chain needs ~12s to finalise)
+        setTimeout(() => { fetchStakes(); loadStatus() }, 4000)
+      } else {
+        toast.error(data.error ?? `Unstake failed for ${subnetName}`)
+      }
+    } catch {
+      toast.error(`Network error unstaking ${subnetName}`)
+    } finally {
+      setUnstaking(prev => ({ ...prev, [key]: false }))
+    }
+  }
+
+  // Unstake every position in one go
+  const handleUnstakeAll = async () => {
+    if (!window.confirm(
+      'Unstake ALL positions? This will withdraw every staked αTAO back to liquid TAO. Cannot be undone.'
+    )) return
+    setUnstakingAll(true)
+    try {
+      const { data } = await api.post<{
+        success: boolean
+        summary?: { total: number; succeeded: number; failed: number }
+        error?: string
+      }>('/wallet/unstake-all')
+
+      if (data.success) {
+        const s = data.summary
+        toast.success(
+          `✅ Unstake All complete — ${s?.succeeded ?? '?'} positions exited`,
+          { duration: 8000 }
+        )
+        setTimeout(() => { fetchStakes(); loadStatus() }, 5000)
+      } else {
+        toast.error(data.error ?? 'Unstake All failed')
+      }
+    } catch {
+      toast.error('Network error during Unstake All')
+    } finally {
+      setUnstakingAll(false)
+    }
+  }
 
   useEffect(() => {
     loadStatus()
@@ -989,26 +1047,60 @@ export default function WalletPage() {
                           </div>
                         </div>
 
-                        {/* Row 3: hotkey */}
-                        <p className="text-[10px] font-mono text-slate-600 truncate">
-                          {pos.hotkey}
-                        </p>
+                        {/* Row 3: hotkey + Unstake button */}
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-[10px] font-mono text-slate-600 truncate flex-1">
+                            {pos.hotkey}
+                          </p>
+                          <button
+                            onClick={() => handleUnstake(pos.netuid, pos.hotkey, name)}
+                            disabled={unstaking[`${pos.netuid}-${pos.hotkey}`] || unstakingAll}
+                            className={clsx(
+                              'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold font-mono transition-all flex-shrink-0 border',
+                              unstaking[`${pos.netuid}-${pos.hotkey}`]
+                                ? 'bg-red-500/10 text-red-400 border-red-500/30 cursor-wait'
+                                : 'bg-red-500/10 text-red-400 border-red-500/25 hover:bg-red-500/20 hover:border-red-500/50 active:scale-95'
+                            )}
+                          >
+                            {unstaking[`${pos.netuid}-${pos.hotkey}`]
+                              ? <><RefreshCw size={9} className="animate-spin" /> Unstaking…</>
+                              : <>↩ Unstake</>
+                            }
+                          </button>
+                        </div>
                       </div>
                     )
                   })}
 
-                  {/* Portfolio total footer */}
+                  {/* Portfolio total footer + Unstake All */}
                   <div className="flex items-center justify-between px-3.5 py-2.5 bg-dark-700/40 border border-dark-600/50 rounded-xl mt-1">
                     <span className="text-[13px] font-mono text-slate-400">Total Deployed</span>
-                    <div className="text-right">
-                      <span className="text-sm font-bold font-mono text-purple-400">
-                        τ{stakedTao.toFixed(4)}
-                      </span>
-                      {taoPrice && (
-                        <span className="text-[11px] font-mono text-slate-500 ml-2">
-                          ${(stakedTao * taoPrice).toFixed(2)}
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-sm font-bold font-mono text-purple-400">
+                          τ{stakedTao.toFixed(4)}
                         </span>
-                      )}
+                        {taoPrice && (
+                          <span className="text-[11px] font-mono text-slate-500 ml-2">
+                            ${(stakedTao * taoPrice).toFixed(2)}
+                          </span>
+                        )}
+                      </div>
+                      <button
+                        onClick={handleUnstakeAll}
+                        disabled={unstakingAll || Object.values(unstaking).some(Boolean)}
+                        className={clsx(
+                          'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold font-mono transition-all border',
+                          unstakingAll
+                            ? 'bg-red-600/20 text-red-300 border-red-500/40 cursor-wait'
+                            : 'bg-red-600/15 text-red-400 border-red-500/30 hover:bg-red-600/25 hover:border-red-500/60 active:scale-95'
+                        )}
+                      >
+                        {unstakingAll
+                          ? <><RefreshCw size={10} className="animate-spin" /> Unstaking All…</>
+                          : <>↩ Unstake All</>
+                        }
+                      </button>
                     </div>
                   </div>
                 </div>

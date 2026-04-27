@@ -1,15 +1,24 @@
 """
 Wallet API — real Bittensor Finney mainnet queries
-GET  /api/wallet/status         → connection status, cached balance, block
-GET  /api/wallet/chain          → live balance + block from Finney (slower)
-GET  /api/wallet/stakes         → staking positions for the coldkey
-GET  /api/wallet/subnet-prices  → dTAO alpha prices for top subnets
-POST /api/wallet/mnemonic       → restore wallet from 12-word mnemonic
+GET  /api/wallet/status             → connection status, cached balance, block
+GET  /api/wallet/chain              → live balance + block from Finney (slower)
+GET  /api/wallet/stakes             → staking positions for the coldkey
+GET  /api/wallet/subnet-prices      → dTAO alpha prices for top subnets
+POST /api/wallet/mnemonic           → restore wallet from 12-word mnemonic
+POST /api/wallet/unstake-position   → manually unstake one position (netuid + hotkey)
+POST /api/wallet/unstake-all        → unstake every position for this coldkey
 """
+import asyncio
+import logging
+from typing import Optional
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from services.bittensor_service import bittensor_service
+from services.activity_service import push_event
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/wallet", tags=["wallet"])
 
@@ -118,3 +127,142 @@ async def restore_from_mnemonic(body: MnemonicRequest):
         chain_info = await bittensor_service.get_chain_info()
         result["chain"] = chain_info
     return result
+
+class UnstakePositionRequest(BaseModel):
+    netuid: int
+    hotkey: str
+
+
+@router.post("/unstake-position")
+async def unstake_position(body: UnstakePositionRequest):
+    """
+    Manually unstake a full position identified by netuid + hotkey.
+
+    Fetches the actual on-chain alpha balance for that (netuid, hotkey)
+    pair so the caller never has to know the exact amount — just point
+    at the position and it exits cleanly.
+
+    Safe guards:
+      - Requires mnemonic loaded (wallet armed)
+      - Requires chain connection
+      - Fetches fresh stake balance before attempting (no stale-cache errors)
+    """
+    if not bittensor_service.wallet_loaded:
+        return {"success": False, "error": "Wallet mnemonic not loaded — restore wallet first"}
+    if not bittensor_service.connected:
+        return {"success": False, "error": "Not connected to Finney mainnet"}
+
+    # Get the actual on-chain alpha balance for this position
+    stake_data = await bittensor_service.get_stake_info()
+    alpha_amount = 0.0
+    for s in stake_data.get("stakes", []):
+        if s.get("netuid") == body.netuid and s.get("hotkey") == body.hotkey:
+            alpha_amount = float(s.get("stake", 0.0))
+            break
+
+    if alpha_amount <= 0:
+        return {
+            "success": False,
+            "error": f"No stake found for SN{body.netuid} / {body.hotkey[:20]}… — already unstaked?"
+        }
+
+    push_event(
+        "system",
+        f"🔓 Manual unstake initiated — SN{body.netuid} | {alpha_amount:.5f} α",
+        detail=f"hotkey={body.hotkey[:20]}…",
+    )
+    logger.info(f"[MANUAL UNSTAKE] SN{body.netuid} hotkey={body.hotkey[:20]} alpha={alpha_amount}")
+
+    result = await bittensor_service.unstake(body.hotkey, alpha_amount, body.netuid)
+
+    if result.get("success"):
+        push_event(
+            "trade",
+            f"✅ Unstake confirmed — SN{body.netuid} | {alpha_amount:.5f} α returned",
+            detail=f"tx={result.get('tx_hash', 'pending')}",
+        )
+        logger.info(f"[MANUAL UNSTAKE] SN{body.netuid} success tx={result.get('tx_hash')}")
+    else:
+        push_event(
+            "alert",
+            f"❌ Unstake FAILED — SN{body.netuid}: {result.get('error', 'unknown')}",
+        )
+        logger.error(f"[MANUAL UNSTAKE] SN{body.netuid} FAILED: {result.get('error')}")
+
+    return {
+        "success":      result.get("success", False),
+        "netuid":       body.netuid,
+        "hotkey":       body.hotkey,
+        "alpha_amount": alpha_amount,
+        "tx_hash":      result.get("tx_hash"),
+        "error":        result.get("error"),
+    }
+
+
+@router.post("/unstake-all")
+async def unstake_all():
+    """
+    Unstake every position for this coldkey — one chain call per position.
+    Returns a per-position result list so the caller knows exactly what
+    succeeded and what failed.
+    """
+    if not bittensor_service.wallet_loaded:
+        return {"success": False, "error": "Wallet mnemonic not loaded"}
+    if not bittensor_service.connected:
+        return {"success": False, "error": "Not connected to Finney mainnet"}
+
+    stake_data = await bittensor_service.get_stake_info()
+    stakes = stake_data.get("stakes", [])
+
+    if not stakes:
+        return {"success": True, "results": [], "message": "No open positions found"}
+
+    push_event(
+        "system",
+        f"🔓 Manual UNSTAKE ALL initiated — {len(stakes)} position(s)",
+    )
+
+    results = []
+    for s in stakes:
+        netuid       = s.get("netuid")
+        hotkey       = s.get("hotkey", "")
+        alpha_amount = float(s.get("stake", 0.0))
+
+        if alpha_amount <= 0:
+            results.append({"netuid": netuid, "skipped": True, "reason": "zero balance"})
+            continue
+
+        logger.info(f"[UNSTAKE ALL] SN{netuid} alpha={alpha_amount:.5f}")
+        result = await bittensor_service.unstake(hotkey, alpha_amount, netuid)
+
+        entry = {
+            "netuid":       netuid,
+            "hotkey":       hotkey,
+            "alpha_amount": alpha_amount,
+            "success":      result.get("success", False),
+            "tx_hash":      result.get("tx_hash"),
+            "error":        result.get("error"),
+        }
+        results.append(entry)
+
+        status = "✅" if result.get("success") else "❌"
+        push_event(
+            "trade" if result.get("success") else "alert",
+            f"{status} Unstake SN{netuid} — {alpha_amount:.5f} α "
+            f"| tx={result.get('tx_hash', result.get('error', 'failed'))}",
+        )
+
+    all_ok  = all(r.get("success", r.get("skipped")) for r in results)
+    success = sum(1 for r in results if r.get("success"))
+    failed  = sum(1 for r in results if not r.get("success") and not r.get("skipped"))
+
+    push_event(
+        "system",
+        f"Unstake All complete — {success} succeeded, {failed} failed",
+    )
+
+    return {
+        "success": all_ok,
+        "results": results,
+        "summary": {"total": len(stakes), "succeeded": success, "failed": failed},
+    }
