@@ -166,46 +166,35 @@ export default function ActivityLog() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
+      {/* ── Page Header Bar ───────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
+        <Activity size={18} className="text-accent-blue flex-shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold text-white leading-none">Activity Log</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {filtered.length} events{filter !== 'all' ? ` (${filter})` : ''} — {events.length} total · 5s refresh
+          </p>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setLive(!live)}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border transition-colors',
+              live
+                ? 'bg-accent-green/15 text-accent-green border-accent-green/30'
+                : 'bg-dark-700 text-slate-300 border-dark-600'
+            )}
+          >
+            <span className={clsx('w-1.5 h-1.5 rounded-full', live ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
+            {live ? 'FEED: LIVE' : 'FEED: PAUSED'}
+          </button>
+        </div>
+      </div>
       <PageHeroSlider slides={heroSlides} />
       <div className="flex flex-col flex-1 bg-dark-900 overflow-hidden">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-dark-600">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Activity size={22} className="text-accent-blue" />
-              Activity Log
-            </h1>
-            <p className="text-sm text-slate-300 mt-0.5">
-              {filtered.length} events{filter !== 'all' ? ` (${filter})` : ''} — {events.length} total
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Live toggle */}
-            <button
-              onClick={() => setLive(!live)}
-              className={clsx(
-                'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono border transition-colors',
-                live
-                  ? 'bg-accent-green/15 text-accent-green border-accent-green/30'
-                  : 'bg-dark-700 text-slate-300 border-dark-600'
-              )}
-            >
-              <span className={clsx('w-1.5 h-1.5 rounded-full', live ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
-              {live ? 'FEED: LIVE' : 'FEED: PAUSED'}
-            </button>
-
-            <button
-              onClick={load}
-              className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
-            >
-              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-              Refresh
-            </button>
-          </div>
-        </div>
+      {/* ── Filters ─────────────────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 px-6 pt-3 pb-3 border-b border-dark-600">
 
         {/* Filters row */}
         <div className="flex flex-wrap items-center gap-2">
@@ -246,8 +235,7 @@ export default function ActivityLog() {
             className="ml-auto px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 placeholder-slate-600 font-mono focus:outline-none focus:border-accent-blue w-48"
           />
         </div>
-
-        </div>
+      </div>
 
       {/* ── Event stream ───────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-6 py-3 space-y-1.5">
@@ -264,7 +252,7 @@ export default function ActivityLog() {
           </div>
         )}
 
-        {filtered.map((ev, idx) => {
+        {[...filtered].reverse().map((ev, idx) => {
           const m = KIND_META[ev.kind] ?? KIND_META.system
           const Icon = m.icon
           return (

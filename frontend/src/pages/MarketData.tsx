@@ -162,43 +162,36 @@ export default function MarketData() {
   return (
     <div className="flex flex-col h-full bg-dark-900">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-dark-600">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Globe size={22} className="text-accent-blue" />
-              Market Data
-            </h1>
-            <p className="text-sm text-slate-300 mt-0.5">
-              {subnets.length} subnets ·
-              <span className="text-accent-green ml-1">↑{upCount}</span>
-              <span className="text-red-400 ml-1">↓{downCount}</span>
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setAutoRef(!autoRef)}
-              className={clsx(
-                'flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-mono border transition-colors',
-                autoRef
-                  ? 'bg-accent-green/15 text-accent-green border-accent-green/30'
-                  : 'bg-dark-700 text-slate-300 border-dark-600'
-              )}
-            >
-              <span className={clsx('w-1.5 h-1.5 rounded-full', autoRef ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
-              {autoRef ? 'AUTO' : 'MANUAL'}
-            </button>
-            <button
-              onClick={load}
-              className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
-            >
-              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-              Refresh
-            </button>
-          </div>
+      {/* ── Page Header Bar ───────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
+        <Globe size={18} className="text-accent-blue flex-shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold text-white leading-none">Market Data</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {subnets.length} subnets ·
+            <span className="text-accent-green ml-1">↑{upCount}</span>
+            <span className="text-red-400 ml-1">↓{downCount}</span>
+            <span className="text-slate-500 ml-1">· auto-refresh 15s</span>
+          </p>
         </div>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setAutoRef(!autoRef)}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono border transition-colors',
+              autoRef
+                ? 'bg-accent-green/15 text-accent-green border-accent-green/30'
+                : 'bg-dark-700 text-slate-300 border-dark-600'
+            )}
+          >
+            <span className={clsx('w-1.5 h-1.5 rounded-full', autoRef ? 'bg-accent-green animate-pulse' : 'bg-slate-600')} />
+            {autoRef ? 'AUTO' : 'MANUAL'}
+          </button>
+        </div>
+      </div>
+
+      {/* ── KPI + Filters ───────────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 px-6 pt-4 pb-4 border-b border-dark-600">
 
         {/* KPI row */}
         {overview && (

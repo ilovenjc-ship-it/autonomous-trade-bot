@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { AlertOctagon, CheckCircle2, RefreshCw, ShieldAlert, Zap, BarChart2, TrendingDown, Layers, Save } from 'lucide-react'
+import { CheckCircle2, RefreshCw, ShieldAlert, Zap, BarChart2, TrendingDown, Layers } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 import toast from 'react-hot-toast'
@@ -186,7 +186,6 @@ export default function RiskConfig() {
   const [config,   setConfig]   = useState<Config>(DEFAULTS)
   const [status,   setStatus]   = useState<RiskStatus | null>(null)
   const [saving,   setSaving]   = useState(false)
-  const [halting,  setHalting]  = useState(false)
   const [isDirty,  setIsDirty]  = useState(false)  // true while user is editing — prevents poll overwrite
 
   const fetchConfig = useCallback(async () => {
@@ -231,16 +230,6 @@ export default function RiskConfig() {
     setConfig(DEFAULTS)
     setIsDirty(false)
     toast.success('Reset to defaults')
-  }
-
-  const handleHalt = async () => {
-    setHalting(true)
-    try {
-      await api.post('/fleet/risk/halt')
-      toast.error('⛔ Global halt activated — all trading suspended')
-      await fetchConfig()
-    } catch { toast.error('Failed to activate halt') }
-    finally { setHalting(false) }
   }
 
   const handleRelease = async () => {
@@ -290,27 +279,18 @@ export default function RiskConfig() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeroSlider slides={heroSlides} />
-      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#080d18] text-slate-100 font-mono">
-
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-black text-white tracking-widest uppercase">
-            Risk Configuration
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Pre-trade guardrails — set once, all 12 bots operate autonomously within these limits
+      {/* ── Page Header Bar ───────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
+        <ShieldAlert size={18} className="text-amber-400 flex-shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold text-white leading-none">Risk Configuration</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Pre-trade guardrails · all 12 bots operate within these limits · {isHalted ? '⛔ HALTED' : '✓ Active'}
           </p>
         </div>
-        <button
-          onClick={handleHalt} disabled={halting || isHalted}
-          className="flex-shrink-0 flex items-center gap-2 px-5 py-2.5 bg-red-500/15 border border-red-500/40 rounded-xl text-red-400 text-sm font-bold hover:bg-red-500/25 disabled:opacity-50 transition-colors"
-        >
-          <AlertOctagon size={15} />
-          Emergency Halt
-        </button>
       </div>
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#080d18] text-slate-100 font-mono">
 
       {/* ── Trading status banner ───────────────────────────────────────────── */}
       <div className={clsx(

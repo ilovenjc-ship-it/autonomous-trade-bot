@@ -216,49 +216,48 @@ export default function TradeLog() {
   return (
     <div className="flex flex-col h-full bg-dark-900">
 
-      {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="flex-shrink-0 px-6 pt-6 pb-4 border-b border-dark-600">
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-              <ArrowLeftRight size={22} className="text-accent-green" />
-              Trade Log
-            </h1>
-            <p className="text-sm text-slate-300 mt-0.5">
-              {total.toLocaleString()} trades · page {page}/{pages || 1}
-              {!realOnly && realCount !== null && (
-                <span className="ml-2 text-xs font-mono">
-                  <span className="text-emerald-400">⛓ {realCount} real</span>
-                  <span className="text-slate-500"> · </span>
-                  <span className="text-yellow-400">◌ {(total - (realCount ?? 0)).toLocaleString()} paper</span>
+      {/* ── Page Header Bar ───────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
+        <ArrowLeftRight size={18} className="text-accent-green flex-shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold text-white leading-none">Trade Log</h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            {total.toLocaleString()} trades · page {page}/{pages || 1}
+            {!realOnly && realCount !== null && (
+              <span className="ml-2">
+                <span className="text-emerald-400">⛓ {realCount} real</span>
+                <span className="text-slate-500"> · </span>
+                <span className="text-yellow-400">◌ {(total - (realCount ?? 0)).toLocaleString()} paper</span>
+              </span>
+            )}
+          </p>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          {realCount !== null && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-emerald-500/8 border border-emerald-500/25 rounded-lg">
+              <Zap size={12} className="text-emerald-400" />
+              <span className="text-xs font-mono text-emerald-400 font-bold">
+                {realCount} real on-chain
+              </span>
+              {archivedCount !== null && archivedCount > 0 && (
+                <span className="text-[13px] text-slate-400 font-mono">
+                  · {archivedCount.toLocaleString()} archived
                 </span>
               )}
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* On-chain confirmation badge */}
-            {realCount !== null && (
-              <div className="flex items-center gap-2 px-3 py-2 bg-emerald-500/8 border border-emerald-500/25 rounded-lg">
-                <Zap size={12} className="text-emerald-400" />
-                <span className="text-xs font-mono text-emerald-400 font-bold">
-                  {realCount} real on-chain
-                </span>
-                {archivedCount !== null && archivedCount > 0 && (
-                  <span className="text-[13px] text-slate-400 font-mono">
-                    · {archivedCount.toLocaleString()} archived
-                  </span>
-                )}
-              </div>
-            )}
-            <button
-              onClick={load}
-              className="flex items-center gap-1.5 px-3 py-2 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
-            >
-              <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
-              Refresh
-            </button>
-          </div>
+            </div>
+          )}
+          <button
+            onClick={load}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
+          >
+            <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
+            Refresh
+          </button>
         </div>
+      </div>
+
+      {/* ── Filters ─────────────────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 px-6 pt-3 pb-4 border-b border-dark-600">
 
         {/* Filter row */}
         <div className="flex flex-wrap items-center gap-2">

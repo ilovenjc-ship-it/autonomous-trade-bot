@@ -362,24 +362,27 @@ export default function Strategies() {
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeroSlider slides={heroSlides} />
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-
-      {/* ── page header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-semibold text-white">Strategy Fleet</h1>
+      {/* ── Page Header Bar ───────────────────────────────────────────────── */}
+      <div className="flex-shrink-0 flex items-center gap-3 px-6 py-3 border-b border-dark-700/60 bg-dark-900/80">
+        <Layers size={18} className="text-accent-blue flex-shrink-0" />
+        <div className="min-w-0">
+          <h1 className="text-sm font-bold text-white leading-none">Strategy Fleet</h1>
           <p className="text-xs text-slate-400 mt-0.5">
-            {strategies.length} strategies · performance-weighted capital allocation · all running simultaneously
+            {strategies.length} strategies · {liveCount} live · {approvedCount} approved · {paperCount} paper
           </p>
         </div>
-        <button
-          onClick={() => fetchStrategies()}
-          className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-400 hover:text-white transition-colors"
-        >
-          <RefreshCw size={13} />
-        </button>
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => fetchStrategies()}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 border border-dark-600 rounded-lg text-xs text-slate-300 hover:text-white transition-colors font-mono"
+          >
+            <RefreshCw size={12} />
+            Refresh
+          </button>
+        </div>
       </div>
+      <PageHeroSlider slides={heroSlides} />
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── fleet summary ───────────────────────────────────────────────────── */}
       <FleetSummary strategies={strategies} />
