@@ -40,10 +40,13 @@ function fmt4(n: number | null | undefined) {
 function ts(raw: string | null) {
   if (!raw) return '—'
   try {
-    return new Date(raw).toLocaleString('en-US', {
+    // Normalize to UTC: SQLite returns timestamps without 'Z', causing browsers
+    // to parse them as local time instead of UTC — append Z to force UTC parsing.
+    const utc = raw.endsWith('Z') ? raw : raw.replace(' ', 'T') + 'Z'
+    return new Date(utc).toLocaleString('en-US', {
       timeZone: 'America/New_York', month: 'short', day: 'numeric',
       hour: '2-digit', minute: '2-digit', hour12: false,
-    })
+    }) + ' ET'
   } catch { return raw.replace('T', ' ').slice(0, 16) }
 }
 
