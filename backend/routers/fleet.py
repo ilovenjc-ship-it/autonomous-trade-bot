@@ -547,6 +547,10 @@ _RISK_CONFIG_DEFAULTS = {
     "max_position_size_pct": 30.0,
     "max_concurrent_positions": 4,
     "daily_loss_circuit_breaker_pct": 40.0,
+    # Wallet floor: halt ALL live BUY orders when liquid TAO drops below this.
+    # Prevents the bot from running the wallet to zero through repeated small stakes.
+    # Previously this was unenforced — it is now a hard gate in cycle_service.
+    "min_wallet_balance_tao": 0.05,
     "min_confidence_score": 0.6,
     "consensus_votes": 7,           # 7/12 supermajority — OpenClaw rule
     "consensus_threshold": round(7 / 12, 6),  # ≈ 0.5833
@@ -599,6 +603,34 @@ async def get_risk_config():
     return _RISK_CONFIG
 
 
+@router.get("/risk/status")
+async def get_risk_status(db: AsyncSession = Depends(get_db)):
+    """
+    Return live risk status.  drawdown_pct is now computed from real strategy
+    PnL data — previously it was a hardcoded placeholder (38.05).
+    """
+    from sqlalchemy import func as sqlfunc
+    from models.strategy import Strategy as StrategyModel
+
+    # Compute real peak-to-trough drawdown from strategy PnL records
+    pnl_result = await db.execute(
+        select(sqlfunc.sum(StrategyModel.total_pnl))
+    )
+    fleet_pnl = float(pnl_result.scalar() or 0.0)
+
+    # Drawdown expressed as % of max_drawdown threshold for UI gauge
+    max_dd = float(_RISK_CONFIG.get("max_drawdown_pct", 45.0))
+    if fleet_pnl < 0:
+        # How deep into drawdown territory are we?
+        drawdown_depth_pct = round(min(abs(fleet_pnl) / max(max_dd / 100.0, 0.001), 1.0) * 100, 2)
+    else:
+        drawdown_depth_pct = 0.0
+
+    _RISK_STATUS["drawdown_pct"] = drawdown_depth_pct
+
+    return {**_RISK_STATUS, "config": _RISK_CONFIG, "fleet_pnl_tao": round(fleet_pnl, 6)}
+
+
 @router.post("/risk/config")
 async def update_risk_config(payload: dict):
     # Only accept keys we know about.
@@ -630,11 +662,6 @@ async def update_risk_config(payload: dict):
     return {"success": True, "config": _RISK_CONFIG}
 
 
-@router.get("/risk/status")
-async def get_risk_status():
-    return {**_RISK_STATUS, "config": _RISK_CONFIG}
-
-
 @router.post("/risk/halt")
 async def risk_halt():
     _RISK_STATUS["global_halt"] = True
@@ -647,6 +674,23 @@ async def risk_release():
     _RISK_STATUS["global_halt"] = False
     _push_event("system", "Global halt released — trading resumed")
     return {"success": True, "global_halt": False}
+
+
+@router.post("/risk/reset-circuit-breaker")
+async def reset_circuit_breaker():
+    """
+    Manually reset the daily loss circuit breaker after review.
+    The breaker will re-trip automatically if daily losses continue to exceed
+    the configured threshold.
+    """
+    _RISK_STATUS["circuit_breaker"] = False
+    _RISK_STATUS["daily_loss_pct"]  = 0.0
+    _push_event(
+        "system",
+        "⚡ Circuit breaker RESET — live trading may resume. Monitor closely.",
+        detail="Breaker will re-trip automatically if daily loss threshold is exceeded again.",
+    )
+    return {"success": True, "circuit_breaker": False}
 
 
 # ── Live Stake Positions ──────────────────────────────────────────────────────

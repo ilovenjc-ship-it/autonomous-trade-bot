@@ -16,7 +16,7 @@ import random
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
 
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func as sqlfunc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.database import AsyncSessionLocal
@@ -194,6 +194,96 @@ def _get_risk_value(key: str, default: float) -> float:
         return float(_RISK_CONFIG.get(key, default))
     except Exception:
         return default
+
+
+async def _evaluate_circuit_breaker(db: AsyncSession) -> bool:
+    """
+    Evaluate whether the daily loss circuit breaker should be tripped.
+
+    Queries today's live trades (tx_hash IS NOT NULL) and sums their recorded
+    PnL as a proxy for daily live trading performance.  If the cumulative loss
+    exceeds `daily_loss_circuit_breaker_pct` of the current reference balance
+    (liquid + |loss|), the circuit breaker is set and True is returned.
+
+    Once tripped the breaker stays True until manually reset via the Risk Config
+    panel (POST /api/fleet/risk/reset-circuit-breaker).
+
+    Paper trading is NOT affected — stats continue accumulating normally.
+    Only live on-chain execution is blocked.
+
+    Returns:
+        True  — circuit breaker is active (either pre-existing or just tripped)
+        False — circuit breaker is clear, live trading may proceed
+    """
+    try:
+        from routers.fleet import _RISK_STATUS as _FS, _RISK_CONFIG as _FC
+
+        # Already tripped — manual reset required, don't re-evaluate
+        if _FS.get("circuit_breaker", False):
+            return True
+
+        # Sum PnL of real live trades today (tx_hash IS NOT NULL)
+        today_start = datetime.now(timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
+        pnl_result = await db.execute(
+            select(sqlfunc.sum(Trade.pnl)).where(
+                Trade.tx_hash.isnot(None),
+                Trade.executed_at >= today_start,
+            )
+        )
+        daily_live_pnl = float(pnl_result.scalar() or 0.0)
+
+        # Update daily_loss_pct in _RISK_STATUS for UI display
+        _FS["daily_loss_pct"] = round(daily_live_pnl, 4)
+
+        if daily_live_pnl >= 0:
+            return False   # Positive or flat — no concern
+
+        # Evaluate loss as % of (liquid + |loss|) to normalize for wallet size
+        liquid = 0.0
+        try:
+            liquid = await bittensor_service.get_balance() or 0.0
+        except Exception:
+            pass
+
+        baseline   = max(liquid + abs(daily_live_pnl), 0.001)
+        loss_pct   = abs(daily_live_pnl) / baseline
+        cb_pct     = float(_FC.get("daily_loss_circuit_breaker_pct", 40.0)) / 100.0
+
+        if loss_pct >= cb_pct:
+            _FS["circuit_breaker"] = True
+            msg = (
+                f"⚡ CIRCUIT BREAKER TRIPPED — daily live loss "
+                f"{daily_live_pnl:.4f}τ ({loss_pct * 100:.1f}%) "
+                f"exceeded {cb_pct * 100:.0f}% limit"
+            )
+            push_event(
+                "alert", msg,
+                detail="All live execution suspended. Reset in Risk Config to resume.",
+            )
+            alert_service.push_alert(
+                type    = "RISK",
+                level   = "CRITICAL",
+                title   = "⚡ Daily Loss Circuit Breaker Tripped",
+                message = (
+                    f"Today's live trading cumulative loss of {abs(daily_live_pnl):.4f}τ "
+                    f"({loss_pct * 100:.1f}%) exceeded the {cb_pct * 100:.0f}% daily limit. "
+                    "All live execution suspended."
+                ),
+                detail  = "Use Risk Config → Reset Circuit Breaker to resume after reviewing.",
+            )
+            logger.critical(
+                f"[RISK] Circuit breaker tripped — "
+                f"daily_pnl={daily_live_pnl:.4f}τ ({loss_pct * 100:.1f}%)"
+            )
+            return True
+
+        return False
+
+    except Exception as _e:
+        logger.warning(f"[RISK] Circuit breaker evaluation failed: {_e}")
+        return False
 
 
 # ── Stop-loss / Take-profit monitor ──────────────────────────────────────────
@@ -557,6 +647,23 @@ async def _run_one_cycle() -> None:
         logger.debug("No price yet — skipping cycle")
         return
 
+    # ── Hard gate 1: Global halt ──────────────────────────────────────────────
+    # Human operator button in Risk Config.  When active, abort the entire
+    # cycle — no paper trades, no live trades — until the operator releases it.
+    # This was previously a no-op (fleet._RISK_STATUS was never read here).
+    try:
+        from routers.fleet import _RISK_STATUS as _FS_GH
+        if _FS_GH.get("global_halt", False):
+            push_event(
+                "alert",
+                "⛔ GLOBAL HALT active — cycle skipped, all trading suspended",
+                detail="Release halt via Risk Config → Resume Trading to continue",
+            )
+            logger.warning("[RISK] Global halt active — aborting cycle entirely")
+            return
+    except Exception as _gh_err:
+        logger.debug(f"[RISK] global_halt check error: {_gh_err}")
+
     indicators = price_service.compute_indicators()
 
     async with AsyncSessionLocal() as db:
@@ -588,11 +695,23 @@ async def _run_one_cycle() -> None:
             logger.error(f"Stop-loss monitor error: {_sl_err}", exc_info=True)
         # ─────────────────────────────────────────────────────────────────
 
+        # ── Hard gate 2: Daily loss circuit breaker ───────────────────────
+        # Evaluated once per cycle (not per strategy) for efficiency.
+        # If the circuit breaker is active, all live on-chain execution is
+        # blocked for every strategy this cycle.  Paper trading continues.
+        # Previously this config value existed but was NEVER evaluated —
+        # it is now enforced in real-time.
+        _circuit_breaker_active = await _evaluate_circuit_breaker(db)
+        # ─────────────────────────────────────────────────────────────────
+
         # Keep consensus service in sync with current bot modes
         mode_map = {s.name: (s.mode or "PAPER_ONLY") for s in strategies}
         consensus_service.update_bot_modes(mode_map)
 
         for s in strategies:
+            # Human-readable name available throughout this iteration
+            display = DISPLAY_NAMES.get(s.name, s.name)
+
             # Does this strategy fire a trade signal this cycle?
             trade_prob = SIGNAL_CONFIG.get(s.name, 0.30)
             if random.random() > trade_prob:
@@ -691,6 +810,20 @@ async def _run_one_cycle() -> None:
                 and bittensor_service.connected
                 and bittensor_service.wallet_loaded
             ):
+                # ── Hard gate 2b: Circuit breaker ─────────────────────────
+                # Evaluated once per cycle above; blocks live execution for
+                # all strategies if the daily loss limit has been exceeded.
+                if _circuit_breaker_active:
+                    push_event(
+                        "alert",
+                        f"⚡ {display} live trade BLOCKED — daily loss circuit breaker active",
+                        strategy = s.name,
+                        detail   = "Reset in Risk Config → Reset Circuit Breaker to resume",
+                    )
+                    s.cycles_completed = (s.cycles_completed or 0) + 1
+                    await db.flush()
+                    continue
+
                 # Per-strategy stake takes priority; falls back to global bot config
                 # Tier: ELITE 0.020τ / STRONG 0.015τ / SOLID 0.010τ / CAUTIOUS 0.008/0.006τ
                 live_amount = s.stake_amount if s.stake_amount else (config.trade_amount if config else 0.1)
@@ -700,6 +833,42 @@ async def _run_one_cycle() -> None:
                 # single day. Resets at midnight UTC.
                 if side == "buy":
                     liquid = await bittensor_service.get_balance() or 0.0
+
+                    # ── Hard gate 3: Wallet balance floor ─────────────────
+                    # Last line of defence. If the liquid wallet balance has
+                    # fallen below the configured minimum, halt all BUY orders
+                    # to preserve the reserve for fees and future recovery.
+                    # Previously this threshold existed only in config — it is
+                    # now enforced in real-time every cycle.
+                    wallet_floor = _get_risk_value("min_wallet_balance_tao", 0.05)
+                    if liquid < wallet_floor:
+                        push_event(
+                            "alert",
+                            f"🚫 {display} BUY blocked — wallet below minimum floor "
+                            f"({liquid:.4f}τ < {wallet_floor:.4f}τ)",
+                            strategy = s.name,
+                            detail   = "Raise min_wallet_balance_tao in Risk Config or fund wallet",
+                        )
+                        alert_service.push_alert(
+                            type     = "RISK",
+                            level    = "CRITICAL",
+                            title    = f"🚫 Wallet floor hit — {display} BUY blocked",
+                            message  = (
+                                f"Liquid balance {liquid:.4f}τ is below the "
+                                f"configured minimum floor of {wallet_floor:.4f}τ. "
+                                "BUY skipped to preserve reserves."
+                            ),
+                            strategy = s.name,
+                            detail   = "Adjust min_wallet_balance_tao in Risk Config if needed.",
+                        )
+                        logger.warning(
+                            f"[RISK] {s.name}: BUY blocked — "
+                            f"liquid={liquid:.4f}τ below floor={wallet_floor:.4f}τ"
+                        )
+                        s.cycles_completed = (s.cycles_completed or 0) + 1
+                        await db.flush()
+                        continue
+
                     if not _check_daily_cap(live_amount, liquid):
                         push_event(
                             "system",
@@ -864,7 +1033,7 @@ async def _run_one_cycle() -> None:
             # Gate check & promotion
             gates = _gate_check(s)
             stats_str = f"Cycles={s.cycles_completed} WR={s.win_rate:.1f}% PnL={s.total_pnl:.4f}τ"
-            display   = DISPLAY_NAMES.get(s.name, s.name)
+            # display defined at top of loop — do not redefine here
 
             if _FORCE_PAPER_MODE:
                 # Paper override active — gate checks still run for transparency
