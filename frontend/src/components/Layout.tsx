@@ -4,6 +4,7 @@ import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
   Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
   Mic, Send, ChevronDown, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw, CheckCheck,
+  Landmark,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -29,8 +30,9 @@ const PAGE_TITLES: Record<string, string> = {
   '/strategies':      'Strategies',
   '/activity':        'Activity Log',
   '/risk':            'Risk Config',
-  '/wallet':          'Wallet',
-  '/settings':        'Settings',
+  '/wallet':               'Wallet',
+  '/wallet-transactions':  'Transactions',
+  '/settings':             'Settings',
   '/override':        'Human Override',
 }
 
@@ -49,8 +51,9 @@ const navItems = [
   { to: '/strategies',       icon: TrendingUp,      label: 'Strategies'      },
   { to: '/activity',         icon: Activity,        label: 'Activity Log'    },
   { to: '/risk',             icon: Shield,          label: 'Risk Config'     },
-  { to: '/wallet',           icon: Wallet,          label: 'Wallet'          },
-  { to: '/settings',         icon: Settings,        label: 'Settings'        },
+  { to: '/wallet',               icon: Wallet,    label: 'Wallet'       },
+  { to: '/wallet-transactions',  icon: Landmark,  label: 'Transactions' },
+  { to: '/settings',             icon: Settings,  label: 'Settings'     },
   { to: '/override',         icon: ShieldOff,       label: 'Human Override', danger: true },
 ]
 

@@ -19,6 +19,7 @@ import IIAgent from './pages/IIAgent'
 import AlertInbox from './pages/AlertInbox'
 import PnLSummary from './pages/PnLSummary'
 import HumanOverride from './pages/HumanOverride'
+import WalletTransactions from './pages/WalletTransactions'
 
 export default function App() {
   return (
@@ -58,8 +59,9 @@ export default function App() {
           <Route path="/alerts"          element={<AlertInbox />}     />
           <Route path="/trades"          element={<Trades />}         />
           <Route path="/strategies"      element={<Strategies />}     />
-          <Route path="/wallet"          element={<WalletPage />}     />
-          <Route path="/settings"        element={<Settings />}       />
+          <Route path="/wallet"              element={<WalletPage />}          />
+          <Route path="/wallet-transactions" element={<WalletTransactions />}  />
+          <Route path="/settings"            element={<Settings />}            />
         </Route>
       </Routes>
     </BrowserRouter>

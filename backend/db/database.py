@@ -58,6 +58,6 @@ async def get_db() -> AsyncSession:
 
 async def init_db():
     """Create all tables on startup."""
-    from models import bot_config, trade, price_history, strategy  # noqa: F401
+    from models import bot_config, trade, price_history, strategy, wallet_funding  # noqa: F401
     async with async_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
