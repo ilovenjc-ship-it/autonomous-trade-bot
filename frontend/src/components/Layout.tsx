@@ -370,7 +370,7 @@ export default function Layout() {
           </div>
         </div>
 
-        {/* Bottom-left — Finney mainnet · Live */}
+        {/* Bottom-left — Finney Mainnet */}
         <div className="px-4 py-3 border-t border-dark-600">
           <div className="flex items-center gap-2">
             {/* Activity icon replaces the dot next to "Finney mainnet" */}
@@ -380,13 +380,7 @@ export default function Layout() {
             )} />
             <div className="min-w-0">
               <p className="text-sm font-semibold font-mono text-accent-green leading-none">
-                Finney mainnet
-              </p>
-              <p className={clsx(
-                'text-[13px] font-mono mt-0.5',
-                status?.network_connected ? 'text-accent-green' : 'text-slate-500'
-              )}>
-                {status?.network_connected ? '● Live' : '○ Offline'}
+                Finney Mainnet
               </p>
             </div>
           </div>
