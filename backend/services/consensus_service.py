@@ -428,6 +428,13 @@ class ConsensusService:
             f"HOLD={round_.hold_count} ABSTAIN={round_.abstain_count}"
         )
 
+        # Persist counters to DB so all-time totals survive redeployments
+        import asyncio as _asyncio
+        try:
+            _asyncio.ensure_future(self._persist_to_db())
+        except RuntimeError:
+            pass  # no event loop yet — skipped safely
+
         return ConsensusResult(
             approved   = round_.approved,
             direction  = direction,
@@ -463,6 +470,59 @@ class ConsensusService:
     @property
     def round_count(self) -> int:
         return self._round_counter
+
+    # ── Persistence — survive Railway redeployments ────────────────────────────
+
+    async def load_from_db(self) -> None:
+        """
+        Called once on startup (after init_db). Reads the persisted round
+        counter from BotConfig so the all-time round count is never lost
+        when Railway redeploys and restarts the process.
+        """
+        try:
+            from db.database import AsyncSessionLocal
+            from models.bot_config import BotConfig
+            from sqlalchemy import select
+            async with AsyncSessionLocal() as db:
+                result = await db.execute(select(BotConfig).where(BotConfig.id == 1))
+                cfg = result.scalar_one_or_none()
+                if cfg:
+                    self._round_counter              = cfg.openclaw_total_rounds    or 0
+                    self._stats["total_rounds"]      = cfg.openclaw_total_rounds    or 0
+                    self._stats["approved_rounds"]   = cfg.openclaw_approved_rounds or 0
+                    self._stats["rejected_rounds"]   = cfg.openclaw_rejected_rounds or 0
+                    logger.info(
+                        f"OpenClaw loaded from DB — "
+                        f"total={self._round_counter} "
+                        f"approved={self._stats['approved_rounds']} "
+                        f"rejected={self._stats['rejected_rounds']}"
+                    )
+        except Exception as _e:
+            logger.warning(f"OpenClaw DB load failed (using 0): {_e}")
+
+    async def _persist_to_db(self) -> None:
+        """
+        Persists current round counters to BotConfig after every round.
+        Keeps the all-time totals durable across redeployments.
+        Runs async, failures are silently swallowed (never block consensus).
+        """
+        try:
+            from db.database import AsyncSessionLocal
+            from models.bot_config import BotConfig
+            from sqlalchemy import update as _update
+            async with AsyncSessionLocal() as db:
+                await db.execute(
+                    _update(BotConfig)
+                    .where(BotConfig.id == 1)
+                    .values(
+                        openclaw_total_rounds    = self._stats["total_rounds"],
+                        openclaw_approved_rounds = self._stats["approved_rounds"],
+                        openclaw_rejected_rounds = self._stats["rejected_rounds"],
+                    )
+                )
+                await db.commit()
+        except Exception as _e:
+            logger.debug(f"OpenClaw DB persist skipped: {_e}")
 
 
 consensus_service = ConsensusService()

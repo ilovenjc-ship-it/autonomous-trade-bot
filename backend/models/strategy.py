@@ -42,5 +42,10 @@ class Strategy(Base):
     # Autonomous promotion tracking
     last_promoted_at = Column(DateTime(timezone=True), nullable=True)
 
+    # Timestamp of last stats reset (FORCE_PAPER_MODE wipe).
+    # Any trade recorded BEFORE this timestamp is pre-reset / polluted data.
+    # Dashboard and analytics should filter to trades AFTER this date only.
+    stats_reset_at = Column(DateTime(timezone=True), nullable=True)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())

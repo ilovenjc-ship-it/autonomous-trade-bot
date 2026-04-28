@@ -287,11 +287,35 @@ async def strategy_detail(name: str, db: AsyncSession = Depends(get_db)):
 @router.get("/summary")
 async def analytics_summary(hours: int = 0, db: AsyncSession = Depends(get_db)):
     """Top-level KPIs for the analytics header bar.
-    hours=0 means all time; hours>0 limits to last N hours."""
-    where = ""
+    hours=0 means post-reset all-time; hours>0 limits to last N hours.
+
+    IMPORTANT: always filters to post-reset trades only (after stats_reset_at)
+    so the Dashboard never shows the old biased-simulator numbers.
+    """
+    from models.strategy import Strategy
+    from sqlalchemy import select as _sel, func as _func
+
+    # Determine the reset cutoff — earliest stats_reset_at across all strategies.
+    # If none is set (legacy DB), fall back to epoch (show all trades).
+    reset_result = await db.execute(
+        _sel(_func.min(Strategy.stats_reset_at))
+    )
+    reset_at = reset_result.scalar_one_or_none()
+
+    conditions = []
+
+    # Always exclude pre-reset trades
+    if reset_at:
+        reset_str = reset_at.strftime("%Y-%m-%d %H:%M:%S")
+        conditions.append(f"executed_at >= '{reset_str}'")
+
+    # Optional additional time window
     if hours > 0:
         cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
-        where = f"WHERE created_at >= '{cutoff}'"
+        conditions.append(f"executed_at >= '{cutoff}'")
+
+    where = ("WHERE " + " AND ".join(conditions)) if conditions else ""
+
     result = await db.execute(
         text(f"""
             SELECT
@@ -319,4 +343,6 @@ async def analytics_summary(hours: int = 0, db: AsyncSession = Depends(get_db)):
         "best_trade":         round(float(best or 0), 4),
         "worst_trade":        round(float(worst or 0), 4),
         "active_strategies":  int(strats or 0),
+        "post_reset_only":    reset_at is not None,
+        "reset_since":        reset_at.isoformat() if reset_at else None,
     }

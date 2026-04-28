@@ -52,6 +52,13 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.error(f"DB init failed: {_e} — continuing with degraded mode")
 
+    # ── Restore OpenClaw round counter from DB ───────────────────────────────
+    try:
+        from services.consensus_service import consensus_service as _cs
+        await _cs.load_from_db()
+    except Exception as _e:
+        logger.warning(f"OpenClaw round counter restore failed: {_e}")
+
     # ── Seed default strategies ──────────────────────────────────────────────
     try:
         await seed_strategies()
@@ -95,16 +102,35 @@ async def lifespan(app: FastAPI):
             from models.strategy import Strategy
             from services.cycle_service import set_force_paper_mode
             set_force_paper_mode(True)
+            from datetime import datetime, timezone as _tz
+            from sqlalchemy import select as _select
+            from models.strategy import Strategy as _Strategy
+            _reset_ts = datetime.now(_tz.utc)
             async with AsyncSessionLocal() as db:
-                await db.execute(update(Strategy).values(
-                    mode             = "PAPER_ONLY",
-                    cycles_completed = 0,
-                    win_trades       = 0,
-                    loss_trades      = 0,
-                    win_rate         = 0.0,
-                    total_pnl        = 0.0,
-                    avg_return       = 0.0,
-                ))
+                # Check whether stats have already been reset (stats_reset_at set)
+                # Only perform the full wipe on the FIRST deploy after the env var
+                # is set — so subsequent restarts don't erase accumulated honest data.
+                _existing = await db.execute(_select(_Strategy).limit(1))
+                _first = _existing.scalar_one_or_none()
+                _already_reset = _first and _first.stats_reset_at is not None
+
+                if not _already_reset:
+                    # First time — wipe the old biased stats and stamp the reset
+                    await db.execute(update(Strategy).values(
+                        mode             = "PAPER_ONLY",
+                        cycles_completed = 0,
+                        win_trades       = 0,
+                        loss_trades      = 0,
+                        win_rate         = 0.0,
+                        total_pnl        = 0.0,
+                        avg_return       = 0.0,
+                        stats_reset_at   = _reset_ts,
+                    ))
+                    logger.warning("FORCE_PAPER_MODE: first-time stats wipe — honest baseline established")
+                else:
+                    # Already reset — only enforce PAPER_ONLY mode, never wipe stats
+                    await db.execute(update(Strategy).values(mode = "PAPER_ONLY"))
+                    logger.info("FORCE_PAPER_MODE: mode enforced, accumulated stats preserved")
                 await db.commit()
             logger.warning(
                 "FORCE_PAPER_MODE=1 — strategies reset to PAPER_ONLY, "

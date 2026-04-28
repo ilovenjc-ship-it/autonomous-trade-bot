@@ -42,6 +42,11 @@ class BotConfig(Base):
     total_pnl = Column(Float, default=0.0)
     daily_trades = Column(Integer, default=0)
 
+    # OpenClaw BFT — persisted so round counter survives redeployments
+    openclaw_total_rounds    = Column(Integer, default=0)
+    openclaw_approved_rounds = Column(Integer, default=0)
+    openclaw_rejected_rounds = Column(Integer, default=0)
+
     # Timestamps
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
