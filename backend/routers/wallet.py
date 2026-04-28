@@ -420,6 +420,41 @@ def _fetch_taostats_transfers_sync(address: str) -> list:
     return []
 
 
+@router.get("/db-check")
+async def db_check(db: AsyncSession = Depends(get_db)):
+    """
+    Diagnostic endpoint — verifies the wallet_fundings table exists and is
+    queryable. Returns row count and table status. Used to diagnose
+    'Failed to load transaction data' errors.
+    """
+    from sqlalchemy import text, inspect
+    results: dict = {}
+
+    # 1. Check table exists via direct SQL
+    try:
+        row = await db.execute(text("SELECT COUNT(*) FROM wallet_fundings"))
+        count = row.scalar()
+        results["wallet_fundings_table"] = "EXISTS"
+        results["wallet_fundings_count"] = count
+    except Exception as e:
+        results["wallet_fundings_table"] = f"MISSING or ERROR: {e}"
+        results["wallet_fundings_count"] = None
+
+    # 2. Check trades table (sanity check that DB works at all)
+    try:
+        row2 = await db.execute(text("SELECT COUNT(*) FROM trades"))
+        results["trades_count"] = row2.scalar()
+        results["db_connection"] = "OK"
+    except Exception as e:
+        results["db_connection"] = f"ERROR: {e}"
+
+    # 3. DB path
+    from core.config import settings
+    results["db_url_tail"] = settings.DATABASE_URL.split("///")[-1]
+
+    return results
+
+
 @router.get("/funding")
 async def list_fundings(db: AsyncSession = Depends(get_db)):
     """Return all recorded wallet funding events, newest first."""
@@ -456,6 +491,8 @@ async def add_funding(body: FundingRequest, db: AsyncSession = Depends(get_db)):
     """
     if body.amount_tao <= 0:
         raise HTTPException(status_code=400, detail="amount_tao must be positive")
+
+    
 
     # Parse funded_at
     try:

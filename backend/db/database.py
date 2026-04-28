@@ -57,7 +57,30 @@ async def get_db() -> AsyncSession:
 
 
 async def init_db():
-    """Create all tables on startup."""
+    """
+    Create all tables on startup.
+
+    Uses create_all(checkfirst=True) which is idempotent — safe to call on
+    every restart. New tables added in later deploys are created automatically
+    without affecting existing data.
+    """
+    # Import every model module so SQLAlchemy's metadata knows about them.
+    # Any model NOT imported here will NOT be created by create_all.
     from models import bot_config, trade, price_history, strategy, wallet_funding  # noqa: F401
+
     async with async_engine.begin() as conn:
+        # checkfirst=True (default) — skips tables that already exist
         await conn.run_sync(Base.metadata.create_all)
+
+    # Explicit per-table verification log so startup confirms each table
+    from sqlalchemy import text, inspect as sa_inspect
+    import logging as _logging
+    _log = _logging.getLogger(__name__)
+    async with async_engine.connect() as conn:
+        try:
+            tables = await conn.run_sync(
+                lambda sync_conn: sa_inspect(sync_conn).get_table_names()
+            )
+            _log.info(f"DB tables confirmed: {sorted(tables)}")
+        except Exception as _e:
+            _log.warning(f"DB table list check failed: {_e}")
