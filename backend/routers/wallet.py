@@ -581,22 +581,30 @@ async def get_transactions(db: AsyncSession = Depends(get_db)):
         for t in trades
     ]
 
-    # ── 3. Current wallet state ───────────────────────────────────────────────
+    # ── 3. Current wallet state (best-effort — chain calls may be unavailable) ──
+    # NOTE: these are wrapped individually so a failed chain call never prevents
+    # funding records from loading. The funding ledger must always be readable.
     status = bittensor_service.get_status()
     current_balance = status.get("balance_cached") or 0.0
 
-    # Staked positions
-    stake_info = await bittensor_service.get_stake_info()
-    stakes = stake_info.get("stakes", [])
     staked_tao = 0.0
-    if stakes:
-        netuids = list({s["netuid"] for s in stakes})
-        prices  = await bittensor_service.get_prices_for_netuids(netuids)
-        for s in stakes:
-            netuid = s["netuid"]
-            alpha  = float(s.get("stake", 0.0))
-            price  = prices.get(netuid, 0.0)
-            staked_tao += alpha if netuid == 0 else alpha * price
+    try:
+        stake_info = await bittensor_service.get_stake_info()
+        stakes = stake_info.get("stakes", [])
+        if stakes:
+            netuids = list({s["netuid"] for s in stakes})
+            try:
+                prices = await bittensor_service.get_prices_for_netuids(netuids)
+            except Exception as _pe:
+                logger.debug(f"[TRANSACTIONS] get_prices_for_netuids failed: {_pe}")
+                prices = {}
+            for s in stakes:
+                netuid = s["netuid"]
+                alpha  = float(s.get("stake", 0.0))
+                price  = prices.get(netuid, 0.0)
+                staked_tao += alpha if netuid == 0 else alpha * price
+    except Exception as _se:
+        logger.debug(f"[TRANSACTIONS] get_stake_info failed: {_se}")
 
     total_value = current_balance + staked_tao
     net_pnl     = round(total_value - total_funded, 6)

@@ -164,8 +164,9 @@ function AddFundingModal({ onClose, onSaved }: { onClose: () => void; onSaved: (
       onSaved()
       onClose()
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: string } } }
-      toast.error(e?.response?.data?.detail || 'Failed to save')
+      // axios interceptor converts errors to plain Error with message = detail
+      const msg = (err as Error)?.message || 'Failed to save'
+      toast.error(msg)
     } finally {
       setSaving(false)
     }
@@ -314,10 +315,38 @@ export default function WalletTransactions() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
+      // Primary: full transactions endpoint (funding + trades + chain summary)
       const res = await api.get<TransactionsData>('/wallet/transactions')
       setData(res.data)
-    } catch (err) {
-      toast.error('Failed to load transaction data')
+    } catch (primaryErr) {
+      // Fallback: if full endpoint fails (e.g. chain calls timeout), load just
+      // the funding records from the lightweight /wallet/funding endpoint so
+      // the Funding Events tab always works regardless of chain availability.
+      try {
+        const fb = await api.get<{ fundings: FundingEntry[]; total_funded_tao: number; count: number }>('/wallet/funding')
+        const fallbackData: TransactionsData = {
+          summary: {
+            total_funded_tao:    fb.data.total_funded_tao,
+            funding_count:       fb.data.count,
+            current_balance_tao: 0,
+            staked_tao:          0,
+            total_value_tao:     0,
+            net_pnl_tao:         0,
+            net_pnl_pct:         0,
+            coldkey_address:     '',
+            taostats_url:        '',
+          },
+          fundings:        fb.data.fundings,
+          trades:          [],
+          chain_transfers: [],
+          chain_error:     'Full data unavailable — showing funding records only',
+          unified_ledger:  fb.data.fundings,
+        }
+        setData(fallbackData)
+        toast.error('Chain data unavailable — showing funding records only', { duration: 4000 })
+      } catch {
+        toast.error((primaryErr as Error)?.message || 'Failed to load transaction data')
+      }
     } finally {
       setLoading(false)
     }
@@ -332,8 +361,8 @@ export default function WalletTransactions() {
       await api.delete(`/wallet/funding/${id}`)
       toast.success('Record deleted')
       await load()
-    } catch {
-      toast.error('Delete failed')
+    } catch (err) {
+      toast.error((err as Error)?.message || 'Delete failed')
     } finally {
       setDeletingId(null)
     }
