@@ -324,15 +324,26 @@ export default function WalletTransactions() {
       // the Funding Events tab always works regardless of chain availability.
       try {
         const fb = await api.get<{ fundings: FundingEntry[]; total_funded_tao: number; count: number }>('/wallet/funding')
+        // Best-effort: fetch current wallet balance for accurate P&L even in fallback
+        let currentBalance = 0
+        try {
+          const statusRes = await api.get<{ balance_cached?: number; balance?: number }>('/wallet/status')
+          currentBalance = statusRes.data?.balance_cached ?? statusRes.data?.balance ?? 0
+        } catch { /* ignore — leave balance at 0 */ }
+
+        const totalFunded = fb.data.total_funded_tao
+        const netPnl      = currentBalance - totalFunded
+        const netPnlPct   = totalFunded > 0 ? (netPnl / totalFunded) * 100 : 0
+
         const fallbackData: TransactionsData = {
           summary: {
-            total_funded_tao:    fb.data.total_funded_tao,
+            total_funded_tao:    totalFunded,
             funding_count:       fb.data.count,
-            current_balance_tao: 0,
+            current_balance_tao: currentBalance,
             staked_tao:          0,
-            total_value_tao:     0,
-            net_pnl_tao:         0,
-            net_pnl_pct:         0,
+            total_value_tao:     currentBalance,
+            net_pnl_tao:         Math.round(netPnl * 1e6) / 1e6,
+            net_pnl_pct:         Math.round(netPnlPct * 100) / 100,
             coldkey_address:     '',
             taostats_url:        '',
           },
