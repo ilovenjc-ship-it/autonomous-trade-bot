@@ -8,6 +8,7 @@ from datetime import datetime
 from db.database import get_db
 from models.bot_config import BotConfig
 from models.strategy import Strategy
+from models.trade import Trade
 from services.trading_service import trading_service
 from services.bittensor_service import bittensor_service
 from services.price_service import price_service
@@ -163,6 +164,42 @@ async def force_paper_mode_on(db: AsyncSession = Depends(get_db)):
         "success": True,
         "force_paper_mode": True,
         "message": "Paper mode override active — all live on-chain execution blocked. Strategies reset to PAPER_ONLY.",
+    }
+
+
+@router.post("/reset-paper-stats")
+async def reset_paper_stats(db: AsyncSession = Depends(get_db)):
+    """
+    Wipe all strategy performance stats (win_rate, pnl, cycles, win/loss counts)
+    and reset every strategy to PAPER_ONLY.
+
+    Use this when switching from the old biased simulation to the honest one —
+    old numbers are contaminated and must not be used for gate decisions.
+    Also deletes all paper trade history so the trade log starts clean.
+    """
+    from models.trade import Trade
+    await db.execute(update(Strategy).values(
+        mode             = "PAPER_ONLY",
+        cycles_completed = 0,
+        win_trades       = 0,
+        loss_trades      = 0,
+        win_rate         = 0.0,
+        total_pnl        = 0.0,
+        avg_return       = 0.0,
+    ))
+    # Delete paper trades (no tx_hash = paper) — live trades are preserved
+    await db.execute(
+        Trade.__table__.delete().where(Trade.tx_hash.is_(None))
+    )
+    await db.commit()
+    push_event(
+        "system",
+        "🗑️ Paper stats reset — all strategy metrics wiped, paper trade history cleared. Honest simulation starting fresh.",
+        detail="Old biased simulation data removed. New simulation: real fees, symmetric outcomes, zero drift.",
+    )
+    return {
+        "success": True,
+        "message": "Strategy stats and paper trade history wiped. Clean slate for honest simulation.",
     }
 
 

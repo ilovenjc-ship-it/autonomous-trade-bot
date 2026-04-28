@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   AlertTriangle, ShieldOff, ShieldCheck, TrendingUp, TrendingDown,
   ArrowUp, ArrowDown, RefreshCw, Zap, Play, Square,
-  ChevronRight, CheckCircle2, XCircle, FlaskConical, Flame,
+  ChevronRight, CheckCircle2, XCircle, FlaskConical, Flame, Trash2,
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
@@ -98,6 +98,7 @@ export default function HumanOverride() {
   const [promoCheck,     setPromoCheck]     = useState(false)
   const [forcePaper,     setForcePaper]     = useState(false)
   const [togglingPaper,  setTogglingPaper]  = useState(false)
+  const [resettingStats, setResettingStats] = useState(false)
 
   // manual trade form
   const [tradeAction, setTradeAction] = useState<'buy' | 'sell'>('buy')
@@ -146,6 +147,19 @@ export default function HumanOverride() {
       toast.success('🛑 Paper mode override active — no live trades will fire', { duration: 8000 })
     } catch { toast.error('Failed to activate paper override') }
     finally { setTogglingPaper(false) }
+  }
+
+  async function doResetPaperStats() {
+    if (!window.confirm(
+      'RESET PAPER STATS\n\nThis will:\n• Wipe all strategy win rates, PnL, and cycle counts\n• Delete all paper trade history\n• Reset every strategy to PAPER_ONLY\n\nUse this to clear contaminated data from the old biased simulation.\nLive trades with tx_hash are preserved.\n\nConfirm?'
+    )) return
+    setResettingStats(true)
+    try {
+      await api.post('/bot/reset-paper-stats')
+      fetchStrategies()
+      toast.success('🗑️ Paper stats wiped — clean slate for honest simulation', { duration: 6000 })
+    } catch { toast.error('Reset failed') }
+    finally { setResettingStats(false) }
   }
 
   async function doResumeLive() {
@@ -385,7 +399,7 @@ export default function HumanOverride() {
 
         {/* Paper mode detail chips */}
         {forcePaper && (
-          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-amber-500/20">
+          <div className="flex flex-wrap items-center gap-2 mt-4 pt-4 border-t border-amber-500/20">
             <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[13px] font-mono">
               ✓ Live gate blocked
             </span>
@@ -393,14 +407,20 @@ export default function HumanOverride() {
               ✓ Auto-promotion suspended
             </span>
             <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[13px] font-mono">
-              ✓ Paper stats still accruing
+              ✓ Honest simulation active
             </span>
             <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[13px] font-mono">
-              ✓ Strategies reset to PAPER_ONLY
+              ✓ No TAO at risk
             </span>
-            <span className="px-2.5 py-1 rounded-lg bg-dark-700 border border-dark-600 text-slate-400 text-[13px] font-mono">
-              No TAO at risk
-            </span>
+            <button
+              onClick={doResetPaperStats}
+              disabled={resettingStats}
+              className="ml-auto flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-400 text-[13px] font-mono hover:bg-red-500/20 transition-colors disabled:opacity-50"
+              title="Wipe contaminated stats from old biased simulation — start fresh"
+            >
+              {resettingStats ? <RefreshCw size={11} className="animate-spin" /> : <Trash2 size={11} />}
+              {resettingStats ? 'Resetting…' : 'Reset Paper Stats'}
+            </button>
           </div>
         )}
       </div>
