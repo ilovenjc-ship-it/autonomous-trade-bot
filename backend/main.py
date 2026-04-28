@@ -80,6 +80,27 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.error(f"Validator load failed: {_e}")
 
+    # ── FORCE_PAPER_MODE env var — reset all strategies to PAPER_ONLY ────────
+    # When FORCE_PAPER_MODE=1 is set in Railway environment, every restart
+    # automatically resets all DB strategies to PAPER_ONLY so the gate
+    # system cannot auto-promote them back to LIVE while the lock is active.
+    import os as _os2
+    if _os2.environ.get("FORCE_PAPER_MODE", "0") == "1":
+        try:
+            from sqlalchemy import update
+            from db.database import AsyncSessionLocal
+            from models.strategy import Strategy
+            from services.cycle_service import set_force_paper_mode
+            set_force_paper_mode(True)
+            async with AsyncSessionLocal() as db:
+                await db.execute(update(Strategy).values(mode="PAPER_ONLY"))
+                await db.commit()
+            logger.warning(
+                "FORCE_PAPER_MODE=1 detected — all strategies reset to PAPER_ONLY, live execution blocked"
+            )
+        except Exception as _e:
+            logger.error(f"Force paper mode startup reset failed: {_e}")
+
     # ── Schedule all heavy services as background task ───────────────────────
     # Fires AFTER yield — guarantees /health responds before any I/O starts.
     async def _boot_services():
