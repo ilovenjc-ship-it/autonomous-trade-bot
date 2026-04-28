@@ -264,42 +264,44 @@ class BittensorService:
                         )
                         self._last_balance = float(bal)
                     except asyncio.TimeoutError:
-                        logger.debug("Balance query timed out (non-fatal) — using cached")
+                        logger.warning("Balance query timed out (non-fatal) — using cached value")
                     except Exception as _be:
-                        logger.debug(f"Balance query failed (non-fatal): {_be}")
+                        logger.warning(f"Balance query failed (non-fatal): {_be}")
 
                 return {
-                    "address":       self._coldkey_addr,
-                    "balance_tao":   self._last_balance,
-                    "block":         self._last_block,
-                    "network":       NETWORK,
-                    "connected":     True,
-                    "timestamp":     self._last_chain_at,
-                    "wallet_loaded": self._mnemonic_set,
+                    "address":        self._coldkey_addr,
+                    "balance_cached": self._last_balance,  # matches frontend ChainInfo.balance_cached
+                    "block_cached":   self._last_block,    # matches frontend ChainInfo.block_cached
+                    "last_chain_at":  self._last_chain_at, # matches frontend ChainInfo.last_chain_at
+                    "network":        NETWORK,
+                    "connected":      True,
+                    "wallet_loaded":  self._mnemonic_set,
                 }
         except asyncio.TimeoutError:
             logger.warning(f"get_chain_info block query timed out after {self._TIMEOUT_FAST}s")
             self.connected = False
             return {
-                "address":       self._coldkey_addr,
-                "balance_tao":   self._last_balance,
-                "block":         self._last_block,
-                "network":       NETWORK,
-                "connected":     False,
-                "error":         "chain query timed out",
-                "wallet_loaded": self._mnemonic_set,
+                "address":        self._coldkey_addr,
+                "balance_cached": self._last_balance,
+                "block_cached":   self._last_block,
+                "last_chain_at":  self._last_chain_at,
+                "network":        NETWORK,
+                "connected":      False,
+                "error":          "chain query timed out",
+                "wallet_loaded":  self._mnemonic_set,
             }
         except Exception as e:
             logger.warning(f"get_chain_info error: {e}")
             self.connected = False
             return {
-                "address":       self._coldkey_addr,
-                "balance_tao":   self._last_balance,
-                "block":         self._last_block,
-                "network":       NETWORK,
-                "connected":     False,
-                "error":         str(e),
-                "wallet_loaded": self._mnemonic_set,
+                "address":        self._coldkey_addr,
+                "balance_cached": self._last_balance,
+                "block_cached":   self._last_block,
+                "last_chain_at":  self._last_chain_at,
+                "network":        NETWORK,
+                "connected":      False,
+                "error":          str(e),
+                "wallet_loaded":  self._mnemonic_set,
             }
 
     async def get_subnet_prices(self, limit: int = 20) -> List[Dict]:
