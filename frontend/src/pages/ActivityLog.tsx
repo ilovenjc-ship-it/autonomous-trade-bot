@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from 'react'
 import {
-  Activity, RefreshCw, Filter, ArrowDownCircle,
+  Activity, RefreshCw, Filter, ArrowUpCircle,
   CheckCircle2, AlertTriangle, Zap, Radio, TrendingUp,
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -29,11 +29,12 @@ const KIND_META: Record<string, { label: string; color: string; icon: React.Elem
 
 const ALL_KINDS = ['trade', 'signal', 'gate', 'system', 'alert']
 
-/** Format ISO timestamp as HH:MM:SS ET (24-hr military, Eastern time) */
+/** Format ISO timestamp as HH:MM:SS ET (24-hr, Eastern time, UTC-normalized) */
 function ts(raw: string) {
   if (!raw) return ''
   try {
-    return new Date(raw).toLocaleTimeString('en-US', {
+    const utc = raw.endsWith('Z') ? raw : raw.replace(' ', 'T') + 'Z'
+    return new Date(utc).toLocaleTimeString('en-US', {
       timeZone: 'America/New_York',
       hour: '2-digit',
       minute: '2-digit',
@@ -97,7 +98,7 @@ export default function ActivityLog() {
   const [live,     setLive]     = useState(true)
   const [filter,   setFilter]   = useState<string>('all')
   const [search,   setSearch]   = useState('')
-  const bottomRef = useRef<HTMLDivElement>(null)
+  const topRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
     try {
@@ -114,11 +115,6 @@ export default function ActivityLog() {
     const t = setInterval(load, 5000)
     return () => clearInterval(t)
   }, [live, load])
-
-  // auto-scroll to bottom when live
-  useEffect(() => {
-    if (live) bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [events, live])
 
   const filtered = events.filter(e => {
     if (filter !== 'all' && e.kind !== filter) return false
@@ -224,6 +220,9 @@ export default function ActivityLog() {
 
       {/* ── Event stream ───────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-6 py-3 space-y-1.5">
+        {/* Anchor for "Jump to latest" — newest events are at the top */}
+        <div ref={topRef} />
+
         {loading && (
           <div className="flex items-center justify-center py-16">
             <RefreshCw size={20} className="animate-spin text-slate-300" />
@@ -237,7 +236,7 @@ export default function ActivityLog() {
           </div>
         )}
 
-        {[...filtered].reverse().map((ev, idx) => {
+        {filtered.map((ev, idx) => {
           const m = KIND_META[ev.kind] ?? KIND_META.system
           const Icon = m.icon
           return (
@@ -277,8 +276,7 @@ export default function ActivityLog() {
           )
         })}
 
-        <div ref={bottomRef} />
-      </div>
+        </div>
 
       {/* ── Footer ─────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 py-2 border-t border-dark-600 flex items-center justify-between">
@@ -286,10 +284,10 @@ export default function ActivityLog() {
           Ring buffer — last 200 events in memory
         </p>
         <button
-          onClick={() => bottomRef.current?.scrollIntoView({ behavior: 'smooth' })}
-          className="flex items-center gap-1 text-xs text-slate-300 hover:text-slate-300 font-mono transition-colors"
+          onClick={() => topRef.current?.scrollIntoView({ behavior: 'smooth' })}
+          className="flex items-center gap-1 text-xs text-slate-300 hover:text-white font-mono transition-colors"
         >
-          <ArrowDownCircle size={12} /> Jump to latest
+          <ArrowUpCircle size={12} /> Jump to latest
         </button>
       </div>
       </div>{/* end inner flex-col */}
