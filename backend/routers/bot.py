@@ -7,10 +7,12 @@ from datetime import datetime
 
 from db.database import get_db
 from models.bot_config import BotConfig
+from models.strategy import Strategy
 from services.trading_service import trading_service
 from services.bittensor_service import bittensor_service
 from services.price_service import price_service
-from services.cycle_service import cycle_service
+from services.cycle_service import cycle_service, get_force_paper_mode, set_force_paper_mode
+from services.activity_service import push_event
 from core.config import settings
 
 router = APIRouter(prefix="/api/bot", tags=["bot"])
@@ -108,7 +110,8 @@ async def get_status(db: AsyncSession = Depends(get_db)):
         "current_price": price_data.get("price_usd"),
         "price_change_24h": price_data.get("price_change_pct_24h"),
         "indicators": indicators,
-        "simulation_mode": not bittensor_service.connected,
+        "simulation_mode": get_force_paper_mode() or not bittensor_service.connected,
+        "force_paper_mode": get_force_paper_mode(),
     }
 
 
@@ -137,6 +140,51 @@ async def stop_bot():
         import traceback
         tb = traceback.format_exc()
         raise HTTPException(status_code=500, detail=f"Stop failed: {exc} | {tb[-300:]}")
+
+
+@router.post("/force-paper")
+async def force_paper_mode_on(db: AsyncSession = Depends(get_db)):
+    """
+    Emergency paper-mode override.
+    - Sets _FORCE_PAPER_MODE = True in cycle_service (blocks all live chain calls)
+    - Resets every strategy in DB back to PAPER_ONLY (persistent across restarts)
+    - Does NOT stop the cycle engine — paper simulation continues accumulating stats
+    """
+    set_force_paper_mode(True)
+    # Reset all strategies to PAPER_ONLY in DB — persistent across Railway restarts
+    await db.execute(update(Strategy).values(mode="PAPER_ONLY"))
+    await db.commit()
+    push_event(
+        "system",
+        "🛑 PAPER MODE OVERRIDE ACTIVATED — all live execution halted, strategies reset to PAPER_ONLY",
+        detail="Manual override via Human Override panel. Resume via /api/bot/resume-live.",
+    )
+    return {
+        "success": True,
+        "force_paper_mode": True,
+        "message": "Paper mode override active — all live on-chain execution blocked. Strategies reset to PAPER_ONLY.",
+    }
+
+
+@router.post("/resume-live")
+async def resume_live_mode_on():
+    """
+    Lift the paper-mode override.
+    - Sets _FORCE_PAPER_MODE = False
+    - Does NOT automatically promote strategies — they must re-earn promotion through the gate system
+    - The top bar will continue showing 'Paper Trading' until a strategy reaches LIVE mode again
+    """
+    set_force_paper_mode(False)
+    push_event(
+        "system",
+        "✅ Paper override lifted — gate system resumed. Strategies must re-earn LIVE promotion.",
+        detail="Live execution re-enabled. No strategies are in LIVE mode until they pass gate thresholds.",
+    )
+    return {
+        "success": True,
+        "force_paper_mode": False,
+        "message": "Override lifted. Strategies will re-earn LIVE status through the gate system — no immediate live execution.",
+    }
 
 
 @router.get("/config")

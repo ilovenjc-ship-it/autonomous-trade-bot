@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   AlertTriangle, ShieldOff, ShieldCheck, TrendingUp, TrendingDown,
   ArrowUp, ArrowDown, RefreshCw, Zap, Play, Square,
-  ChevronRight, CheckCircle2, XCircle,
+  ChevronRight, CheckCircle2, XCircle, FlaskConical, Flame,
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
@@ -91,11 +91,13 @@ function ModeStep({
 export default function HumanOverride() {
   const { strategies, fetchStrategies } = useBotStore()
 
-  const [status,      setStatus]      = useState<OverrideStatus | null>(null)
-  const [loading,     setLoading]     = useState(true)
-  const [halting,     setHalting]     = useState(false)
-  const [resuming,    setResuming]    = useState(false)
-  const [promoCheck,  setPromoCheck]  = useState(false)
+  const [status,         setStatus]         = useState<OverrideStatus | null>(null)
+  const [loading,        setLoading]        = useState(true)
+  const [halting,        setHalting]        = useState(false)
+  const [resuming,       setResuming]       = useState(false)
+  const [promoCheck,     setPromoCheck]     = useState(false)
+  const [forcePaper,     setForcePaper]     = useState(false)
+  const [togglingPaper,  setTogglingPaper]  = useState(false)
 
   // manual trade form
   const [tradeAction, setTradeAction] = useState<'buy' | 'sell'>('buy')
@@ -113,8 +115,12 @@ export default function HumanOverride() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const res = await api.get('/override/status')
-      setStatus(res.data)
+      const [ovRes, botRes] = await Promise.all([
+        api.get('/override/status'),
+        api.get('/bot/status'),
+      ])
+      setStatus(ovRes.data)
+      setForcePaper(botRes.data.force_paper_mode ?? false)
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }, [])
@@ -127,6 +133,34 @@ export default function HumanOverride() {
   }, [fetchStatus, fetchStrategies])
 
   // ── actions ──────────────────────────────────────────────────────────────
+
+  async function doForcePaper() {
+    if (!window.confirm(
+      'FORCE PAPER MODE\n\nThis will:\n• Block ALL real on-chain execution immediately\n• Reset every strategy to PAPER_ONLY\n• Keep the cycle engine running (paper stats still accrue)\n\nConfirm?'
+    )) return
+    setTogglingPaper(true)
+    try {
+      await api.post('/bot/force-paper')
+      setForcePaper(true)
+      fetchStrategies()
+      toast.success('🛑 Paper mode override active — no live trades will fire', { duration: 8000 })
+    } catch { toast.error('Failed to activate paper override') }
+    finally { setTogglingPaper(false) }
+  }
+
+  async function doResumeLive() {
+    if (!window.confirm(
+      'LIFT PAPER OVERRIDE\n\nThis allows strategies to re-earn LIVE status through the gate system.\nNo strategies will immediately go live — they must pass gate thresholds again.\n\nConfirm?'
+    )) return
+    setTogglingPaper(true)
+    try {
+      await api.post('/bot/resume-live')
+      setForcePaper(false)
+      toast.success('✅ Paper override lifted — gate system active, strategies must re-earn LIVE status')
+    } catch { toast.error('Failed to lift paper override') }
+    finally { setTogglingPaper(false) }
+  }
+
   async function doEmergencyStop() {
     if (!window.confirm('EMERGENCY STOP — halt ALL trading right now?\n\nThis is immediate. Click OK to confirm.')) return
     setHalting(true)
@@ -266,13 +300,13 @@ export default function HumanOverride() {
       ],
     },
     {
-      title: 'Mode Distribution', subtitle: 'Strategy Modes', accent: 'purple' as const,
+      title: 'Mode Distribution', subtitle: 'Strategy Modes', accent: forcePaper ? 'yellow' as const : 'purple' as const,
       stats: [
-        { label: 'LIVE',     value: String(liveCount),     color: 'emerald' as const },
-        { label: 'APPROVED', value: String(approvedCount), color: 'purple'  as const },
-        { label: 'PAPER',    value: String(paperCount),    color: 'yellow'  as const },
-        { label: 'Total',    value: String(rows.length),   color: 'white'   as const },
-        { label: 'Status',   value: halted ? 'HALTED' : 'Active', color: halted ? 'red' : 'emerald' as any },
+        { label: 'Override',  value: forcePaper ? 'PAPER LOCK' : 'None',  color: forcePaper ? 'yellow' : 'slate' as any },
+        { label: 'LIVE',      value: String(liveCount),                    color: forcePaper ? 'slate' : 'emerald' as any },
+        { label: 'APPROVED',  value: String(approvedCount),                color: 'purple'  as const },
+        { label: 'PAPER',     value: String(paperCount),                   color: 'yellow'  as const },
+        { label: 'Status',    value: forcePaper ? 'PAPER ONLY' : halted ? 'HALTED' : 'Active', color: forcePaper ? 'yellow' : halted ? 'red' : 'emerald' as any },
       ],
     },
     {
@@ -292,6 +326,84 @@ export default function HumanOverride() {
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+      {/* ── PAPER MODE OVERRIDE BANNER ──────────────────────────────────────── */}
+      <div className={clsx(
+        'rounded-xl border p-5 transition-all',
+        forcePaper
+          ? 'bg-amber-500/10 border-amber-500/40 shadow-[0_0_24px_rgba(245,158,11,0.15)]'
+          : 'bg-dark-800 border-dark-600',
+      )}>
+        <div className="flex items-center justify-between gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <div className={clsx(
+              'flex items-center justify-center w-10 h-10 rounded-xl flex-shrink-0',
+              forcePaper ? 'bg-amber-500/20 border border-amber-500/40' : 'bg-dark-700 border border-dark-600',
+            )}>
+              {forcePaper
+                ? <FlaskConical size={18} className="text-amber-400" />
+                : <Flame size={18} className="text-accent-green" />
+              }
+            </div>
+            <div>
+              <p className={clsx(
+                'text-sm font-bold font-mono uppercase tracking-wider',
+                forcePaper ? 'text-amber-400' : 'text-accent-green',
+              )}>
+                {forcePaper ? '🛑 Paper Mode Override — Active' : '🔴 Live Trading Active'}
+              </p>
+              <p className="text-[13px] text-slate-400 font-mono mt-0.5">
+                {forcePaper
+                  ? 'All on-chain execution is blocked. Strategies are running paper simulation only. No TAO will be spent.'
+                  : 'Strategies in LIVE mode are executing real on-chain stake() calls. TAO is being spent on every approved signal.'}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 flex-shrink-0">
+            {forcePaper ? (
+              <button
+                onClick={doResumeLive}
+                disabled={togglingPaper}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-accent-green/15 border border-accent-green/40 text-accent-green text-sm font-bold font-mono hover:bg-accent-green/25 transition-all disabled:opacity-50"
+              >
+                {togglingPaper ? <RefreshCw size={13} className="animate-spin" /> : <Flame size={13} />}
+                {togglingPaper ? 'Lifting…' : 'Resume Gate System'}
+              </button>
+            ) : (
+              <button
+                onClick={doForcePaper}
+                disabled={togglingPaper || halted}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-400 text-sm font-bold font-mono hover:bg-amber-500/25 transition-all disabled:opacity-50"
+              >
+                {togglingPaper ? <RefreshCw size={13} className="animate-spin" /> : <FlaskConical size={13} />}
+                {togglingPaper ? 'Activating…' : 'Force Paper Mode'}
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Paper mode detail chips */}
+        {forcePaper && (
+          <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-amber-500/20">
+            <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[13px] font-mono">
+              ✓ Live gate blocked
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[13px] font-mono">
+              ✓ Auto-promotion suspended
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[13px] font-mono">
+              ✓ Paper stats still accruing
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-300 text-[13px] font-mono">
+              ✓ Strategies reset to PAPER_ONLY
+            </span>
+            <span className="px-2.5 py-1 rounded-lg bg-dark-700 border border-dark-600 text-slate-400 text-[13px] font-mono">
+              No TAO at risk
+            </span>
+          </div>
+        )}
+      </div>
 
       {/* ── system status bar ───────────────────────────────────────────────── */}
       <div className={clsx(

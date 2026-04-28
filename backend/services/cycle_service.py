@@ -11,6 +11,7 @@ Every cycle (default 60 s):
 """
 import asyncio
 import logging
+import os
 import random
 from datetime import datetime, timezone
 from typing import Dict, Any, List, Optional
@@ -35,6 +36,27 @@ logger = logging.getLogger(__name__)
 # Build tag — bumped to force Railway redeploy and confirm version in logs
 CYCLE_SERVICE_VERSION = "2.1.0-openclaw-all-modes"
 logger.info(f"cycle_service loaded — version {CYCLE_SERVICE_VERSION} (OpenClaw active for ALL modes)")
+
+# ── Global paper-mode override ────────────────────────────────────────────────
+# When True, ALL live on-chain execution is blocked regardless of strategy mode.
+# Strategies continue to paper-simulate and accrue stats/gate progress.
+# Auto-promotion (PAPER_ONLY → APPROVED_FOR_LIVE → LIVE) is also suspended.
+# Toggle via POST /api/bot/force-paper and POST /api/bot/resume-live.
+# Readable from the FORCE_PAPER_MODE env var at startup (set to "1" to default safe).
+_FORCE_PAPER_MODE: bool = os.environ.get("FORCE_PAPER_MODE", "0") == "1"
+
+
+def get_force_paper_mode() -> bool:
+    return _FORCE_PAPER_MODE
+
+
+def set_force_paper_mode(enabled: bool) -> None:
+    global _FORCE_PAPER_MODE
+    _FORCE_PAPER_MODE = enabled
+    logger.warning(
+        f"[PAPER OVERRIDE] Force paper mode {'ENABLED — all live execution blocked' if enabled else 'DISABLED — strategies may resume live promotion'}"
+    )
+
 
 # Dedup sets — prevent alert spam across cycles
 _drawdown_alerted: set = set()   # strategy names already drawdown-alerted this session
@@ -620,7 +642,8 @@ async def _run_one_cycle() -> None:
             target_netuid = config.netuid if config else 1   # default; router may override
 
             if (
-                s.mode == "LIVE"
+                not _FORCE_PAPER_MODE          # master paper override — blocks all chain calls
+                and s.mode == "LIVE"
                 and bittensor_service.connected
                 and bittensor_service.wallet_loaded
             ):
@@ -799,7 +822,11 @@ async def _run_one_cycle() -> None:
             stats_str = f"Cycles={s.cycles_completed} WR={s.win_rate:.1f}% PnL={s.total_pnl:.4f}τ"
             display   = DISPLAY_NAMES.get(s.name, s.name)
 
-            if s.mode == "PAPER_ONLY" and all(gates.values()):
+            if _FORCE_PAPER_MODE:
+                # Paper override active — gate checks still run for transparency
+                # but no promotions are allowed until override is lifted.
+                pass
+            elif s.mode == "PAPER_ONLY" and all(gates.values()):
                 s.mode = "APPROVED_FOR_LIVE"
                 push_event(
                     "gate",
