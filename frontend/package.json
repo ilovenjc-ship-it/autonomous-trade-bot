@@ -13,6 +13,8 @@
     "axios": "^1.6.8",
     "clsx": "^2.1.1",
     "date-fns": "^3.6.0",
+    "express": "^4.19.2",
+    "http-proxy-middleware": "^3.0.0",
     "lucide-react": "^0.378.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

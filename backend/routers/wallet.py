@@ -363,8 +363,8 @@ async def get_chain_transfers():
     if not address:
         return {"transfers": [], "error": "No coldkey address configured — restore wallet first"}
 
-    transfers = await asyncio.get_event_loop().run_in_executor(
-        None, lambda: asyncio.run(_fetch_taostats_transfers_sync(address))
+    transfers = await asyncio.get_running_loop().run_in_executor(
+        None, _fetch_taostats_transfers_sync, address
     )
     inbound = [t for t in transfers if t.get("to_address") == address]
     return {"transfers": inbound, "count": len(inbound), "address": address}
@@ -652,7 +652,7 @@ async def get_transactions(db: AsyncSession = Depends(get_db)):
     chain_error: str = ""
     if coldkey:
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             all_transfers = await loop.run_in_executor(
                 None, _fetch_taostats_transfers_sync, coldkey
             )
