@@ -44,7 +44,8 @@ function getLevelDuration(level: string): number {
 }
 
 export function useAlerts() {
-  const [unreadCount, setUnreadCount] = useState(0)
+  const [unreadCount,        setUnreadCount]        = useState(0)
+  const [criticalUnreadCount, setCriticalUnreadCount] = useState(0)
   const initialized                   = useRef(false)
   const lastSeenId = useRef<number>(
     parseInt(localStorage.getItem(STORAGE_KEY) ?? '0', 10)
@@ -53,12 +54,17 @@ export function useAlerts() {
   const poll = useCallback(async () => {
     if (!initialized.current) return   // don't toast until seed is done
     try {
-      const res  = await fetch('/api/alerts?limit=20')
+      // Fetch enough alerts to accurately count unread CRITICALs (they're rare)
+      const res  = await fetch('/api/alerts?limit=50')
       if (!res.ok) return
       const data = await res.json()
 
-      // Update badge count
+      // Update total unread badge count
       setUnreadCount(data.unread_count ?? 0)
+
+      // Bell indicator — only critical unread alerts create noise-worthy urgency
+      const allAlerts: Alert[] = data.alerts ?? []
+      setCriticalUnreadCount(allAlerts.filter(a => a.level === 'CRITICAL' && !a.read).length)
 
       // Find ALL alerts newer than last seen — track by ID only (read status is irrelevant
       // for tracking; an alert marked read in another tab still happened and was new)
@@ -141,5 +147,5 @@ export function useAlerts() {
 
   const refresh = useCallback(() => poll(), [poll])
 
-  return { unreadCount, refresh }
+  return { unreadCount, criticalUnreadCount, refresh }
 }

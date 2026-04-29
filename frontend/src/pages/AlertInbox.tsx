@@ -344,6 +344,17 @@ export default function AlertInbox() {
           Unread Only
         </button>
 
+        {/* Mark All Read — inline, next to Unread Only */}
+        {unreadCount > 0 && (
+          <button
+            onClick={handleMarkAllRead}
+            className="flex items-center gap-1.5 px-3 py-1 rounded-lg text-[13px] font-mono font-semibold transition-colors border bg-dark-700 text-slate-300 border-transparent hover:text-white hover:border-dark-500"
+          >
+            <CheckCheck size={11} />
+            Mark All Read
+          </button>
+        )}
+
         {/* Type filter — pushed to far right */}
         <select
           value={typeFilter}

@@ -50,7 +50,7 @@ function levelIcon(level: string) {
   }
 }
 
-export default function NotificationBell({ unreadCount }: { unreadCount: number }) {
+export default function NotificationBell({ unreadCount, criticalCount }: { unreadCount: number; criticalCount: number }) {
   const [open,   setOpen]   = useState(false)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(false)
@@ -113,9 +113,9 @@ export default function NotificationBell({ unreadCount }: { unreadCount: number 
         title="Notifications"
       >
         <Bell size={15} className={open ? 'text-indigo-300' : ''} />
-        {unreadCount > 0 && (
+        {criticalCount > 0 && (
           <span className="absolute -top-1 -right-1 min-w-[16px] h-4 bg-red-500 text-white text-[15px] font-bold rounded-full flex items-center justify-center px-0.5 animate-pulse">
-            {unreadCount > 99 ? '99+' : unreadCount}
+            {criticalCount > 99 ? '99+' : criticalCount}
           </span>
         )}
       </button>

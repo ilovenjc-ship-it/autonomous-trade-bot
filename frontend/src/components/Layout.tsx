@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
   Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
-  Mic, Send, ChevronDown, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw, CheckCheck,
+  Mic, Send, ChevronDown, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw,
   Landmark,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
@@ -72,7 +72,7 @@ export default function Layout() {
   const walletPageStats = useBotStore((s) => s.walletPageStats)
   const iiAgentStats    = useBotStore((s) => s.iiAgentStats)
   const isRunning   = status?.is_running ?? false
-  const { unreadCount } = useAlerts()
+  const { unreadCount, criticalUnreadCount } = useAlerts()
   const { pathname }    = useLocation()
   const pageTitle = PAGE_TITLES[pathname]
     ?? (pathname.startsWith('/strategy/') ? 'Strategy Detail' : 'Dashboard')
@@ -212,9 +212,9 @@ export default function Layout() {
             >
               <Icon size={16} />
               <span className="flex-1">{label}</span>
-              {badge && unreadCount > 0 && (
+              {badge && criticalUnreadCount > 0 && (
                 <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[13px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
-                  {unreadCount > 99 ? '99+' : unreadCount}
+                  {criticalUnreadCount > 99 ? '99+' : criticalUnreadCount}
                 </span>
               )}
             </NavLink>
@@ -681,17 +681,6 @@ export default function Layout() {
             </div>
           )}
 
-          {/* Alerts — Mark All Read button */}
-          {pathname === '/alerts' && alertStats && alertStats.unread > 0 && (
-            <button
-              onClick={alertStats.markAllRead}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded text-[13px] text-emerald-400 hover:bg-emerald-500/20 transition-colors flex-shrink-0 mr-1"
-            >
-              <CheckCheck size={11} />
-              Mark All Read
-            </button>
-          )}
-
           {/* Agent Fleet — Rebalance Capital button */}
           {pathname === '/fleet' && fleetStats && (
             <button
@@ -772,8 +761,8 @@ export default function Layout() {
             <span>{localTime}</span>
           </div>
 
-          {/* Notification Bell */}
-          <NotificationBell unreadCount={unreadCount} />
+          {/* Notification Bell — badge shows critical-only count */}
+          <NotificationBell unreadCount={unreadCount} criticalCount={criticalUnreadCount} />
         </div>
 
         {/* Content area */}
