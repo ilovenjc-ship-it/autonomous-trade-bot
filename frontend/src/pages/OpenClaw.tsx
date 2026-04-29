@@ -149,7 +149,6 @@ function VoteBar({ buyCount, sellCount, holdCount, abstainCount, threshold }: {
     <div className="space-y-2">
       <div className="flex justify-between text-xs text-slate-300 font-mono mb-1">
         <span>0</span>
-        <span className="text-amber-400">⊢ {threshold}/12 supermajority</span>
         <span>12</span>
       </div>
       <div className="relative h-8 rounded-lg overflow-hidden bg-dark-700 flex">
@@ -378,30 +377,8 @@ export default function OpenClaw() {
       <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* ── Symbol Legend + Manual Trigger Actions ── */}
-      <div className="space-y-2">
-        <LegendBar />
-        {/* Trigger buttons sit directly below the voting rules box */}
-        <div className="flex items-center gap-2 justify-end">
-          <span className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mr-1">Manual trigger:</span>
-          <button
-            onClick={() => handleTrigger('BUY')}
-            disabled={triggering}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
-          >
-            <TrendingUp size={12} />
-            {triggering ? 'Voting…' : 'Trigger BUY'}
-          </button>
-          <button
-            onClick={() => handleTrigger('SELL')}
-            disabled={triggering}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50"
-          >
-            <TrendingDown size={12} />
-            {triggering ? 'Voting…' : 'Trigger SELL'}
-          </button>
-        </div>
-      </div>
+      {/* ── Symbol Legend ── */}
+      <LegendBar />
 
       {/* ── Stat Cards ── */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -423,7 +400,7 @@ export default function OpenClaw() {
           icon={Users}
           label="Voting Bots"
           value={`${stats?.total_bots ?? 12}`}
-          sub={`${stats?.supermajority_threshold ?? 7}/12 to pass`}
+          sub={`⊢ ${stats?.supermajority_threshold ?? 7}/12 supermajority`}
           accent="bg-purple-500/15 text-purple-400"
         />
         <StatCard
@@ -441,24 +418,48 @@ export default function OpenClaw() {
           'bg-dark-800 border rounded-2xl p-5 space-y-5 transition-all duration-500',
           flashRound ? 'border-indigo-500/60 shadow-lg shadow-indigo-500/10' : 'border-dark-600',
         )}>
-          {/* Round header */}
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div className="flex items-center gap-3">
-              <span className="text-slate-300 font-mono text-sm">Round <span className="text-white font-bold">#{latestRound.round_id}</span></span>
-              <span className="text-slate-300">·</span>
-              <span className="text-slate-300 text-xs font-mono">triggered by <span className="text-indigo-400">{latestRound.triggered_by}</span></span>
-              <span className="text-slate-300">·</span>
-              <span className="text-slate-300 text-xs font-mono">${(latestRound.price_at_round ?? 0).toFixed(2)} TAO</span>
+          {/* Round header — 3-column: [triggers left] [triggered-by center] [result right] */}
+          <div className="flex items-center gap-3">
+
+            {/* Left — Manual trigger controls */}
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-[11px] font-mono text-slate-500 uppercase tracking-widest">Manual trigger:</span>
+              <button
+                onClick={() => handleTrigger('BUY')}
+                disabled={triggering}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
+              >
+                <TrendingUp size={12} />
+                {triggering ? 'Voting…' : 'Trigger BUY'}
+              </button>
+              <button
+                onClick={() => handleTrigger('SELL')}
+                disabled={triggering}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50"
+              >
+                <TrendingDown size={12} />
+                {triggering ? 'Voting…' : 'Trigger SELL'}
+              </button>
             </div>
-            <div className="flex items-center gap-3">
+
+            {/* Center — triggered by · price */}
+            <div className="flex-1 flex items-center justify-center gap-2 font-mono text-xs text-slate-300">
+              <span>triggered by <span className="text-indigo-400 font-semibold">{latestRound.triggered_by}</span></span>
+              <span className="text-slate-600">·</span>
+              <span className="text-white font-semibold">${(latestRound.price_at_round ?? 0).toFixed(2)} TAO</span>
+            </div>
+
+            {/* Right — result badge + timing */}
+            <div className="flex items-center gap-3 shrink-0">
               {rm && (
                 <div className={clsx('flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-bold', rm.bg)}>
                   <rm.icon size={14} className={rm.color} />
                   <span className={rm.color}>{rm.label}</span>
                 </div>
               )}
-              <span className="text-[14px] text-slate-300 font-mono">{timeSince(latestRound.timestamp)} · {latestRound.duration_ms}ms</span>
+              <span className="text-[13px] text-slate-400 font-mono">{timeSince(latestRound.timestamp)} · {latestRound.duration_ms}ms</span>
             </div>
+
           </div>
 
           {/* Vote bar */}
