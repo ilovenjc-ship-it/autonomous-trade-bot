@@ -1,6 +1,10 @@
 [build]
-builder = "NIXPACKS"
-buildCommand = "npm install && npm run build"
+# Switched from NIXPACKS → DOCKERFILE to bypass the nix-collect-garbage -d
+# build failure that has been blocking every deploy. The Dockerfile does a
+# two-stage build: Stage 1 installs all deps + runs tsc && vite build;
+# Stage 2 copies only dist/ + server.cjs and installs production deps only.
+builder = "DOCKERFILE"
+dockerfilePath = "Dockerfile"
 
 [deploy]
 # Express proxy server: serves the React SPA and forwards /api/* to the
