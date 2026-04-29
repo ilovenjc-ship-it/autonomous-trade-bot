@@ -446,7 +446,7 @@ export default function Strategies() {
         { label: 'Total',    value: String(strategies.length || 12), color: 'white'   as const },
         { label: 'LIVE',     value: String(liveCount),               color: 'emerald' as const },
         { label: 'APPROVED', value: String(approvedCount),           color: 'purple'  as const },
-        { label: 'PENDING',  value: String(pendingCount),            color: (pendingCount > 0 ? 'yellow' : 'slate') as const },
+        { label: 'PENDING',  value: String(pendingCount),            color: pendingCount > 0 ? 'yellow' as const : 'slate' as const },
         { label: 'PAPER',    value: String(paperCount),              color: 'yellow'  as const },
         { label: 'Showing',  value: String(sorted.length),           color: 'slate'   as const },
       ],

@@ -21,7 +21,7 @@ interface OverrideStatus {
 interface StrategyRow {
   name: string
   display_name: string
-  mode: 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'LIVE'
+  mode: 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'PENDING_LIVE_APPROVAL' | 'LIVE'
   win_rate: number
   total_trades: number
   total_pnl: number
