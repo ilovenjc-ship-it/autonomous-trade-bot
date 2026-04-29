@@ -642,7 +642,7 @@ export default function Dashboard() {
     <div className="p-6 space-y-5">
 
       {/* ── Hero Slider ────────────────────────────────────────────────────── */}
-      <PageHeroSlider slides={heroSlides} />
+      <PageHeroSlider slides={heroSlides} intervalMs={10000} />
 
       {/* ── Cycle status bar ─────────────────────────────────────────────────── */}
       <div className={clsx(
@@ -891,52 +891,25 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ── TAO Price Chart ──────────────────────────────────────────────────── */}
+      {/* ── Main 2-col: TradingView (Traditional) + Market Sentiment ────────── */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+
+        {/* TAO/USDT TradingView chart — Traditional — 2/3 width */}
+        <TaoTradingViewChart />
+
+        {/* Market Sentiment — 1/3 width (relocated from bottom row) */}
+        <SentimentGauge ind={ind} consensusStats={consensusStats} />
+
+      </div>
+
+      {/* ── TAO/USD Price Chart (Modern / Alternative) ───────────────────────── */}
       <TaoPriceChart
         data={priceHistory}
         range={priceRange}
         onRange={r => setPriceRange(r)}
       />
 
-      {/* ── Main 2-col ───────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
-
-        {/* TAO TradingView chart — 2/3 width */}
-        <TaoTradingViewChart />
-
-        {/* Indicators — 1/3 width */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
-            <Radio size={14} className="text-accent-blue" /> Live Indicators
-          </h2>
-          <IndRow label="RSI (14)"     val={ind.rsi_14}      good={30} bad={70} />
-          <IndRow label="EMA 9"        val={ind.ema_9} />
-          <IndRow label="EMA 21"       val={ind.ema_21} />
-          <IndRow label="MACD"         val={ind.macd} />
-          <IndRow label="MACD Signal"  val={ind.macd_signal} />
-          <IndRow label="BB Upper"     val={ind.bb_upper} />
-          <IndRow label="BB Lower"     val={ind.bb_lower} />
-          <IndRow label="SMA 50"       val={ind.sma_50} />
-
-          {/* Momentum signal summary */}
-          <div className="mt-4 p-3 rounded-lg bg-dark-700 border border-dark-600">
-            <p className="text-[13px] text-slate-300 font-mono uppercase tracking-widest mb-1">Momentum Signal</p>
-            {ind.rsi_14 != null ? (
-              <p className={clsx('text-sm font-bold font-mono',
-                ind.rsi_14 < 35 ? 'text-accent-green' :
-                ind.rsi_14 > 65 ? 'text-red-400' : 'text-yellow-400'
-              )}>
-                {ind.rsi_14 < 35 ? '🟢 OVERSOLD — BUY' :
-                 ind.rsi_14 > 65 ? '🔴 OVERBOUGHT — SELL' : '🟡 NEUTRAL — HOLD'}
-              </p>
-            ) : (
-              <p className="text-slate-300 text-sm font-mono">Accumulating data…</p>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Bottom row ───────────────────────────────────────────────────────── */}
+      {/* ── Bottom row: Top Strategies · Recent Trades · Live Indicators ─────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
         {/* Strategy leaderboard */}
@@ -970,11 +943,39 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Recent Trades — replaces Live Activity */}
+        {/* Recent Trades */}
         <RecentTradesMini trades={recentTrades} />
 
-        {/* Sentiment Gauge — replaces Ask II Agent chat */}
-        <SentimentGauge ind={ind} consensusStats={consensusStats} />
+        {/* Live Indicators (relocated from 2-col row) */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+            <Radio size={14} className="text-accent-blue" /> Live Indicators
+          </h2>
+          <IndRow label="RSI (14)"     val={ind.rsi_14}      good={30} bad={70} />
+          <IndRow label="EMA 9"        val={ind.ema_9} />
+          <IndRow label="EMA 21"       val={ind.ema_21} />
+          <IndRow label="MACD"         val={ind.macd} />
+          <IndRow label="MACD Signal"  val={ind.macd_signal} />
+          <IndRow label="BB Upper"     val={ind.bb_upper} />
+          <IndRow label="BB Lower"     val={ind.bb_lower} />
+          <IndRow label="SMA 50"       val={ind.sma_50} />
+
+          {/* Momentum signal summary */}
+          <div className="mt-4 p-3 rounded-lg bg-dark-700 border border-dark-600">
+            <p className="text-[13px] text-slate-300 font-mono uppercase tracking-widest mb-1">Momentum Signal</p>
+            {ind.rsi_14 != null ? (
+              <p className={clsx('text-sm font-bold font-mono',
+                ind.rsi_14 < 35 ? 'text-accent-green' :
+                ind.rsi_14 > 65 ? 'text-red-400' : 'text-yellow-400'
+              )}>
+                {ind.rsi_14 < 35 ? '🟢 OVERSOLD — BUY' :
+                 ind.rsi_14 > 65 ? '🔴 OVERBOUGHT — SELL' : '🟡 NEUTRAL — HOLD'}
+              </p>
+            ) : (
+              <p className="text-slate-300 text-sm font-mono">Accumulating data…</p>
+            )}
+          </div>
+        </div>
 
       </div>
     </div>
