@@ -29,7 +29,9 @@ def push_event(
 
 
 def get_events(limit: int = 100) -> List[dict]:
-    return list(reversed(_activity[-limit:]))
+    # Return oldest-first so the frontend can reverse to newest-first for display.
+    # ActivityLog.tsx applies [...filtered].reverse() to render newest at top.
+    return list(_activity[-limit:])
 
 
 def seed_startup() -> None:
