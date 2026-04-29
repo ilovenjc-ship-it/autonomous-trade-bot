@@ -53,10 +53,19 @@ app.use(
 
 // ── Serve React static files ─────────────────────────────────────────────────
 const DIST = path.join(__dirname, 'dist')
-app.use(express.static(DIST))
+
+// Hashed assets (JS/CSS with content-hash filenames) — cache aggressively
+app.use('/assets', express.static(path.join(DIST, 'assets'), {
+  maxAge: '1y',
+  immutable: true,
+}))
+
+// index.html — always fetch fresh so browsers pick up new JS bundle names
+app.use(express.static(DIST, { index: false }))
 
 // ── SPA fallback — all other routes serve index.html ────────────────────────
 app.get('*', (_req, res) => {
+  res.set('Cache-Control', 'no-store, no-cache, must-revalidate')
   res.sendFile(path.join(DIST, 'index.html'))
 })
 
