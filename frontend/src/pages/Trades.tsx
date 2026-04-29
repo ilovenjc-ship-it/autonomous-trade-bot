@@ -4,16 +4,31 @@ import { useBotStore } from '@/store/botStore'
 import { ArrowUpDown, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw,
          ChevronLeft, ChevronRight, ExternalLink, Zap, AlertTriangle,
          CheckCircle2, Copy, ShieldAlert, Activity } from 'lucide-react'
-// Timestamp helper — always parse SQLite UTC strings correctly, display in Eastern Time
-function fmtET(raw: string | null | undefined) {
+/**
+ * Timestamp formatter — New York / Eastern Time (US)
+ * SQLite stores UTC without 'Z'; we append it so browsers parse correctly.
+ * Dynamically resolves EST (UTC-5, Nov–Mar) vs EDT (UTC-4, Mar–Nov).
+ * Output: "Apr 29, 18:04 EDT"
+ */
+function fmtET(raw: string | null | undefined): string {
   if (!raw) return '—'
   try {
     const utc = raw.endsWith('Z') ? raw : raw.replace(' ', 'T') + 'Z'
-    return new Date(utc).toLocaleString('en-US', {
-      timeZone: 'America/New_York', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: false,
-    }) + ' ET'
-  } catch { return raw.slice(0, 16) }
+    const d = new Date(utc)
+    // Resolve correct abbreviation — EST in winter, EDT in summer
+    const tzAbbr =
+      new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'short' })
+        .formatToParts(d)
+        .find(p => p.type === 'timeZoneName')?.value ?? 'ET'
+    return (
+      d.toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+        hour12: false,
+      }) + ' ' + tzAbbr
+    )
+  } catch { return (raw ?? '').slice(0, 16) }
 }
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
@@ -503,7 +518,7 @@ export default function Trades() {
           <table className="w-full text-xs">
             <thead>
               <tr className="text-slate-300 border-b border-dark-600">
-                {['#', 'Type', 'Mode', 'Amount', 'Price', 'USD Value', 'P&L', 'Strategy', 'Status', 'Time'].map((h) => (
+                {['#', 'Type', 'Mode', 'Amount', 'Price', 'USD Value', 'P&L', 'Strategy', 'Status', 'Time (ET · NYC)'].map((h) => (
                   <th key={h} className="text-left px-4 py-3 font-medium">{h}</th>
                 ))}
               </tr>
@@ -569,7 +584,7 @@ export default function Trades() {
                         {t.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-300 font-mono">
+                    <td className="px-4 py-3 text-slate-300 font-mono whitespace-nowrap">
                       {fmtET(t.created_at)}
                     </td>
                   </tr>

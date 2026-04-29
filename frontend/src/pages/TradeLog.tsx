@@ -37,17 +37,31 @@ function fmt4(n: number | null | undefined) {
   return _n >= 0 ? `+${s}` : `-${s}`
 }
 
-function ts(raw: string | null) {
+/**
+ * Timestamp formatter — New York / Eastern Time (US)
+ * SQLite stores UTC without 'Z'; we append it so browsers parse correctly.
+ * Dynamically resolves EST (UTC-5, Nov–Mar) vs EDT (UTC-4, Mar–Nov).
+ * Output: "Apr 29, 18:04 EDT"
+ */
+function ts(raw: string | null): string {
   if (!raw) return '—'
   try {
-    // Normalize to UTC: SQLite returns timestamps without 'Z', causing browsers
-    // to parse them as local time instead of UTC — append Z to force UTC parsing.
     const utc = raw.endsWith('Z') ? raw : raw.replace(' ', 'T') + 'Z'
-    return new Date(utc).toLocaleString('en-US', {
-      timeZone: 'America/New_York', month: 'short', day: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12: false,
-    }) + ' ET'
-  } catch { return raw.replace('T', ' ').slice(0, 16) }
+    const d = new Date(utc)
+    // Resolve correct abbreviation — EST in winter, EDT in summer
+    const tzAbbr =
+      new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'short' })
+        .formatToParts(d)
+        .find(p => p.type === 'timeZoneName')?.value ?? 'ET'
+    return (
+      d.toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        month: 'short', day: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+        hour12: false,
+      }) + ' ' + tzAbbr
+    )
+  } catch { return (raw ?? '').replace('T', ' ').slice(0, 16) }
 }
 
 const STRATEGIES = [
@@ -310,7 +324,7 @@ export default function TradeLog() {
               <th className="px-4 py-3 text-right">PnL</th>
               <th className="px-4 py-3 text-center">Result</th>
               <th className="px-4 py-3 text-left">Signal</th>
-              <th className="px-4 py-3 text-left">Time</th>
+              <th className="px-4 py-3 text-left whitespace-nowrap">Time (ET · NYC)</th>
             </tr>
           </thead>
           <tbody>
