@@ -88,6 +88,11 @@ async def init_db():
         # Added in Session XV: tracks when FORCE_PAPER_MODE wiped stats.
         # Required by analytics router and cycle service.
         ("strategies", "stats_reset_at", "DATETIME"),
+        # Added in Session XV: OpenClaw BFT round counters persisted across
+        # redeployments so the all-time consensus record survives restarts.
+        ("bot_config", "openclaw_total_rounds",    "INTEGER DEFAULT 0"),
+        ("bot_config", "openclaw_approved_rounds", "INTEGER DEFAULT 0"),
+        ("bot_config", "openclaw_rejected_rounds", "INTEGER DEFAULT 0"),
     ]
 
     async with async_engine.begin() as conn:
