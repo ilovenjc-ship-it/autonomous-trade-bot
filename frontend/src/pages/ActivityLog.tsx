@@ -29,21 +29,35 @@ const KIND_META: Record<string, { label: string; color: string; icon: React.Elem
 
 const ALL_KINDS = ['trade', 'signal', 'gate', 'system', 'alert']
 
-/** Format ISO timestamp as HH:MM:SS ET (24-hr, Eastern time, UTC-normalized) */
-function ts(raw: string) {
+/**
+ * Format ISO timestamp as HH:MM:SS EST/EDT (24-hr, Eastern time, UTC-normalized).
+ * Dynamically resolves EST (UTC-5, Nov–Mar) vs EDT (UTC-4, Mar–Nov).
+ */
+function ts(raw: string): string {
   if (!raw) return ''
   try {
     const utc = raw.endsWith('Z') ? raw : raw.replace(' ', 'T') + 'Z'
-    return new Date(utc).toLocaleTimeString('en-US', {
+    const d = new Date(utc)
+    const tzAbbr =
+      new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'short' })
+        .formatToParts(d)
+        .find(p => p.type === 'timeZoneName')?.value ?? 'ET'
+    return d.toLocaleTimeString('en-US', {
       timeZone: 'America/New_York',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit',
       hour12: false,
-    }) + ' ET'
+    }) + ' ' + tzAbbr
   } catch {
     return raw.replace('T', ' ').slice(0, 19)
   }
+}
+
+/** Parse a SQLite/ISO timestamp string into a JS Date (UTC-normalized). */
+function parseUTC(raw: string): number {
+  try {
+    const utc = raw.endsWith('Z') ? raw : raw.replace(' ', 'T') + 'Z'
+    return new Date(utc).getTime()
+  } catch { return 0 }
 }
 
 function KindBadge({ kind }: { kind: string }) {
@@ -218,9 +232,9 @@ export default function ActivityLog() {
         </div>
       </div>
 
-      {/* ── Event stream ───────────────────────────────────────────────────── */}
+      {/* ── Event stream — newest at top, no auto-scroll ───────────────────── */}
       <div className="flex-1 overflow-y-auto px-6 py-3 space-y-1.5">
-        {/* Anchor for "Jump to latest" — newest events are at the top */}
+        {/* topRef sits at the very top; "Jump to latest" scrolls here */}
         <div ref={topRef} />
 
         {loading && (
@@ -236,7 +250,15 @@ export default function ActivityLog() {
           </div>
         )}
 
-        {[...filtered].reverse().map((ev, idx) => {
+        {/* Explicit descending sort — independent of whatever order the backend returns.
+            Newest timestamp first; ties broken by numeric ID descending. */}
+        {[...filtered]
+          .sort((a, b) => {
+            const diff = parseUTC(b.timestamp) - parseUTC(a.timestamp)
+            if (diff !== 0) return diff
+            return Number(b.id) - Number(a.id)
+          })
+          .map((ev, idx) => {
           const m = KIND_META[ev.kind] ?? KIND_META.system
           const Icon = m.icon
           return (
