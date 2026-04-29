@@ -88,7 +88,7 @@ export interface Strategy {
   description?: string
   is_active: boolean
   is_enabled: boolean
-  mode: 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'LIVE'
+  mode: 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'PENDING_LIVE_APPROVAL' | 'LIVE'
   parameters: Record<string, unknown>
   total_trades: number
   win_rate: number

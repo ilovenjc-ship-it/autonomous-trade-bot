@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useBotStore } from '@/store/botStore'
 import {
   TrendingUp, TrendingDown, ExternalLink, RefreshCw,
   ArrowUpDown, Shield, Activity, Layers, Zap, BarChart2,
+  CheckCircle, XCircle, Clock,
 } from 'lucide-react'
 import clsx from 'clsx'
 import type { Strategy } from '@/types'
@@ -43,9 +44,10 @@ function getTier(winRate: number, totalTrades: number): Tier {
 
 // ── mode badge ────────────────────────────────────────────────────────────────
 const MODE_META: Record<string, { label: string; badge: string; prefix: string }> = {
-  LIVE:              { label: 'LIVE',     prefix: '●', badge: 'bg-accent-green/10 text-accent-green border-accent-green/30' },
-  APPROVED_FOR_LIVE: { label: 'APPROVED', prefix: '◑', badge: 'bg-yellow-400/10 text-yellow-400 border-yellow-400/30' },
-  PAPER_ONLY:        { label: 'PAPER',    prefix: '◌', badge: 'bg-slate-700/60 text-slate-300 border-slate-600' },
+  LIVE:                  { label: 'LIVE',     prefix: '●', badge: 'bg-accent-green/10 text-accent-green border-accent-green/30' },
+  APPROVED_FOR_LIVE:     { label: 'APPROVED', prefix: '◑', badge: 'bg-yellow-400/10 text-yellow-400 border-yellow-400/30' },
+  PENDING_LIVE_APPROVAL: { label: 'PENDING',  prefix: '⏳', badge: 'bg-orange-400/10 text-orange-400 border-orange-400/30' },
+  PAPER_ONLY:            { label: 'PAPER',    prefix: '◌', badge: 'bg-slate-700/60 text-slate-300 border-slate-600' },
 }
 
 function fmt(n: number | null | undefined) {
@@ -56,8 +58,27 @@ function fmt(n: number | null | undefined) {
 // ── sort / filter types ───────────────────────────────────────────────────────
 type SortKey    = 'pnl' | 'win_rate' | 'trades' | 'cycles' | 'tier'
 type SortDir    = 'desc' | 'asc'
-type ModeFilter = 'all' | 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'LIVE'
+type ModeFilter = 'all' | 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'PENDING_LIVE_APPROVAL' | 'LIVE'
 type TierFilter = 'all' | Tier
+
+// ── approval gate API ─────────────────────────────────────────────────────────
+const API = (window as any).__API_BASE__ || ''
+
+async function approveForLive(name: string): Promise<void> {
+  const res = await fetch(`${API}/api/strategies/${name}/approve-live`, { method: 'POST' })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.detail ?? `HTTP ${res.status}`)
+  }
+}
+
+async function rejectForLive(name: string): Promise<void> {
+  const res = await fetch(`${API}/api/strategies/${name}/reject-live`, { method: 'POST' })
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}))
+    throw new Error(body.detail ?? `HTTP ${res.status}`)
+  }
+}
 
 // ── fleet summary bar ─────────────────────────────────────────────────────────
 function FleetSummary({ strategies }: { strategies: Strategy[] }) {
@@ -67,6 +88,7 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
   const winRate  = n ? strategies.reduce((a, s) => a + s.win_rate, 0) / n : 0
   const live     = strategies.filter(s => s.mode === 'LIVE').length
   const approved = strategies.filter(s => s.mode === 'APPROVED_FOR_LIVE').length
+  const pending  = strategies.filter(s => s.mode === 'PENDING_LIVE_APPROVAL').length
   // Max possible stake if every LIVE bot fires in the same cycle
   const maxCycleStake = strategies
     .filter(s => s.mode === 'LIVE' && s.stake_amount != null)
@@ -80,13 +102,14 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
 
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
         {[
           { label: 'Strategies',      value: String(n),                          color: 'text-white',        icon: <Layers size={12} className="text-accent-blue" /> },
           { label: 'Fleet Trades',    value: trades.toLocaleString(),            color: 'text-white',        icon: <Activity size={12} className="text-accent-blue" /> },
           { label: 'Avg Win Rate',    value: `${(winRate ?? 0).toFixed(1)}%`,           color: winRate >= 55 ? 'text-accent-green' : 'text-yellow-400', icon: <TrendingUp size={12} className="text-accent-green" /> },
           { label: 'Fleet PnL (τ)',   value: fmt(pnl),                           color: pnl >= 0 ? 'text-accent-green' : 'text-red-400', icon: pnl >= 0 ? <TrendingUp size={12} className="text-accent-green" /> : <TrendingDown size={12} className="text-red-400" /> },
           { label: 'Live / Approved', value: `${live} / ${approved}`,            color: 'text-accent-green', icon: <Shield size={12} className="text-yellow-400" /> },
+          { label: 'Awaiting Approval', value: String(pending),                  color: pending > 0 ? 'text-orange-400' : 'text-slate-400', icon: <Clock size={12} className={pending > 0 ? 'text-orange-400' : 'text-slate-500'} /> },
         ].map(({ label, value, color, icon }) => (
           <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex flex-col gap-1">
             <div className="flex items-center gap-1.5">
@@ -139,20 +162,48 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
 }
 
 // ── strategy card ─────────────────────────────────────────────────────────────
-function StrategyCard({ s }: { s: Strategy }) {
-  const navigate = useNavigate()
-  const mode     = MODE_META[s.mode] ?? MODE_META.PAPER_ONLY
-  const tier     = getTier(s.win_rate, s.total_trades)
-  const tierMeta = TIERS[tier]
-  const gateMax  = 10
-  const gatePct  = Math.min(100, Math.round((s.cycles_completed / gateMax) * 100))
-  const isSuspended = tier === 'failing'
+function StrategyCard({ s, onRefresh }: { s: Strategy; onRefresh: () => void }) {
+  const navigate  = useNavigate()
+  const mode      = MODE_META[s.mode] ?? MODE_META.PAPER_ONLY
+  const tier      = getTier(s.win_rate, s.total_trades)
+  const tierMeta  = TIERS[tier]
+  const gateMax   = 30   // updated: 30 cycles required under honest simulator
+  const gatePct   = Math.min(100, Math.round((s.cycles_completed / gateMax) * 100))
+  const isSuspended    = tier === 'failing'
+  const isPending      = s.mode === 'PENDING_LIVE_APPROVAL'
+
+  const [approving, setApproving] = useState(false)
+  const [rejecting, setRejecting] = useState(false)
+  const [actionMsg, setActionMsg] = useState<string | null>(null)
+
+  const handleApprove = useCallback(async () => {
+    setApproving(true); setActionMsg(null)
+    try {
+      await approveForLive(s.name)
+      setActionMsg('✅ Approved — strategy is now LIVE')
+      onRefresh()
+    } catch (e: any) {
+      setActionMsg(`❌ ${e.message}`)
+    } finally { setApproving(false) }
+  }, [s.name, onRefresh])
+
+  const handleReject = useCallback(async () => {
+    setRejecting(true); setActionMsg(null)
+    try {
+      await rejectForLive(s.name)
+      setActionMsg('↩ Rejected — returned to PAPER')
+      onRefresh()
+    } catch (e: any) {
+      setActionMsg(`❌ ${e.message}`)
+    } finally { setRejecting(false) }
+  }, [s.name, onRefresh])
 
   return (
     <div className={clsx(
       'card p-5 transition-all hover:border-dark-500 group animate-slide-up flex flex-col',
       isSuspended && 'opacity-60',
       tier === 'elite' && 'border-yellow-400/20 shadow-[0_0_12px_rgba(250,204,21,0.06)]',
+      isPending && 'border-orange-400/30 shadow-[0_0_14px_rgba(251,146,60,0.10)]',
     )}>
 
       {/* ── card header ─────────────────────────────────── */}
@@ -253,11 +304,64 @@ function StrategyCard({ s }: { s: Strategy }) {
         </div>
         <div className="h-1 bg-dark-600 rounded-full overflow-hidden">
           <div
-            className={clsx('h-full rounded-full transition-all', tierMeta.barClass)}
+            className={clsx('h-full rounded-full transition-all', isPending ? 'bg-orange-400' : tierMeta.barClass)}
             style={{ width: `${gatePct}%` }}
           />
         </div>
       </div>
+
+      {/* ── Human Approval Gate ─────────────────────────── */}
+      {isPending && (
+        <div className="mt-4 rounded-xl border border-orange-400/30 bg-orange-400/5 p-4 space-y-3">
+          <div className="flex items-center gap-2">
+            <Clock size={13} className="text-orange-400 animate-pulse" />
+            <span className="text-[13px] font-mono font-semibold text-orange-300 uppercase tracking-wider">
+              Awaiting Operator Approval
+            </span>
+          </div>
+          <p className="text-[12px] text-slate-400 leading-relaxed">
+            This strategy has passed all gate thresholds and is ready for live trading.
+            Approve to commit real TAO. Reject to send back to paper.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={handleApprove}
+              disabled={approving || rejecting}
+              className={clsx(
+                'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-mono font-semibold transition-all',
+                'bg-accent-green/10 text-accent-green border border-accent-green/30',
+                'hover:bg-accent-green/20 hover:border-accent-green/50',
+                'disabled:opacity-40 disabled:cursor-not-allowed',
+              )}
+            >
+              <CheckCircle size={12} />
+              {approving ? 'Approving…' : 'Approve for Live'}
+            </button>
+            <button
+              onClick={handleReject}
+              disabled={approving || rejecting}
+              className={clsx(
+                'flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-[13px] font-mono font-semibold transition-all',
+                'bg-red-500/10 text-red-400 border border-red-500/30',
+                'hover:bg-red-500/20 hover:border-red-500/50',
+                'disabled:opacity-40 disabled:cursor-not-allowed',
+              )}
+            >
+              <XCircle size={12} />
+              {rejecting ? 'Rejecting…' : 'Reject → Paper'}
+            </button>
+          </div>
+          {actionMsg && (
+            <p className={clsx(
+              'text-[12px] font-mono text-center',
+              actionMsg.startsWith('✅') ? 'text-accent-green' :
+              actionMsg.startsWith('↩') ? 'text-yellow-400' : 'text-red-400',
+            )}>
+              {actionMsg}
+            </p>
+          )}
+        </div>
+      )}
 
     </div>
   )
@@ -271,6 +375,7 @@ export default function Strategies() {
   const [modeFilter, setModeFilter] = useState<ModeFilter>('all')
   const [tierFilter, setTierFilter] = useState<TierFilter>('all')
 
+  const refresh = useCallback(() => { fetchStrategies() }, [fetchStrategies])
   useEffect(() => { fetchStrategies() }, [fetchStrategies])
 
   const handleSort = (key: SortKey) => {
@@ -306,10 +411,11 @@ export default function Strategies() {
   ]
 
   const MODE_FILTERS: { key: ModeFilter; label: string }[] = [
-    { key: 'all',               label: 'All Modes' },
-    { key: 'PAPER_ONLY',        label: '◌ Paper' },
-    { key: 'APPROVED_FOR_LIVE', label: '◑ Approved' },
-    { key: 'LIVE',              label: '● Live' },
+    { key: 'all',                   label: 'All Modes' },
+    { key: 'PAPER_ONLY',            label: '◌ Paper' },
+    { key: 'APPROVED_FOR_LIVE',     label: '◑ Approved' },
+    { key: 'PENDING_LIVE_APPROVAL', label: '⏳ Pending' },
+    { key: 'LIVE',                  label: '● Live' },
   ]
 
   const TIER_FILTERS: { key: TierFilter; label: string }[] = [
@@ -323,6 +429,7 @@ export default function Strategies() {
 
   const liveCount     = strategies.filter(s => s.mode === 'LIVE').length
   const approvedCount = strategies.filter(s => s.mode === 'APPROVED_FOR_LIVE').length
+  const pendingCount  = strategies.filter(s => s.mode === 'PENDING_LIVE_APPROVAL').length
   const paperCount    = strategies.filter(s => s.mode === 'PAPER_ONLY').length
 
   useEffect(() => {
@@ -339,6 +446,7 @@ export default function Strategies() {
         { label: 'Total',    value: String(strategies.length || 12), color: 'white'   as const },
         { label: 'LIVE',     value: String(liveCount),               color: 'emerald' as const },
         { label: 'APPROVED', value: String(approvedCount),           color: 'purple'  as const },
+        { label: 'PENDING',  value: String(pendingCount),            color: (pendingCount > 0 ? 'yellow' : 'slate') as const },
         { label: 'PAPER',    value: String(paperCount),              color: 'yellow'  as const },
         { label: 'Showing',  value: String(sorted.length),           color: 'slate'   as const },
       ],
@@ -443,7 +551,7 @@ export default function Strategies() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-          {sorted.map(s => <StrategyCard key={s.name} s={s} />)}
+          {sorted.map(s => <StrategyCard key={s.name} s={s} onRefresh={refresh} />)}
         </div>
       )}
 
@@ -482,10 +590,10 @@ export default function Strategies() {
           </h2>
           <div className="grid grid-cols-2 gap-3 text-xs text-slate-400">
             {[
-              { n: '① Cycles ≥ 10',    desc: 'Must complete ≥ 10 full evaluation cycles' },
-              { n: '② Win Rate ≥ 55%', desc: 'Must sustain >55% win rate across cycles' },
-              { n: '③ Win Margin ≥ 2', desc: 'Wins must exceed losses by ≥ 2' },
-              { n: '④ PnL > 0 τ',      desc: 'Cumulative realised PnL must be positive' },
+              { n: '① Cycles ≥ 30',     desc: 'Must complete ≥ 30 honest evaluation cycles' },
+              { n: '② Win Rate ≥ 55%',  desc: 'Must sustain >55% WR under honest physics' },
+              { n: '③ Win Margin ≥ 5',  desc: 'Wins must exceed losses by ≥ 5' },
+              { n: '④ PnL > 0.01 τ',    desc: 'Cumulative PnL must exceed noise threshold' },
             ].map(({ n, desc }) => (
               <div key={n} className="space-y-0.5">
                 <p className="text-white font-mono text-[14px]">{n}</p>
@@ -494,8 +602,9 @@ export default function Strategies() {
             ))}
           </div>
           <p className="text-[13px] text-slate-500 mt-3">
-            Gate pass → <span className="text-yellow-400">APPROVED</span>.
-            Operator confirms → <span className="text-accent-green">LIVE</span>.
+            Gate pass → <span className="text-orange-400">⏳ PENDING</span> →
+            Operator approves → <span className="text-accent-green">● LIVE</span>.
+            No strategy goes LIVE without human confirmation.
           </p>
         </div>
       </div>

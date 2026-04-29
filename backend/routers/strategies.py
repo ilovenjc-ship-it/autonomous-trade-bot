@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
@@ -9,8 +10,13 @@ from models.strategy import Strategy
 from models.bot_config import BotConfig
 from services.strategy_service import DEFAULT_STRATEGIES, get_signal
 from services.price_service import price_service
+from services.activity_service import push_event
+from services.alert_service import alert_service
 
 router = APIRouter(prefix="/api/strategies", tags=["strategies"])
+
+# ── Valid strategy modes ──────────────────────────────────────────────────────
+VALID_MODES = {"PAPER_ONLY", "APPROVED_FOR_LIVE", "PENDING_LIVE_APPROVAL", "LIVE"}
 
 
 class StrategyUpdate(BaseModel):
@@ -95,3 +101,132 @@ async def get_strategy_signal(name: str, db: AsyncSession = Depends(get_db)):
     indicators = price_service.compute_indicators()
     signal = get_signal(name, prices, indicators, strategy.parameters or {})
     return {"strategy": name, "signal": signal, "price": price_service.current_price}
+
+
+# ── Human Approval Gate endpoints ─────────────────────────────────────────────
+
+@router.get("/pending-approval")
+async def list_pending_approval(db: AsyncSession = Depends(get_db)):
+    """Return all strategies currently in PENDING_LIVE_APPROVAL state."""
+    result = await db.execute(
+        select(Strategy).where(Strategy.mode == "PENDING_LIVE_APPROVAL")
+    )
+    strategies = result.scalars().all()
+    return [
+        {
+            "id": s.id,
+            "name": s.name,
+            "display_name": s.display_name,
+            "mode": s.mode,
+            "win_rate": round(s.win_rate or 0, 1),
+            "total_pnl": round(s.total_pnl or 0, 4),
+            "cycles_completed": s.cycles_completed or 0,
+            "win_trades": s.win_trades or 0,
+            "loss_trades": s.loss_trades or 0,
+            "last_promoted_at": (
+                s.last_promoted_at.isoformat() + "Z"
+                if s.last_promoted_at else None
+            ),
+        }
+        for s in strategies
+    ]
+
+
+@router.post("/{name}/approve-live")
+async def approve_for_live(name: str, db: AsyncSession = Depends(get_db)):
+    """
+    Operator explicitly approves a PENDING_LIVE_APPROVAL strategy for LIVE trading.
+    This is the human gate — no strategy goes LIVE without this call.
+    """
+    result = await db.execute(select(Strategy).where(Strategy.name == name))
+    strategy = result.scalar_one_or_none()
+    if not strategy:
+        raise HTTPException(status_code=404, detail="Strategy not found")
+
+    if strategy.mode != "PENDING_LIVE_APPROVAL":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Strategy '{name}' is not in PENDING_LIVE_APPROVAL state "
+                   f"(current mode: {strategy.mode}). Cannot approve.",
+        )
+
+    strategy.mode = "LIVE"
+    strategy.last_promoted_at = datetime.utcnow()
+    await db.commit()
+
+    stats_str = (
+        f"Cycles={strategy.cycles_completed} "
+        f"WR={strategy.win_rate:.1f}% "
+        f"PnL={strategy.total_pnl:.4f}τ"
+    )
+    push_event(
+        "gate",
+        f"✅ {strategy.display_name} APPROVED FOR LIVE by operator — going LIVE",
+        strategy=name,
+        detail=stats_str,
+    )
+    alert_service.push_alert(
+        type     = "GATE_PROMOTION",
+        level    = "INFO",
+        title    = f"✅ {strategy.display_name} approved for LIVE by operator",
+        message  = (
+            f"Operator manually approved {strategy.display_name} for live trading. "
+            f"Mode: LIVE. {stats_str}"
+        ),
+        strategy = name,
+        detail   = "Human approval gate passed — live TAO execution now active for this strategy.",
+    )
+    alert_service.gate_promotion(name, strategy.display_name, "LIVE", stats_str)
+    return {
+        "success": True,
+        "strategy": name,
+        "new_mode": "LIVE",
+        "message": f"Strategy '{strategy.display_name}' approved for LIVE trading by operator.",
+    }
+
+
+@router.post("/{name}/reject-live")
+async def reject_for_live(name: str, db: AsyncSession = Depends(get_db)):
+    """
+    Operator rejects a PENDING_LIVE_APPROVAL strategy — sends it back to PAPER_ONLY.
+    Stats are preserved; strategy must re-accumulate paper data.
+    """
+    result = await db.execute(select(Strategy).where(Strategy.name == name))
+    strategy = result.scalar_one_or_none()
+    if not strategy:
+        raise HTTPException(status_code=404, detail="Strategy not found")
+
+    if strategy.mode not in ("PENDING_LIVE_APPROVAL", "APPROVED_FOR_LIVE", "LIVE"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Strategy '{name}' cannot be rejected from mode '{strategy.mode}'.",
+        )
+
+    previous_mode = strategy.mode
+    strategy.mode = "PAPER_ONLY"
+    await db.commit()
+
+    push_event(
+        "gate",
+        f"🚫 {strategy.display_name} rejected by operator — returned to PAPER",
+        strategy=name,
+        detail=f"Previous mode: {previous_mode}",
+    )
+    alert_service.push_alert(
+        type     = "GATE_DEMOTION",
+        level    = "WARNING",
+        title    = f"🚫 {strategy.display_name} live approval rejected",
+        message  = (
+            f"Operator rejected {strategy.display_name} for live trading. "
+            f"Mode reset to PAPER_ONLY. Strategy will continue accumulating paper data."
+        ),
+        strategy = name,
+        detail   = f"Previous mode: {previous_mode}",
+    )
+    return {
+        "success": True,
+        "strategy": name,
+        "new_mode": "PAPER_ONLY",
+        "previous_mode": previous_mode,
+        "message": f"Strategy '{strategy.display_name}' rejected — returned to PAPER_ONLY.",
+    }

@@ -61,18 +61,36 @@ def set_force_paper_mode(enabled: bool) -> None:
 # Dedup sets — prevent alert spam across cycles
 _drawdown_alerted: set = set()   # strategy names already drawdown-alerted this session
 
+# ── Rolling win-rate decay tracking ──────────────────────────────────────────
+# Track the last ROLLING_WR_WINDOW trade outcomes (win=True/False) per strategy.
+# When the rolling WR over the last N trades drops below ROLLING_WR_ALERT_THRESH,
+# fire a CRITICAL alert immediately — don't wait for the full demotion cycle.
+# This gives the operator early warning of a strategy that's going bad.
+from collections import deque as _deque
+ROLLING_WR_WINDOW        = 10    # look at the last 10 trades
+ROLLING_WR_ALERT_THRESH  = 45.0  # fire if rolling WR falls below this
+_rolling_outcomes: dict  = {}    # {strategy_name: deque([True, False, ...])}
+_rolling_wr_alerted: set = set() # prevent re-fire while still degraded
+
 # ── Gate thresholds ───────────────────────────────────────────────────────────
-GATE_CYCLES   = 10
-GATE_WIN_RATE = 55.0
-GATE_MARGIN   = 2     # wins - losses ≥ 2
-GATE_PNL      = 0.0   # cumulative PnL > 0
+# These are the DEFAULTS. Actual values are read from Risk Config at runtime via
+# _get_risk_value() so the operator can tune them from the dashboard without a
+# code deploy.  The hardcoded values here are the safe starting point.
+#
+# Raised from the Session XIV originals (10 cycles / 55% WR / margin 2 / PnL>0)
+# because those were calibrated against the biased simulator.  Under honest
+# physics (~34% WR for random signals) you need more cycles and a higher bar.
+GATE_CYCLES   = 30     # was 10 — need statistical significance
+GATE_WIN_RATE = 55.0   # unchanged — but meaningful now with honest sim
+GATE_MARGIN   = 5      # was 2 — more separation required
+GATE_PNL      = 0.01   # was 0 — must be above noise threshold (τ0.01)
 
 # ── Demotion thresholds ───────────────────────────────────────────────────────
 # A bot is demoted when it has enough history to be judged AND performance
 # has genuinely degraded — win rate tanked AND cumulative PnL turned negative.
 # Positive PnL saves a bot even with a lower win rate (big winners count).
-DEMOTE_WIN_RATE   = 45.0   # WR below this triggers demotion evaluation
-DEMOTE_MIN_CYCLES = 15     # must have enough history before we can judge
+DEMOTE_WIN_RATE   = 50.0   # was 45% — faster response to underperformance
+DEMOTE_MIN_CYCLES = 10     # was 15 — less live exposure before demotion
 DEMOTE_PNL        = 0.0    # must also have negative cumulative PnL to demote
 
 # Dedup sets — prevent same demotion alert firing every cycle
@@ -631,13 +649,23 @@ def _build_signal_reason(strategy: str, indicators: Dict[str, Any], price: float
 
 
 def _gate_check(s: Strategy) -> Dict[str, bool]:
+    """
+    Check all promotion gate conditions for a strategy.
+    Threshold values are read from Risk Config at call time so the operator
+    can adjust them from the dashboard without a code deploy.
+    Falls back to the module-level constants (GATE_*) if not configured.
+    """
     wins   = s.win_trades   or 0
     losses = s.loss_trades  or 0
+    gate_cycles   = int(_get_risk_value("gate_cycles",   GATE_CYCLES))
+    gate_win_rate = _get_risk_value("gate_win_rate",     GATE_WIN_RATE)
+    gate_margin   = int(_get_risk_value("gate_margin",   GATE_MARGIN))
+    gate_pnl      = _get_risk_value("gate_pnl",          GATE_PNL)
     return {
-        "cycles":    s.cycles_completed  >= GATE_CYCLES,
-        "win_rate":  (s.win_rate or 0)   >= GATE_WIN_RATE,
-        "margin":    (wins - losses)      >= GATE_MARGIN,
-        "pnl":       (s.total_pnl or 0)  >  GATE_PNL,
+        "cycles":    s.cycles_completed  >= gate_cycles,
+        "win_rate":  (s.win_rate or 0)   >= gate_win_rate,
+        "margin":    (wins - losses)      >= gate_margin,
+        "pnl":       (s.total_pnl or 0)  >  gate_pnl,
     }
 
 
@@ -1028,6 +1056,46 @@ async def _run_one_cycle() -> None:
             s.win_rate  = round(total_w / total * 100, 1) if total else 0.0
             s.avg_return = round(s.total_pnl / total, 6) if total else 0.0
 
+            # ── Rolling WR decay check ────────────────────────────────────────
+            # Track last ROLLING_WR_WINDOW trade outcomes and fire an early
+            # warning alert if rolling win rate drops below ROLLING_WR_ALERT_THRESH.
+            # This fires BEFORE the demotion system kicks in — it's the canary.
+            if s.name not in _rolling_outcomes:
+                _rolling_outcomes[s.name] = _deque(maxlen=ROLLING_WR_WINDOW)
+            _rolling_outcomes[s.name].append(is_win)
+            _roll_buf = _rolling_outcomes[s.name]
+            if len(_roll_buf) >= ROLLING_WR_WINDOW:
+                rolling_wr = sum(_roll_buf) / len(_roll_buf) * 100
+                if rolling_wr < ROLLING_WR_ALERT_THRESH and s.name not in _rolling_wr_alerted:
+                    _rolling_wr_alerted.add(s.name)
+                    alert_service.push_alert(
+                        type     = "RISK",
+                        level    = "CRITICAL",
+                        title    = f"📉 {display} rolling WR decay",
+                        message  = (
+                            f"{display} rolling win rate over last {ROLLING_WR_WINDOW} trades "
+                            f"is {rolling_wr:.1f}% — below the {ROLLING_WR_ALERT_THRESH:.0f}% "
+                            f"warning threshold. Overall WR={s.win_rate:.1f}%. "
+                            f"Monitor closely; demotion may follow."
+                        ),
+                        strategy = s.name,
+                        detail   = f"Rolling window={ROLLING_WR_WINDOW} trades | "
+                                   f"Rolling WR={rolling_wr:.1f}%",
+                    )
+                    push_event(
+                        "alert",
+                        f"📉 {display} rolling WR = {rolling_wr:.1f}% over last "
+                        f"{ROLLING_WR_WINDOW} trades — below {ROLLING_WR_ALERT_THRESH:.0f}% threshold",
+                        strategy=s.name,
+                    )
+                    logger.warning(
+                        f"[ROLLING_WR] {s.name}: rolling WR={rolling_wr:.1f}% "
+                        f"over last {ROLLING_WR_WINDOW} trades — ALERT fired"
+                    )
+                elif rolling_wr >= ROLLING_WR_ALERT_THRESH and s.name in _rolling_wr_alerted:
+                    # Recovery — allow re-alerting if it degrades again later
+                    _rolling_wr_alerted.discard(s.name)
+
             await db.flush()
 
             # Gate check & promotion
@@ -1052,14 +1120,37 @@ async def _run_one_cycle() -> None:
 
             elif s.mode == "APPROVED_FOR_LIVE" and all(gates.values()):
                 if s.win_rate >= 65 and s.total_pnl > 0.05:
-                    s.mode = "LIVE"
+                    # ── HUMAN APPROVAL GATE ───────────────────────────────────
+                    # NEVER auto-promote to LIVE. Route to PENDING_LIVE_APPROVAL.
+                    # An operator must explicitly approve via the dashboard before
+                    # any real TAO is committed on-chain. This was the exact failure
+                    # mode that caused the wallet drain — promotion was automated.
+                    s.mode = "PENDING_LIVE_APPROVAL"
                     push_event(
                         "gate",
-                        f"🚀 {display} is now LIVE!",
+                        f"⏳ {display} has earned LIVE status — awaiting operator approval",
                         strategy=s.name,
-                        detail=f"WR={s.win_rate:.1f}% PnL={s.total_pnl:.4f} τ",
+                        detail=f"WR={s.win_rate:.1f}% PnL={s.total_pnl:.4f}τ | "
+                               f"Approve in Dashboard → Strategies → Approve for Live",
                     )
-                    alert_service.gate_promotion(s.name, display, "LIVE", stats_str)
+                    alert_service.push_alert(
+                        type     = "GATE_PROMOTION",
+                        level    = "WARNING",
+                        title    = f"⏳ {display} awaiting live approval",
+                        message  = (
+                            f"{display} has passed all gate thresholds "
+                            f"(WR={s.win_rate:.1f}%, PnL={s.total_pnl:.4f}τ) and is ready "
+                            f"for live trading — but requires explicit operator approval. "
+                            f"Go to Strategies and click Approve for Live."
+                        ),
+                        strategy = s.name,
+                        detail   = stats_str,
+                    )
+                    logger.warning(
+                        f"Strategy {s.name} PENDING_LIVE_APPROVAL — "
+                        f"WR={s.win_rate:.1f}% PnL={s.total_pnl:.4f}τ "
+                        f"(human approval required before LIVE)"
+                    )
 
             # ── Demotion system ──────────────────────────────────────────────
             # A bot that earned promotion but has since degraded gets knocked
@@ -1097,7 +1188,7 @@ async def _run_one_cycle() -> None:
                     _demoted_alerted.add(s.name)
                     logger.warning(f"{s.name} demoted LIVE → APPROVED_FOR_LIVE (WR={wr_now:.1f}% PnL={pnl_now:.4f})")
 
-                elif s.mode == "APPROVED_FOR_LIVE":
+                elif s.mode in ("APPROVED_FOR_LIVE", "PENDING_LIVE_APPROVAL"):
                     s.mode = "PAPER_ONLY"
                     push_event(
                         "gate",
@@ -1115,7 +1206,7 @@ async def _run_one_cycle() -> None:
                         detail   = stats_str,
                     )
                     _demoted_alerted.add(s.name)
-                    logger.warning(f"{s.name} demoted APPROVED → PAPER_ONLY (WR={wr_now:.1f}% PnL={pnl_now:.4f})")
+                    logger.warning(f"{s.name} demoted APPROVED/PENDING → PAPER_ONLY (WR={wr_now:.1f}% PnL={pnl_now:.4f})")
 
             # If performance has recovered, allow re-alerting on next demotion
             elif not is_degraded and s.name in _demoted_alerted:
