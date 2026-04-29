@@ -63,6 +63,10 @@ async def init_db():
     Uses create_all(checkfirst=True) which is idempotent — safe to call on
     every restart. New tables added in later deploys are created automatically
     without affecting existing data.
+
+    Also runs explicit ALTER TABLE migrations for columns added to existing
+    tables after initial deployment (SQLAlchemy create_all does NOT alter
+    existing tables — only creates missing ones).
     """
     # Import every model module so SQLAlchemy's metadata knows about them.
     # Any model NOT imported here will NOT be created by create_all.
@@ -72,10 +76,33 @@ async def init_db():
         # checkfirst=True (default) — skips tables that already exist
         await conn.run_sync(Base.metadata.create_all)
 
-    # Explicit per-table verification log so startup confirms each table
-    from sqlalchemy import text, inspect as sa_inspect
+    # ── SQLite column migrations ─────────────────────────────────────────────
+    # For columns added to existing models after the table was first created,
+    # SQLite requires an explicit ALTER TABLE. We attempt each migration and
+    # silently ignore "duplicate column" errors — making these idempotent.
+    from sqlalchemy import text as _text
     import logging as _logging
     _log = _logging.getLogger(__name__)
+
+    _column_migrations = [
+        # Added in Session XV: tracks when FORCE_PAPER_MODE wiped stats.
+        # Required by analytics router and cycle service.
+        ("strategies", "stats_reset_at", "DATETIME"),
+    ]
+
+    async with async_engine.begin() as conn:
+        for table, column, col_type in _column_migrations:
+            try:
+                await conn.execute(
+                    _text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}")
+                )
+                _log.info(f"DB migration: added {table}.{column} ({col_type})")
+            except Exception:
+                # Column already exists — this is the normal case after first run
+                pass
+
+    # Explicit per-table verification log so startup confirms each table
+    from sqlalchemy import inspect as sa_inspect
     async with async_engine.connect() as conn:
         try:
             tables = await conn.run_sync(

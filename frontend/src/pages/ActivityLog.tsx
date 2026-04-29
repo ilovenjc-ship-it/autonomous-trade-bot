@@ -236,7 +236,7 @@ export default function ActivityLog() {
           </div>
         )}
 
-        {filtered.map((ev, idx) => {
+        {[...filtered].reverse().map((ev, idx) => {
           const m = KIND_META[ev.kind] ?? KIND_META.system
           const Icon = m.icon
           return (
