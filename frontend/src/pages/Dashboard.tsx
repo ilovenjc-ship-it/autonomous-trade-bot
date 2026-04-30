@@ -246,35 +246,35 @@ function TaoTradingViewChart() {
 
 // ── Sentiment Gauge ───────────────────────────────────────────────────────────
 function SentimentGauge({
-  ind, consensusStats,
+  ind, consensusStats, taoFearGreed,
 }: {
   ind: Record<string, number | null>
   consensusStats: ConsensusStats | null
+  taoFearGreed: number | null
 }) {
   const rsi      = (ind.rsi_14      as number | null) ?? null
   const macdHist = (ind.macd != null && ind.macd_signal != null)
     ? (ind.macd as number) - (ind.macd_signal as number)
     : null
 
-  // Compute composite sentiment score: -100 (fear) → +100 (greed)
+  // Composite sentiment score: -100 (fear) → +100 (greed)
+  // Weights: RSI 30% · MACD 25% · Consensus 20% · TAO F&G 25%
+  // If TAO F&G unavailable, redistribute its weight to the others.
+  const hasFg = taoFearGreed != null
+  const wRsi  = hasFg ? 0.30 : 0.40
+  const wMacd = hasFg ? 0.25 : 0.30
+  const wCons = hasFg ? 0.20 : 0.30
+  const wFg   = hasFg ? 0.25 : 0.00
+
   let score = 0
-  let factors = 0
-  if (rsi != null) {
-    score += ((rsi - 50) / 50) * 100 * 0.40  // RSI contributes 40%
-    factors++
-  }
-  if (macdHist != null) {
-    const macdScore = Math.max(-1, Math.min(1, macdHist / 0.5)) * 100
-    score += macdScore * 0.30                  // MACD contributes 30%
-    factors++
-  }
+  if (rsi != null)      score += ((rsi - 50) / 50) * 100 * wRsi
+  if (macdHist != null) score += Math.max(-1, Math.min(1, macdHist / 0.5)) * 100 * wMacd
   if (consensusStats) {
     const total = (consensusStats.total_buy_votes + consensusStats.total_sell_votes) || 1
-    const voteScore = ((consensusStats.total_buy_votes / total) - 0.5) * 200
-    score += voteScore * 0.30                  // Consensus contributes 30%
-    factors++
+    score += ((consensusStats.total_buy_votes / total) - 0.5) * 200 * wCons
   }
-  score = Math.max(-100, Math.min(100, factors > 0 ? score : 0))
+  if (hasFg) score += (taoFearGreed as number) * wFg
+  score = Math.max(-100, Math.min(100, score))
 
   const label =
     score >= 60  ? 'Extreme Greed' :
@@ -317,7 +317,16 @@ function SentimentGauge({
     return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`
   }
 
-  const inputs: { label: string; value: string; color: string }[] = [
+  const fgColor = taoFearGreed == null ? '#64748b'
+    : taoFearGreed >= 60  ? '#00e5a0'
+    : taoFearGreed >= 25  ? '#86efac'
+    : taoFearGreed >= -25 ? '#f59e0b'
+    : taoFearGreed >= -60 ? '#f87171'
+    : '#ef4444'
+
+  const inputs: { label: string; value: string; color: string; tag?: string }[] = [
+    { label: 'TAO F&G',   value: taoFearGreed != null ? `${taoFearGreed > 0 ? '+' : ''}${taoFearGreed.toFixed(0)}` : '—',
+      color: fgColor, tag: 'live' },
     { label: 'RSI-14',    value: rsi != null ? rsi.toFixed(1) : '—',
       color: rsi == null ? '#64748b' : rsi < 35 ? '#00e5a0' : rsi > 65 ? '#f87171' : '#f59e0b' },
     { label: 'MACD Hist', value: macdHist != null ? (macdHist > 0 ? '+' : '') + macdHist.toFixed(4) : '—',
@@ -373,7 +382,12 @@ function SentimentGauge({
       <div className="space-y-1.5 border-t border-dark-600 pt-2 mt-auto">
         {inputs.map(inp => (
           <div key={inp.label} className="flex items-center justify-between">
-            <span className="text-[13px] font-mono text-slate-400">{inp.label}</span>
+            <span className="text-[13px] font-mono text-slate-400 flex items-center gap-1.5">
+              {inp.label}
+              {inp.tag === 'live' && (
+                <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-900/60 text-emerald-400 tracking-wide">LIVE</span>
+              )}
+            </span>
             <span className="text-[14px] font-mono font-bold" style={{ color: inp.color }}>{inp.value}</span>
           </div>
         ))}
@@ -498,6 +512,8 @@ export default function Dashboard() {
   const [unreadAlerts,   setUnreadAlerts]   = useState(0)
   const [dailyCap,       setDailyCap]       = useState<DailyCap | null>(null)
   const [openPositions,  setOpenPositions]  = useState<OpenPositionsSummary | null>(null)
+  // TAO.app Fear & Greed (refreshed every 5 min — matches backend cache)
+  const [taoFearGreed,   setTaoFearGreed]   = useState<number | null>(null)
   // Charts
   const [priceHistory,   setPriceHistory]   = useState<PricePoint[]>([])
   const [priceRange,     setPriceRange]     = useState<PriceRange>('24H')
@@ -567,8 +583,24 @@ export default function Dashboard() {
     }
   }, [])
 
+  // Fear & Greed — fetch once on mount, then refresh every 5 minutes
+  const loadFearGreed = useCallback(async () => {
+    try {
+      const res = await fetch('/api/market/fear-greed')
+      if (res.ok) {
+        const data = await res.json()
+        if (data.value != null) setTaoFearGreed(data.value)
+      }
+    } catch { /* non-critical — leave null */ }
+  }, [])
+
   useEffect(() => { load() }, [load])
   useEffect(() => { loadCharts(priceRange) }, [loadCharts, priceRange])
+  useEffect(() => {
+    loadFearGreed()
+    const id = setInterval(loadFearGreed, 5 * 60 * 1000)
+    return () => clearInterval(id)
+  }, [loadFearGreed])
 
   // refresh every 15s, tick every second for cycle countdown
   useEffect(() => {
@@ -898,7 +930,7 @@ export default function Dashboard() {
         <TaoTradingViewChart />
 
         {/* Market Sentiment — 1/3 width (relocated from bottom row) */}
-        <SentimentGauge ind={ind} consensusStats={consensusStats} />
+        <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
 
       </div>
 

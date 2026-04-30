@@ -314,6 +314,86 @@ async def crypto_ticker():
     return {"coins": coins, "cached": False}
 
 
+# ── TAO.app Fear & Greed ──────────────────────────────────────────────────────
+# Free endpoint — no API key required. Cache for 5 minutes.
+_FG_CACHE: dict = {"value": None, "label": None, "ts": 0.0}
+
+@router.get("/fear-greed")
+async def fear_greed():
+    """
+    Return the current Bittensor Fear & Greed index from TAO.app.
+    Cached for 5 minutes. Falls back to null on network failure.
+    Value range: -100 (Extreme Fear) → +100 (Extreme Greed).
+    """
+    import httpx
+
+    now = time.time()
+    if now - _FG_CACHE["ts"] < 300 and _FG_CACHE["value"] is not None:
+        return {
+            "value":  _FG_CACHE["value"],
+            "label":  _FG_CACHE["label"],
+            "cached": True,
+        }
+
+    try:
+        async with httpx.AsyncClient(timeout=8.0) as client:
+            resp = await client.get(
+                "https://api.tao.app/api/beta/analytics/macro/fear_greed/current",
+                headers={"Accept": "application/json"},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+
+        # TAO.app returns values 0–100 (0 = Extreme Fear, 100 = Extreme Greed).
+        # Normalise to our -100 → +100 scale to match the existing gauge.
+        raw_value = None
+        if isinstance(data, dict):
+            # Try common field names
+            for key in ("value", "fear_greed_value", "score", "index"):
+                if key in data and data[key] is not None:
+                    raw_value = float(data[key])
+                    break
+            # If not found, try first numeric value in dict
+            if raw_value is None:
+                for v in data.values():
+                    if isinstance(v, (int, float)):
+                        raw_value = float(v)
+                        break
+        elif isinstance(data, (int, float)):
+            raw_value = float(data)
+
+        if raw_value is not None:
+            # TAO.app 0-100 → our -100 to +100
+            normalised = (raw_value - 50) * 2
+            normalised = max(-100.0, min(100.0, normalised))
+        else:
+            normalised = None
+
+        label = None
+        if normalised is not None:
+            label = (
+                "Extreme Greed" if normalised >= 60 else
+                "Greed"         if normalised >= 25 else
+                "Neutral"       if normalised >= -25 else
+                "Fear"          if normalised >= -60 else
+                "Extreme Fear"
+            )
+
+        _FG_CACHE["value"] = normalised
+        _FG_CACHE["label"] = label
+        _FG_CACHE["ts"]    = now
+
+        return {"value": normalised, "label": label, "cached": False, "raw": raw_value}
+
+    except Exception as exc:
+        logger.warning(f"TAO.app fear/greed fetch failed: {exc}")
+        # Return stale cache if available
+        if _FG_CACHE["value"] is not None:
+            return {"value": _FG_CACHE["value"], "label": _FG_CACHE["label"],
+                    "cached": True, "stale": True}
+        return {"value": None, "label": None, "cached": False, "error": str(exc)}
+
+
 @router.get("/stats")
 async def market_stats():
     """Top-level market summary stats."""
