@@ -125,6 +125,14 @@ class AlertService:
         self._alerts.insert(0, alert)          # newest first
         if len(self._alerts) > MAX_ALERTS:
             self._alerts.pop()
+
+        # ── Webhook dispatch (fire-and-forget) ─────────────────────────────
+        try:
+            from services.webhook_service import webhook_service
+            webhook_service.dispatch_alert(alert)
+        except Exception:
+            pass   # never let webhook errors affect the alert pipeline
+
         return alert
 
     # ── Convenience helpers (called by subsystems) ─────────────────────────────

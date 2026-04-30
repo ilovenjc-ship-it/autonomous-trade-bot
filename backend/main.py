@@ -18,7 +18,9 @@ from services.bittensor_service import bittensor_service
 from services.subnet_router import set_primary_validator
 from services.promotion_service import promotion_service
 from services.subnet_cache_service import subnet_cache_service
+from services.webhook_service import webhook_service
 from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent, alerts, wallet, pnl, override
+from routers import webhooks as webhooks_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -70,6 +72,13 @@ async def lifespan(app: FastAPI):
         seed_activity()
     except Exception as _e:
         logger.error(f"Activity seed failed: {_e}")
+
+    # ── Load webhook configs ─────────────────────────────────────────────────
+    try:
+        webhook_service.load()
+        logger.info(f"WebhookService: {webhook_service.get_status()['count']} endpoint(s) loaded")
+    except Exception as _e:
+        logger.warning(f"WebhookService load failed: {_e}")
 
     # ── Load primary validator from config ───────────────────────────────────
     try:
@@ -265,6 +274,7 @@ app.include_router(alerts.router)
 app.include_router(wallet.router)
 app.include_router(pnl.router)
 app.include_router(override.router)
+app.include_router(webhooks_router.router)
 
 
 @app.get("/")

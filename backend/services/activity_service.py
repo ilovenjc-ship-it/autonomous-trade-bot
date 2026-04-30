@@ -27,6 +27,16 @@ def push_event(
     if len(_activity) > _MAX:
         _activity.pop(0)
 
+    # ── Webhook dispatch for high-value activity events (fire-and-forget) ──
+    # trade, gate, alert kinds are forwarded to configured webhook endpoints.
+    # signal + system are skipped to avoid webhook spam.
+    if kind in ("trade", "gate", "alert"):
+        try:
+            from services.webhook_service import webhook_service
+            webhook_service.dispatch_activity(kind, message, strategy, detail)
+        except Exception:
+            pass   # never let webhook errors affect the activity pipeline
+
 
 def get_events(limit: int = 100) -> List[dict]:
     # Return oldest-first so the frontend can reverse to newest-first for display.
