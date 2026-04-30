@@ -2,7 +2,7 @@
  * OpenClaw BFT Consensus Engine
  * Real-time visualization of the 12-bot voting council.
  */
-import { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   ShieldCheck, ShieldX, Vote, Zap,
   TrendingUp, TrendingDown, Minus, HelpCircle,
@@ -16,6 +16,7 @@ import {
 import clsx from 'clsx'
 import api from '@/api/client'
 import PageHeroSlider from '@/components/PageHeroSlider'
+import { InfoBubble } from '@/components/Tooltip'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -117,17 +118,20 @@ function LegendBar() {
   )
 }
 
-function StatCard({ icon: Icon, label, value, sub, accent }: {
+function StatCard({ icon: Icon, label, value, sub, accent, tip }: {
   icon: typeof Zap; label: string; value: string | number
-  sub?: string; accent?: string
+  sub?: string; accent?: string; tip?: React.ReactNode
 }) {
   return (
     <div className="bg-dark-800 border border-dark-600 rounded-xl p-4 flex items-start gap-3">
-      <div className={clsx('p-2 rounded-lg mt-0.5', accent ?? 'bg-indigo-500/15')}>
+      <div className={clsx('p-2 rounded-lg mt-0.5 flex-shrink-0', accent ?? 'bg-indigo-500/15')}>
         <Icon size={16} className={clsx(accent ? '' : 'text-indigo-400')} />
       </div>
-      <div>
-        <p className="text-[14px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
+      <div className="min-w-0">
+        <p className="text-[14px] text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+          {label}
+          {tip && <InfoBubble content={tip} side="bottom" maxWidth={300} />}
+        </p>
         <p className="text-xl font-bold text-white font-mono mt-0.5">{value}</p>
         {sub && <p className="text-[14px] text-slate-300 mt-0.5">{sub}</p>}
       </div>
@@ -402,6 +406,15 @@ export default function OpenClaw() {
           value={`${stats?.total_bots ?? 12}`}
           sub={`⊢ ${stats?.supermajority_threshold ?? 7}/12 supermajority`}
           accent="bg-purple-500/15 text-purple-400"
+          tip={
+            <div className="space-y-2">
+              <p className="text-white font-bold">Voting Bots vs. Strategies — same thing?</p>
+              <p>Yes — the same 12 trading strategies wear two hats.</p>
+              <p>As a <span className="text-indigo-300 font-bold">strategy</span>, each bot runs its own indicators (RSI, MACD, EMA) and generates a signal — BUY, SELL, or HOLD — every 60 seconds.</p>
+              <p>As a <span className="text-purple-300 font-bold">voting bot</span>, that same signal becomes a vote in this council. Same brain, two roles: one produces the signal, the other validates it collectively before any money moves.</p>
+              <p className="text-slate-400 text-[11px] border-t border-slate-700/50 pt-1">7 of 12 must agree before a real trade executes. Paper-mode bots vote but their trades don't touch the chain.</p>
+            </div>
+          }
         />
         <StatCard
           icon={Activity}
@@ -423,7 +436,22 @@ export default function OpenClaw() {
 
             {/* Left — Manual trigger controls */}
             <div className="flex items-center gap-2 shrink-0">
-              <span className="text-[11px] font-mono text-slate-500 uppercase tracking-widest">Manual trigger:</span>
+              <span className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 uppercase tracking-widest">
+                Manual trigger:
+                <InfoBubble
+                  side="bottom"
+                  maxWidth={300}
+                  content={
+                    <div className="space-y-2">
+                      <p className="text-white font-bold">What do Trigger BUY / SELL actually do?</p>
+                      <p>They fire a <span className="text-purple-300 font-bold">test consensus round</span> — no real trade is placed automatically.</p>
+                      <p>They ask all 12 bots: <span className="text-slate-200 italic">"If the proposed direction is BUY (or SELL), how do you each vote?"</span> Each bot runs its own indicators and returns a vote.</p>
+                      <p><span className="text-emerald-400 font-bold">BUY</span> = you're proposing to stake TAO onto a subnet (go long). <span className="text-red-400 font-bold">SELL</span> = you're proposing to unstake / exit the position.</p>
+                      <p className="text-slate-400 text-[11px] border-t border-slate-700/50 pt-1">If 7+ bots agree → APPROVED. If not → REJECTED. In production, the cycle engine triggers these automatically when a strategy fires a signal.</p>
+                    </div>
+                  }
+                />
+              </span>
               <button
                 onClick={() => handleTrigger('BUY')}
                 disabled={triggering}
@@ -444,7 +472,23 @@ export default function OpenClaw() {
 
             {/* Center — triggered by · price */}
             <div className="flex-1 flex items-center justify-center gap-2 font-mono text-xs text-slate-300">
-              <span>triggered by <span className="text-indigo-400 font-semibold">{latestRound.triggered_by}</span></span>
+              <span className="flex items-center gap-1.5">
+                triggered by
+                <InfoBubble
+                  side="top"
+                  maxWidth={280}
+                  content={
+                    <div className="space-y-1.5">
+                      <p className="text-white font-bold">What does "triggered by" mean?</p>
+                      <p>Shows <span className="text-indigo-300">what initiated this consensus round</span>:</p>
+                      <p><span className="text-emerald-400 font-bold">cycle_engine</span> — the autonomous 60-second trade cycle fired a strategy signal strong enough to call a vote.</p>
+                      <p><span className="text-sky-400 font-bold">manual_ui</span> — you pressed the Trigger BUY/SELL button above.</p>
+                      <p><span className="text-purple-400 font-bold">strategy_name</span> — a specific bot's signal escalated directly to a vote.</p>
+                    </div>
+                  }
+                />
+                <span className="text-indigo-400 font-semibold">{latestRound.triggered_by}</span>
+              </span>
               <span className="text-slate-600">·</span>
               <span className="text-white font-semibold">${(latestRound.price_at_round ?? 0).toFixed(2)} TAO</span>
             </div>
@@ -473,7 +517,27 @@ export default function OpenClaw() {
 
           {/* 12 bot vote cards */}
           <div>
-            <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">Council Votes</p>
+            <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3 flex items-center gap-2">
+              Council Votes
+              <InfoBubble
+                side="right"
+                maxWidth={310}
+                content={
+                  <div className="space-y-2">
+                    <p className="text-white font-bold">What are the Council Votes?</p>
+                    <p>Each card is one of the 12 bot personalities casting its vote on the proposed trade direction — <span className="text-emerald-400 font-bold">BUY</span>, <span className="text-red-400 font-bold">SELL</span>, <span className="text-amber-400 font-bold">HOLD</span>, or <span className="text-slate-400 font-bold">ABSTAIN</span>.</p>
+                    <div className="space-y-1 border-t border-slate-700/50 pt-1.5">
+                      <p><span className="text-emerald-400 font-bold">BUY</span> — this bot's indicators say conditions favour staking TAO onto a target subnet (going long).</p>
+                      <p><span className="text-red-400 font-bold">SELL</span> — indicators say exit / unstake the position now.</p>
+                      <p><span className="text-amber-400 font-bold">HOLD</span> — no strong conviction either way; don't act yet.</p>
+                      <p><span className="text-slate-400 font-bold">ABSTAIN</span> — not enough price history or data to form a view.</p>
+                    </div>
+                    <p>The <span className="text-white font-bold">confidence bar</span> shows how certain the bot is (0–100%). The mode badge (🚀 LIVE / 📄 PAPER) shows whether that bot's own trades execute on-chain or are simulated — but all 12 vote regardless.</p>
+                    <p className="text-slate-400 text-[11px] border-t border-slate-700/50 pt-1">Need 7 of 12 in the same direction → trade executes. Anything less → round rejected.</p>
+                  </div>
+                }
+              />
+            </p>
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
               {latestRound.votes.map(v => (
                 <BotVoteCard key={v.bot_name} vote={v} />
