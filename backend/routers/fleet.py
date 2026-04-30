@@ -662,23 +662,49 @@ async def deactivate_bot(bot_name: str, db: AsyncSession = Depends(get_db)):
 
 # ── Risk Config ───────────────────────────────────────────────────────────────
 
-# Defaults — consensus_votes is the authoritative OpenClaw setting (integer).
+# ── Risk configuration defaults ───────────────────────────────────────────────
+#
+# Calibrated 2026-04-30 — rationale for each value:
+#
+#   max_drawdown_pct       20 %  — was 45. 45% is catastrophic; 20% is the clear
+#                                  "something is fundamentally broken" signal.
+#
+#   take_profit_pct        12 %  — was 25. "Stick and move" strategy: subnet alpha
+#                                  prices spike 10-20% then reverse; book at 12%,
+#                                  redeploy capital quickly for more frequent wins.
+#
+#   stop_loss_pct           8 %  — unchanged. Good for volatile alpha tokens; tight
+#                                  enough to protect capital, loose enough to avoid
+#                                  noise-stop-outs on normal price action.
+#
+#   max_position_size_pct  20 %  — was 30. With 4 concurrent positions, 20%×4=80%
+#                                  deployed, 20% liquid for fees and opportunities.
+#
+#   daily_loss_circuit_breaker_pct  15 %  — was 40. A 40% single-day loss is a
+#                                  system failure, not a trading event. 15% is the
+#                                  right guardrail: aggressive enough for crypto
+#                                  algo, tight enough to actually protect capital.
+#
+#   cycle_interval_seconds 300 s — was 600 (config) / 60 (hardcoded bug in main.py).
+#                                  5-minute cycles: enough market data per cycle,
+#                                  avoids 1,440 paper trades/day noise, observable.
+#
+# consensus_votes is the authoritative OpenClaw setting (integer).
 # consensus_threshold is kept in sync as votes/12 for backward compatibility.
 _RISK_CONFIG_DEFAULTS = {
-    "max_drawdown_pct": 45.0,
-    "stop_loss_pct": 8.0,
-    "take_profit_pct": 25.0,
-    "max_position_size_pct": 30.0,
-    "max_concurrent_positions": 4,
-    "daily_loss_circuit_breaker_pct": 40.0,
+    "max_drawdown_pct":              20.0,   # was 45 — cut 55%
+    "stop_loss_pct":                  8.0,   # unchanged — solid for alpha volatility
+    "take_profit_pct":               12.0,   # was 25 — stick and move
+    "max_position_size_pct":         20.0,   # was 30 — 4×20%=80% deployed, 20% liquid
+    "max_concurrent_positions":         4,
+    "daily_loss_circuit_breaker_pct": 15.0,  # was 40 — real guardrail, not decoration
     # Wallet floor: halt ALL live BUY orders when liquid TAO drops below this.
     # Prevents the bot from running the wallet to zero through repeated small stakes.
-    # Previously this was unenforced — it is now a hard gate in cycle_service.
-    "min_wallet_balance_tao": 0.05,
-    "min_confidence_score": 0.6,
-    "consensus_votes": 7,           # 7/12 supermajority — OpenClaw rule
-    "consensus_threshold": round(7 / 12, 6),  # ≈ 0.5833
-    "cycle_interval_seconds": 600,
+    "min_wallet_balance_tao":         0.05,
+    "min_confidence_score":           0.6,
+    "consensus_votes":                  7,   # 7/12 supermajority — OpenClaw rule
+    "consensus_threshold":    round(7 / 12, 6),   # ≈ 0.5833
+    "cycle_interval_seconds":       300,    # was 600/60 — 5-min cycles, fix bug
 }
 
 # Persist to a JSON file so Railway redeploys don't reset user settings.

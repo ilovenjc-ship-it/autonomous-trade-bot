@@ -1242,13 +1242,32 @@ async def _run_one_cycle() -> None:
 # ── Cycle runner ──────────────────────────────────────────────────────────────
 
 class CycleService:
+    # Default interval — overridden at startup by main.py reading _RISK_CONFIG.
+    # The loop also re-reads this from _RISK_CONFIG each iteration so changes
+    # made via the Risk Config UI take effect after the current cycle completes.
+    _DEFAULT_INTERVAL = 300   # 5 minutes — calibrated 2026-04-30
+
     def __init__(self):
         self._running  = False
         self._task: Optional[asyncio.Task] = None
         self._cycle_n  = 0
-        self.interval  = 60   # seconds between cycles
+        self.interval  = self._DEFAULT_INTERVAL
 
-    async def start(self, interval_seconds: int = 60) -> None:
+    def _current_interval(self) -> int:
+        """
+        Read cycle_interval_seconds from _RISK_CONFIG (live, dynamic).
+        Falls back to self.interval if the config is unavailable.
+        This means a UI change takes effect after the current sleep completes —
+        no restart required.
+        """
+        try:
+            from routers.fleet import _RISK_CONFIG
+            v = _RISK_CONFIG.get("cycle_interval_seconds", self.interval)
+            return max(30, int(v))   # hard minimum 30 s — prevents runaway loops
+        except Exception:
+            return self.interval
+
+    async def start(self, interval_seconds: int = 300) -> None:
         if self._running:
             return
         self.interval  = interval_seconds
@@ -1256,7 +1275,7 @@ class CycleService:
         self._task     = asyncio.create_task(self._loop())
         push_event("system", f"Autonomous cycle engine started (interval={interval_seconds}s)",
                    detail="12 strategies in parallel")
-        logger.info("Cycle engine started")
+        logger.info(f"Cycle engine started — interval={interval_seconds}s")
 
     async def stop(self) -> None:
         self._running = False
@@ -1288,7 +1307,11 @@ class CycleService:
             except Exception as e:
                 logger.error(f"Cycle #{self._cycle_n} error: {e}", exc_info=True)
                 push_event("alert", f"Cycle #{self._cycle_n} error: {str(e)[:80]}")
-            await asyncio.sleep(self.interval)
+            # Re-read interval from config every cycle — UI changes take effect
+            # after the current cycle completes without requiring a restart.
+            sleep_secs = self._current_interval()
+            logger.debug(f"Cycle #{self._cycle_n} complete — sleeping {sleep_secs}s")
+            await asyncio.sleep(sleep_secs)
 
 
 cycle_service = CycleService()

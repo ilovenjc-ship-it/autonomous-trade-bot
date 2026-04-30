@@ -177,8 +177,12 @@ async def lifespan(app: FastAPI):
         await _aio.sleep(3)
 
         try:
-            await cycle_service.start(interval_seconds=60)
-            logger.info("Cycle engine started")
+            # Read cycle interval from persisted risk config (not hardcoded).
+            # Default is 300 s (5 min); operator can change via Risk Config UI.
+            from routers.fleet import _RISK_CONFIG as _RC
+            _cycle_interval = max(30, int(_RC.get("cycle_interval_seconds", 300)))
+            await cycle_service.start(interval_seconds=_cycle_interval)
+            logger.info(f"Cycle engine started — interval={_cycle_interval}s")
         except Exception as _e:
             logger.error(f"Cycle engine start failed: {_e}")
 

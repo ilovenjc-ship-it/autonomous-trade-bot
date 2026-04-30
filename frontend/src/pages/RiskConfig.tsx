@@ -29,17 +29,19 @@ interface RiskStatus {
   phase: string
 }
 
+// Calibrated 2026-04-30 — stick-and-move profile for subnet alpha trading.
+// See backend/routers/fleet.py _RISK_CONFIG_DEFAULTS for full rationale.
 const DEFAULTS: Config = {
-  max_drawdown_pct: 45,
-  stop_loss_pct: 8,
-  take_profit_pct: 25,
-  max_position_size_pct: 30,
-  max_concurrent_positions: 4,
-  daily_loss_circuit_breaker_pct: 40,
-  min_confidence_score: 0.6,
-  consensus_votes: 7,            // 7/12 supermajority — OpenClaw rule
-  consensus_threshold: 7 / 12,   // ≈ 0.5833 — kept in sync
-  cycle_interval_seconds: 600,
+  max_drawdown_pct:              20,   // was 45 — 20% is "something is broken"
+  stop_loss_pct:                  8,   // unchanged — solid for alpha volatility
+  take_profit_pct:               12,   // was 25 — stick and move, book at 12%
+  max_position_size_pct:         20,   // was 30 — 4×20%=80% deployed, 20% liquid
+  max_concurrent_positions:       4,
+  daily_loss_circuit_breaker_pct: 15, // was 40 — real guardrail, not decoration
+  min_confidence_score:          0.6,
+  consensus_votes:                 7,  // 7/12 supermajority — OpenClaw rule
+  consensus_threshold:           7 / 12,
+  cycle_interval_seconds:        300,  // 5 min — fixed hardcoded-60s bug
 }
 
 // ── risk colour helpers ────────────────────────────────────────────────────────
@@ -365,74 +367,74 @@ export default function RiskConfig() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
           <RiskSlider
             label="Max Drawdown"
-            description="Portfolio drop % that triggers a global HALT — hard ceiling on total portfolio pain"
+            description="Portfolio drop % that triggers a global HALT. Calibrated at 20% — at 45% (old default) you'd watch half your stake evaporate before the kill switch fires. 20% is a clear 'something is fundamentally broken' signal."
             value={config.max_drawdown_pct}
-            min={5} max={50} step={1} riskDir="up"
+            min={5} max={45} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
-            rangeLabel="5% — 50%"
+            rangeLabel="5% (tight) — 45% (dangerous)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, max_drawdown_pct: v })) }}
           />
           <RiskSlider
             label="Stop Loss"
-            description="Per-trade exit if position drops this far — lower value = tighter protection"
+            description="Per-trade exit if the alpha position drops this far. 8% is deliberately calibrated for subnet alpha volatility — tighter than 8% creates noise stop-outs on normal price swings; looser than 10% accepts too much per-trade pain."
             value={config.stop_loss_pct}
-            min={0.5} max={20} step={0.5} riskDir="down"
+            min={2} max={20} step={0.5} riskDir="down"
             format={v => `${v.toFixed(1)}%`}
-            rangeLabel="0.5% — 20%"
+            rangeLabel="2% (tight) — 20% (loose)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, stop_loss_pct: v })) }}
           />
           <RiskSlider
             label="Take Profit"
-            description="Per-trade target — position closes and locks gain when hit"
+            description="'Stick and move' target — position closes and books the gain when hit. Subnet alpha prices spike 10-20% then reverse. At 12% you capture the real move; at 25% (old) you often ride back down and give it all back."
             value={config.take_profit_pct}
-            min={1} max={50} step={1} riskDir="up"
+            min={3} max={50} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
-            rangeLabel="1% — 50%"
+            rangeLabel="3% (scalp) — 50% (hold for big move)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, take_profit_pct: v })) }}
           />
           <RiskSlider
             label="Max Position Size"
-            description="Maximum % of portfolio per single trade — limits concentration risk"
+            description="Maximum % of wallet per single trade. At 20% with 4 concurrent positions → 80% deployed, 20% liquid for fees and opportunities. Old 30% allowed 4×30%=120% implied exposure with no liquidity reserve."
             value={config.max_position_size_pct}
-            min={1} max={50} step={1} riskDir="up"
+            min={5} max={50} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
-            rangeLabel="1% — 50%"
+            rangeLabel="5% (conservative) — 50% (concentrated)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, max_position_size_pct: v })) }}
           />
           <RiskSlider
             label="Max Concurrent Positions"
-            description="How many open trades can coexist across all 12 bots simultaneously"
+            description="How many open live trades can coexist across all 12 bots simultaneously. 4 is the right balance — enough diversification without spreading capital too thin across multiple subnets."
             value={config.max_concurrent_positions}
-            min={1} max={20} step={1} riskDir="up"
+            min={1} max={12} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}`}
-            rangeLabel="1 — 20"
+            rangeLabel="1 (one at a time) — 12 (all bots)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, max_concurrent_positions: v })) }}
           />
           <RiskSlider
             label="Daily Circuit Breaker"
-            description="Daily portfolio loss % that halts all trading for the rest of the day"
+            description="Daily portfolio loss % that halts ALL trading for the rest of the day. Old 40% was decoration — losing 40% in a day means the system has failed catastrophically. 15% is the real guardrail: aggressive-but-sane for crypto algo."
             value={config.daily_loss_circuit_breaker_pct}
-            min={2} max={50} step={1} riskDir="up"
+            min={3} max={40} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
-            rangeLabel="2% — 50%"
+            rangeLabel="3% (strict) — 40% (old/dangerous)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, daily_loss_circuit_breaker_pct: v })) }}
           />
           <RiskSlider
             label="Min AI Confidence"
-            description="Minimum confidence score required — lower value accepts weaker signals"
+            description="Minimum II Agent confidence score required before a strategy signal is accepted. 0.60 means the AI must be at least 60% confident. Lower = more trades, more noise. Higher = fewer trades, higher quality."
             value={config.min_confidence_score}
             min={0.4} max={0.95} step={0.05} riskDir="down"
             format={v => v.toFixed(2)}
-            rangeLabel="0.40 — 0.95"
+            rangeLabel="0.40 (permissive) — 0.95 (very selective)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, min_confidence_score: v })) }}
           />
           <RiskSlider
             label="OpenClaw Consensus"
-            description="Minimum bot votes required for trade approval — 7/12 is the supermajority rule"
+            description="Minimum council votes required for a trade to be approved (out of 12 bots). 7/12 = 58.3% supermajority — the Byzantine Fault Tolerance threshold. Below 7 risks bad-actor manipulation; above 9 makes approval too rare."
             value={config.consensus_votes ?? 7}
             min={6} max={12} step={1} riskDir="down"
-            format={v => `${v} / 12 votes`}
-            rangeLabel="6 votes — 12 votes (unanimous)"
+            format={v => `${v} / 12  (${((v/12)*100).toFixed(1)}%)`}
+            rangeLabel="6/12 (permissive) — 12/12 (unanimous)"
             onChange={v => {
               setIsDirty(true)
               setConfig(c => ({
@@ -444,16 +446,21 @@ export default function RiskConfig() {
           />
           <RiskSlider
             label="Cycle Interval"
-            description="How often each bot evaluates — shorter intervals mean more frequent trading"
+            description="How often the bot evaluates all strategies. Bug fixed: was hardcoded 60s regardless of this setting. Now reads from config dynamically — changes take effect after current cycle. 5 min is optimal for paper training: meaningful data per cycle, avoids 1,440 trades/day noise."
             value={config.cycle_interval_seconds}
             min={60} max={3600} step={60} riskDir="down"
-            format={v => v >= 3600 ? '1 hr' : `${(v / 60).toFixed(0)} min`}
-            rangeLabel="60 s — 60 min"
+            format={v => {
+              if (v < 120) return `${v}s ⚡ aggressive`
+              if (v < 600) return `${(v/60).toFixed(0)} min`
+              if (v === 600) return '10 min'
+              return `${(v/60).toFixed(0)} min`
+            }}
+            rangeLabel="60s (aggressive) — 60 min (conservative)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, cycle_interval_seconds: v })) }}
           />
 
           {/* Phase indicator — spans full width */}
-          <div className="lg:col-span-2 pt-2 border-t border-dark-600 flex items-center gap-3">
+          <div className="lg:col-span-2 pt-2 border-t border-dark-600 flex items-center gap-3 flex-wrap gap-y-2">
             <span className="text-xs text-slate-500 uppercase tracking-widest">Phase</span>
             <span className={clsx('text-sm font-bold', {
               'text-emerald-400': status?.phase === 'LIVE',
@@ -462,7 +469,9 @@ export default function RiskConfig() {
             })}>
               {status?.phase ? status.phase.replace(/_/g, ' ') : 'PAPER — no live strategies yet'}
             </span>
-            <span className="text-xs text-slate-600 ml-auto">Changes take effect next evaluation cycle</span>
+            <span className="text-xs text-slate-500 ml-auto">
+              Cycle interval changes take effect after the current sleep completes — no restart needed
+            </span>
           </div>
         </div>
       </div>
