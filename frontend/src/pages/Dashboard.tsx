@@ -252,6 +252,8 @@ function SentimentGauge({
   consensusStats: ConsensusStats | null
   taoFearGreed: number | null
 }) {
+  const [showInfo, setShowInfo] = useState(false)
+
   const rsi      = (ind.rsi_14      as number | null) ?? null
   const macdHist = (ind.macd != null && ind.macd_signal != null)
     ? (ind.macd as number) - (ind.macd_signal as number)
@@ -290,23 +292,26 @@ function SentimentGauge({
     score >= -60 ? '#f87171' :
                    '#ef4444'
 
-  // SVG arc gauge: semicircle, needle rotates from -90° (left=fear) to +90° (right=greed)
-  const W = 220; const H = 130
-  const cx = W / 2; const cy = H - 20
-  const R = 85
-  const needleAngleDeg = (score / 100) * 90   // -90° to +90°
-  const needleAngleRad = (needleAngleDeg - 90) * (Math.PI / 180)  // -180° = left, 0° = top
-  const nx = cx + R * 0.75 * Math.cos(needleAngleRad)
-  const ny = cy + R * 0.75 * Math.sin(needleAngleRad)
+  // SVG arc gauge: semicircle from 180° (left=Extreme Fear) → 360° (right=Extreme Greed)
+  const W = 240; const H = 148
+  const cx = W / 2; const cy = H - 24
+  const R = 90
+  const needleAngleDeg = (score / 100) * 90   // maps score -100→+100 to degrees -90→+90
+  const needleAngleRad = (needleAngleDeg - 90) * (Math.PI / 180)
+  const nx = cx + R * 0.72 * Math.cos(needleAngleRad)
+  const ny = cy + R * 0.72 * Math.sin(needleAngleRad)
 
-  // Arc segments: fear (red) → greed (green) across the top semicircle
-  const segments = [
-    { from: 180, to: 216, color: '#ef4444' },   // Extreme Fear
-    { from: 216, to: 252, color: '#f87171' },   // Fear
-    { from: 252, to: 288, color: '#f59e0b' },   // Neutral
-    { from: 288, to: 324, color: '#86efac' },   // Greed
-    { from: 324, to: 360, color: '#00e5a0' },   // Extreme Greed
+  // 5 coloured arc zones: Extreme Fear → Fear → Neutral → Greed → Extreme Greed
+  const zones = [
+    { from: 180, to: 216, color: '#ef4444', label: 'Ext. Fear' },
+    { from: 216, to: 252, color: '#f87171', label: 'Fear'      },
+    { from: 252, to: 288, color: '#f59e0b', label: 'Neutral'   },
+    { from: 288, to: 324, color: '#86efac', label: 'Greed'     },
+    { from: 324, to: 360, color: '#00e5a0', label: 'Ext. Greed'},
   ]
+
+  // Zone boundary tick-mark angles (at each zone boundary)
+  const ticks = [180, 216, 252, 288, 324, 360]
 
   function arcPath(startDeg: number, endDeg: number, r: number) {
     const s = (startDeg * Math.PI) / 180
@@ -317,6 +322,12 @@ function SentimentGauge({
     return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`
   }
 
+  /** Returns x,y for a point at angle deg, radius r from centre */
+  function pt(deg: number, r: number) {
+    const rad = (deg * Math.PI) / 180
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
+  }
+
   const fgColor = taoFearGreed == null ? '#64748b'
     : taoFearGreed >= 60  ? '#00e5a0'
     : taoFearGreed >= 25  ? '#86efac'
@@ -324,71 +335,194 @@ function SentimentGauge({
     : taoFearGreed >= -60 ? '#f87171'
     : '#ef4444'
 
-  const inputs: { label: string; value: string; color: string; tag?: string }[] = [
-    { label: 'TAO F&G',   value: taoFearGreed != null ? `${taoFearGreed > 0 ? '+' : ''}${taoFearGreed.toFixed(0)}` : '—',
-      color: fgColor, tag: 'live' },
-    { label: 'RSI-14',    value: rsi != null ? rsi.toFixed(1) : '—',
-      color: rsi == null ? '#64748b' : rsi < 35 ? '#00e5a0' : rsi > 65 ? '#f87171' : '#f59e0b' },
-    { label: 'MACD Hist', value: macdHist != null ? (macdHist > 0 ? '+' : '') + macdHist.toFixed(4) : '—',
-      color: macdHist == null ? '#64748b' : macdHist > 0 ? '#00e5a0' : '#f87171' },
-    { label: 'Consensus', value: consensusStats ? `${consensusStats.approval_rate_pct.toFixed(1)}%` : '—',
-      color: '#818cf8' },
+  const inputs: { label: string; value: string; color: string; weight: string; tag?: string; tip: string }[] = [
+    {
+      label: 'TAO F&G',  value: taoFearGreed != null ? `${taoFearGreed > 0 ? '+' : ''}${taoFearGreed.toFixed(0)}` : '—',
+      color: fgColor, weight: '25%', tag: 'live',
+      tip: 'TAO.app Fear & Greed Index. Scale: −100 (extreme fear) → +100 (extreme greed). Updates every 5 min from TAO.app live API.',
+    },
+    {
+      label: 'RSI-14',   value: rsi != null ? rsi.toFixed(1) : '—',
+      color: rsi == null ? '#64748b' : rsi < 35 ? '#00e5a0' : rsi > 65 ? '#f87171' : '#f59e0b',
+      weight: '30%',
+      tip: 'Relative Strength Index (14 periods). Below 35 = oversold (bullish signal). Above 65 = overbought (bearish signal). Normalised to −100…+100.',
+    },
+    {
+      label: 'MACD Hist', value: macdHist != null ? (macdHist > 0 ? '+' : '') + macdHist.toFixed(4) : '—',
+      color: macdHist == null ? '#64748b' : macdHist > 0 ? '#00e5a0' : '#f87171',
+      weight: '25%',
+      tip: 'MACD histogram (MACD line − Signal line). Positive = bullish momentum. Negative = bearish momentum. Clamped to −100…+100.',
+    },
+    {
+      label: 'Consensus', value: consensusStats ? `${consensusStats.approval_rate_pct.toFixed(1)}%` : '—',
+      color: '#818cf8', weight: '20%',
+      tip: 'OpenClaw BFT consensus approval rate. % of bot votes that are BUY vs SELL across recent rounds. Above 50% = net bullish.',
+    },
   ]
 
   return (
-    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 flex flex-col h-full">
-      <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
-        <Activity size={14} className="text-yellow-400" /> Market Sentiment
-      </h2>
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-4 flex flex-col h-full relative">
 
-      {/* Gauge SVG — fills remaining box space */}
+      {/* Header */}
+      <div className="flex items-center gap-2 mb-1">
+        <Activity size={14} className="text-yellow-400 flex-shrink-0" />
+        <h2 className="text-sm font-semibold text-white">Market Sentiment</h2>
+        {/* Info button */}
+        <button
+          onClick={() => setShowInfo(v => !v)}
+          className="ml-auto flex items-center justify-center w-5 h-5 rounded-full bg-slate-700/60 border border-slate-600/50
+                     text-slate-400 hover:bg-indigo-500/20 hover:border-indigo-400/50 hover:text-indigo-300
+                     transition-colors cursor-help text-[11px] font-bold select-none"
+          title="How is this score calculated?"
+        >i</button>
+      </div>
+
+      {/* Info popover */}
+      {showInfo && (
+        <div className="absolute top-10 right-4 z-20 w-[280px] bg-[#0b1526] border border-[#2d3f5a] rounded-xl px-4 py-3
+                        shadow-2xl text-[12px] font-mono text-slate-300 leading-relaxed space-y-2">
+          <p className="text-white font-bold text-[13px] mb-1">How is this score calculated?</p>
+          <p>A blended composite on a <span className="text-yellow-300">−100 (Fear) → +100 (Greed)</span> scale:</p>
+          <div className="space-y-1 mt-1">
+            {[
+              { src: 'RSI-14',       w: hasFg ? '30%' : '40%', desc: 'Momentum oscillator' },
+              { src: 'MACD Hist',    w: hasFg ? '25%' : '30%', desc: 'Trend / momentum' },
+              { src: 'BFT Consensus',w: hasFg ? '20%' : '30%', desc: 'Bot vote approval rate' },
+              { src: 'TAO F&G',      w: hasFg ? '25%' : '—',   desc: 'Live TAO.app index' },
+            ].map(r => (
+              <div key={r.src} className="flex items-center justify-between gap-2">
+                <span className="text-slate-400">{r.src}</span>
+                <span className="text-indigo-300 font-bold">{r.w}</span>
+                <span className="text-slate-500 text-[11px]">{r.desc}</span>
+              </div>
+            ))}
+          </div>
+          <div className="border-t border-slate-700/50 pt-2 text-slate-400">
+            <span className="text-amber-400 font-bold">Zones: </span>
+            ±25 = Neutral boundary · ±60 = Extreme boundary
+          </div>
+          <button onClick={() => setShowInfo(false)} className="text-slate-500 hover:text-slate-300 text-[11px] mt-1">✕ close</button>
+        </div>
+      )}
+
+      {/* Zone band — quick color strip showing current zone */}
+      <div className="flex rounded overflow-hidden h-1.5 mb-2 gap-px">
+        {zones.map(z => (
+          <div key={z.label} className="flex-1 rounded-sm transition-all"
+               style={{ background: z.color, opacity: label === z.label ? 1 : 0.22 }} />
+        ))}
+      </div>
+
+      {/* Gauge SVG */}
       <div className="flex-1 flex items-center justify-center min-h-0">
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 180 }} preserveAspectRatio="xMidYMid meet">
-          {/* background arc */}
-          <path d={arcPath(180, 360, R)} fill="none" stroke="#1e293b" strokeWidth={14} />
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 185 }} preserveAspectRatio="xMidYMid meet">
 
-          {/* coloured segments */}
-          {segments.map((seg, i) => (
-            <path key={i} d={arcPath(seg.from, seg.to, R)}
-              fill="none" stroke={seg.color} strokeWidth={14} strokeOpacity={0.85} />
+          {/* Shadow/background arc */}
+          <path d={arcPath(180, 360, R)} fill="none" stroke="#1e293b" strokeWidth={16} />
+
+          {/* Coloured zone segments */}
+          {zones.map((z, i) => (
+            <path key={i} d={arcPath(z.from, z.to, R)}
+              fill="none" stroke={z.color} strokeWidth={16} strokeOpacity={0.82} />
           ))}
 
-          {/* inner track */}
-          <path d={arcPath(180, 360, R - 18)} fill="none" stroke="#0d1525" strokeWidth={2} />
+          {/* Zone boundary tick marks */}
+          {ticks.map(deg => {
+            const outer = pt(deg, R + 10)
+            const inner = pt(deg, R - 10)
+            return (
+              <line key={deg}
+                x1={outer.x} y1={outer.y} x2={inner.x} y2={inner.y}
+                stroke="#0d1525" strokeWidth={2} />
+            )
+          })}
 
-          {/* needle */}
+          {/* Inner glow ring */}
+          <path d={arcPath(180, 360, R - 20)} fill="none" stroke="#0d1525" strokeWidth={2.5} />
+
+          {/* Zone text labels (inside arc) */}
+          {[
+            { deg: 198, txt: 'Ext.', color: '#ef4444' },
+            { deg: 198, txt: 'Fear',  color: '#ef4444', dy: 10 },
+            { deg: 234, txt: 'Fear', color: '#f87171' },
+            { deg: 270, txt: 'Neutral', color: '#f59e0b' },
+            { deg: 306, txt: 'Greed', color: '#86efac' },
+            { deg: 342, txt: 'Ext.',  color: '#00e5a0' },
+            { deg: 342, txt: 'Greed', color: '#00e5a0', dy: 10 },
+          ].map((lbl, i) => {
+            const p = pt(lbl.deg, R - 34)
+            return (
+              <text key={i} x={p.x} y={p.y + (lbl.dy ?? 0)}
+                textAnchor="middle" fontSize={7.5} fontFamily="monospace"
+                fill={lbl.color} fillOpacity={0.75}>
+                {lbl.txt}
+              </text>
+            )
+          })}
+
+          {/* Needle shadow */}
+          <line x1={cx} y1={cy} x2={nx} y2={ny}
+            stroke="rgba(0,0,0,0.5)" strokeWidth={4} strokeLinecap="round" />
+          {/* Needle */}
           <line x1={cx} y1={cy} x2={nx} y2={ny}
             stroke="white" strokeWidth={2.5} strokeLinecap="round"
-            style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.6))' }} />
-          <circle cx={cx} cy={cy} r={5} fill="white" />
+            style={{ filter: 'drop-shadow(0 0 5px rgba(255,255,255,0.7))' }} />
+          {/* Pivot circle */}
+          <circle cx={cx} cy={cy} r={6} fill="#1e293b" stroke="white" strokeWidth={2} />
+          <circle cx={cx} cy={cy} r={3} fill="white" />
 
-          {/* score label */}
-          <text x={cx} y={cy - 28} textAnchor="middle"
-            fontSize={22} fontWeight="800" fontFamily="monospace" fill={labelColor}>
-            {(score ?? 0) > 0 ? '+' : ''}{(score ?? 0).toFixed(0)}
+          {/* Score number */}
+          <text x={cx} y={cy - 30} textAnchor="middle"
+            fontSize={24} fontWeight="800" fontFamily="monospace" fill={labelColor}
+            style={{ filter: `drop-shadow(0 0 6px ${labelColor}60)` }}>
+            {score > 0 ? '+' : ''}{score.toFixed(0)}
           </text>
-          <text x={cx} y={cy - 10} textAnchor="middle"
-            fontSize={11} fontFamily="monospace" fill={labelColor}>
+          {/* Zone label */}
+          <text x={cx} y={cy - 13} textAnchor="middle"
+            fontSize={10} fontFamily="monospace" fill={labelColor} fontWeight="600">
             {label}
           </text>
 
-          {/* axis labels */}
-          <text x={12}  y={cy + 4} fontSize={9} fill="#ef4444" fontFamily="monospace">Fear</text>
-          <text x={W - 36} y={cy + 4} fontSize={9} fill="#00e5a0" fontFamily="monospace">Greed</text>
+          {/* Far-edge axis labels */}
+          <text x={8}    y={cy + 6} fontSize={9} fill="#ef4444" fontFamily="monospace" fontWeight="700">Fear</text>
+          <text x={W - 34} y={cy + 6} fontSize={9} fill="#00e5a0" fontFamily="monospace" fontWeight="700">Greed</text>
+
+          {/* Centre label */}
+          <text x={cx} y={cy + 6} textAnchor="middle" fontSize={7.5} fill="#94a3b8" fontFamily="monospace">NEUTRAL</text>
         </svg>
       </div>
 
       {/* Input breakdown */}
-      <div className="space-y-1.5 border-t border-dark-600 pt-2 mt-auto">
+      <div className="space-y-1 border-t border-dark-600 pt-2 mt-auto">
+        <div className="flex items-center justify-between mb-0.5">
+          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Signal</span>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Weight</span>
+            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider w-14 text-right">Value</span>
+          </div>
+        </div>
         {inputs.map(inp => (
-          <div key={inp.label} className="flex items-center justify-between">
-            <span className="text-[13px] font-mono text-slate-400 flex items-center gap-1.5">
+          <div key={inp.label} className="flex items-center justify-between group">
+            <span className="text-[12px] font-mono text-slate-400 flex items-center gap-1.5">
               {inp.label}
               {inp.tag === 'live' && (
                 <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-900/60 text-emerald-400 tracking-wide">LIVE</span>
               )}
+              {/* Per-signal info tooltip */}
+              <span className="relative inline-flex items-center">
+                <span
+                  className="w-3.5 h-3.5 rounded-full bg-slate-700/40 border border-slate-600/30 text-slate-500
+                             hover:bg-indigo-500/20 hover:border-indigo-400/40 hover:text-indigo-300
+                             transition-colors cursor-help text-[9px] font-bold select-none
+                             items-center justify-center hidden group-hover:inline-flex"
+                  title={inp.tip}
+                >i</span>
+              </span>
             </span>
-            <span className="text-[14px] font-mono font-bold" style={{ color: inp.color }}>{inp.value}</span>
+            <div className="flex items-center gap-3">
+              <span className="text-[10px] font-mono text-slate-600">{inp.weight}</span>
+              <span className="text-[13px] font-mono font-bold w-14 text-right" style={{ color: inp.color }}>{inp.value}</span>
+            </div>
           </div>
         ))}
       </div>

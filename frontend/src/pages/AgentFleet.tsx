@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import api from '@/api/client'
 import PageHeroSlider from '@/components/PageHeroSlider'
 import { useBotStore } from '@/store/botStore'
+import Tooltip, { InfoBubble } from '@/components/Tooltip'
 
 interface GateCheck { value: number; required: number; ok: boolean }
 interface Gate {
@@ -342,13 +343,78 @@ export default function AgentFleet() {
               <tr>
                 <th className="text-left px-4 py-2.5 text-slate-300 font-normal w-8">#</th>
                 <th className="text-left px-4 py-2.5 text-slate-300 font-normal">AGENT</th>
-                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">HEALTH</th>
-                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">SIGNAL</th>
-                <th className="text-right px-4 py-2.5 text-slate-300 font-normal">WIN RATE</th>
+                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">
+                  <span className="flex items-center gap-1.5">
+                    HEALTH
+                    <InfoBubble side="bottom" content={
+                      <div className="space-y-1">
+                        <p className="text-white font-bold mb-1">Health Status</p>
+                        <p><span className="text-emerald-400">🔥 HOT</span> — Winning streak, elite performance</p>
+                        <p><span className="text-sky-400">✅ HEALTHY</span> — Performing within normal range</p>
+                        <p><span className="text-amber-400">⚠️ WATCHING</span> — Under observation, borderline metrics</p>
+                        <p><span className="text-red-400">🔴 WEAK</span> — Struggling; consecutive losses or poor win rate</p>
+                        <p><span className="text-slate-400">⚙️ WARMING</span> — Inactive or insufficient data yet</p>
+                      </div>
+                    } />
+                  </span>
+                </th>
+                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">
+                  <span className="flex items-center gap-1.5">
+                    SIGNAL
+                    <InfoBubble side="bottom" content={
+                      <div className="space-y-1">
+                        <p className="text-white font-bold mb-1">Last Signal</p>
+                        <p>The most recent trade signal this bot generated in its last cycle.</p>
+                        <p><span className="text-emerald-400 font-bold">BUY</span> — Bot sees bullish conditions</p>
+                        <p><span className="text-red-400 font-bold">SELL</span> — Bot sees bearish conditions</p>
+                        <p><span className="text-slate-400 font-bold">HOLD</span> — No strong conviction either way</p>
+                        <p className="text-slate-400 mt-1">A signal does NOT mean a trade fired — it must pass OpenClaw BFT consensus first.</p>
+                      </div>
+                    } />
+                  </span>
+                </th>
+                <th className="text-right px-4 py-2.5 text-slate-300 font-normal">
+                  <span className="flex items-center justify-end gap-1.5">
+                    WIN RATE
+                    <InfoBubble side="bottom" content={
+                      <div className="space-y-1">
+                        <p className="text-white font-bold mb-1">Win Rate</p>
+                        <p>Percentage of completed paper trades that were profitable.</p>
+                        <p><span className="text-emerald-400">≥55%</span> → APPROVED for live</p>
+                        <p><span className="text-yellow-400">40–55%</span> → Watching range</p>
+                        <p><span className="text-red-400">&lt;40%</span> → Struggling</p>
+                        <p className="text-slate-400 mt-1">Gate threshold to go LIVE: 65% WR + positive PnL.</p>
+                      </div>
+                    } />
+                  </span>
+                </th>
                 <th className="text-right px-4 py-2.5 text-slate-300 font-normal">P&L (TAO)</th>
-                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">ALLOCATION</th>
-                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">SCORE</th>
-                <th className="text-center px-4 py-2.5 text-slate-300 font-normal">STATUS</th>
+                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">
+                  <span className="flex items-center gap-1.5">
+                    ALLOCATION
+                    <InfoBubble side="bottom" content="Capital allocation as a % of the active trading budget assigned to this bot. Bots with higher performance scores receive proportionally more capital." />
+                  </span>
+                </th>
+                <th className="text-left px-4 py-2.5 text-slate-300 font-normal">
+                  <span className="flex items-center gap-1.5">
+                    SCORE
+                    <InfoBubble side="bottom" content="Composite performance score (0–100). Factors: win rate × 50% + PnL momentum × 30% + trade frequency × 20%. Higher score = more capital allocation." />
+                  </span>
+                </th>
+                <th className="text-center px-4 py-2.5 text-slate-300 font-normal">
+                  <span className="flex items-center justify-center gap-1.5">
+                    CONTROLS
+                    <InfoBubble side="bottom" content={
+                      <div className="space-y-1">
+                        <p className="text-white font-bold mb-1">Row Controls</p>
+                        <p><span className="text-red-400 font-bold">OFF</span> — Pause this bot (stops cycling)</p>
+                        <p><span className="text-emerald-400 font-bold">ON</span> — Activate / resume the bot</p>
+                        <p><span className="text-sky-400 font-bold">OPEN ↗</span> — Open full strategy detail page</p>
+                        <p className="text-slate-400 mt-1 border-t border-slate-700/50 pt-1">Click anywhere on the row to expand the bot's performance panel below the table.</p>
+                      </div>
+                    } />
+                  </span>
+                </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/30">
@@ -391,24 +457,37 @@ export default function AgentFleet() {
                     <ScoreBar score={bot.performance_score} />
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center justify-center gap-1">
-                      <button
-                        onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/deactivate`) }}
-                        className={clsx('px-2 py-0.5 rounded text-[15px] font-bold transition-colors', !bot.is_active ? 'bg-red-500/20 text-red-400 border border-red-500/40' : 'text-slate-300 hover:text-slate-300')}>
-                        OFF
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/activate`) }}
-                        className={clsx('px-2 py-0.5 rounded text-[15px] font-bold transition-colors', bot.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'text-slate-300 hover:text-slate-300')}>
-                        ON
-                      </button>
-                      <button
-                        onClick={e => { e.stopPropagation(); navigate(`/strategy/${bot.name}`) }}
-                        className="px-1.5 py-0.5 rounded text-[15px] text-slate-300 hover:text-accent-blue border border-transparent hover:border-accent-blue/30 transition-colors"
-                        title="View strategy detail"
-                      >
-                        <ExternalLink size={10} />
-                      </button>
+                    <div className="flex items-center justify-center gap-1.5">
+                      {/* OFF button */}
+                      <Tooltip content="Pause this bot — stops it from generating signals" side="top">
+                        <button
+                          onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/deactivate`) }}
+                          className={clsx('px-2 py-0.5 rounded text-[12px] font-bold transition-all', !bot.is_active ? 'bg-red-500/20 text-red-400 border border-red-500/40 shadow-[0_0_6px_rgba(239,68,68,0.2)]' : 'text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30')}>
+                          OFF
+                        </button>
+                      </Tooltip>
+                      {/* ON button */}
+                      <Tooltip content="Activate this bot — resumes signal generation cycle" side="top">
+                        <button
+                          onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/activate`) }}
+                          className={clsx('px-2 py-0.5 rounded text-[12px] font-bold transition-all', bot.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_6px_rgba(52,211,153,0.2)]' : 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30')}>
+                          ON
+                        </button>
+                      </Tooltip>
+                      {/* Open strategy detail — now prominent */}
+                      <Tooltip content={<span>Open <span className="text-sky-300 font-bold">{bot.display_name}</span> full strategy profile ↗</span>} side="top">
+                        <button
+                          onClick={e => { e.stopPropagation(); navigate(`/strategy/${bot.name}`) }}
+                          className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold
+                                     text-sky-400 border border-sky-500/40 bg-sky-500/10
+                                     hover:bg-sky-500/20 hover:border-sky-400/60 hover:text-sky-300
+                                     hover:shadow-[0_0_8px_rgba(14,165,233,0.3)]
+                                     transition-all duration-150"
+                        >
+                          <ExternalLink size={11} />
+                          <span>OPEN</span>
+                        </button>
+                      </Tooltip>
                     </div>
                   </td>
                 </tr>

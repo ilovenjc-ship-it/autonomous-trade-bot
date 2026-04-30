@@ -14,6 +14,7 @@ import clsx from 'clsx'
 import api from '@/api/client'
 import PageHeroSlider from '@/components/PageHeroSlider'
 import { useBotStore } from '@/store/botStore'
+import { InfoBubble } from '@/components/Tooltip'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -427,27 +428,32 @@ export default function IIAgent() {
               icon: BarChart3, label: 'Analyses Run',
               value: status?.analysis_count ?? 0,
               sub: 'total cycles', accent: 'text-indigo-400',
+              tip: 'Total number of autonomous analysis cycles completed. Runs every 5 minutes. Each cycle evaluates all 12 bots, detects market regime, and issues recommendations.',
             },
             {
               icon: Flame, label: 'Hot Strategies',
               value: hotCount,
               sub: `${strugglingCount} struggling`, accent: 'text-emerald-400',
+              tip: '🔥 HOT = bot is outperforming with a winning streak. 🔴 STRUGGLING = bot has consecutive losses or a win rate below threshold. Neither is permanent — conditions change every cycle.',
             },
             {
               icon: CheckCircle2, label: 'Fleet PnL',
               value: `${(status?.total_pnl ?? 0) >= 0 ? '+' : ''}${(status?.total_pnl ?? 0).toFixed(4)}τ`,
               sub: 'cumulative', accent: (status?.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400',
+              tip: 'Cumulative profit/loss across ALL strategy bots, measured in TAO. Includes paper trades only until a bot earns LIVE promotion. Negative is expected early in paper training.',
             },
             {
               icon: Lightbulb, label: 'Recommendations',
               value: status?.recommendation_count ?? 0,
               sub: 'active directives', accent: 'text-amber-400',
+              tip: 'Active directives issued by II Agent during the last analysis. Types: WARNING (risk alert), OPPORTUNITY (entry signal), REGIME (market-wide shift), CONSENSUS (BFT voting outcome). Scroll down to see the full list.',
             },
-          ].map(({ icon: Icon, label, value, sub, accent }) => (
+          ].map(({ icon: Icon, label, value, sub, accent, tip }) => (
             <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl p-3 flex flex-col gap-1">
               <div className="flex items-center gap-2">
                 <Icon size={14} className={accent} />
                 <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
+                <InfoBubble content={tip} side="bottom" maxWidth={280} className="ml-auto" />
               </div>
               <p className={clsx('text-xl font-bold font-mono', accent)}>{value}</p>
               <p className="text-[13px] text-slate-300">{sub}</p>
@@ -680,25 +686,39 @@ export default function IIAgent() {
       </div>
 
       {/* ── Chat Panel ── */}
-      <div className="rounded-2xl border border-dark-600 overflow-hidden flex flex-col"
+      <div className="rounded-2xl border border-indigo-500/25 overflow-hidden flex flex-col"
            style={{ background: 'linear-gradient(180deg, #0d1525 0%, #0a1020 100%)' }}>
 
-        {/* Chat header */}
-        <div className="flex items-center gap-3 px-5 py-3.5 border-b border-dark-600"
-             style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.08) 0%, transparent 100%)' }}>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <MessageSquare size={15} className="text-indigo-400" />
-              <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-emerald-500 rounded-full" />
+        {/* Chat header — larger, more prominent orb-style */}
+        <div className="flex items-center gap-4 px-5 py-4 border-b border-indigo-500/20"
+             style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.06) 60%, transparent 100%)' }}>
+
+          {/* Chat orb */}
+          <div className="relative flex-shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center
+                            shadow-lg shadow-indigo-500/20"
+                 style={{ boxShadow: '0 0 20px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+              <MessageSquare size={22} className="text-indigo-400" />
             </div>
-            <span className="text-xs font-bold text-white uppercase tracking-wider font-mono">Chat with II Agent</span>
+            {/* Online pulse dot */}
+            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#0d1525] flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping absolute" />
+            </span>
           </div>
-          <div className="flex items-center gap-1.5 ml-2">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-[13px] font-mono text-emerald-400">ONLINE · backed by live data</span>
+
+          {/* Labels */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-base font-bold text-white tracking-wide font-mono">Chat with II Agent</span>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[12px] font-mono text-emerald-400">ONLINE</span>
+              <span className="text-slate-600">·</span>
+              <span className="text-[12px] font-mono text-slate-400">backed by live fleet &amp; market data</span>
+            </div>
           </div>
-          <span className="ml-auto text-[13px] font-mono text-slate-500 flex items-center gap-1">
-            <Sparkles size={10} className="text-indigo-400" />
+
+          <span className="ml-auto text-[12px] font-mono text-slate-500 flex items-center gap-1.5">
+            <Sparkles size={12} className="text-indigo-400" />
             keyword-matched · real-time indicators
           </span>
         </div>

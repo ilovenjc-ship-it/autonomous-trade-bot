@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Flame } from 'lucide-react'
 import api from '@/api/client'
+import { InfoBubble } from '@/components/Tooltip'
 
 // ── TaoBot confirmed subnets (on-chain verified) ─────────────────────────────
 const TAOBOT_SUBNETS = new Set([1, 8, 9, 18, 64])
@@ -121,6 +122,31 @@ export default function SubnetHeatMap() {
         <h2 className="text-sm font-semibold text-white flex items-center gap-2 flex-shrink-0">
           <Flame size={14} className="text-orange-400" />
           Network Heat Map
+          <InfoBubble
+            side="right"
+            maxWidth={300}
+            content={
+              <div className="space-y-2">
+                <p className="text-white font-bold text-[12px]">Network Heat Map</p>
+                <p>Each cell = one Bittensor subnet (SN1–SN64). Color intensity reflects the selected metric — darker blue is cold (low), amber-red is hot (high).</p>
+                <div className="border-t border-slate-700/50 pt-2 space-y-1">
+                  <p className="flex items-center gap-2">
+                    <span className="inline-block w-3 h-3 rounded-sm border-2 border-[#00e5a0] flex-shrink-0" />
+                    <span><span className="text-emerald-400 font-bold">Green outline</span> = subnet actively monitored by TaoBot (SN1, 8, 9, 18, 64). TaoBot stakes, votes, and collects emissions here.</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00e5a0] flex-shrink-0" />
+                    <span><span className="text-emerald-400 font-bold">Green dot</span> (top-right corner) = same TaoBot active indicator.</span>
+                  </p>
+                  <p className="flex items-center gap-2">
+                    <span className="text-emerald-400 font-bold flex-shrink-0">▲</span>
+                    <span>Rising / falling arrow = 30-min price trend from TAO.app.</span>
+                  </p>
+                </div>
+                <p className="text-slate-400 text-[11px]">Hover any cell for full subnet stats. Switch view modes (Stake · APY · Miners · Score) with the buttons above.</p>
+              </div>
+            }
+          />
         </h2>
         <div className="flex items-center gap-1 text-[11px] font-mono flex-shrink-0">
           <span className="text-slate-500">COLD</span>
@@ -266,14 +292,19 @@ export default function SubnetHeatMap() {
       })()}
 
       {/* ── Legend ────────────────────────────────────────────────────────── */}
-      <div className="mt-2 flex-shrink-0 flex items-center gap-3 text-[10px] font-mono text-slate-500">
-        <div className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-accent-green inline-block" />
-          TaoBot active
+      <div className="mt-2 flex-shrink-0 space-y-1">
+        {/* TaoBot active legend — more prominent */}
+        <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-emerald-950/40 border border-emerald-800/30">
+          <span className="w-3 h-3 rounded-sm border-2 border-emerald-400 flex-shrink-0 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+          <span className="text-[11px] font-mono text-emerald-400 font-bold">TaoBot Active Subnets</span>
+          <span className="text-[10px] font-mono text-emerald-600">SN1 · SN8 · SN9 · SN18 · SN64</span>
+          <span className="ml-auto text-[10px] font-mono text-slate-600">Green outline = TaoBot</span>
         </div>
-        <span className="text-emerald-400">▲</span><span>rising</span>
-        <span className="text-red-400">▼</span><span>falling</span>
-        <span className="ml-auto text-slate-600">Hover for details</span>
+        <div className="flex items-center gap-3 text-[10px] font-mono text-slate-500 px-1">
+          <span className="text-emerald-400 font-bold">▲</span><span>rising</span>
+          <span className="text-red-400 font-bold">▼</span><span>falling</span>
+          <span className="ml-auto text-slate-600">Hover any cell for full stats</span>
+        </div>
       </div>
     </div>
   )
