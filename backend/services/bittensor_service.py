@@ -532,6 +532,71 @@ class BittensorService:
             logger.error(f"unstake error: {e}")
             return {"success": False, "error": str(e)}
 
+    async def transfer(self, to_address: str, amount_tao: float) -> Dict:
+        """
+        Transfer TAO from the bot coldkey to any SS58 address.
+        Uses the same execution pattern as add_stake / unstake.
+        Minimum transfer is enforced by the chain (typically 0.001τ).
+        """
+        MIN_TRANSFER = 0.001
+        if amount_tao < MIN_TRANSFER:
+            return {"success": False, "error": f"Amount {amount_tao:.6f}τ is below minimum ({MIN_TRANSFER}τ)"}
+        if not self._mnemonic_set or not self._keypair:
+            return {"success": False, "error": "Wallet mnemonic not loaded"}
+        if not to_address or len(to_address) < 40:
+            return {"success": False, "error": "Invalid destination address"}
+
+        try:
+            import bittensor as bt
+            wallet_adapter = _WalletAdapter(self._keypair)
+
+            # Safety: can't send to yourself — prevents fee-waste accidents
+            if to_address == self._coldkey_addr:
+                return {"success": False, "error": "Destination is the same as the source wallet"}
+
+            logger.info(f"transfer: {amount_tao}τ → {to_address[:20]}…")
+
+            async with await self._subtensor() as sub:
+                result = await asyncio.wait_for(
+                    sub.transfer(
+                        wallet                = wallet_adapter,
+                        dest                  = to_address,
+                        amount                = bt.Balance.from_tao(amount_tao),
+                        wait_for_inclusion    = True,
+                        wait_for_finalization = False,
+                        raise_error           = False,
+                    ),
+                    timeout=self._TIMEOUT_STAKE,
+                )
+
+            success  = bool(result)
+            tx_hash  = None
+            if success:
+                if hasattr(result, "block_hash") and result.block_hash:
+                    tx_hash = result.block_hash
+                else:
+                    tx_hash = f"block:{self._last_block}" if self._last_block else "confirmed"
+
+            logger.info(
+                f"transfer {'SUCCESS' if success else 'FAILED'} — "
+                f"{amount_tao}τ → {to_address[:20]}… | hash={tx_hash}"
+            )
+            return {
+                "success":  success,
+                "tx_hash":  tx_hash if success else None,
+                "amount":   amount_tao,
+                "to":       to_address,
+                "from":     self._coldkey_addr,
+                "error":    None if success else "Chain rejected the transfer",
+            }
+
+        except asyncio.TimeoutError:
+            logger.error(f"transfer timed out after {self._TIMEOUT_STAKE}s")
+            return {"success": False, "error": f"Transfer timed out after {self._TIMEOUT_STAKE}s — check Taostats for confirmation"}
+        except Exception as e:
+            logger.error(f"transfer error: {e}")
+            return {"success": False, "error": str(e)}
+
     # ── Status ────────────────────────────────────────────────────────────────
 
     def get_status(self) -> Dict[str, Any]:

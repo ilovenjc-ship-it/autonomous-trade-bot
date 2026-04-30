@@ -211,6 +211,56 @@ async def unstake_position(body: UnstakePositionRequest):
     }
 
 
+class TransferRequest(BaseModel):
+    to_address: str
+    amount_tao: float
+    note: Optional[str] = None   # display-only memo, not stored on-chain
+
+
+@router.post("/transfer")
+async def transfer_tao(body: TransferRequest):
+    """
+    Transfer TAO from the bot coldkey to any SS58 address.
+    Requires wallet mnemonic to be loaded and Finney mainnet connection.
+    Two-layer safety:
+      - Destination cannot equal source (self-send check in bittensor_service)
+      - Amount must be > 0 and < current balance (checked here)
+    """
+    if not bittensor_service.wallet_loaded:
+        return {"success": False, "error": "Wallet mnemonic not loaded. Restore it on the Wallet page first."}
+    if not bittensor_service.connected:
+        return {"success": False, "error": "Not connected to Finney mainnet."}
+    if body.amount_tao <= 0:
+        return {"success": False, "error": "Amount must be greater than 0 τ"}
+    if not body.to_address or len(body.to_address) < 40:
+        return {"success": False, "error": "Invalid destination address — must be a valid SS58 Bittensor address"}
+
+    # Soft balance check against cached balance (chain enforces the hard limit)
+    cached_balance = bittensor_service.get_status().get("balance_cached") or 0
+    if cached_balance > 0 and body.amount_tao > cached_balance:
+        return {"success": False, "error": f"Amount {body.amount_tao:.4f}τ exceeds cached balance {cached_balance:.4f}τ"}
+
+    logger.info(f"[TRANSFER] {body.amount_tao:.6f}τ → {body.to_address[:24]}… note={body.note!r}")
+    push_event("system", f"🔄 Transfer initiated — {body.amount_tao:.4f}τ → {body.to_address[:16]}…")
+
+    result = await bittensor_service.transfer(body.to_address, body.amount_tao)
+
+    if result.get("success"):
+        push_event("trade", f"✅ Transfer confirmed — {body.amount_tao:.4f}τ → {body.to_address[:16]}… tx={result.get('tx_hash', 'N/A')}")
+    else:
+        push_event("alert", f"❌ Transfer FAILED — {result.get('error', 'unknown')}")
+
+    return {
+        "success":  result.get("success", False),
+        "tx_hash":  result.get("tx_hash"),
+        "amount":   body.amount_tao,
+        "to":       body.to_address,
+        "from":     bittensor_service.get_status().get("address"),
+        "error":    result.get("error"),
+        "note":     body.note,
+    }
+
+
 class StakeSubnetRequest(BaseModel):
     netuid: int
     amount_tao: float
