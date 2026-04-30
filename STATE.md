@@ -1,8 +1,8 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-04-17 (Session VIII)
-**Status:** LIVE — 3 active LIVE strategies (Yield Maximizer, Balanced Risk, Breakout Hunter), wallet τ0.227, BT_MNEMONIC persisted  
-**Maintained by:** II Agent + Owner  
+**Last updated:** 2026-04-30 (Session XVI — The UI Reckoning)
+**Status:** PAPER TRAINING — FORCE_PAPER_MODE=1. Full UI/UX overhaul complete. 5 major features shipped: Market Data sparklines + SubnetDetail, Webhook notifications, Risk recalibration + cycle fix ×2, Hot Wallet + Privacy Mode, Transaction Detail Modal. All commits pushed to GitHub. Paper cycle running at 300s / 288 cycles/day.
+**Maintained by:** II Agent + Owner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
 ---
@@ -12,6 +12,27 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XVI SUMMARY (April 30, 2026) — The UI Reckoning
+
+Systematic page-by-page UI/UX overhaul. Five features in one session:
+
+1. **Market Data** — SVG sparkline trend charts (12-point rolling history), Stake/Unstake modal per subnet, SubnetDetail page `/market/subnet/:uid` with 6-metric grid, large chart, per-subnet descriptions, inline stake panel, external resource cards.
+2. **Activity Log** — Full webhook notification infrastructure: Discord (rich embed), Slack (Block Kit), Generic HTTP. WebhookDrawer UI with CRUD, test firing, Railway persistence via base64 env-var export.
+3. **Risk Config** — Recalibrated: drawdown 45→20%, TP 25→12%, position 30→20%, circuit breaker 40→15%, interval →300s (5 min). Fixed TWO cycle-interval bugs: (1) main.py hardcoded 60s ignoring config, (2) _loop() used stale self.interval — both fixed with _current_interval() reading _RISK_CONFIG live each iteration.
+4. **Wallet** — Full Hot Wallet redesign: Privacy Mode (default ON, blurs everything), tabbed Overview/Send/Receive, 2-step Send with SS58 validation + irreversibility warning, Transfer API, privacy-aware positions. POST /api/wallet/transfer + bittensor_service.transfer().
+5. **Transactions** — Transaction Detail Modal: click any row in Trades or Trade Log → full popup with Financials, Classification, On-Chain Data (full TX hash + copy, Taostats deep link, TAO.app link), Timestamps, Error. GET /api/trades now returns fee, netuid, network, live.
+
+**Commits (all pushed to GitHub):**
+- `c48e56e5` — Transaction Detail Modal
+- `399631a7` — Wallet: Hot Wallet, Privacy Mode, Send/Receive
+- `9659b846` — Risk Config: recalibrate + cycle interval bug fix
+- `e9ccf741` — Activity Log: Webhook system
+- `cd0c8563` — Market Data: sparklines, Stake/Unstake, SubnetDetail
+
+**Archive:** `archives/Session_XVI_The_UI_Reckoning.pdf`
 
 ---
 
