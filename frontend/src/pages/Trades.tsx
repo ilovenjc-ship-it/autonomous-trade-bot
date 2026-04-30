@@ -4,6 +4,7 @@ import { useBotStore } from '@/store/botStore'
 import { ArrowUpDown, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw,
          ChevronLeft, ChevronRight, ExternalLink, Zap, AlertTriangle,
          CheckCircle2, Copy, ShieldAlert, Activity } from 'lucide-react'
+import TransactionDetailModal, { type TradeRecord } from '@/components/TransactionDetailModal'
 /**
  * Timestamp formatter — New York / Eastern Time (US)
  * SQLite stores UTC without 'Z'; we append it so browsers parse correctly.
@@ -85,6 +86,7 @@ export default function Trades() {
   const [tradeResult,  setTradeResult]    = useState<TradeResult | null>(null)
   const [tradingMode,  setTradingMode]    = useState<TradingMode | null>(null)
   const [strategyModes, setStrategyModes] = useState<Record<string, string>>({})
+  const [selectedTrade, setSelectedTrade] = useState<TradeRecord | null>(null)
 
   const pages = Math.max(1, Math.ceil((tradeTotal ?? 0) / PAGE_SIZE))
 
@@ -530,7 +532,12 @@ export default function Trades() {
                 </tr>
               ) : (
                 filtered.map((t) => (
-                  <tr key={t.id} className="border-b border-dark-700 hover:bg-dark-700/50 transition-colors">
+                  <tr
+                    key={t.id}
+                    onClick={() => setSelectedTrade(t as unknown as TradeRecord)}
+                    className="border-b border-dark-700 hover:bg-dark-700/50 transition-colors cursor-pointer"
+                    title="Click to view transaction details"
+                  >
                     <td className="px-4 py-3 font-mono text-slate-300">#{t.id}</td>
                     <td className="px-4 py-3">
                       <span className={t.trade_type === 'buy' ? 'tag-buy' : 'tag-sell'}>
@@ -595,6 +602,15 @@ export default function Trades() {
         </div>
       </div>
       </div>{/* end scrollable */}
+
+      {/* ── Transaction Detail Modal ─────────────────────────────────────── */}
+      {selectedTrade && (
+        <TransactionDetailModal
+          trade={selectedTrade}
+          strategyMode={strategyModes[selectedTrade.strategy ?? '']}
+          onClose={() => setSelectedTrade(null)}
+        />
+      )}
     </div>
   )
 }

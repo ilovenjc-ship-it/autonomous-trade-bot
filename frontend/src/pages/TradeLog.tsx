@@ -7,6 +7,7 @@ import {
 import clsx from 'clsx'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
+import TransactionDetailModal, { type TradeRecord } from '@/components/TransactionDetailModal'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Trade {
@@ -16,12 +17,18 @@ interface Trade {
   amount: number
   price_at_trade: number
   usd_value: number
+  fee?: number
   pnl: number
   pnl_pct: number
   strategy: string | null
   signal_reason: string | null
   tx_hash: string | null
+  netuid?: number | null
+  network?: string | null
+  live?: boolean
   created_at: string | null
+  executed_at?: string | null
+  error_message?: string | null
 }
 
 interface TradesResponse {
@@ -174,6 +181,8 @@ export default function TradeLog() {
   const [archivedCount, setArchivedCount] = useState<number | null>(null)
   // strategy mode map — name → 'LIVE' | 'APPROVED_FOR_LIVE' | 'PAPER_ONLY'
   const [strategyModes, setStrategyModes] = useState<Record<string, string>>({})
+  // Transaction detail modal
+  const [selectedTrade, setSelectedTrade] = useState<TradeRecord | null>(null)
   const PAGE_SIZE = 25
 
   const load = useCallback(async () => {
@@ -345,10 +354,12 @@ export default function TradeLog() {
             {!loading && visible.map((t, idx) => (
               <tr
                 key={t.id}
+                onClick={() => setSelectedTrade(t as TradeRecord)}
                 className={clsx(
-                  'border-b border-dark-700/40 hover:bg-dark-800/60 transition-colors',
+                  'border-b border-dark-700/40 hover:bg-dark-800/60 transition-colors cursor-pointer',
                   idx % 2 === 0 ? '' : 'bg-dark-800/20'
                 )}
+                title="Click to view transaction details"
               >
                 {/* ID */}
                 <td className="px-4 py-2.5 text-slate-300 font-mono">#{t.id}</td>
@@ -466,6 +477,15 @@ export default function TradeLog() {
           </button>
         </div>
       </div>
+
+      {/* ── Transaction Detail Modal ─────────────────────────────────────── */}
+      {selectedTrade && (
+        <TransactionDetailModal
+          trade={selectedTrade}
+          strategyMode={strategyModes[selectedTrade.strategy ?? '']}
+          onClose={() => setSelectedTrade(null)}
+        />
+      )}
     </div>
   )
 }

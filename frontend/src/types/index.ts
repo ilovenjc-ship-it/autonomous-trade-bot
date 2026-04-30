@@ -43,11 +43,15 @@ export interface Trade {
   amount: number
   price_at_trade: number
   usd_value: number
+  fee?: number
   pnl: number
   pnl_pct: number
   strategy?: string
   signal_reason?: string
   tx_hash?: string
+  netuid?: number | null
+  network?: string | null
+  live?: boolean
   created_at?: string
   executed_at?: string
   error_message?: string
