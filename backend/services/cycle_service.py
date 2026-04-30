@@ -1070,7 +1070,7 @@ async def _run_one_cycle() -> None:
                     _rolling_wr_alerted.add(s.name)
                     alert_service.push_alert(
                         type     = "RISK",
-                        level    = "CRITICAL",
+                        level    = "WARNING",
                         title    = f"📉 {display} rolling WR decay",
                         message  = (
                             f"{display} rolling win rate over last {ROLLING_WR_WINDOW} trades "

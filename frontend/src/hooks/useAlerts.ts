@@ -22,6 +22,7 @@ interface Alert {
 
 const POLL_INTERVAL  = 6000                       // ms — 6s is plenty for real-time feel
 const STORAGE_KEY    = 'tao_last_seen_alert_id'
+const ACK_KEY        = 'tao_last_ack_ts'          // unix ms — last time user hit Mark All Read
 const TOAST_LEVELS   = new Set(['CRITICAL', 'WARNING'])  // INFO is status noise, skip toasts
 
 function getLevelStyle(level: string): { background: string; color: string; border: string } {
@@ -50,21 +51,43 @@ export function useAlerts() {
   const lastSeenId = useRef<number>(
     parseInt(localStorage.getItem(STORAGE_KEY) ?? '0', 10)
   )
+  // lastAckTs — when the user last hit "Mark All Read".
+  // We only count CRITICALs newer than this as "badge-worthy" so stale
+  // historical CRITICALs don't permanently park the counter at 99.
+  const lastAckTs = useRef<number>(
+    parseInt(localStorage.getItem(ACK_KEY) ?? '0', 10)
+  )
+
+  // Call this whenever the user marks all read — resets the badge
+  const ackAllCriticals = useCallback(() => {
+    const now = Date.now()
+    lastAckTs.current = now
+    localStorage.setItem(ACK_KEY, String(now))
+    setCriticalUnreadCount(0)
+  }, [])
 
   const poll = useCallback(async () => {
     if (!initialized.current) return   // don't toast until seed is done
     try {
       // Fetch enough alerts to accurately count unread CRITICALs (they're rare)
-      const res  = await fetch('/api/alerts?limit=50')
+      const res  = await fetch('/api/alerts?limit=100')
       if (!res.ok) return
       const data = await res.json()
 
       // Update total unread badge count
       setUnreadCount(data.unread_count ?? 0)
 
-      // Bell indicator — only critical unread alerts create noise-worthy urgency
+      // Bell/badge indicator — only CRITICAL alerts that arrived AFTER the
+      // user's last "mark all read" action count toward the badge.
+      // This prevents stale historical CRITICALs from permanently showing 99+.
       const allAlerts: Alert[] = data.alerts ?? []
-      setCriticalUnreadCount(allAlerts.filter(a => a.level === 'CRITICAL' && !a.read).length)
+      const ackCutoff = lastAckTs.current  // ms unix timestamp
+      const freshCriticals = allAlerts.filter(a =>
+        a.level === 'CRITICAL' &&
+        !a.read &&
+        new Date(a.timestamp).getTime() > ackCutoff
+      )
+      setCriticalUnreadCount(freshCriticals.length)
 
       // Find ALL alerts newer than last seen — track by ID only (read status is irrelevant
       // for tracking; an alert marked read in another tab still happened and was new)
@@ -147,5 +170,5 @@ export function useAlerts() {
 
   const refresh = useCallback(() => poll(), [poll])
 
-  return { unreadCount, criticalUnreadCount, refresh }
+  return { unreadCount, criticalUnreadCount, ackAllCriticals, refresh }
 }

@@ -33,6 +33,24 @@ from typing import List, Optional
 # ── Constants ─────────────────────────────────────────────────────────────────
 MAX_ALERTS = 150
 
+# Deduplication cooldowns per alert type (seconds).
+# Same (type + strategy) pair within this window is silently dropped.
+# 0 = always fire (no cooldown). Use for rare/important events.
+ALERT_COOLDOWN_SECONDS: dict = {
+    "RISK":                  1800,   # wallet floor, circuit breaker — 30 min
+    "STRATEGY_STRUGGLING":   1800,   # agent struggling flag — 30 min
+    "STRATEGY_HOT":          3600,   # HOT classification — 1 hr
+    "DRAWDOWN_ALERT":        1800,   # drawdown — 30 min
+    "REGIME_SHIFT":           300,   # regime can shift quickly — 5 min
+    "GATE_PROMOTION":           0,   # always — rare, important
+    "GATE_DEMOTION":            0,   # always — rare, important
+    "SYSTEM":                  60,   # system events — 1 min
+    "CONSENSUS_APPROVED":       0,   # always — trade events
+    "CONSENSUS_VETOED":         0,   # always — trade events
+    "PNL_MILESTONE":            0,   # always — one-per-milestone
+    "_default":               600,   # any other type — 10 min
+}
+
 # Alert types
 TYPE_GATE_PROMOTION      = "GATE_PROMOTION"
 TYPE_CONSENSUS_APPROVED  = "CONSENSUS_APPROVED"
@@ -62,6 +80,8 @@ class AlertService:
         self._alerts: List[dict] = []
         self._counter = 0
         self._milestones_hit: set = set()   # Track which PnL milestones already alerted
+        # Cooldown tracker: key = "type_strategy" → unix timestamp of last fire
+        self._cooldowns: dict = {}
 
     # ── Core push ─────────────────────────────────────────────────────────────
 
@@ -73,7 +93,23 @@ class AlertService:
         message:  str,
         strategy: Optional[str] = None,
         detail:   str = "",
-    ) -> dict:
+    ) -> Optional[dict]:
+        """
+        Push an alert into the ring buffer.
+        Applies per-type cooldowns so the same (type, strategy) pair
+        cannot spam the buffer faster than ALERT_COOLDOWN_SECONDS[type].
+        Returns None if the alert was suppressed by cooldown.
+        """
+        # ── Cooldown deduplication ─────────────────────────────────────────────
+        cooldown_secs = ALERT_COOLDOWN_SECONDS.get(type, ALERT_COOLDOWN_SECONDS["_default"])
+        if cooldown_secs > 0:
+            dedup_key = f"{type}_{strategy or '_global'}"
+            now_ts    = datetime.now(timezone.utc).timestamp()
+            last_fire = self._cooldowns.get(dedup_key, 0.0)
+            if (now_ts - last_fire) < cooldown_secs:
+                return None          # suppressed — too recent
+            self._cooldowns[dedup_key] = now_ts
+
         self._counter += 1
         alert = {
             "id":        self._counter,

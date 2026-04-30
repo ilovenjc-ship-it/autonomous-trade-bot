@@ -50,7 +50,11 @@ function levelIcon(level: string) {
   }
 }
 
-export default function NotificationBell({ unreadCount, criticalCount }: { unreadCount: number; criticalCount: number }) {
+export default function NotificationBell({ unreadCount, criticalCount, onAckAll }: {
+  unreadCount: number
+  criticalCount: number
+  onAckAll?: () => void
+}) {
   const [open,   setOpen]   = useState(false)
   const [alerts, setAlerts] = useState<Alert[]>([])
   const [loading, setLoading] = useState(false)
@@ -87,6 +91,7 @@ export default function NotificationBell({ unreadCount, criticalCount }: { unrea
     try {
       await api.post('/alerts/read-all')
       setAlerts(prev => prev.map(a => ({ ...a, read: true })))
+      onAckAll?.()   // reset the critical badge watermark
     } catch (_) {}
   }
 

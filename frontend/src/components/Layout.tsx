@@ -72,7 +72,7 @@ export default function Layout() {
   const walletPageStats = useBotStore((s) => s.walletPageStats)
   const iiAgentStats    = useBotStore((s) => s.iiAgentStats)
   const isRunning   = status?.is_running ?? false
-  const { unreadCount, criticalUnreadCount } = useAlerts()
+  const { unreadCount, criticalUnreadCount, ackAllCriticals } = useAlerts()
   const { pathname }    = useLocation()
   const pageTitle = PAGE_TITLES[pathname]
     ?? (pathname.startsWith('/strategy/') ? 'Strategy Detail' : 'Dashboard')
@@ -762,7 +762,7 @@ export default function Layout() {
           </div>
 
           {/* Notification Bell — badge shows critical-only count */}
-          <NotificationBell unreadCount={unreadCount} criticalCount={criticalUnreadCount} />
+          <NotificationBell unreadCount={unreadCount} criticalCount={criticalUnreadCount} onAckAll={ackAllCriticals} />
         </div>
 
         {/* Content area */}

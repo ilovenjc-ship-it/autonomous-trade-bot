@@ -457,6 +457,47 @@ export default function Analytics() {
         )}
       </div>
 
+      {/* ── Strategy table legend ────────────────────────────────────────────── */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 bg-dark-800/70 border border-dark-700/60 rounded-xl text-[12px] font-mono">
+        {/* Rank medals */}
+        <span className="text-slate-500 uppercase tracking-widest text-[10px]">Rank</span>
+        <span className="flex items-center gap-1.5 text-yellow-400">🥇 <span className="text-slate-300">#1 by selected sort</span></span>
+        <span className="flex items-center gap-1.5 text-slate-300">🥈 <span className="text-slate-400">#2</span></span>
+        <span className="flex items-center gap-1.5 text-amber-600">🥉 <span className="text-slate-400">#3</span></span>
+
+        <span className="hidden sm:block w-px h-4 bg-dark-600" />
+
+        {/* Win rate badge colours */}
+        <span className="text-slate-500 uppercase tracking-widest text-[10px]">Win Rate</span>
+        <span className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-accent-green/20 text-accent-green text-[11px] font-bold">≥70%</span>
+          <span className="text-slate-400">Elite</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400 text-[11px] font-bold">55–69%</span>
+          <span className="text-slate-400">Gate-ready</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-yellow-400/20 text-yellow-400 text-[11px] font-bold">40–54%</span>
+          <span className="text-slate-400">Watching</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 text-[11px] font-bold">&lt;40%</span>
+          <span className="text-slate-400">Struggling</span>
+        </span>
+
+        <span className="hidden sm:block w-px h-4 bg-dark-600" />
+
+        {/* W / L */}
+        <span className="text-slate-500 uppercase tracking-widest text-[10px]">W / L</span>
+        <span className="flex items-center gap-1">
+          <span className="text-accent-green font-bold">W</span>
+          <span className="text-slate-500">/</span>
+          <span className="text-red-400 font-bold">L</span>
+          <span className="text-slate-400 ml-1">= Wins / Losses count</span>
+        </span>
+      </div>
+
       {/* ── Strategy comparison table ───────────────────────────────────────── */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden">
         <div className="px-5 py-4 border-b border-dark-600 flex items-center justify-between">
