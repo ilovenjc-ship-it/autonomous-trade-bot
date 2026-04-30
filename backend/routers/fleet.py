@@ -147,14 +147,17 @@ _CHAT_HISTORY: List[dict] = []
 @router.post("/chat")
 async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
     """Chat with II Agent — responses backed by live DB + indicator data."""
-    msg = payload.message.lower().strip()
+    from services.cycle_service import cycle_service
+    from services.agent_service import agent_service
+    from services.consensus_service import consensus_service
+
+    msg    = payload.message.lower().strip()
     price  = price_service.current_price or 0.0
     ind    = price_service.compute_indicators()
     rsi    = ind.get("rsi_14")
-    ema9   = ind.get("ema_9")
-    ema21  = ind.get("ema_21")
     macd   = ind.get("macd")
     msig   = ind.get("macd_signal")
+    macd_h = (macd - msig) if (macd is not None and msig is not None) else None
 
     result = await db.execute(select(Strategy))
     strategies = result.scalars().all()
@@ -165,104 +168,225 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
     total_pnl       = sum(s.total_pnl or 0 for s in strategies)
     total_trades    = sum(s.total_trades or 0 for s in strategies)
     total_wins      = sum(s.win_trades or 0 for s in strategies)
-    fleet_wr        = round(total_wins / total_trades * 100, 1) if total_trades else 0
-    best_strat      = max(strategies, key=lambda s: s.total_pnl or 0)
+    fleet_wr        = round(total_wins / total_trades * 100, 1) if total_trades else 0.0
+    best_strat      = max(strategies, key=lambda s: s.total_pnl or 0) if strategies else None
+    worst_strat     = min(strategies, key=lambda s: s.total_pnl or 0) if strategies else None
 
-    # Momentum signal label
+    # Live agent regime
+    agent_status  = agent_service.get_status()
+    current_regime = agent_status.get("current_regime", "UNKNOWN")
+
+    # RSI signal interpretation
     if rsi and rsi < 35:
-        signal_label = "OVERSOLD — BUY bias across momentum strategies"
+        signal_label = f"**OVERSOLD** (RSI {rsi:.1f}) — momentum strategies are biased BUY"
     elif rsi and rsi > 65:
-        signal_label = "OVERBOUGHT — SELL/HOLD bias; trailing stops tightening"
+        signal_label = f"**OVERBOUGHT** (RSI {rsi:.1f}) — momentum strategies are biased SELL/HOLD"
+    elif rsi:
+        signal_label = f"**NEUTRAL** (RSI {rsi:.1f}) — no high-conviction directional signal"
     else:
-        signal_label = "NEUTRAL — no high-conviction signal; waiting for confirmation"
+        signal_label = "**WARMING UP** — not enough price history yet (need ~14 candles)"
+
+    # Live consensus stats
+    cstats = consensus_service.get_stats()
+    c_rounds   = cstats.get("total_rounds", 0)
+    c_approved = cstats.get("approved_rounds", 0)
+    c_rate     = cstats.get("approval_rate_pct", 0.0)
+    c_buy      = cstats.get("total_buy_votes", 0)
+    c_sell     = cstats.get("total_sell_votes", 0)
+
+    # Cycle engine
+    cycle_num = cycle_service.cycle_number
+    cycle_running = cycle_service.is_running
+
+    # Actual risk config (from the in-memory store)
+    max_dd      = float(_RISK_CONFIG.get("max_drawdown_pct",      45.0))
+    stop_loss   = float(_RISK_CONFIG.get("stop_loss_pct",          8.0))
+    max_pos     = float(_RISK_CONFIG.get("max_position_size_pct", 30.0))
+    daily_limit = int(_RISK_CONFIG.get("daily_trade_limit",        50))
 
     # ── Keyword routing with live data ────────────────────────────────────────
-    if any(w in msg for w in ["price", "tao", "cost", "worth", "usd", "$"]):
-        ch = ind.get("price_change_pct_24h") or 0
+
+    if any(w in msg for w in ["openclaw", "bft", "byzantine", "consensus", "vote", "voting", "7 of 12", "7/12", "supermajority"]):
+        latest = consensus_service.get_latest()
+        last_result = "—"
+        last_votes  = "—"
+        if latest:
+            last_result = "✓ APPROVED" if latest.get("approved") else "✗ VETOED"
+            last_votes  = f"{latest.get('buy_count', 0)} BUY · {latest.get('sell_count', 0)} SELL · {latest.get('hold_count', 0)} HOLD"
         response = (
-            f"TAO is trading at **${price:.2f}** ({'+' if ch>=0 else ''}{ch:.2f}% 24h). "
-            f"RSI(14) = {rsi:.1f} — {signal_label}. "
-            f"EMA9={ema9:.3f}, EMA21={ema21:.3f}." if rsi and ema9 and ema21 else
-            f"TAO is trading at **${price:.2f}**. Indicators are still warming up — need more price history."
+            f"**OpenClaw** is our Byzantine Fault Tolerant consensus engine — the mathematical firewall between every strategy signal and the blockchain. "
+            f"Before any LIVE trade executes, **all 12 bot personalities vote**, and **7 of 12 (58.3%) must agree** on direction. No exceptions.\n\n"
+            f"The math comes from Lamport, Shostak & Pease (1982): with N=12 actors, you can tolerate up to ⌊(N−1)/3⌋ = **3 faulty/wrong bots** "
+            f"and still reach a provably correct consensus — as long as the 2f+1 = **7-vote threshold** is met. "
+            f"Bitcoin, Ethereum, and Bittensor's Yuma Consensus all use variants of the same principle.\n\n"
+            f"**Live stats:** {c_rounds} rounds · {c_approved} approved ({c_rate:.1f}% approval rate). "
+            f"Vote tally: {c_buy} BUY vs {c_sell} SELL votes total. "
+            f"Last round: {last_result} ({last_votes})."
+        )
+
+    elif any(w in msg for w in ["regime", "market", "bull", "bear", "sideways", "volatile", "mode", "environment"]):
+        regime_desc = {
+            "BULL":     "a confirmed uptrend — momentum strategies are favoured, mean-reversion is less reliable",
+            "BEAR":     "a downtrend — sell/short bias, capital preservation mode active",
+            "SIDEWAYS": "a ranging market — mean-reversion strategies work best, breakout strategies sit on the sidelines",
+            "VOLATILE": "high volatility — most strategies are cautious; the consensus bar effectively rises because signals conflict",
+            "UNKNOWN":  "regime not yet determined — need more analysis cycles",
+        }.get(current_regime, "regime state unclear")
+        rsi_note = f"RSI(14) = {rsi:.1f} ({signal_label})" if rsi else "RSI not yet available"
+        response = (
+            f"Current market regime: **{current_regime}** — {regime_desc}. "
+            f"{rsi_note}. "
+            f"MACD histogram: {'**+' + f'{macd_h:.5f}**' + ' (bullish momentum)' if macd_h and macd_h > 0 else '**' + f'{macd_h:.5f}**' + ' (bearish momentum)' if macd_h else 'not available'}. "
+            f"Regime is re-evaluated every 5 minutes by II Agent."
+        )
+
+    elif any(w in msg for w in ["price", "tao", "cost", "worth", "usd", "$"]):
+        ch = ind.get("price_change_pct_24h") or 0.0
+        rsi_note = f"RSI(14) = {rsi:.1f}." if rsi else "RSI warming up."
+        macd_note = f"MACD hist = {macd_h:+.5f} ({'bullish' if macd_h and macd_h > 0 else 'bearish'})." if macd_h else ""
+        response = (
+            f"TAO is trading at **${price:.2f}** ({'+' if ch >= 0 else ''}{ch:.2f}% 24h change). "
+            f"{rsi_note} {macd_note} "
+            f"Current signal: {signal_label}. Price feed via CoinGecko, refreshed every 30s."
         )
 
     elif any(w in msg for w in ["rsi", "macd", "ema", "indicator", "signal", "momentum", "technical"]):
-        ind_lines = []
-        if rsi:   ind_lines.append(f"RSI(14): {rsi:.1f}")
-        if ema9:  ind_lines.append(f"EMA9: {ema9:.4f}")
-        if ema21: ind_lines.append(f"EMA21: {ema21:.4f}")
-        if macd and msig: ind_lines.append(f"MACD hist: {(macd-msig):.5f}")
-        ind_str = " | ".join(ind_lines) if ind_lines else "Indicators warming up…"
-        response = f"Live indicators → {ind_str}. Current signal: {signal_label}."
-
-    elif any(w in msg for w in ["status", "how", "health", "online", "running", "fleet"]):
+        ind_parts = []
+        if rsi:    ind_parts.append(f"RSI(14) = {rsi:.1f}")
+        if macd_h: ind_parts.append(f"MACD histogram = {macd_h:+.5f}")
+        ind_str = " · ".join(ind_parts) if ind_parts else "Indicators still warming up — need more price history"
         response = (
-            f"Fleet operational. {len(live_strats)} strategies LIVE, "
-            f"{len(approved_strats)} approved for live, {len(paper_strats)} in paper training. "
-            f"Cycle engine running — executing trades every 60s. "
-            f"Fleet win rate: {fleet_wr:.1f}% across {total_trades} trades."
+            f"Live technical indicators: **{ind_str}**. "
+            f"Signal interpretation: {signal_label}. "
+            f"These indicators feed directly into the sentiment gauge and strategy signal generators. "
+            f"Each strategy weights them differently based on its personality archetype."
         )
 
-    elif any(w in msg for w in ["gate", "graduate", "promote", "approved", "paper only"]):
-        promoted = [s.display_name for s in approved_strats] or ["none yet"]
-        live_names = [s.display_name for s in live_strats]
+    elif any(w in msg for w in ["status", "health", "online", "running", "fleet", "how are"]):
+        hot   = sum(1 for s in strategies if (s.win_rate or 0) >= 55)
+        weak  = sum(1 for s in strategies if (s.win_rate or 0) < 40 and (s.total_trades or 0) >= 5)
         response = (
-            f"Gate system: strategies need {GATE_CYCLES_REQUIRED} cycles, "
-            f">{GATE_WIN_RATE_REQUIRED}% win rate, wins exceed losses by ≥2, and positive PnL. "
-            f"Currently APPROVED (awaiting deployment): {', '.join(promoted)}. "
-            f"LIVE strategies: {', '.join(live_names) if live_names else 'none'}."
+            f"Fleet is **{'operational' if cycle_running else 'paused'}**. "
+            f"{len(live_strats)} LIVE · {len(approved_strats)} APPROVED · {len(paper_strats)} paper training. "
+            f"Cycle engine: cycle #{cycle_num}, running every 60s. "
+            f"Fleet health: {hot} strategies performing well (≥55% WR), {weak} struggling (<40% WR). "
+            f"Regime: **{current_regime}**. Consensus: {c_rounds} rounds, {c_rate:.1f}% approval rate."
         )
 
-    elif any(w in msg for w in ["pnl", "profit", "loss", "return", "earn", "made", "performance"]):
+    elif any(w in msg for w in ["gate", "graduate", "promote", "approved", "promotion", "close to"]):
+        approved_names = [s.display_name for s in approved_strats]
+        live_names     = [s.display_name for s in live_strats]
+        # Find strategies close to the gate (within 10% of win rate target, enough cycles)
+        near_gate = [
+            s for s in paper_strats
+            if (s.cycles_completed or 0) >= GATE_CYCLES_REQUIRED and
+               (s.win_rate or 0) >= (GATE_WIN_RATE_REQUIRED - 10)
+        ]
+        near_names = [f"{s.display_name} ({(s.win_rate or 0):.1f}% WR)" for s in near_gate]
         response = (
-            f"Total fleet PnL: **{total_pnl:+.4f} τ** (${total_pnl * price:.2f} USD). "
-            f"Win rate: {fleet_wr:.1f}% across {total_trades} trades. "
-            f"Best performer: {best_strat.display_name} at {best_strat.total_pnl:+.4f} τ "
-            f"({best_strat.win_rate:.1f}% WR)."
+            f"**Gate requirements** (Paper → Approved): "
+            f"≥{GATE_CYCLES_REQUIRED} cycles · >{GATE_WIN_RATE_REQUIRED}% win rate · wins exceed losses by ≥2 · positive PnL.\n\n"
+            f"**APPROVED** (gate cleared, awaiting human override to go LIVE): "
+            f"{', '.join(approved_names) if approved_names else 'none yet'}.\n"
+            f"**LIVE** strategies: {', '.join(live_names) if live_names else 'none — all in paper training'}.\n"
+            f"**Near the gate** (within 10% of threshold): {', '.join(near_names) if near_names else 'none yet — keep accumulating cycles'}."
         )
 
-    elif any(w in msg for w in ["best", "top", "leading", "winner", "rank"]):
+    elif any(w in msg for w in ["pnl", "profit", "loss", "return", "earn", "made", "performance", "money"]):
+        best_line  = f"Best: **{best_strat.display_name}** at {best_strat.total_pnl:+.4f}τ ({(best_strat.win_rate or 0):.1f}% WR)." if best_strat else ""
+        worst_line = f"Worst: {worst_strat.display_name} at {worst_strat.total_pnl:+.4f}τ." if worst_strat else ""
+        response = (
+            f"Total fleet PnL: **{total_pnl:+.4f} τ** (≈ ${total_pnl * price:.2f} USD at current price). "
+            f"Win rate: {fleet_wr:.1f}% across {total_trades} completed paper trades. "
+            f"{best_line} {worst_line} "
+            f"Remember: all trades are paper (simulated) until a strategy earns LIVE promotion through the gate."
+        )
+
+    elif any(w in msg for w in ["best", "top", "leading", "winner", "rank", "strongest"]):
         top3 = sorted(strategies, key=lambda s: s.total_pnl or 0, reverse=True)[:3]
-        lines = [f"{i+1}. {s.display_name}: {s.total_pnl:+.4f} τ ({s.win_rate:.1f}% WR)"
-                 for i, s in enumerate(top3)]
-        response = "Top 3 strategies by PnL: " + " | ".join(lines)
+        lines = [
+            f"**#{i+1} {s.display_name}**: {(s.total_pnl or 0):+.4f}τ · {(s.win_rate or 0):.1f}% WR · {s.total_trades or 0} trades"
+            for i, s in enumerate(top3)
+        ]
+        response = "Top 3 strategies by cumulative PnL:\n" + "\n".join(lines)
 
-    elif any(w in msg for w in ["cycle", "interval", "next", "when", "frequency"]):
-        from services.cycle_service import cycle_service
-        cn = cycle_service.cycle_number
+    elif any(w in msg for w in ["worst", "weakest", "bottom", "struggling", "losing"]):
+        bottom3 = sorted(strategies, key=lambda s: s.total_pnl or 0)[:3]
+        lines = [
+            f"**#{i+1} {s.display_name}**: {(s.total_pnl or 0):+.4f}τ · {(s.win_rate or 0):.1f}% WR · regime: {current_regime}"
+            for i, s in enumerate(bottom3)
+        ]
+        regime_note = (
+            f"Note: current regime is **{current_regime}** — this typically causes higher veto rates and lower win rates "
+            f"across momentum strategies. Underperformance here is often a regime problem, not a strategy problem."
+            if current_regime in ("VOLATILE", "SIDEWAYS") else ""
+        )
+        response = f"Bottom 3 strategies by PnL:\n" + "\n".join(lines) + (f"\n\n{regime_note}" if regime_note else "")
+
+    elif any(w in msg for w in ["cycle", "interval", "frequency", "how often", "when"]):
         response = (
-            f"Autonomous cycle engine is {'running' if cycle_service.is_running else 'stopped'}. "
-            f"Completed {cn} cycles, firing every 60 seconds. "
-            f"Each cycle evaluates all 12 strategies and executes paper trades based on signal strength."
+            f"Autonomous cycle engine is **{'running' if cycle_running else 'stopped'}**. "
+            f"Completed **{cycle_num}** cycles, firing every **60 seconds**. "
+            f"Each cycle: evaluates all {len(strategies)} strategies, generates signals, runs OpenClaw BFT vote (if LIVE), "
+            f"executes paper/live trades, logs to DB, and fires alerts. "
+            f"II Agent analysis runs every **5 minutes** on top of the cycle engine."
         )
 
-    elif any(w in msg for w in ["risk", "stop", "loss", "drawdown", "safety", "halt"]):
+    elif any(w in msg for w in ["risk", "stop", "drawdown", "safety", "halt", "limit", "protection"]):
         response = (
-            "Risk controls active: max drawdown 15%, position size capped at 2% of portfolio per trade. "
-            "Stop-loss at 5% per position. Daily trade limit: 50. "
-            "All trades are paper trades — no real capital at risk until wallet is connected."
+            f"**Active risk controls** (live values from Risk Config):\n"
+            f"• Max drawdown: **{max_dd:.0f}%** — system halts if PnL drops this far from peak\n"
+            f"• Stop-loss per trade: **{stop_loss:.0f}%** — position auto-closed at this loss\n"
+            f"• Max position size: **{max_pos:.0f}%** of capital per trade\n"
+            f"• Daily trade limit: **{daily_limit}** trades across the fleet\n"
+            f"All trades are paper (simulated) until a strategy earns LIVE promotion. "
+            f"Adjust these thresholds in the Risk Config page."
         )
 
-    elif any(w in msg for w in ["wallet", "address", "key", "mnemonic", "connect"]):
+    elif any(w in msg for w in ["wallet", "connect", "address", "chain", "mainnet", "finney"]):
         response = (
-            "Wallet not connected. Target address: 5GgRojEFh5aCFNLKuSWb6WtrM5nBDB6GrRpqaqreBLcg4e7L "
-            "(Finney mainnet). Connect via the Wallet page — requires 12-word mnemonic. "
-            "All trading is paper-only until wallet is active."
+            "The wallet connection page lets you link a Bittensor Finney mainnet coldkey. "
+            "All trading is **paper-only** until a wallet is connected AND a strategy earns LIVE promotion through the gate. "
+            "Even with a wallet connected, only LIVE-mode strategies can execute real on-chain trades — "
+            "and every trade still requires OpenClaw BFT consensus (7/12 votes) to pass."
+        )
+
+    elif any(w in msg for w in ["subnet", "sn", "bittensor", "emission", "alpha", "dtao", "stake"]):
+        response = (
+            f"The system monitors all Bittensor subnets via TAO.app. Current active subnets for TaoBot: "
+            f"**SN1** (Root), **SN8**, **SN9**, **SN18**, **SN64**. "
+            f"Subnet selection is based on stake depth, APY, and trend momentum. "
+            f"The Network Heat Map on Mission Control visualises all 64 subnets by stake, APY, miner count, or composite score. "
+            f"Hover any cell on the heat map for full subnet stats. Green outline = TaoBot active."
         )
 
     else:
+        # Informative fallback — pulls real live numbers
         response = random.choice([
-            f"Monitoring {len(strategies)} strategies. Cycle engine at cycle #{getattr(__import__('services.cycle_service', fromlist=['cycle_service']), 'cycle_service', None) and __import__('services.cycle_service', fromlist=['cycle_service']).cycle_service.cycle_number}. Signal: {signal_label}.",
-            f"Risk parameters nominal. Fleet win rate {fleet_wr:.1f}%, {total_trades} paper trades executed. PnL: {total_pnl:+.4f} τ.",
-            f"Gate enforcement active. {len(paper_strats)} strategies in paper training, {len(approved_strats)} pending deployment, {len(live_strats)} in LIVE mode.",
-            f"CoinGecko price feed active at ${price:.2f}. RSI={rsi:.1f if rsi else 'N/A'}. Autonomous cycle running every 60s.",
-            f"Consensus engine voting across {len(live_strats)} LIVE strategies. Best performer: {best_strat.display_name} at {best_strat.total_pnl:+.4f} τ.",
+            (
+                f"Fleet at a glance: **{current_regime}** regime · TAO ${price:.2f} · "
+                f"RSI {rsi:.1f if rsi else 'warming'} · Cycle #{cycle_num} · "
+                f"Fleet PnL: {total_pnl:+.4f}τ ({fleet_wr:.1f}% WR across {total_trades} trades). "
+                f"Ask me about PnL, regime, consensus, risk, gate status, or any specific strategy."
+            ),
+            (
+                f"OpenClaw BFT: {c_rounds} consensus rounds, {c_rate:.1f}% approval rate. "
+                f"{c_buy} BUY vs {c_sell} SELL votes cast total. "
+                f"Current regime: **{current_regime}**. "
+                f"Fleet: {len(paper_strats)} paper · {len(approved_strats)} approved · {len(live_strats)} live."
+            ),
+            (
+                f"Gate system holding firm: {GATE_WIN_RATE_REQUIRED}% win rate + {GATE_CYCLES_REQUIRED} cycles required for promotion. "
+                f"{'Best performer: ' + best_strat.display_name + ' at ' + f'{best_strat.total_pnl:+.4f}τ.' if best_strat else ''} "
+                f"Cycle engine: {'running' if cycle_running else 'stopped'} at #{cycle_num}. "
+                f"Ask me anything — regime, indicators, consensus, risk controls, or specific bots."
+            ),
         ])
 
     user_entry  = {"role": "user",  "content": payload.message,  "timestamp": datetime.utcnow().isoformat() + "Z"}
     agent_entry = {"role": "agent", "content": response,          "timestamp": datetime.utcnow().isoformat() + "Z"}
     _CHAT_HISTORY.extend([user_entry, agent_entry])
-    _push_event("system", f"Chat: {payload.message[:60]}", detail=response[:100])
+    _push_event("system", f"Chat: {payload.message[:60]}", detail=response[:120])
 
     return {"response": response, "history": _CHAT_HISTORY[-20:]}
 
