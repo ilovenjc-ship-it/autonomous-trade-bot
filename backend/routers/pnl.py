@@ -231,3 +231,142 @@ async def pnl_summary(db: AsyncSession = Depends(get_db)):
         "equity_series": equity_series,
         "tao_price_usd": TAO_USD,
     }
+
+
+# ── /api/pnl/paper-activity — paper trading live feed ────────────────────────
+
+@router.get("/paper-activity")
+async def paper_activity(db: AsyncSession = Depends(get_db)):
+    """
+    Paper trading activity feed for the P&L Summary page.
+
+    Returns:
+      recent_trades   — last 60 paper trades (newest first)
+      strategy_cards  — per-strategy simulation summary:
+                        last direction, last trade time, cumulative PnL,
+                        trade count, win rate, consecutive wins/losses
+      totals          — aggregate paper stats
+    """
+    from services.price_service import price_service
+
+    tao_price = price_service.current_price or TAO_USD
+
+    # ── Recent paper trades (no tx_hash = paper) ──────────────────────────────
+    recent_rows = (await db.execute(text("""
+        SELECT
+            id,
+            trade_type,
+            strategy,
+            amount,
+            price_at_trade,
+            usd_value,
+            pnl,
+            pnl_pct,
+            signal_reason,
+            created_at
+        FROM trades
+        WHERE status = 'executed'
+          AND (tx_hash IS NULL OR tx_hash = '')
+        ORDER BY created_at DESC
+        LIMIT 60
+    """))).fetchall()
+
+    recent_trades = []
+    for r in recent_rows:
+        label = STRATEGY_LABELS.get(r.strategy or "", r.strategy or "Unknown")
+        pnl   = float(r.pnl or 0)
+        recent_trades.append({
+            "id":             r.id,
+            "side":           (r.trade_type or "buy").upper(),
+            "strategy":       r.strategy,
+            "label":          label,
+            "amount_tao":     round(float(r.amount or 0), 4),
+            "price_usd":      round(float(r.price_at_trade or tao_price), 2),
+            "usd_value":      round(float(r.usd_value or 0), 2),
+            "pnl_tao":        round(pnl, 6),
+            "pnl_usd":        round(pnl * tao_price, 4),
+            "pnl_pct":        round(float(r.pnl_pct or 0), 2),
+            "is_win":         pnl > 0,
+            "signal_reason":  r.signal_reason or "",
+            "timestamp":      r.created_at,
+        })
+
+    # ── Per-strategy simulation cards ─────────────────────────────────────────
+    card_rows = (await db.execute(text("""
+        SELECT
+            strategy,
+            COUNT(*)                                        AS total_trades,
+            SUM(pnl)                                        AS total_pnl,
+            SUM(CASE WHEN pnl > 0 THEN 1 ELSE 0 END)       AS wins,
+            SUM(CASE WHEN pnl <= 0 THEN 1 ELSE 0 END)      AS losses,
+            AVG(pnl)                                        AS avg_pnl,
+            MAX(created_at)                                 AS last_trade_at,
+            MAX(CASE WHEN id = (
+                SELECT MAX(id) FROM trades t2
+                WHERE t2.strategy = trades.strategy
+                  AND (t2.tx_hash IS NULL OR t2.tx_hash = '')
+            ) THEN trade_type END)                          AS last_side,
+            MAX(CASE WHEN id = (
+                SELECT MAX(id) FROM trades t2
+                WHERE t2.strategy = trades.strategy
+                  AND (t2.tx_hash IS NULL OR t2.tx_hash = '')
+            ) THEN amount END)                              AS last_amount,
+            MAX(CASE WHEN id = (
+                SELECT MAX(id) FROM trades t2
+                WHERE t2.strategy = trades.strategy
+                  AND (t2.tx_hash IS NULL OR t2.tx_hash = '')
+            ) THEN price_at_trade END)                      AS last_price,
+            MAX(CASE WHEN id = (
+                SELECT MAX(id) FROM trades t2
+                WHERE t2.strategy = trades.strategy
+                  AND (t2.tx_hash IS NULL OR t2.tx_hash = '')
+            ) THEN pnl END)                                 AS last_pnl
+        FROM trades
+        WHERE status = 'executed'
+          AND (tx_hash IS NULL OR tx_hash = '')
+          AND strategy IS NOT NULL
+        GROUP BY strategy
+        ORDER BY total_pnl DESC
+    """))).fetchall()
+
+    strategy_cards = []
+    for r in card_rows:
+        total = int(r.total_trades or 0)
+        wins  = int(r.wins or 0)
+        wr    = round(wins / total * 100, 1) if total else 0.0
+        pnl   = float(r.total_pnl or 0)
+        label = STRATEGY_LABELS.get(r.strategy or "", r.strategy or "Unknown")
+        strategy_cards.append({
+            "strategy":      r.strategy,
+            "label":         label,
+            "total_trades":  total,
+            "wins":          wins,
+            "losses":        int(r.losses or 0),
+            "win_rate":      wr,
+            "total_pnl":     round(pnl, 6),
+            "total_pnl_usd": round(pnl * tao_price, 4),
+            "avg_pnl":       round(float(r.avg_pnl or 0), 6),
+            "last_trade_at": r.last_trade_at,
+            "last_side":     (r.last_side or "buy").upper(),
+            "last_amount":   round(float(r.last_amount or 0), 4),
+            "last_price":    round(float(r.last_price or tao_price), 2),
+            "last_pnl":      round(float(r.last_pnl or 0), 6),
+        })
+
+    # ── Totals ────────────────────────────────────────────────────────────────
+    total_trades = sum(c["total_trades"] for c in strategy_cards)
+    total_wins   = sum(c["wins"]         for c in strategy_cards)
+    total_pnl    = sum(c["total_pnl"]    for c in strategy_cards)
+
+    return {
+        "recent_trades":   recent_trades,
+        "strategy_cards":  strategy_cards,
+        "totals": {
+            "total_trades": total_trades,
+            "total_wins":   total_wins,
+            "win_rate":     round(total_wins / total_trades * 100, 1) if total_trades else 0.0,
+            "total_pnl":    round(total_pnl, 6),
+            "total_pnl_usd":round(total_pnl * tao_price, 4),
+        },
+        "tao_price": tao_price,
+    }
