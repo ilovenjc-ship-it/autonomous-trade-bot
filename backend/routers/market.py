@@ -15,9 +15,9 @@ import random
 import time
 import logging
 from datetime import datetime
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, HTTPException
 from services.price_service import price_service
-from services.subnet_cache_service import subnet_cache_service
+from services.subnet_cache_service import subnet_cache_service, TRADING_NETUIDS
 
 logger = logging.getLogger(__name__)
 
@@ -94,6 +94,78 @@ SUBNET_META = {
     96: ("Subnet 96",               "sn96"),
 }
 
+# ── Subnet descriptions ───────────────────────────────────────────────────────
+SUBNET_DESCRIPTIONS: dict[int, str] = {
+    1:  "Text Prompting — the original Bittensor subnet for LLM inference. Validators score miner responses to diverse prompts using quality metrics.",
+    2:  "Machine Translation — high-quality multilingual translation tasks. Miners compete to produce the most accurate cross-language outputs.",
+    3:  "MyShell TTS — text-to-speech synthesis and voice cloning. Produces natural-sounding audio from text inputs.",
+    4:  "Multi Modality (Targon) — combined text, image, and audio inference with multi-modal scoring across diverse modalities.",
+    5:  "Open Kaito — decentralised web search and semantic information retrieval. Powers next-generation search without central control.",
+    6:  "Nous Research — advanced LLM fine-tuning and evaluation. Focuses on producing aligned, capable open-source models.",
+    7:  "SubVortex — decentralised bandwidth and storage marketplace. Routes traffic to the fastest globally-distributed nodes.",
+    8:  "Taoshi PTN (Proprietary Trading Network) — real-time predictive trading signals for financial markets. TaoBot actively stakes and receives signals from this subnet.",
+    9:  "Pretraining — foundational model pretraining on large text corpora. Miners prove they trained models by submitting weight commitments on-chain. TaoBot actively stakes here.",
+    10: "Map Reduce — distributed compute for large-scale data aggregation and transformation pipelines.",
+    11: "Dippy Roleplay — conversational roleplay and character AI. Miners fine-tune LLMs for entertainment and companion applications.",
+    12: "Horde — collaborative AI horde network linking diverse inference endpoints for high-availability generation.",
+    13: "Dataverse — decentralised data labelling and curation. Miners annotate, validate, and enrich training datasets.",
+    14: "LLM Defender — adversarial robustness and jailbreak detection for large language models.",
+    15: "Human Intelligence (HiveTrain) — human-in-the-loop task validation to augment pure AI judgement.",
+    16: "BitAds — decentralised advertising attribution and analytics without invasive tracking.",
+    17: "3D Gen — AI-powered 3D model generation from text and image prompts.",
+    18: "Cortex — general-purpose AI API gateway aggregating multiple LLM providers with reliability guarantees. TaoBot monitors this subnet.",
+    19: "Nineteen — high-throughput inference optimised for speed and low latency on diverse model types.",
+    20: "BitAgent — autonomous AI agents that plan and execute multi-step tasks using tool use.",
+    21: "FileTAO — decentralised file storage with cryptographic proofs of retrieval.",
+    22: "Desearch — AI-augmented semantic search combining embeddings with real-time web retrieval.",
+    23: "NichePT — specialised fine-tuned language models for niche domains and expert verticals.",
+    24: "Omega Labs — video understanding, captioning, and multi-modal AI research.",
+    25: "Protein Folding — AI-driven protein structure prediction, following in AlphaFold's footsteps on decentralised hardware.",
+    26: "Gradients AI — gradient-based model optimisation and distributed fine-tuning services.",
+    27: "Compute Horde — decentralised GPU compute marketplace. Miners provide verified computational work.",
+    28: "ZkTensor — zero-knowledge proof generation for AI models, enabling verifiable ML without revealing weights.",
+    29: "Coldint — cold-start intelligence for sparse data domains using meta-learning approaches.",
+    30: "Bittensor Education — educational content generation and adaptive learning platforms.",
+    31: "Nas Chain — neural architecture search and automated machine learning pipeline optimisation.",
+    32: "Itsai — interactive AI tutoring and personalised learning experiences.",
+    33: "Ready Player Me — AI-driven avatar generation and 3D character creation for gaming and virtual worlds.",
+    34: "Logic — formal reasoning, theorem proving, and symbolic AI computation.",
+    35: "Airtune — music generation, audio synthesis, and creative sound design using AI.",
+    36: "Automata — workflow automation with AI agents executing complex business logic.",
+    37: "Finetuning — continuous model fine-tuning competitions with on-chain weight tracking.",
+    38: "Tatsu — data scraping, structuring, and ETL pipelines for AI training datasets.",
+    39: "EdgeMaxxing — edge AI optimisation, model compression, and hardware-aware inference.",
+    40: "ChainDual — dual-chain bridge intelligence and cross-chain analytics.",
+    41: "Sportstensor — sports analytics, prediction markets, and real-time game intelligence.",
+    42: "Masa — decentralised social data aggregation and Twitter/X intelligence.",
+    43: "Graphite — graph neural networks and knowledge graph construction.",
+    44: "Dojo — synthetic data generation and AI model training data creation at scale.",
+    45: "GenLayer — generative AI smart contracts with AI-verified execution environments.",
+    46: "NeuralAI — general-purpose neural inference with competitive benchmark scoring.",
+    47: "Condense AI — context compression and long-document summarisation at scale.",
+    48: "Nextplace AI — real estate intelligence and property market prediction models.",
+    49: "AutoML — automated machine learning pipeline construction and hyperparameter optimisation.",
+    50: "Rdaemon — autonomous research agents that crawl, synthesise, and report on scientific literature.",
+    51: "Celium — decentralised compute scheduling and GPU cluster orchestration.",
+    52: "GreenBit Labs — energy-efficient AI compute with carbon footprint tracking.",
+    53: "Manifold Finance — DeFi intelligence, MEV analytics, and on-chain financial signal generation.",
+    54: "Bit Mind — AI-powered image and deepfake detection for media authenticity.",
+    55: "EINSTEIN AI — scientific computing and physics simulation using neural surrogates.",
+    56: "Neural Condense — efficient model distillation and neural network compression research.",
+    57: "Gaia — geospatial intelligence, satellite imagery analysis, and earth observation AI.",
+    58: "Dippy Bittensor — conversational AI with strong safety properties and alignment research.",
+    59: "Agent Arena — autonomous agent competitions and multi-agent reinforcement learning benchmarks.",
+    60: "RunPod — GPU cloud inference integrated with the Bittensor incentive layer.",
+    61: "Red Team — adversarial AI red-teaming and safety vulnerability discovery.",
+    62: "Storb — distributed object storage with proof-of-retrieval guarantees.",
+    63: "Melting Pot — multi-agent cooperation tasks and emergent collective behaviour research.",
+    64: "Chutes — AI model serving infrastructure and decentralised inference orchestration. TaoBot actively stakes here.",
+    96: "Subnet 96 — extended trading target in the Bittensor ecosystem.",
+}
+
+# ── Monitored subnets (TaoBot actively stakes into these) ────────────────────
+_TAOBOT_MONITORED = TRADING_NETUIDS  # {0, 8, 9, 18, 64, 96}
+
 # Deterministic base stats per subnet (seeded so they don't flicker wildly)
 # Used as fallback when real chain data is unavailable.
 _rng = random.Random(42)
@@ -167,6 +239,34 @@ def _live_subnet(uid: int, tao_price: float) -> dict:
     score = math.log10(max(stake_tao, 1)) * 10 + apy
     score = round(score, 1)
 
+    # ── Sparkline (normalised 0-1 for SVG rendering) ──────────────────────
+    raw_history = subnet_cache_service.get_price_history(uid)
+    if len(raw_history) >= 2:
+        mn = min(raw_history)
+        mx = max(raw_history)
+        rng_ = mx - mn
+        if rng_ > 0:
+            sparkline = [round((p - mn) / rng_, 4) for p in raw_history]
+        else:
+            sparkline = [0.5] * len(raw_history)
+    else:
+        # Deterministic synthetic sparkline seeded by uid + hourly bucket
+        _sk_rng = random.Random(uid * 17 + int(time.time() // 3600))
+        _pts: list[float] = []
+        _v = 0.5
+        for _ in range(8):
+            _v = max(0.05, min(0.95, _v + _sk_rng.uniform(-0.12, 0.12)))
+            _pts.append(round(_v, 4))
+        # Bias the last point towards the current trend direction
+        if trend == "up":
+            _pts[-1] = min(0.95, _pts[-1] + 0.08)
+        elif trend == "down":
+            _pts[-1] = max(0.05, _pts[-1] - 0.08)
+        sparkline = _pts
+
+    # Current alpha price (None if not yet cached)
+    alpha_price = subnet_cache_service.get_alpha_price(uid)
+
     return {
         "uid":         uid,
         "name":        name,
@@ -178,6 +278,8 @@ def _live_subnet(uid: int, tao_price: float) -> dict:
         "miners":      miners,
         "trend":       trend,
         "score":       score,
+        "sparkline":   sparkline,
+        "alpha_price": round(alpha_price, 6) if alpha_price else None,
         "data_source": data_src,   # "live" | "live_trend" | "simulated"
     }
 
@@ -392,6 +494,35 @@ async def fear_greed():
             return {"value": _FG_CACHE["value"], "label": _FG_CACHE["label"],
                     "cached": True, "stale": True}
         return {"value": None, "label": None, "cached": False, "error": str(exc)}
+
+
+@router.get("/subnet/{uid}")
+async def get_subnet_detail(uid: int):
+    """
+    Full detail view for a single subnet — includes sparkline history,
+    description, TaoBot monitoring status, and external resource links.
+    """
+    if uid not in SUBNET_META and uid not in range(1, 200):
+        raise HTTPException(status_code=404, detail=f"Subnet {uid} not found")
+
+    tao_price = price_service.current_price or 250.0
+    subnet    = _live_subnet(uid, tao_price)
+
+    # Full price history for the detail chart (raw prices, not normalised)
+    raw_history = subnet_cache_service.get_price_history(uid)
+
+    description  = SUBNET_DESCRIPTIONS.get(uid, f"Subnet {uid} on the Bittensor network. A decentralised AI compute market secured by the Yuma Consensus mechanism.")
+    is_monitored = uid in _TAOBOT_MONITORED
+
+    return {
+        **subnet,
+        "description":   description,
+        "is_monitored":  is_monitored,
+        "price_history": [round(p, 6) for p in raw_history],
+        "taostats_url":  f"https://taostats.io/subnet/{uid}",
+        "tao_app_url":   f"https://tao.app/subnet/{uid}",
+        "taobot_label":  "TaoBot Active" if is_monitored else "Monitor Only",
+    }
 
 
 @router.get("/stats")

@@ -13,6 +13,7 @@ import Analytics from './pages/Analytics'
 import ActivityLog from './pages/ActivityLog'
 import TradeLog from './pages/TradeLog'
 import MarketData from './pages/MarketData'
+import SubnetDetail from './pages/SubnetDetail'
 import StrategyDetail from './pages/StrategyDetail'
 import OpenClaw from './pages/OpenClaw'
 import IIAgent from './pages/IIAgent'
@@ -52,8 +53,9 @@ export default function App() {
           <Route path="/pnl"             element={<PnLSummary />}     />
           <Route path="/activity"        element={<ActivityLog />}    />
           <Route path="/trade-log"       element={<TradeLog />}       />
-          <Route path="/market"          element={<MarketData />}     />
-          <Route path="/strategy/:name"  element={<StrategyDetail />} />
+          <Route path="/market"                element={<MarketData />}    />
+          <Route path="/market/subnet/:uid"   element={<SubnetDetail />}  />
+          <Route path="/strategy/:name"       element={<StrategyDetail />} />
           <Route path="/openclaw"        element={<OpenClaw />}       />
           <Route path="/ii-agent"        element={<IIAgent />}        />
           <Route path="/alerts"          element={<AlertInbox />}     />

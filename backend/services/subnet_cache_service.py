@@ -52,11 +52,17 @@ class SubnetCacheService:
     pollers run as background tasks and write to the cache.
     """
 
+    # How many historical price snapshots to retain per subnet (for sparklines)
+    _HISTORY_DEPTH = 12
+
     def __init__(self):
         # Alpha prices
         self._cur_prices:  Dict[int, float] = {}   # netuid → current alpha price
         self._prev_prices: Dict[int, float] = {}   # netuid → previous alpha price
         self._price_ts:    float = 0.0              # monotonic timestamp of last update
+
+        # Rolling price history (up to _HISTORY_DEPTH snapshots per subnet)
+        self._price_history: Dict[int, list] = {}  # netuid → [price_0, price_1, …]
 
         # Metagraph data (trading subnets only)
         self._meta: Dict[int, dict] = {}            # netuid → {stake_tao, miners, emission, apy}
@@ -144,6 +150,14 @@ class SubnetCacheService:
             self._prev_prices = dict(self._cur_prices)
             self._cur_prices  = new_prices
             self._price_ts    = time.monotonic()
+
+            # Append to rolling history (capped at _HISTORY_DEPTH)
+            for netuid, price in new_prices.items():
+                hist = self._price_history.get(netuid, [])
+                hist.append(price)
+                if len(hist) > self._HISTORY_DEPTH:
+                    hist = hist[-self._HISTORY_DEPTH:]
+                self._price_history[netuid] = hist
 
             logger.info(
                 f"SubnetCacheService: alpha prices updated — "
@@ -252,6 +266,13 @@ class SubnetCacheService:
         Returns None for non-trading subnets or before first poll completes.
         """
         return self._meta.get(netuid)
+
+    def get_price_history(self, netuid: int) -> list:
+        """
+        Rolling alpha price history for sparklines (up to _HISTORY_DEPTH points).
+        Returns an empty list if no history is available yet.
+        """
+        return list(self._price_history.get(netuid, []))
 
     # ── Status / diagnostics ─────────────────────────────────────────────────
 

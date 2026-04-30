@@ -211,6 +211,69 @@ async def unstake_position(body: UnstakePositionRequest):
     }
 
 
+class StakeSubnetRequest(BaseModel):
+    netuid: int
+    amount_tao: float
+
+
+@router.post("/stake-subnet")
+async def stake_subnet(body: StakeSubnetRequest):
+    """
+    Manually stake TAO into a subnet from the Market Data page.
+
+    Hotkey resolution order:
+      1. subnet_router.get_stake_target() — uses the TaoBot-configured validator for this subnet
+      2. PRIMARY_VALIDATOR — the globally configured validator hotkey
+    Raises 400 if neither is available (wallet not ready or no validator set).
+    """
+    if not bittensor_service.wallet_loaded:
+        return {"success": False, "error": "Wallet mnemonic not loaded. Go to Wallet → enter mnemonic first."}
+    if not bittensor_service.connected:
+        return {"success": False, "error": "Not connected to Finney mainnet."}
+    if body.amount_tao <= 0:
+        return {"success": False, "error": "Amount must be > 0 τ"}
+
+    # Resolve the best validator hotkey for this subnet
+    hotkey: Optional[str] = None
+    try:
+        from services.subnet_router import get_stake_target, PRIMARY_VALIDATOR
+        _, hotkey = await get_stake_target(f"sn{body.netuid}")
+        if not hotkey:
+            hotkey = PRIMARY_VALIDATOR
+    except Exception as exc:
+        logger.warning(f"stake-subnet: could not resolve hotkey via subnet_router: {exc}")
+        try:
+            from services.subnet_router import PRIMARY_VALIDATOR
+            hotkey = PRIMARY_VALIDATOR
+        except Exception:
+            hotkey = None
+
+    if not hotkey:
+        return {
+            "success": False,
+            "error": "No validator hotkey configured. Set a validator in Settings → Bot Config first.",
+        }
+
+    logger.info(f"[MANUAL STAKE] SN{body.netuid} | {body.amount_tao:.4f}τ → {hotkey[:20]}…")
+    push_event("system", f"🔒 Manual stake initiated — SN{body.netuid} | {body.amount_tao:.4f}τ")
+
+    result = await bittensor_service.add_stake(hotkey, body.amount_tao, body.netuid)
+
+    if result.get("success"):
+        push_event("system", f"✅ Manual stake confirmed — SN{body.netuid} | {body.amount_tao:.4f}τ | tx={result.get('tx_hash', 'N/A')}")
+    else:
+        push_event("system", f"❌ Manual stake FAILED — SN{body.netuid}: {result.get('error', 'unknown')}")
+
+    return {
+        "success":    result.get("success", False),
+        "netuid":     body.netuid,
+        "hotkey":     hotkey,
+        "amount_tao": body.amount_tao,
+        "tx_hash":    result.get("tx_hash"),
+        "error":      result.get("error"),
+    }
+
+
 @router.post("/unstake-all")
 async def unstake_all():
     """
