@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-04-30 (Session XVI — The UI Reckoning)
-**Status:** PAPER TRAINING — FORCE_PAPER_MODE=1. Full UI/UX overhaul complete. 5 major features shipped: Market Data sparklines + SubnetDetail, Webhook notifications, Risk recalibration + cycle fix ×2, Hot Wallet + Privacy Mode, Transaction Detail Modal. All commits pushed to GitHub. Paper cycle running at 300s / 288 cycles/day.
+**Last updated:** 2026-05-03 (Session XVII — Research + Hosting + Record Corrections)
+**Status:** PAPER TRAINING — FORCE_PAPER_MODE=1. Bot crashed on Railway (memory exhaustion, `--log-level debug`). Fix committed (`1fc9763a` — switched to `--log-level info`). Awaiting Railway redeploy confirmation OR hosting migration decision. Wife's card available for Railway Hobby upgrade or Vultr setup. See Section 7.
 **Maintained by:** II Agent + Owner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -12,6 +12,35 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XVII SUMMARY (May 3, 2026) — Research, Corrections, Hosting
+
+### ⚠️ RECORD CORRECTION — TAO Halving Date (CRITICAL)
+A prior PDF archive incorrectly stated: *"Between the first halving (December 2025) and the projected second halving (late 2026 or 2027)..."*
+**This is WRONG. The correct schedule, confirmed via Taostats.io (official block explorer):**
+
+| Halvening | Date | Block Reward | TAO Supply at Event |
+|-----------|------|-------------|---------------------|
+| H1 (First) | December 15, 2025 | 0.5 TAO | 10,500,000 |
+| **H2 (Second)** | **December 12, 2029** | **0.25 TAO** | **15,750,000** |
+| H3 | December 10, 2033 | 0.125 TAO | 18,375,000 |
+| H4 | December 7, 2037 | 0.0625 TAO | 19,687,500 |
+
+Halvings occur every ~4 years (10,500,000 blocks). The second halving is **December 12, 2029** — not 2026-2027. Any prior reference to "2026-2027 halving" in The Archives is factually incorrect. This record supersedes it.
+
+### Hosting Decision (Pending)
+- Bot crashed on Railway (512MB RAM, `--log-level debug` — OOM). Fix pushed (`1fc9763a`).
+- Railway free tier has $1.36 left, 17 days remaining. Rejects prepaid cards for subscriptions.
+- Options assessed: Render (sleeps — WRONG for bot), Fly.io (256MB RAM — too low), Oracle Always Free (1GB RAM — best free), Vultr ($6/mo — accepts Bitcoin, best paid), Railway Hobby ($5/mo — easiest).
+- **DECISION PENDING:** Wife's credit card available. Use it for Railway Hobby upgrade OR Vultr setup. Vultr full migration guide ready. ~1-2 hours to execute.
+- **⚠️ DO NOT FORGET:** Revisit hosting at start of next coding session.
+
+### Research Filed (TAO Daily — May 3, 2026)
+See Section 12 (Research Intelligence) for full notes.
+1. **MANTIS (SN123)** — Decentralized prediction pipeline. Signal source with Vanta (SN8) as execution endpoint. Future integration candidate for TaoBot signal layer.
+2. **Teutonic (SN3)** — Const rebuilt SN3 in 4 days after Covenant exit. Now training 24B Looped Transformer (inference-time compute scaling). SN3 alpha: DO NOT BUY until owner key resolved.
 
 ---
 
@@ -400,11 +429,17 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | ~~Sentiment Surge promotion~~ | ✅ DONE | Now LIVE, D-13 |
 | ~~Paper trade archive~~ | ✅ DONE | 797 trades → paper_trades table, D-16 |
 | ~~Alert notification bell~~ | ✅ DONE | NotificationBell component, top bar, all pages |
-| emission_momentum promotion | Auto | Gates clear — autonomous engine will promote within 5min |
+| **⚠️ HOSTING DECISION** | **CRITICAL** | **Wife's card available. Railway Hobby ($5/mo) OR Vultr ($6/mo, Bitcoin). Migration guide ready. Do this first next session.** |
+| Railway redeploy confirmation | High | Push `1fc9763a` should have triggered redeploy. Confirm bot shows "Active" on Railway dashboard. |
+| Transaction audit trail | High | Pull Railway logs + Taostats — account for every tx_hash from live trading period before going live again |
+| MANTIS API research | Medium | Is SN123 output queryable via API? If yes, direct signal feed into TaoBot. |
+| SN3 owner key resolution | Monitor | Const warned: do not buy SN3 alpha until resolved. Check each session. |
+| Orchestrator/Architect PDF | Medium | Owner has a PDF on this concept — share it for extraction and filing. Not yet received. |
+| Paper training monitoring | Ongoing | Min 7 days; first honest read ~Day 7, full picture ~Day 14. Clock may have paused while bot was crashed. |
+| emission_momentum promotion | Auto | Gates clear — autonomous engine will promote within 5min of bot restart |
 | Auto-demotion on drawdown breach | Medium | Inverse of promotion — not yet built |
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
-| Session IX PDF Archive | Low | To be generated at end of session |
-| Push to GitHub | High | Commit all Session IX changes |
+| Session XVI/XVII PDF Archive | Low | Session XVI PDF pushed. Session XVII research notes in STATE.md Section 12. |
 
 ---
 
@@ -499,5 +534,52 @@ cat /workspace/autonomous-trade-bot/RECOVERY.md
 *STATE.md is a living document. It is updated at the end of every session.  
 The code lives on GitHub. The memory lives here.  
 The Archives hold the full record.*
+
+---
+
+## 12. RESEARCH INTELLIGENCE
+*(Filed articles, ideas, and ecosystem intelligence — updated each session)*
+
+### MANTIS (SN123) — Filed May 3, 2026
+**Source:** TAO Daily — "How MANTIS Orchestrates a Coordinated Pipeline for Intelligent Trade Execution"
+**What it is:** Decentralized forecasting subnet. Acts as an information-theoretic signal refinery for Bittensor. Miners submit prediction embeddings; validators score by marginal information gain (how much does your signal improve the ensemble?). Zero marginal gain = zero reward.
+
+**The 4-layer pipeline:**
+```
+Upstream Subnets → MANTIS (SN123) → Meta-Models → Execution (Vanta SN8)
+(raw signals)      (prices signal    (direction,    (trade selection +
+SN13,33,6,22,50)    quality)          regime, vol)   risk gating)
+```
+**Subnets involved:** SN13 (Macrocosmos), SN33 (ReadyAI), SN6 (Numinous), SN22 (Desearch), SN50 (Synth), SN82 (Hermes), SN8 (Vanta — execution endpoint), SN111 (ONEONEONE).
+
+**Relevance to TaoBot:** HIGH.
+- Vanta (SN8) is already doing what TaoBot's execution layer does — risk-gated trade selection from structured signals. Monitor as future integration.
+- MANTIS's marginal-gain weighting is a better signal-scoring model than equal-weight averaging. Future TaoBot architecture should adopt this principle.
+- If MANTIS outputs become queryable via API, that's a direct signal feed into TaoBot.
+
+**💡 Ideas:**
+> TaoBot's internal signal layer should adopt marginal-gain scoring: each strategy's signal is weighted by how much it improves the overall prediction, not equally. Signals that don't improve the ensemble get deprioritized automatically.
+> MANTIS → TaoBot API integration: research whether SN123 outputs are accessible. File as future task.
+
+---
+
+### Teutonic (SN3) — Filed May 3, 2026
+**Source:** TAO Daily — "Teutonic (SN3) Is Cooking a 24B Looped Transformer. That's a Bigger Deal Than It Sounds."
+**What it is:** SN3 rebuilt by Const four days after Covenant AI abandoned Templar. King-of-the-hill mechanism: lowest cross-entropy loss wins 100% of emissions. Hardware-agnostic (only loss matters, not GPU type). Seed king: 0.9B Gemma3, launched April 13, 2026. Loss dropped ~13 → low 5s through open competition.
+
+**24B Looped Transformer:** Reuses the same weight block multiple times per forward pass instead of stacking unique layers. Reasoning depth = an inference-time knob. ByteDance's version (Ouro): 1.4B model performing like 12B on benchmarks. Claude Mythos suspected to use similar architecture (scored ~80% on GraphWalks BFS iterative benchmark vs GPT-5's 21%).
+
+**Connection to Covenant exit:** Teutonic is Bittensor's direct answer. Covenant trained 72B and walked away. Const rebuilt in 4 days and is now pursuing an architecture that may outperform 72B on reasoning. The ecosystem evolved, not just survived.
+
+**Relevance to TaoBot:** MEDIUM-HIGH.
+- Validates founder-dependency risk criterion. Const's 4-day rebuild is the strongest counterexample in the ecosystem. BUT: owner key on SN3 still unresolved. Risk flag stays.
+- ⚠️ **DO NOT BUY SN3 alpha token until owner key situation resolved** (Const's own warning).
+- Teutonic's mechanism (hardware-agnostic, only results matter) is a model for TaoBot strategy evaluation: don't weight strategies by complexity, weight them by output quality.
+
+**💡 Ideas:**
+> Looped transformers = inference-time compute scaling. If TaoBot ever integrates AI-based signal generation, prefer architectures that reason deeply at inference over simply larger models. More loops per forward pass > more parameters.
+> Teutonic's open competition found loss improvements via data curation and training tricks, not raw compute. Same principle: optimize TaoBot signal quality before adding more data sources.
+
+**Tracking:** Monitor projectnobi.ai/teutonic3 for loss/perplexity progress. Check owner key resolution before touching SN3 alpha.
 
 **— TAO Trading Bot, April 16, 2025**
