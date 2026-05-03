@@ -252,8 +252,91 @@ def build():
 
     story.append(Spacer(1, 4))
 
-    # ── SECTION 5 — HOSTING ───────────────────────────────────────────────────
-    story.append(Paragraph("⑤ HOSTING DECISION — PENDING", H1))
+    # ── SECTION 5 — SECTION VIII ROADMAP ─────────────────────────────────────
+    story.append(Paragraph("⑤ WHAT'S NOT YET BUILT — Section VIII Is the Roadmap", H1))
+    story.append(rule())
+    story.append(Paragraph(
+        "Page 13 of The Orchestrator PDF lays out six future enhancements. "
+        "<b>None of these are cosmetic.</b> Each one closes a gap between "
+        "<i>autonomous system running</i> and <i>autonomous system running optimally.</i>",
+        BODY))
+    story.append(Spacer(1, 4))
+
+    roadmap_data = [
+        ["Enhancement", "What It Does", "Priority"],
+        [
+            "Regime-Aware\nPosition Sizing",
+            "Auto-reduce trade_amount in VOLATILE. Full size in BULL.\nIn BEAR, bias toward minimum. System adapts to market conditions.",
+            "HIGH"
+        ],
+        [
+            "Consecutive Loss\nCircuit Breaker",
+            "N losses in a row → pause strategy immediately, regardless\nof overall win rate average. Catches streaks that averages hide.",
+            "HIGH"
+        ],
+        [
+            "Performance\nTrending Detection",
+            "WR trending down over 20-trade window fires early warning\nbefore the demotion threshold is breached. Catches decline early.",
+            "MEDIUM"
+        ],
+        [
+            "OpenClaw-Weighted\nRegime Classification",
+            "If BUY votes declining week-over-week, weight regime toward\nBEAR. Fleet's own signal quality feeds back into regime detection.",
+            "MEDIUM"
+        ],
+        [
+            "Cross-Strategy\nCorrelation Detection",
+            "8+ bots generating the same signal → flag as correlated input,\nnot true consensus. Prevents false confidence in BFT votes.",
+            "HIGH"
+        ],
+        [
+            "Validator Performance\nWeighting by Subnet",
+            "Track TaoBot's validator returns per subnet. Route toward\nsubnets where it genuinely outperforms — not just preference.",
+            "MEDIUM"
+        ],
+    ]
+
+    col_w2 = [W*0.26, W*0.57, W*0.17]
+    rtable = Table(roadmap_data, colWidths=col_w2)
+    rtable.setStyle(TableStyle([
+        ("BACKGROUND",    (0,0),  (-1,0),   NAVY),
+        ("TEXTCOLOR",     (0,0),  (-1,0),   AMBER),
+        ("FONTNAME",      (0,0),  (-1,0),   "Helvetica-Bold"),
+        ("FONTSIZE",      (0,0),  (-1,-1),  8),
+        ("FONTNAME",      (0,1),  (0,-1),   "Helvetica-Bold"),
+        ("TEXTCOLOR",     (0,1),  (0,-1),   NAVY),
+        ("FONTNAME",      (1,1),  (1,-1),   "Helvetica"),
+        ("TEXTCOLOR",     (1,1),  (1,-1),   colors.HexColor("#334155")),
+        ("ROWBACKGROUNDS",(0,1),  (-1,-1),  [colors.white, colors.HexColor("#f8fafc")]),
+        # Priority column colouring
+        ("TEXTCOLOR",     (2,1),  (2,1),    RED),
+        ("TEXTCOLOR",     (2,2),  (2,2),    RED),
+        ("TEXTCOLOR",     (2,3),  (2,3),    colors.HexColor("#d97706")),
+        ("TEXTCOLOR",     (2,4),  (2,4),    colors.HexColor("#d97706")),
+        ("TEXTCOLOR",     (2,5),  (2,5),    RED),
+        ("TEXTCOLOR",     (2,6),  (2,6),    colors.HexColor("#d97706")),
+        ("FONTNAME",      (2,1),  (2,-1),   "Helvetica-Bold"),
+        ("ALIGN",         (2,0),  (2,-1),   "CENTER"),
+        ("ALIGN",         (0,0),  (0,-1),   "LEFT"),
+        ("VALIGN",        (0,0),  (-1,-1),  "MIDDLE"),
+        ("GRID",          (0,0),  (-1,-1),  0.4, BORDER),
+        ("TOPPADDING",    (0,0),  (-1,-1),  5),
+        ("BOTTOMPADDING", (0,0),  (-1,-1),  5),
+        ("LEFTPADDING",   (0,0),  (-1,-1),  6),
+        ("RIGHTPADDING",  (0,0),  (-1,-1),  6),
+    ]))
+    story.append(rtable)
+    story.append(Spacer(1, 4))
+
+    story.append(idea(
+        "Build order recommendation: Circuit Breaker first (protects capital now), "
+        "then Correlation Detection (fixes a known BFT blind spot), "
+        "then Regime-Aware Sizing (the highest leverage improvement long-term)."))
+
+    story.append(Spacer(1, 6))
+
+    # ── SECTION 6 — HOSTING ───────────────────────────────────────────────────
+    story.append(Paragraph("⑥ HOSTING DECISION — PENDING", H1))
     story.append(rule())
 
     hosting_data = [
