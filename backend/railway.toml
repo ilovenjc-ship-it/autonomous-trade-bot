@@ -3,15 +3,12 @@ builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
 
 [deploy]
-# healthcheckPath intentionally omitted — Railway probe sometimes fires before
-# the 3-second boot delay completes, causing false-positive restarts.
-# /health is confirmed responding 200 in Deploy Logs after every deploy.
-#
-# restartPolicyType = ALWAYS: Railway restarts the container whenever it exits,
-# regardless of exit code. Previously ON_FAILURE with maxRetries=3 meant three
-# Finney RPC hiccups (hanging chain call → OOM/timeout kill) would permanently
-# stop the backend until the next manual redeploy. ALWAYS keeps it alive.
-#
-# No maxRetries cap — the bot must run continuously. Railway applies a 1-minute
-# backoff after repeated restarts so it won't hammer the RPC endlessly.
+# healthcheckPath + timeout: Railway waits up to 120s for /health to return 200
+# before marking the deploy healthy. Prevents premature restart during slow boot.
+healthcheckPath = "/health"
+healthcheckTimeout = 120
+
+# restartPolicyType = ALWAYS: Railway restarts the container on any exit.
+# No maxRetries cap — the bot must run continuously.
+# Railway applies exponential backoff after repeated restarts.
 restartPolicyType = "ALWAYS"

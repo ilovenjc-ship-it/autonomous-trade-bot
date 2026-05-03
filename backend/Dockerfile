@@ -22,7 +22,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy application code
 COPY . .
 
-# Create startup script with full diagnostics — output appears in Railway Deploy Logs
+# Create startup script — output appears in Railway Deploy Logs
+# log-level=warning: saves ~30-40MB RAM vs debug on the free-tier 512MB limit
 RUN printf '#!/bin/sh\n\
 echo "=== RAILWAY STARTUP ==="\n\
 echo "PORT=${PORT:-NOT_SET}"\n\
@@ -30,8 +31,6 @@ echo "DATABASE_URL=${DATABASE_URL:-NOT_SET}"\n\
 echo "RAILWAY_ENVIRONMENT=${RAILWAY_ENVIRONMENT:-NOT_SET}"\n\
 echo "Python: $(python3 --version 2>&1)"\n\
 echo "Working dir: $(pwd)"\n\
-echo "Files:"\n\
-ls -la\n\
 # Ensure Railway Volume mount point exists (no-op if already mounted)\n\
 mkdir -p /data\n\
 echo "Volume /data contents:"\n\
@@ -39,7 +38,7 @@ ls -la /data 2>/dev/null || echo "(empty or not mounted)"\n\
 echo "=== Testing import ==="\n\
 python3 -c "from main import app; print(\"IMPORT OK\")" 2>&1\n\
 echo "=== Starting uvicorn ==="\n\
-exec uvicorn main:app --host 0.0.0.0 --port "${PORT:-8080}" --workers 1 --log-level debug\n\
+exec uvicorn main:app --host 0.0.0.0 --port "${PORT:-8080}" --workers 1 --log-level warning\n\
 ' > /app/start.sh && chmod +x /app/start.sh
 
 # Expose Railway's dynamic port
