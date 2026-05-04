@@ -155,14 +155,16 @@ async def lifespan(app: FastAPI):
     async def _boot_services():
         await _aio.sleep(3)  # let healthcheck pass first
 
+        # Signal ingestor (Discord, Taostats, etc.) starts immediately —
+        # it has no dependency on Finney/bittensor and should never be blocked by it.
         try:
-            info = await bittensor_service.get_chain_info()
-            if info.get("connected"):
-                logger.info(f"Finney connected — block #{info.get('block')}")
-            else:
-                logger.warning("Finney not reachable at boot — cycle will retry")
+            await signal_ingestor.start_all()
         except Exception as _e:
-            logger.warning(f"Finney connect skipped: {_e}")
+            logger.error(f"SignalIngestor start failed: {_e}")
+
+        # Finney chain probe omitted at boot — bittensor's substrate-interface
+        # blocks the event loop thread on connect. The cycle service handles
+        # reconnection automatically once running.
 
         try:
             await price_service.start()
@@ -170,40 +172,40 @@ async def lifespan(app: FastAPI):
         except Exception as _e:
             logger.error(f"Price feed start failed: {_e}")
 
-        try:
-            await subnet_cache_service.start()
-            logger.info("Subnet cache started — real on-chain data active")
-        except Exception as _e:
-            logger.error(f"Subnet cache start failed: {_e}")
+        # Services that require Finney chain access run as fire-and-forget tasks.
+        # bittensor's substrate-interface blocks the event loop thread on connect;
+        # running them as tasks lets Discord Gateway and other async work proceed.
+        async def _start_chain_services():
+            await _aio.sleep(1)
+            try:
+                await subnet_cache_service.start()
+                logger.info("Subnet cache started — real on-chain data active")
+            except Exception as _e:
+                logger.error(f"Subnet cache start failed: {_e}")
 
-        await _aio.sleep(3)
+            await _aio.sleep(3)
 
-        try:
-            # Read cycle interval from persisted risk config (not hardcoded).
-            # Default is 300 s (5 min); operator can change via Risk Config UI.
-            from routers.fleet import _RISK_CONFIG as _RC
-            _cycle_interval = max(30, int(_RC.get("cycle_interval_seconds", 300)))
-            await cycle_service.start(interval_seconds=_cycle_interval)
-            logger.info(f"Cycle engine started — interval={_cycle_interval}s")
-        except Exception as _e:
-            logger.error(f"Cycle engine start failed: {_e}")
+            try:
+                from routers.fleet import _RISK_CONFIG as _RC
+                _cycle_interval = max(30, int(_RC.get("cycle_interval_seconds", 300)))
+                await cycle_service.start(interval_seconds=_cycle_interval)
+                logger.info(f"Cycle engine started — interval={_cycle_interval}s")
+            except Exception as _e:
+                logger.error(f"Cycle engine start failed: {_e}")
 
-        try:
-            await agent_service.start(interval=300)
-            logger.info("Agent orchestrator started")
-        except Exception as _e:
-            logger.error(f"Agent start failed: {_e}")
+            try:
+                await agent_service.start(interval=300)
+                logger.info("Agent orchestrator started")
+            except Exception as _e:
+                logger.error(f"Agent start failed: {_e}")
 
-        try:
-            await promotion_service.start()
-            logger.info("Promotion engine started")
-        except Exception as _e:
-            logger.error(f"Promotion engine start failed: {_e}")
+            try:
+                await promotion_service.start()
+                logger.info("Promotion engine started")
+            except Exception as _e:
+                logger.error(f"Promotion engine start failed: {_e}")
 
-        try:
-            await signal_ingestor.start_all()
-        except Exception as _e:
-            logger.error(f"SignalIngestor start failed: {_e}")
+        _aio.create_task(_start_chain_services())
 
     _aio.create_task(_boot_services())
 

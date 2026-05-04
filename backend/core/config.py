@@ -124,6 +124,11 @@ class Settings(BaseSettings):
     PRICE_FEED_URL: str = "https://api.coingecko.com/api/v3"
     PRICE_UPDATE_INTERVAL: int = 30
 
+    # External signal feed API keys (optional — loaded by signal_ingestor at startup)
+    TAOSTATS_API_KEY: str = ""
+    PERPLEXITY_API_KEY: str = ""
+    DISCORD_BOT_TOKEN: str = ""
+
     class Config:
         env_file = ".env"
         case_sensitive = True
