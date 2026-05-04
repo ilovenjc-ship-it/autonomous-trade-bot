@@ -11,7 +11,12 @@ Promotion Gates (same as manual gate in fleet.py):
   4. total_pnl > 0.0
 
 Promotion Path:
-  PAPER_ONLY → APPROVED_FOR_LIVE → LIVE (+ is_active = True)
+  PAPER_ONLY → APPROVED_FOR_LIVE → PENDING_LIVE_APPROVAL (awaiting operator)
+
+  NOTE: The promotion engine stops at APPROVED_FOR_LIVE. Escalation to
+  PENDING_LIVE_APPROVAL is handled by cycle_service.py (WR ≥ 65%, PnL > 0.05τ).
+  Final promotion to LIVE requires explicit operator approval via the Dashboard
+  (Strategies → Approve for Live). This gate must never be bypassed.
 
 Rate Limiting:
   - Max 1 promotion per cycle run (safety throttle)
@@ -136,10 +141,21 @@ class PromotionService:
     # ── Promotion logic ───────────────────────────────────────────────────────
 
     async def _check_promotions(self) -> None:
-        """Evaluate all non-LIVE strategies against the promotion gates."""
+        """Evaluate PAPER_ONLY strategies against the promotion gates.
+
+        The promotion engine handles exactly ONE step:
+          PAPER_ONLY → APPROVED_FOR_LIVE
+
+        From APPROVED_FOR_LIVE onward, cycle_service.py takes over:
+          APPROVED_FOR_LIVE → PENDING_LIVE_APPROVAL  (WR ≥ 65%, PnL > 0.05τ)
+
+        Final promotion to LIVE requires explicit operator approval in the
+        Dashboard (Strategies → Approve for Live). This engine never touches
+        APPROVED_FOR_LIVE, PENDING_LIVE_APPROVAL, or LIVE states.
+        """
         async with AsyncSessionLocal() as db:
             result = await db.execute(
-                select(Strategy).where(Strategy.mode != "LIVE")
+                select(Strategy).where(Strategy.mode == "PAPER_ONLY")
             )
             candidates = result.scalars().all()
 
@@ -155,13 +171,9 @@ class PromotionService:
             if not _gates_clear(s):
                 continue  # Gates not met — skip
 
-            # Gates are clear — determine what promotion to make
-            if s.mode == "PAPER_ONLY":
-                await self._promote_to_approved(s)
-                promoted_this_run += 1
-            elif s.mode == "APPROVED_FOR_LIVE":
-                await self._promote_to_live(s)
-                promoted_this_run += 1
+            # Only PAPER_ONLY → APPROVED_FOR_LIVE. Stop here.
+            await self._promote_to_approved(s)
+            promoted_this_run += 1
 
     async def _promote_to_approved(self, s: Strategy) -> None:
         """PAPER_ONLY → APPROVED_FOR_LIVE"""
@@ -189,33 +201,6 @@ class PromotionService:
             "at": now_iso,
         })
         logger.info("🎯 AUTONOMOUS PROMOTION: %s → APPROVED_FOR_LIVE (%s)", s.name, stats)
-
-    async def _promote_to_live(self, s: Strategy) -> None:
-        """APPROVED_FOR_LIVE → LIVE + activate"""
-        now_iso = _now().isoformat()
-        async with AsyncSessionLocal() as db:
-            await db.execute(
-                update(Strategy)
-                .where(Strategy.id == s.id)
-                .values(mode="LIVE", is_active=True, last_promoted_at=now_iso)
-            )
-            await db.commit()
-
-        stats = (f"WR={s.win_rate:.1f}% | PnL={s.total_pnl:+.4f}τ | "
-                 f"Trades={s.total_trades} | Margin={s.win_trades - s.loss_trades}")
-        alert_service.gate_promotion(
-            strategy_name=s.name,
-            display_name=s.display_name,
-            new_mode="LIVE",
-            stats=stats,
-        )
-        self._promotions_this_session.append({
-            "strategy": s.name,
-            "from_mode": "APPROVED_FOR_LIVE",
-            "to_mode": "LIVE",
-            "at": now_iso,
-        })
-        logger.info("🚀 AUTONOMOUS PROMOTION: %s → LIVE + activated (%s)", s.name, stats)
 
     # ── Auto-rebalance ─────────────────────────────────────────────────────────
 
