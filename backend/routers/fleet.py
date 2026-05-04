@@ -664,47 +664,80 @@ async def deactivate_bot(bot_name: str, db: AsyncSession = Depends(get_db)):
 
 # ── Risk configuration defaults ───────────────────────────────────────────────
 #
-# Calibrated 2026-04-30 — rationale for each value:
+# Calibrated 2026-05-04 — UNPROVEN PHASE profile.
+# These values govern the bot while NO strategy has passed the promotion gate.
+# Every parameter answers: "If the model is wrong, how much do we lose before
+# the system halts itself?"
 #
-#   max_drawdown_pct       20 %  — was 45. 45% is catastrophic; 20% is the clear
-#                                  "something is fundamentally broken" signal.
+# GRADUATION PATH (apply once 2-3 strategies are gate-proven):
+#   max_position_size_pct:         5 → 10
+#   max_concurrent_positions:      3 →  4
+#   max_drawdown_pct:              8 → 12
+#   daily_loss_circuit_breaker_pct:5 →  8
+#   min_confidence_score:       0.65 → 0.60
 #
-#   take_profit_pct        12 %  — was 25. "Stick and move" strategy: subnet alpha
-#                                  prices spike 10-20% then reverse; book at 12%,
-#                                  redeploy capital quickly for more frequent wins.
+# ── Parameter rationale ───────────────────────────────────────────────────────
 #
-#   stop_loss_pct           8 %  — unchanged. Good for volatile alpha tokens; tight
-#                                  enough to protect capital, loose enough to avoid
-#                                  noise-stop-outs on normal price action.
+#   max_position_size_pct   5 %  — was 20. Unproven algo = prove it cheaply.
+#                                  3×5%=15% of capital deployed simultaneously;
+#                                  80%+ stays liquid. A full wipeout of all 3
+#                                  open positions costs 15% of portfolio — survivable
+#                                  and correctable. Earn the right to size up.
 #
-#   max_position_size_pct  20 %  — was 30. With 4 concurrent positions, 20%×4=80%
-#                                  deployed, 20% liquid for fees and opportunities.
+#   max_concurrent_positions  3  — was 4. Pairs with 5% positions: 3×5%=15%
+#                                  deployed. Cleaner to monitor during evaluation.
+#                                  Graduate to 4 once positions are proven.
 #
-#   daily_loss_circuit_breaker_pct  15 %  — was 40. A 40% single-day loss is a
-#                                  system failure, not a trading event. 15% is the
-#                                  right guardrail: aggressive enough for crypto
-#                                  algo, tight enough to actually protect capital.
+#   max_drawdown_pct        8 %  — was 20. "Halt fast, investigate, don't bleed
+#                                  slowly." With 5% positions: ~4 full stop-outs
+#                                  to hit this limit — clear systemic-failure
+#                                  signal. Graduate to 12% once gate-proven.
 #
-#   cycle_interval_seconds 300 s — was 600 (config) / 60 (hardcoded bug in main.py).
-#                                  5-minute cycles: enough market data per cycle,
-#                                  avoids 1,440 paper trades/day noise, observable.
+#   stop_loss_pct           8 %  — unchanged. Calibrated for subnet alpha token
+#                                  volatility: tight enough to protect capital,
+#                                  loose enough to survive normal price noise.
+#                                  Leave this alone — changing it confounds WR data.
 #
-# consensus_votes is the authoritative OpenClaw setting (integer).
+#   take_profit_pct        12 %  — unchanged. "Stick and move": alpha spikes
+#                                  10-20% then reverses; book at 12%, redeploy.
+#
+#   daily_loss_circuit_breaker_pct  5 %  — was 15. With 5% positions the old
+#                                  15% limit required ~37 consecutive stop-outs
+#                                  in one day — effectively decorative. 5% =
+#                                  ~12-13 consecutive stops in a single day,
+#                                  which IS the "algo is broken" signal.
+#
+#   min_confidence_score   0.65  — was 0.60. Slightly more selective during
+#                                  evaluation: each signal carries more conviction
+#                                  weight, reducing noise trades. Graduate to
+#                                  0.60 once strategies are proven.
+#
+#   cycle_interval_seconds  300s — unchanged. 5-min cycles: fast enough to catch
+#                                  alpha moves, slow enough to accumulate clean WR
+#                                  statistics without 1,440-trades/day noise.
+#
+#   consensus_votes          7   — unchanged. BFT 7/12 supermajority is the core
+#                                  OpenClaw safety mechanism. Do not lower.
+#
+#   min_wallet_balance_tao  0.05 — unchanged. Hard floor at ~22% of current
+#                                  wallet. Prevents running the wallet to zero
+#                                  through repeated small stakes + fees.
+#
 # consensus_threshold is kept in sync as votes/12 for backward compatibility.
 _RISK_CONFIG_DEFAULTS = {
-    "max_drawdown_pct":              20.0,   # was 45 — cut 55%
-    "stop_loss_pct":                  8.0,   # unchanged — solid for alpha volatility
-    "take_profit_pct":               12.0,   # was 25 — stick and move
-    "max_position_size_pct":         20.0,   # was 30 — 4×20%=80% deployed, 20% liquid
-    "max_concurrent_positions":         4,
-    "daily_loss_circuit_breaker_pct": 15.0,  # was 40 — real guardrail, not decoration
+    "max_drawdown_pct":               8.0,   # was 20 — unproven phase: halt fast
+    "stop_loss_pct":                  8.0,   # unchanged — calibrated for alpha volatility
+    "take_profit_pct":               12.0,   # unchanged — stick and move
+    "max_position_size_pct":          5.0,   # was 20 — prove it cheaply first
+    "max_concurrent_positions":         3,   # was 4 — 3×5%=15% deployed
+    "daily_loss_circuit_breaker_pct": 5.0,   # was 15 — calibrated for 5% positions
     # Wallet floor: halt ALL live BUY orders when liquid TAO drops below this.
     # Prevents the bot from running the wallet to zero through repeated small stakes.
     "min_wallet_balance_tao":         0.05,
-    "min_confidence_score":           0.6,
-    "consensus_votes":                  7,   # 7/12 supermajority — OpenClaw rule
+    "min_confidence_score":           0.65,  # was 0.60 — more selective during evaluation
+    "consensus_votes":                  7,   # 7/12 supermajority — OpenClaw rule, do not lower
     "consensus_threshold":    round(7 / 12, 6),   # ≈ 0.5833
-    "cycle_interval_seconds":       300,    # was 600/60 — 5-min cycles, fix bug
+    "cycle_interval_seconds":         300,   # unchanged — 5-min cycles
 }
 
 # Persist to a JSON file so Railway redeploys don't reset user settings.

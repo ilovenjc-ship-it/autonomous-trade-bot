@@ -29,19 +29,22 @@ interface RiskStatus {
   phase: string
 }
 
-// Calibrated 2026-04-30 — stick-and-move profile for subnet alpha trading.
+// Calibrated 2026-05-04 — UNPROVEN PHASE profile.
+// Tight defaults until strategies prove themselves through the promotion gate.
+// Graduation path (2-3 strategies gate-proven): size 5→10%, positions 3→4,
+// drawdown 8→12%, daily CB 5→8%, confidence 0.65→0.60.
 // See backend/routers/fleet.py _RISK_CONFIG_DEFAULTS for full rationale.
 const DEFAULTS: Config = {
-  max_drawdown_pct:              20,   // was 45 — 20% is "something is broken"
-  stop_loss_pct:                  8,   // unchanged — solid for alpha volatility
-  take_profit_pct:               12,   // was 25 — stick and move, book at 12%
-  max_position_size_pct:         20,   // was 30 — 4×20%=80% deployed, 20% liquid
-  max_concurrent_positions:       4,
-  daily_loss_circuit_breaker_pct: 15, // was 40 — real guardrail, not decoration
-  min_confidence_score:          0.6,
-  consensus_votes:                 7,  // 7/12 supermajority — OpenClaw rule
+  max_drawdown_pct:               8,   // was 20 — unproven phase: halt fast, investigate
+  stop_loss_pct:                  8,   // unchanged — calibrated for alpha volatility
+  take_profit_pct:               12,   // unchanged — stick and move, book at 12%
+  max_position_size_pct:          5,   // was 20 — prove it cheaply, earn the right to size up
+  max_concurrent_positions:       3,   // was 4 — 3×5%=15% deployed, 85% liquid
+  daily_loss_circuit_breaker_pct: 5,   // was 15 — calibrated for 5% positions
+  min_confidence_score:          0.65, // was 0.60 — more selective during evaluation
+  consensus_votes:                 7,  // 7/12 supermajority — OpenClaw rule, do not lower
   consensus_threshold:           7 / 12,
-  cycle_interval_seconds:        300,  // 5 min — fixed hardcoded-60s bug
+  cycle_interval_seconds:        300,  // unchanged — 5-min cycles
 }
 
 // ── risk colour helpers ────────────────────────────────────────────────────────
@@ -367,7 +370,7 @@ export default function RiskConfig() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-12 gap-y-8">
           <RiskSlider
             label="Max Drawdown"
-            description="Portfolio drop % that triggers a global HALT. Calibrated at 20% — at 45% (old default) you'd watch half your stake evaporate before the kill switch fires. 20% is a clear 'something is fundamentally broken' signal."
+            description="Cumulative portfolio drop % from peak that triggers a global HALT. 8% (unproven phase) = halt fast, investigate. With 5% positions, ~4 full stop-outs reach this limit — a clear systemic-failure signal. Graduate to 12% once strategies are gate-proven."
             value={config.max_drawdown_pct}
             min={5} max={45} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
@@ -376,7 +379,7 @@ export default function RiskConfig() {
           />
           <RiskSlider
             label="Stop Loss"
-            description="Per-trade exit if the alpha position drops this far. 8% is deliberately calibrated for subnet alpha volatility — tighter than 8% creates noise stop-outs on normal price swings; looser than 10% accepts too much per-trade pain."
+            description="Per-trade exit if the alpha position drops this far. 8% is deliberately calibrated for subnet alpha token volatility — tighter creates noise stop-outs on normal price swings; looser accepts too much per-trade pain. Do not change while building WR data."
             value={config.stop_loss_pct}
             min={2} max={20} step={0.5} riskDir="down"
             format={v => `${v.toFixed(1)}%`}
@@ -385,7 +388,7 @@ export default function RiskConfig() {
           />
           <RiskSlider
             label="Take Profit"
-            description="'Stick and move' target — position closes and books the gain when hit. Subnet alpha prices spike 10-20% then reverse. At 12% you capture the real move; at 25% (old) you often ride back down and give it all back."
+            description="'Stick and move' target — position closes and books the gain when hit. Subnet alpha prices spike 10-20% then reverse. At 12% you capture the real move before reversal. Do not raise while in unproven phase — booking smaller wins builds WR faster."
             value={config.take_profit_pct}
             min={3} max={50} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
@@ -394,16 +397,16 @@ export default function RiskConfig() {
           />
           <RiskSlider
             label="Max Position Size"
-            description="Maximum % of wallet per single trade. At 20% with 4 concurrent positions → 80% deployed, 20% liquid for fees and opportunities. Old 30% allowed 4×30%=120% implied exposure with no liquidity reserve."
+            description="Maximum % of wallet per single trade. 5% (unproven phase): prove the model cheaply. 3 concurrent × 5% = 15% deployed, 85% liquid. A full wipeout of all open positions costs 15% — survivable and correctable. Graduate to 10% once gate-proven."
             value={config.max_position_size_pct}
-            min={5} max={50} step={1} riskDir="up"
+            min={1} max={50} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
-            rangeLabel="5% (conservative) — 50% (concentrated)"
+            rangeLabel="1% (micro) — 50% (concentrated)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, max_position_size_pct: v })) }}
           />
           <RiskSlider
             label="Max Concurrent Positions"
-            description="How many open live trades can coexist across all 12 bots simultaneously. 4 is the right balance — enough diversification without spreading capital too thin across multiple subnets."
+            description="How many live positions can coexist across all bots simultaneously. 3 pairs with 5% position size: 3×5%=15% deployed, 85% liquid for evaluation. Graduate to 4 once 2-3 strategies are gate-proven."
             value={config.max_concurrent_positions}
             min={1} max={12} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}`}
@@ -412,16 +415,16 @@ export default function RiskConfig() {
           />
           <RiskSlider
             label="Daily Circuit Breaker"
-            description="Daily portfolio loss % that halts ALL trading for the rest of the day. Old 40% was decoration — losing 40% in a day means the system has failed catastrophically. 15% is the real guardrail: aggressive-but-sane for crypto algo."
+            description="Daily portfolio loss % that halts ALL trading for the rest of the day. 5% calibrated for 5% positions: ~12 consecutive stop-outs in one day = algo is broken, not just unlucky. Old 15% required ~37 consecutive stops — effectively decorative."
             value={config.daily_loss_circuit_breaker_pct}
-            min={3} max={40} step={1} riskDir="up"
+            min={2} max={40} step={1} riskDir="up"
             format={v => `${v.toFixed(0)}%`}
-            rangeLabel="3% (strict) — 40% (old/dangerous)"
+            rangeLabel="2% (strict) — 40% (dangerous)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, daily_loss_circuit_breaker_pct: v })) }}
           />
           <RiskSlider
             label="Min AI Confidence"
-            description="Minimum II Agent confidence score required before a strategy signal is accepted. 0.60 means the AI must be at least 60% confident. Lower = more trades, more noise. Higher = fewer trades, higher quality."
+            description="Minimum strategy confidence score before a signal is accepted into the consensus round. 0.65 (unproven phase): more selective, fewer but higher-conviction trades. Graduate to 0.60 once WR data confirms signal quality."
             value={config.min_confidence_score}
             min={0.4} max={0.95} step={0.05} riskDir="down"
             format={v => v.toFixed(2)}
@@ -459,19 +462,29 @@ export default function RiskConfig() {
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, cycle_interval_seconds: v })) }}
           />
 
-          {/* Phase indicator — spans full width */}
-          <div className="lg:col-span-2 pt-2 border-t border-dark-600 flex items-center gap-3 flex-wrap gap-y-2">
-            <span className="text-xs text-slate-500 uppercase tracking-widest">Phase</span>
-            <span className={clsx('text-sm font-bold', {
-              'text-emerald-400': status?.phase === 'LIVE',
-              'text-yellow-400':  status?.phase === 'APPROVED_FOR_LIVE',
-              'text-slate-400':   !status?.phase || status.phase === 'PAPER_ONLY' || status.phase === 'PAPER',
-            })}>
-              {status?.phase ? status.phase.replace(/_/g, ' ') : 'PAPER — no live strategies yet'}
-            </span>
-            <span className="text-xs text-slate-500 ml-auto">
-              Cycle interval changes take effect after the current sleep completes — no restart needed
-            </span>
+          {/* Phase indicator + graduation path — spans full width */}
+          <div className="lg:col-span-2 pt-3 border-t border-dark-600 space-y-2">
+            <div className="flex items-center gap-3 flex-wrap gap-y-1">
+              <span className="text-xs text-slate-500 uppercase tracking-widest font-mono">Current Phase</span>
+              <span className={clsx('text-sm font-bold font-mono', {
+                'text-emerald-400': status?.phase === 'LIVE',
+                'text-yellow-400':  status?.phase === 'APPROVED_FOR_LIVE',
+                'text-slate-400':   !status?.phase || status.phase === 'PAPER_ONLY' || status.phase === 'PAPER',
+              })}>
+                {status?.phase ? status.phase.replace(/_/g, ' ') : 'PAPER — no live strategies yet'}
+              </span>
+              <span className="text-[11px] text-slate-500 ml-auto font-mono">
+                Cycle interval changes take effect after current sleep — no restart needed
+              </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-500">
+              <span className="text-slate-600 uppercase tracking-widest">Graduation path:</span>
+              <span className="px-2 py-0.5 rounded bg-dark-700 border border-dark-600 text-slate-400">Phase 1 (now): 5% size · 3 pos · 8% DD · 5% CB · 0.65 conf</span>
+              <span className="text-slate-600">→</span>
+              <span className="px-2 py-0.5 rounded bg-dark-700 border border-dark-600 text-yellow-600">Phase 2 (2-3 gate-proven): 10% size · 4 pos · 12% DD · 8% CB · 0.60 conf</span>
+              <span className="text-slate-600">→</span>
+              <span className="px-2 py-0.5 rounded bg-dark-700 border border-dark-600 text-emerald-700">Phase 3 (fleet proven): 15% size · 4 pos · 15% DD · 10% CB</span>
+            </div>
           </div>
         </div>
       </div>
