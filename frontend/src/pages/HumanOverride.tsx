@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  AlertTriangle, ShieldOff, ShieldCheck, TrendingUp, TrendingDown,
-  ArrowUp, ArrowDown, RefreshCw, Zap, Play, Square,
+  AlertTriangle, ShieldCheck, TrendingUp, TrendingDown,
+  RefreshCw, Zap, Play, Square,
   ChevronRight, CheckCircle2, XCircle, FlaskConical, Flame, Trash2,
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -18,36 +18,6 @@ interface OverrideStatus {
   trading_engine_running: boolean
 }
 
-interface StrategyRow {
-  name: string
-  display_name: string
-  mode: 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'PENDING_LIVE_APPROVAL' | 'LIVE'
-  win_rate: number
-  total_trades: number
-  total_pnl: number
-  stake_amount?: number | null
-}
-
-// ── constants ─────────────────────────────────────────────────────────────────
-const MODE_ORDER = ['PAPER_ONLY', 'APPROVED_FOR_LIVE', 'LIVE']
-const MODE_META: Record<string, { label: string; prefix: string; badge: string; short: string }> = {
-  PAPER_ONLY:        { label: 'PAPER',    prefix: '◌', short: 'PAPER',    badge: 'bg-slate-700/60 text-slate-300 border-slate-600' },
-  APPROVED_FOR_LIVE: { label: 'APPROVED', prefix: '◑', short: 'APPROVED', badge: 'bg-yellow-400/10 text-yellow-400 border-yellow-400/30' },
-  LIVE:              { label: 'LIVE',     prefix: '●', short: 'LIVE',     badge: 'bg-accent-green/10 text-accent-green border-accent-green/30' },
-}
-
-const STRATEGIES_LIST = [
-  'momentum_cascade', 'dtao_flow_momentum', 'liquidity_hunter', 'breakout_hunter',
-  'yield_maximizer', 'contrarian_flow', 'volatility_arb', 'sentiment_surge',
-  'balanced_risk', 'mean_reversion', 'emission_momentum', 'macro_correlation',
-]
-
-// ── helpers ───────────────────────────────────────────────────────────────────
-function fmtTao(n: number | null | undefined) {
-  const _n = n ?? 0; const s = Math.abs(_n).toFixed(4)
-  return _n >= 0 ? `+${s} τ` : `-${s} τ`
-}
-
 // ── sub-components ────────────────────────────────────────────────────────────
 function StatusDot({ on, label }: { on: boolean; label: string }) {
   return (
@@ -58,32 +28,6 @@ function StatusDot({ on, label }: { on: boolean; label: string }) {
         {on ? 'ONLINE' : 'OFFLINE'}
       </span>
     </div>
-  )
-}
-
-function ModeStep({
-  mode, active, onClick, pending,
-}: {
-  mode: string; active: boolean; onClick?: () => void; pending?: boolean
-}) {
-  const m = MODE_META[mode]
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={active || pending}
-      title={active ? `Already at ${m.label}` : `Set to ${m.label}`}
-      className={clsx(
-        'px-2 py-0.5 rounded border text-[13px] font-mono font-bold transition-all',
-        active
-          ? m.badge + ' cursor-default'
-          : pending
-            ? 'bg-dark-900 text-slate-500 border-dark-700 cursor-wait opacity-60'
-            : 'bg-dark-900 text-slate-500 border-dark-700 hover:border-slate-500 hover:text-slate-300 cursor-pointer active:scale-95',
-      )}
-    >
-      {pending ? '…' : `${m.prefix} ${m.short}`}
-    </button>
   )
 }
 
@@ -106,13 +50,6 @@ export default function HumanOverride() {
   const [tradeReason, setTradeReason] = useState('')
   const [tradingNow,  setTradingNow]  = useState(false)
   const [confirmTrade, setConfirmTrade] = useState(false)
-
-  // promote / demote
-  const [opPending, setOpPending] = useState<string | null>(null)
-
-  // inline stake editing
-  const [stakeEditing, setStakeEditing] = useState<string | null>(null)
-  const [stakeInput,   setStakeInput]   = useState('')
 
   const fetchStatus = useCallback(async () => {
     try {
@@ -222,49 +159,6 @@ export default function HumanOverride() {
     finally { setTradingNow(false) }
   }
 
-  async function doPromote(name: string) {
-    setOpPending(name + '_up')
-    try {
-      const res = await api.post(`/override/promote/${name}`)
-      if (res.data.success) {
-        toast.success(res.data.message)
-        fetchStrategies()
-      } else {
-        toast(`${res.data.message}`, { icon: '⚠️' })
-      }
-    } catch { toast.error('Promotion failed') }
-    finally { setOpPending(null) }
-  }
-
-  async function doDemote(name: string) {
-    setOpPending(name + '_down')
-    try {
-      const res = await api.post(`/override/demote/${name}`)
-      if (res.data.success) {
-        toast.success(res.data.message)
-        fetchStrategies()
-      } else {
-        toast(`${res.data.message}`, { icon: '⚠️' })
-      }
-    } catch { toast.error('Demotion failed') }
-    finally { setOpPending(null) }
-  }
-
-  async function doSetMode(name: string, mode: 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'LIVE') {
-    const key = name + '_' + mode
-    setOpPending(key)
-    try {
-      const res = await api.post(`/override/set-mode/${name}`, { mode })
-      if (res.data.success) {
-        toast.success(res.data.message)
-        fetchStrategies()
-      } else {
-        toast(res.data.message, { icon: '⚠️' })
-      }
-    } catch { toast.error('Mode change failed') }
-    finally { setOpPending(null) }
-  }
-
   async function doForcePromoCheck() {
     setPromoCheck(true)
     try {
@@ -275,32 +169,11 @@ export default function HumanOverride() {
     finally { setPromoCheck(false) }
   }
 
-  async function doSetStake(name: string) {
-    const amount = parseFloat(stakeInput)
-    if (isNaN(amount) || amount < 0.001) { toast.error('Minimum stake is 0.001 τ'); return }
-    if (amount > 1.0) { toast.error('Max override stake is 1.0 τ — protect the wallet'); return }
-    try {
-      await api.put(`/strategies/${name}`, { stake_amount: amount })
-      toast.success(`✅ ${name}: stake → ${amount.toFixed(4)} τ/trade`)
-      setStakeEditing(null)
-      setStakeInput('')
-      fetchStrategies()
-    } catch { toast.error('Failed to update stake') }
-  }
-
   const halted = status?.emergency_halted ?? false
 
-  // build strategy rows from store
-  const rows: StrategyRow[] = STRATEGIES_LIST.map(name => {
-    const s = strategies.find(x => x.name === name)
-    return s
-      ? { name: s.name, display_name: s.display_name, mode: s.mode, win_rate: s.win_rate, total_trades: s.total_trades, total_pnl: s.total_pnl, stake_amount: s.stake_amount }
-      : { name, display_name: name, mode: 'PAPER_ONLY' as const, win_rate: 0, total_trades: 0, total_pnl: 0, stake_amount: null }
-  })
-
-  const liveCount     = rows.filter(r => r.mode === 'LIVE').length
-  const approvedCount = rows.filter(r => r.mode === 'APPROVED_FOR_LIVE').length
-  const paperCount    = rows.filter(r => r.mode === 'PAPER_ONLY').length
+  const liveCount     = strategies.filter(s => s.mode === 'LIVE').length
+  const approvedCount = strategies.filter(s => s.mode === 'APPROVED_FOR_LIVE').length
+  const paperCount    = strategies.filter(s => s.mode === 'PAPER_ONLY').length
 
   const heroSlides = [
     {
@@ -310,7 +183,7 @@ export default function HumanOverride() {
         { label: 'Cycle Engine',    value: status?.cycle_engine_running   ? '✓ Online' : '✗ Off', color: status?.cycle_engine_running   ? 'emerald' : 'red' as any },
         { label: 'Trading Engine',  value: status?.trading_engine_running ? '✓ Online' : '✗ Off', color: status?.trading_engine_running ? 'emerald' : 'red' as any },
         { label: 'Override Gate',   value: halted ? '⛔ Closed' : '✓ Open',                      color: halted ? 'red' : 'emerald' as any },
-        { label: 'Strategies',      value: String(rows.length),                                   color: 'white'   as const },
+        { label: 'Strategies',      value: String(strategies.length),                              color: 'white'   as const },
       ],
     },
     {
@@ -604,124 +477,6 @@ export default function HumanOverride() {
 
       </div>{/* end 3-box control row */}
 
-      {/* ── Row 2: Strategy Mode Override — full page width ─────────────────── */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-            <ArrowUp size={13} className="text-accent-green" /> Strategy Mode Override
-          </h2>
-          <p className="text-[13px] text-slate-500 font-mono">bypasses gate · instant · permanent until changed</p>
-        </div>
-
-        {/* Mode legend */}
-        <div className="flex items-center gap-3 mb-4 flex-wrap">
-          {MODE_ORDER.map(m => {
-            const meta = MODE_META[m]
-            return (
-              <span key={m} className={clsx('px-2 py-0.5 rounded border text-[13px] font-mono font-bold', meta.badge)}>
-                {meta.prefix} {meta.label}
-              </span>
-            )
-          })}
-          <span className="text-[13px] text-slate-500 ml-2">— click ↑ to promote, ↓ to demote</span>
-        </div>
-
-        {/* Strategy rows */}
-        <div className="space-y-1.5">
-          {rows.map(s => {
-            const atCeiling  = s.mode === 'LIVE'
-            const atFloor    = s.mode === 'PAPER_ONLY'
-            const upPending  = opPending === s.name + '_up'
-            const downPending = opPending === s.name + '_down'
-            return (
-              <div key={s.name}
-                className="flex items-center gap-3 px-3 py-2.5 bg-dark-900 rounded-lg border border-dark-700/60 hover:border-dark-600 transition-colors group">
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white font-medium truncate">{s.display_name}</p>
-                  <p className="text-[13px] text-slate-500 font-mono">{s.name}</p>
-                </div>
-                <div className="text-right flex-shrink-0 w-16 hidden sm:block">
-                  <p className={clsx('text-xs font-mono font-bold',
-                    s.win_rate >= 55 ? 'text-accent-green' : s.win_rate >= 40 ? 'text-yellow-400' : 'text-red-400')}>
-                    {(s.win_rate ?? 0).toFixed(1)}%
-                  </p>
-                  <p className="text-[15px] text-slate-500">win rate</p>
-                </div>
-                <div className="text-right flex-shrink-0 w-24 hidden md:block">
-                  <p className={clsx('text-xs font-mono font-bold',
-                    s.total_pnl > 0 ? 'text-accent-green' : s.total_pnl < 0 ? 'text-red-400' : 'text-slate-400')}>
-                    {fmtTao(s.total_pnl)}
-                  </p>
-                  <p className="text-[15px] text-slate-500">PnL</p>
-                </div>
-                <div className="flex-shrink-0 hidden lg:block">
-                  {stakeEditing === s.name ? (
-                    <div className="flex items-center gap-1">
-                      <input type="number" min="0.001" max="1.0" step="0.001" value={stakeInput}
-                        onChange={e => setStakeInput(e.target.value)}
-                        onKeyDown={e => { if (e.key === 'Enter') doSetStake(s.name); if (e.key === 'Escape') setStakeEditing(null) }}
-                        autoFocus
-                        className="w-20 px-2 py-1 text-xs font-mono bg-dark-800 border border-accent-blue/50 rounded text-white focus:outline-none focus:border-accent-blue"
-                        placeholder="0.0100"
-                      />
-                      <span className="text-[13px] text-slate-500 font-mono">τ</span>
-                      <button onClick={() => doSetStake(s.name)} className="text-accent-green hover:text-white text-[13px] font-mono font-bold transition-colors" title="Save">✓</button>
-                      <button onClick={() => setStakeEditing(null)} className="text-slate-500 hover:text-red-400 text-[13px] font-mono transition-colors" title="Cancel">✗</button>
-                    </div>
-                  ) : (
-                    <button onClick={() => { setStakeEditing(s.name); setStakeInput(s.stake_amount != null ? (s.stake_amount ?? 0).toFixed(4) : '') }}
-                      className="text-right group/stake" title="Click to edit stake per trade">
-                      <p className={clsx('text-xs font-mono font-bold group-hover/stake:text-accent-blue transition-colors',
-                        s.mode === 'LIVE' ? 'text-white' : 'text-slate-500')}>
-                        {s.stake_amount != null ? `${(s.stake_amount ?? 0).toFixed(4)} τ` : '—'}
-                      </p>
-                      <p className="text-[15px] text-slate-500">stake/trade</p>
-                    </button>
-                  )}
-                </div>
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {MODE_ORDER.map((m, i) => {
-                    const modeKey = m as 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'LIVE'
-                    const isPending = opPending === s.name + '_' + m
-                    return (
-                      <div key={m} className="flex items-center gap-1">
-                        <ModeStep
-                          mode={m}
-                          active={m === s.mode}
-                          pending={isPending}
-                          onClick={() => doSetMode(s.name, modeKey)}
-                        />
-                        {i < MODE_ORDER.length - 1 && <ChevronRight size={10} className="text-slate-600" />}
-                      </div>
-                    )
-                  })}
-                </div>
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <button onClick={() => doPromote(s.name)} disabled={atCeiling || upPending || downPending}
-                    title={atCeiling ? 'Already at LIVE' : 'Promote one level'}
-                    className={clsx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all',
-                      atCeiling ? 'text-slate-600 border-dark-700 cursor-not-allowed'
-                        : 'text-accent-green border-accent-green/30 bg-accent-green/5 hover:bg-accent-green/15 hover:border-accent-green/50 active:scale-95')}>
-                    {upPending ? <RefreshCw size={10} className="animate-spin" /> : <ArrowUp size={10} />} UP
-                  </button>
-                  <button onClick={() => doDemote(s.name)} disabled={atFloor || upPending || downPending}
-                    title={atFloor ? 'Already at PAPER' : 'Demote one level'}
-                    className={clsx('flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all',
-                      atFloor ? 'text-slate-600 border-dark-700 cursor-not-allowed'
-                        : 'text-red-400 border-red-500/30 bg-red-500/5 hover:bg-red-500/15 hover:border-red-500/50 active:scale-95')}>
-                    {downPending ? <RefreshCw size={10} className="animate-spin" /> : <ArrowDown size={10} />} DOWN
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <p className="text-[13px] text-slate-500 font-mono mt-4 leading-relaxed">
-          Mode changes are instant and persistent (written to DB). Promoting a strategy to LIVE while in paper trading mode
-          means it will execute real on-chain trades when live mode is enabled. Demoting from LIVE does not cancel open positions.
-        </p>
-      </div>{/* end Strategy Mode Override */}
       </div>{/* end scrollable */}
     </div>
   )
