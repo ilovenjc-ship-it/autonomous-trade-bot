@@ -25,6 +25,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Optional
 
+import discord
 import httpx
 
 from services.activity_service import push_event
@@ -415,6 +416,121 @@ _STAGGER = {
 }
 
 
+# ── Discord Gateway client ────────────────────────────────────────────────────
+
+_DISCORD_CHANNEL_KEYWORDS = [
+    "subnet", "announce", "alpha", "governance", "validator",
+    "weight", "staking", "bittensor", "tao", "signal",
+]
+
+# Channels the bot will read — empty = all channels it can see
+_DISCORD_TARGET_CHANNELS: set[int] = set()
+
+_discord_client: Optional["discord.Client"] = None
+_discord_task: Optional[asyncio.Task] = None
+
+
+def _message_is_relevant(content: str) -> bool:
+    """Return True if the message contains at least one TAO/subnet keyword."""
+    lc = content.lower()
+    return any(kw in lc for kw in _DISCORD_CHANNEL_KEYWORDS)
+
+
+async def _run_discord_gateway() -> None:
+    """
+    Long-running Discord Gateway connection using discord.py.
+    Connects when a bot_token is present, reconnects automatically on drop.
+    Pushes relevant messages to the activity log as signal events.
+    """
+    global _discord_client
+
+    RETRY_BACKOFF = [5, 15, 30, 60, 120]
+    attempt = 0
+
+    while True:
+        token = _FEEDS["discord"]["config"].get("bot_token", "").strip()
+        if not token:
+            logger.debug("DiscordGateway: no token — sleeping 60 s")
+            await asyncio.sleep(60)
+            continue
+
+        intents = discord.Intents.default()
+        intents.message_content = True          # requires Message Content Intent
+        intents.messages = True
+
+        client = discord.Client(intents=intents)
+        _discord_client = client
+
+        @client.event
+        async def on_ready():
+            nonlocal attempt
+            attempt = 0                         # reset backoff on successful connect
+            guild_list = ", ".join(g.name for g in client.guilds) or "(none)"
+            logger.info(f"DiscordGateway: connected as {client.user} · guilds: {guild_list}")
+            _FEEDS["discord"]["enabled"] = True
+            _FEEDS["discord"]["status"]  = "ok"
+            _FEEDS["discord"]["error"]   = None
+            _FEEDS["discord"]["last_fetch"] = _now()
+
+        @client.event
+        async def on_message(message: discord.Message):
+            if message.author.bot:
+                return
+            # Filter by target channels if configured
+            if _DISCORD_TARGET_CHANNELS and message.channel.id not in _DISCORD_TARGET_CHANNELS:
+                return
+            if not _message_is_relevant(message.content):
+                return
+
+            channel_name = getattr(message.channel, "name", str(message.channel.id))
+            author       = str(message.author.display_name)
+            snippet      = message.content[:280].replace("\n", " ")
+
+            summary = f"[#{channel_name}] {author}: {snippet}"
+            _mark_ok("discord", summary)
+
+            await push_event(
+                category="signal",
+                title=f"Discord · #{channel_name}",
+                detail=snippet,
+                metadata={
+                    "author":     author,
+                    "channel":    channel_name,
+                    "message_id": str(message.id),
+                    "guild":      message.guild.name if message.guild else "DM",
+                },
+            )
+
+        @client.event
+        async def on_disconnect():
+            logger.warning("DiscordGateway: disconnected")
+            _FEEDS["discord"]["status"] = "connecting"
+
+        @client.event
+        async def on_error(event, *args, **kwargs):
+            logger.error(f"DiscordGateway: error in {event}")
+
+        try:
+            await client.start(token)
+        except discord.LoginFailure as exc:
+            err = f"Invalid bot token: {exc}"
+            logger.error(f"DiscordGateway: {err}")
+            _mark_error("discord", err)
+            await asyncio.sleep(300)            # don't spam on bad token
+        except Exception as exc:
+            delay = RETRY_BACKOFF[min(attempt, len(RETRY_BACKOFF) - 1)]
+            logger.warning(f"DiscordGateway: {exc} — retry in {delay}s (attempt {attempt+1})")
+            _mark_error("discord", str(exc))
+            attempt += 1
+            await asyncio.sleep(delay)
+        finally:
+            try:
+                await client.close()
+            except Exception:
+                pass
+            _discord_client = None
+
+
 async def _run_loop(feed_id: str, coro_factory) -> None:
     """Run a poller in an infinite loop with its configured interval."""
     feed = _FEEDS[feed_id]
@@ -474,8 +590,10 @@ def toggle_feed(feed_id: str, enabled: bool) -> bool:
     if not feed:
         return False
     if feed_id == "discord" and enabled:
-        # Cannot enable until OTF invite — keep pending_invite status
-        return False
+        # Only allow if we have a token — the Gateway loop handles connection
+        has_token = bool(_FEEDS["discord"]["config"].get("bot_token", "").strip())
+        if not has_token:
+            return False   # still waiting for token
     feed["enabled"] = enabled
     feed["status"]  = "connecting" if enabled else "disabled"
     return True
@@ -516,8 +634,16 @@ async def start_all() -> None:
     asyncio.create_task(_run_loop("taodaily_rss", _poll_taodaily_rss))
     asyncio.create_task(_run_loop("taostats",     _poll_taostats))
     asyncio.create_task(_run_loop("perplexity",   _poll_perplexity))
-    # Discord: scaffold only — Gateway loop deferred until bot token + OTF invite
-    _FEEDS["discord"]["status"] = "pending_invite"
+
+    # ── Discord Gateway — starts immediately; waits internally for a valid token
+    global _discord_task
+    _discord_task = asyncio.create_task(_run_discord_gateway())
+    if discord_token:
+        _FEEDS["discord"]["status"] = "connecting"
+        logger.info("DiscordGateway: task started — connecting with token from env")
+    else:
+        _FEEDS["discord"]["status"] = "pending_invite"
+        logger.info("DiscordGateway: task started — waiting for DISCORD_BOT_TOKEN")
 
     active = sum(1 for k in ("taostats", "perplexity", "discord")
                  if _FEEDS[k]["config"].get("api_key") or _FEEDS[k]["config"].get("bot_token"))
