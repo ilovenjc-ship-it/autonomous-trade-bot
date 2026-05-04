@@ -735,9 +735,9 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
         {/* Toggle */}
         <button
           onClick={() => onToggle(feed.id, !feed.enabled)}
-          disabled={isDiscord && feed.status !== 'ok'}
-          title={isDiscord && feed.status !== 'ok' ? 'Discord requires OTF server invite — cannot enable manually' : undefined}
-          className={clsx('flex-shrink-0 transition-colors', isDiscord && feed.status !== 'ok' && 'opacity-40 cursor-not-allowed')}
+          disabled={isDiscord && feed.status !== 'connected'}
+          title={isDiscord && feed.status !== 'connected' ? 'Discord requires OTF server invite — cannot enable manually' : undefined}
+          className={clsx('flex-shrink-0 transition-colors', isDiscord && feed.status !== 'connected' && 'opacity-40 cursor-not-allowed')}
         >
           {feed.enabled
             ? <ToggleRight size={28} className="text-accent-green" />
@@ -814,7 +814,7 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
       )}
 
       {/* Discord pending-invite note — only when not yet connected */}
-      {isDiscord && feed.status !== 'ok' && (
+      {isDiscord && feed.status !== 'connected' && (
         <div className="flex items-start gap-2 bg-orange-500/8 border border-orange-500/20 rounded-lg px-3 py-2">
           <Info size={11} className="text-orange-400 flex-shrink-0 mt-0.5" />
           <div className="text-[10px] text-orange-200 font-mono leading-snug space-y-0.5">

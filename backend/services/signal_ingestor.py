@@ -468,7 +468,7 @@ async def _run_discord_gateway() -> None:
             guild_list = ", ".join(g.name for g in client.guilds) or "(none)"
             logger.info(f"DiscordGateway: connected as {client.user} · guilds: {guild_list}")
             _FEEDS["discord"]["enabled"] = True
-            _FEEDS["discord"]["status"]  = "ok"
+            _FEEDS["discord"]["status"]  = "connected"
             _FEEDS["discord"]["error"]   = None
             _FEEDS["discord"]["last_fetch"] = _now()
 
