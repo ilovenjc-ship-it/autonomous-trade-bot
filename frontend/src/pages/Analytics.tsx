@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
-import PageHeroSlider from '@/components/PageHeroSlider'
+import SubnetHeatMap from '@/components/SubnetHeatMap'
 import { useBotStore } from '@/store/botStore'
 
 // ── colours ───────────────────────────────────────────────────────────────────
@@ -230,44 +230,9 @@ export default function Analytics() {
   // ── min drawdown for Y axis ────────────────────────────────────────────────
   const minDD = Math.min(0, ...drawdown.map(d => d.drawdown)) * 1.1 || -0.01
 
-  const bestStr  = strategies.length ? strategies.reduce((a, b) => a.win_rate > b.win_rate ? a : b) : null
-  const heroSlides = [
-    {
-      title: 'Performance Overview', subtitle: 'All Time', accent: 'emerald' as const,
-      stats: [
-        { label: 'Total PnL',   value: summary ? `${summary.total_pnl >= 0 ? '+' : ''}${(summary.total_pnl ?? 0).toFixed(4)}τ` : '—', color: (summary?.total_pnl ?? 0) >= 0 ? 'emerald' : 'red' as any },
-        { label: 'Win Rate',    value: summary ? `${summary.win_rate.toFixed(1)}%` : '—',                  color: (summary?.win_rate ?? 0) >= 55 ? 'emerald' : 'yellow' as any },
-        { label: 'Total Trades',value: summary ? String(summary.total_trades) : '—',                      color: 'white' as const },
-        { label: 'Strategies',  value: String(strategies.length),                                         color: 'blue'  as const },
-        { label: 'Data Range',  value: timeRange.toUpperCase(),                                           color: 'slate' as const },
-      ],
-    },
-    {
-      title: 'Strategy Analysis', subtitle: 'Fleet Breakdown', accent: 'blue' as const,
-      stats: [
-        { label: 'Best WR',     value: bestStr ? `${(bestStr.win_rate ?? 0).toFixed(0)}%` : '—',                 color: 'emerald' as const },
-        { label: 'Best Name',   value: bestStr ? bestStr.name.split('_')[0] : '—',                        color: 'white'   as const },
-        { label: 'Avg Win Rate',value: strategies.length ? `${(strategies.reduce((s,x)=>s+x.win_rate,0)/strategies.length).toFixed(0)}%` : '—', color: 'yellow' as const },
-        { label: 'Profitable',  value: String(strategies.filter(s => s.total_pnl > 0).length),            color: 'emerald' as const },
-        { label: 'Losing',      value: String(strategies.filter(s => s.total_pnl < 0).length),            color: 'red'     as const },
-      ],
-    },
-    {
-      title: 'Risk Profile', subtitle: 'Drawdown & Volatility', accent: 'orange' as const,
-      stats: [
-        { label: 'Max Drawdown', value: drawdown.length ? `${(Math.abs(Math.min(0,...drawdown.map(d=>d.drawdown)))*100).toFixed(2)}%` : '—', color: 'orange' as const },
-        { label: 'Data Points',  value: String(equity.length),                                            color: 'blue'    as const },
-        { label: 'Avg Trade τ',  value: summary && summary.total_trades > 0 ? `${(summary.total_pnl / summary.total_trades).toFixed(4)}τ` : '—', color: 'white' as const },
-        { label: 'Winners',      value: strategies.length ? String(strategies.filter(s => s.total_pnl > 0).length) : '—', color: 'emerald' as const },
-        { label: 'Losers',       value: strategies.length ? String(strategies.filter(s => s.total_pnl < 0).length) : '—', color: 'red'     as const },
-      ],
-    },
-  ]
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
-      <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-dark-900">
 
       {/* ── Fetch error banner ──────────────────────────────────────────────── */}
@@ -276,50 +241,6 @@ export default function Analytics() {
           <span className="font-bold">⚠ Partial data</span>
           <span className="text-yellow-500/70">—</span>
           <span className="text-yellow-300/80">Failed to load: {fetchErrors.join(', ')}</span>
-        </div>
-      )}
-
-      {/* ── Data context note ──────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3 px-4 py-2.5 bg-slate-800/60 border border-slate-700/40 rounded-lg text-[14px] font-mono text-slate-400">
-        <span className="text-blue-400 font-bold flex-shrink-0">ℹ DATA CONTEXT</span>
-        <span>
-          Stats include <span className="text-slate-300">full trade history</span> (paper + real on-chain).
-          Paper trades are simulation — they establish the win-rate and PnL baselines used for gate promotions.
-          Real on-chain trades are a small subset — filter by <span className="text-emerald-400">⛓ Real Only</span> in Trade Log for the confirmed subset.
-        </span>
-      </div>
-
-      {/* ── KPI row ────────────────────────────────────────────────────────── */}
-      {summary && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
-          <KPI
-            label="Total PnL"
-            value={`${fmt(summary.total_pnl, 4)} τ`}
-            sub={`${summary.total_trades.toLocaleString()} trades`}
-            color={summary.total_pnl >= 0 ? 'text-accent-green' : 'text-red-400'}
-          />
-          <KPI
-            label="Win Rate"
-            value={pct(summary.win_rate)}
-            sub={`${summary.wins.toLocaleString()}W / ${summary.losses.toLocaleString()}L`}
-            color={summary.win_rate >= 55 ? 'text-accent-green' : 'text-yellow-400'}
-          />
-          <KPI
-            label="Best Trade"
-            value={`${fmt(summary.best_trade, 4)} τ`}
-            color="text-accent-green"
-          />
-          <KPI
-            label="Worst Trade"
-            value={`${fmt(summary.worst_trade, 4)} τ`}
-            color="text-red-400"
-          />
-          <KPI
-            label="Live Strategies"
-            value={`${summary.active_strategies}`}
-            sub="firing real trades"
-            color="text-emerald-400"
-          />
         </div>
       )}
 
@@ -636,6 +557,10 @@ export default function Analytics() {
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
         </div>
       </div>
+
+      {/* ── Network Heat Map (relocated from Mission Control) ──────────────── */}
+      <SubnetHeatMap />
+
       </div>{/* end scrollable */}
     </div>
   )

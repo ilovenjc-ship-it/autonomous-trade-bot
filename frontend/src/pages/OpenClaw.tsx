@@ -283,6 +283,123 @@ function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
   )
 }
 
+// ── OpenClaw Council Sidebar (relocated from Mission Control) ─────────────────
+
+const VOTE_COLORS = {
+  BUY:     { bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', text: 'text-emerald-400' },
+  SELL:    { bg: 'bg-red-500/10',     border: 'border-red-500/25',     text: 'text-red-400'     },
+  HOLD:    { bg: 'bg-amber-500/10',   border: 'border-amber-500/25',   text: 'text-amber-400'   },
+  ABSTAIN: { bg: 'bg-slate-700/30',   border: 'border-slate-700/50',   text: 'text-slate-400'   },
+} as const
+
+function CouncilPanel({
+  stats, latestRound: round,
+}: {
+  stats: ConsensusStats | null
+  latestRound: ConsensusRound | null
+}) {
+  const rMeta = round
+    ? (RESULT_META[round.result] ?? { label: round.result, color: 'text-slate-400', bg: '', icon: AlertTriangle })
+    : null
+
+  return (
+    <div className="bg-dark-800 border border-dark-600 rounded-xl flex flex-col h-full min-h-0 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-dark-600 flex-shrink-0">
+        <div className="p-1 rounded bg-purple-500/15">
+          <Users size={12} className="text-purple-400" />
+        </div>
+        <span className="text-[13px] font-bold tracking-widest text-slate-200 uppercase">OpenClaw Council</span>
+        <span className="ml-auto text-[11px] font-mono text-purple-400/70 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">
+          BFT · 7/12
+        </span>
+      </div>
+
+      {/* Stats strip */}
+      {stats ? (
+        <div className="flex flex-shrink-0 border-b border-dark-600">
+          <div className="flex-1 px-3 py-2 border-r border-dark-600 text-center">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Approval</p>
+            <p className={clsx('text-lg font-bold font-mono leading-tight',
+              stats.approval_rate_pct >= 45 && stats.approval_rate_pct <= 65 ? 'text-emerald-400'
+              : stats.approval_rate_pct > 65 ? 'text-yellow-400' : 'text-orange-400'
+            )}>{(stats.approval_rate_pct ?? 0).toFixed(1)}%</p>
+          </div>
+          <div className="flex-1 px-3 py-2 border-r border-dark-600 text-center">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Rounds</p>
+            <p className="text-lg font-bold font-mono text-slate-200 leading-tight">{stats.total_rounds}</p>
+          </div>
+          <div className="flex-1 px-3 py-2 text-center">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Approved</p>
+            <p className="text-lg font-bold font-mono text-emerald-400 leading-tight">{stats.approved_rounds}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="px-4 py-2.5 text-[11px] text-slate-500 font-mono flex-shrink-0 border-b border-dark-600">Loading…</div>
+      )}
+
+      {/* Latest result */}
+      {round && rMeta && (
+        <div className="flex-shrink-0 px-4 py-2.5 border-b border-dark-600">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Round #{round.round_id}</span>
+            <div className={clsx('flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border', rMeta.bg, rMeta.color)}>
+              <rMeta.icon size={11} />
+              {rMeta.label}
+            </div>
+          </div>
+          <p className="text-[10px] text-slate-500 font-mono mt-0.5 truncate">
+            {round.triggered_by.replace(/_/g, ' ')} · {round.direction} · ${(round.price_at_round ?? 0).toFixed(2)} TAO
+          </p>
+        </div>
+      )}
+
+      {/* 2-col vote grid */}
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        {round?.votes && round.votes.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 gap-1 mb-3">
+              {round.votes.map(v => {
+                const vc = VOTE_COLORS[v.vote as keyof typeof VOTE_COLORS] ?? VOTE_COLORS.ABSTAIN
+                return (
+                  <div key={v.bot_name}
+                    className={clsx('flex items-center gap-1.5 px-2 py-1.5 rounded-lg border', vc.bg, vc.border)}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-semibold text-slate-200 truncate leading-tight">{v.display_name}</p>
+                      <p className="text-[9px] text-slate-500 font-mono">{((v.confidence ?? 0) * 100).toFixed(0)}% conf</p>
+                    </div>
+                    <span className={clsx('text-[11px] font-bold font-mono flex-shrink-0', vc.text)}>{v.vote}</span>
+                  </div>
+                )
+              })}
+            </div>
+
+            {/* Tally bars */}
+            <div className="space-y-1.5">
+              {[
+                { label: 'BUY',     count: round.buy_count,     color: 'bg-emerald-500/70', text: 'text-emerald-400' },
+                { label: 'SELL',    count: round.sell_count,    color: 'bg-red-500/70',     text: 'text-red-400'     },
+                { label: 'HOLD',    count: round.hold_count,    color: 'bg-yellow-500/50',  text: 'text-yellow-400'  },
+                { label: 'ABSTAIN', count: round.abstain_count, color: 'bg-slate-600/50',   text: 'text-slate-400'   },
+              ].map(({ label, count, color, text }) => (
+                <div key={label} className="flex items-center gap-2 text-[10px] font-mono">
+                  <span className={clsx('w-16 flex-shrink-0', text)}>{label} {count}</span>
+                  <div className="flex-1 h-1.5 bg-dark-700 rounded-full overflow-hidden">
+                    <div className={clsx('h-full rounded-full transition-all', color)}
+                      style={{ width: `${(count / 12) * 100}%` }} />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
+        ) : (
+          <div className="py-6 text-center text-slate-500 text-[12px] font-mono">No votes yet</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export default function OpenClaw() {
@@ -425,8 +542,16 @@ export default function OpenClaw() {
         />
       </div>
 
-      {/* ── Latest Round ── */}
-      {latestRound ? (
+      {/* ── Council + Latest Round — 2-column: Council sidebar left, round detail right ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-4 items-start">
+
+        {/* Left — OpenClaw Council sidebar (vertical, compact) */}
+        <div className="xl:max-w-[340px] xl:sticky xl:top-0" style={{ minHeight: '400px' }}>
+          <CouncilPanel stats={stats} latestRound={latestRound} />
+        </div>
+
+        {/* Right — Latest Round full detail */}
+        {latestRound ? (
         <div className={clsx(
           'bg-dark-800 border rounded-2xl p-5 space-y-5 transition-all duration-500',
           flashRound ? 'border-indigo-500/60 shadow-lg shadow-indigo-500/10' : 'border-dark-600',
@@ -546,12 +671,14 @@ export default function OpenClaw() {
           </div>
         </div>
       ) : (
-        <div className="bg-dark-800 border border-dark-600 rounded-2xl p-10 text-center">
-          <Vote size={40} className="text-slate-700 mx-auto mb-3" />
-          <p className="text-slate-300 font-mono text-sm">No consensus rounds yet.</p>
-          <p className="text-slate-300 text-xs mt-1">Trigger a manual vote above, or wait for a LIVE strategy to fire.</p>
-        </div>
-      )}
+          <div className="bg-dark-800 border border-dark-600 rounded-2xl p-10 text-center">
+            <Vote size={40} className="text-slate-700 mx-auto mb-3" />
+            <p className="text-slate-300 font-mono text-sm">No consensus rounds yet.</p>
+            <p className="text-slate-300 text-xs mt-1">Trigger a manual vote above, or wait for a LIVE strategy to fire.</p>
+          </div>
+        )}
+
+      </div>{/* end 2-col council+round grid */}
 
       {/* ── Charts row ── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">

@@ -6,7 +6,7 @@ import Trades from './pages/Trades'
 import Strategies from './pages/Strategies'
 import WalletPage from './pages/Wallet'
 import Settings from './pages/Settings'
-import MissionControl from './pages/MissionControl'
+
 import AgentFleet from './pages/AgentFleet'
 import RiskConfig from './pages/RiskConfig'
 import Analytics from './pages/Analytics'
@@ -45,7 +45,6 @@ export default function App() {
       <Routes>
         <Route element={<Layout />}>
           <Route path="/"                element={<Dashboard />}      />
-          <Route path="/mission-control" element={<MissionControl />} />
           <Route path="/override"        element={<HumanOverride />}  />
           <Route path="/fleet"           element={<AgentFleet />}     />
           <Route path="/risk"            element={<RiskConfig />}     />

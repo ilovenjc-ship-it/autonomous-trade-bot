@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
-  Settings, Wallet, Activity, Radio, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
+  Settings, Wallet, Activity, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
   Mic, Send, ChevronDown, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw,
   Landmark,
 } from 'lucide-react'
@@ -16,51 +16,48 @@ import TickerTape from '@/components/TickerTape'
 
 // ── Page title map ─────────────────────────────────────────────────────────────
 const PAGE_TITLES: Record<string, string> = {
-  '/':                'Dashboard',
-  '/mission-control': 'Mission Control',
-  '/fleet':           'Agent Fleet',
-  '/ii-agent':        'II Agent',
-  '/openclaw':        'OpenClaw BFT',
-  '/alerts':          'Alerts',
-  '/analytics':       'Analytics',
-  '/pnl':             'P&L Summary',
-  '/trades':          'Trades',
-  '/trade-log':       'Trade Log',
-  '/market':          'Market Data',
-  '/strategies':      'Strategies',
-  '/activity':        'Activity Log',
-  '/risk':            'Risk Config',
+  '/':                     'Dashboard',
+  '/ii-agent':             'II Agent',
+  '/openclaw':             'OpenClaw BFT',
+  '/fleet':                'Agent Fleet',
+  '/alerts':               'Alerts',
+  '/trades':               'Trades',
+  '/trade-log':            'Trade Log',
+  '/analytics':            'Analytics',
+  '/pnl':                  'P&L Summary',
+  '/market':               'Market Data',
+  '/strategies':           'Strategies',
+  '/activity':             'Activity Log',
+  '/risk':                 'Risk Config',
   '/wallet':               'Wallet',
   '/wallet-transactions':  'Transactions',
   '/settings':             'Settings',
-  '/override':        'Human Override',
+  '/override':             'Human Override',
 }
 
 const navItems = [
-  { to: '/',                 icon: LayoutDashboard, label: 'Dashboard'       },
-  { to: '/mission-control',  icon: Radio,           label: 'Mission Control' },
-  { to: '/fleet',            icon: Bot,             label: 'Agent Fleet'     },
-  { to: '/ii-agent',         icon: Brain,           label: 'II Agent'        },
-  { to: '/openclaw',         icon: Vote,            label: 'OpenClaw BFT'    },
-  { to: '/alerts',           icon: Bell,            label: 'Alerts',         badge: true },
-  { to: '/analytics',        icon: BarChart2,       label: 'Analytics'       },
-  { to: '/pnl',              icon: DollarSign,      label: 'P&L Summary'     },
-  { to: '/trades',           icon: ArrowLeftRight,  label: 'Trades'          },
-  { to: '/trade-log',        icon: BookOpen,        label: 'Trade Log'       },
-  { to: '/market',           icon: Globe,           label: 'Market Data'     },
-  { to: '/strategies',       icon: TrendingUp,      label: 'Strategies'      },
-  { to: '/activity',         icon: Activity,        label: 'Activity Log'    },
-  { to: '/risk',             icon: Shield,          label: 'Risk Config'     },
-  { to: '/wallet',               icon: Wallet,    label: 'Wallet'       },
-  { to: '/wallet-transactions',  icon: Landmark,  label: 'Transactions' },
-  { to: '/settings',             icon: Settings,  label: 'Settings'     },
-  { to: '/override',         icon: ShieldOff,       label: 'Human Override', danger: true },
+  { to: '/',                    icon: LayoutDashboard, label: 'Dashboard'       },
+  { to: '/ii-agent',            icon: Brain,           label: 'II Agent'        },
+  { to: '/openclaw',            icon: Vote,            label: 'OpenClaw BFT'    },
+  { to: '/fleet',               icon: Bot,             label: 'Agent Fleet'     },
+  { to: '/alerts',              icon: Bell,            label: 'Alerts',         badge: true },
+  { to: '/trades',              icon: ArrowLeftRight,  label: 'Trades'          },
+  { to: '/trade-log',           icon: BookOpen,        label: 'Trade Log'       },
+  { to: '/analytics',           icon: BarChart2,       label: 'Analytics'       },
+  { to: '/pnl',                 icon: DollarSign,      label: 'P&L Summary'     },
+  { to: '/market',              icon: Globe,           label: 'Market Data'     },
+  { to: '/strategies',          icon: TrendingUp,      label: 'Strategies'      },
+  { to: '/activity',            icon: Activity,        label: 'Activity Log'    },
+  { to: '/risk',                icon: Shield,          label: 'Risk Config'     },
+  { to: '/wallet',              icon: Wallet,          label: 'Wallet'          },
+  { to: '/wallet-transactions', icon: Landmark,        label: 'Transactions'    },
+  { to: '/settings',            icon: Settings,        label: 'Settings'        },
+  { to: '/override',            icon: ShieldOff,       label: 'Human Override', danger: true },
 ]
 
 export default function Layout() {
   const status       = useBotStore((s) => s.status)
   const fetchStatus  = useBotStore((s) => s.fetchStatus)
-  const missionStats = useBotStore((s) => s.missionStats)
   const fleetStats   = useBotStore((s) => s.fleetStats)
   const alertStats      = useBotStore((s) => s.alertStats)
   const analyticsStats  = useBotStore((s) => s.analyticsStats)
@@ -421,15 +418,6 @@ export default function Layout() {
               <span className="text-sm font-bold font-mono text-white leading-none tracking-wide">
                 {pageTitle}
               </span>
-              {/* Mission Control inline stats */}
-              {pathname === '/mission-control' && missionStats && (
-                <>
-                  <span className="text-slate-600 select-none">·</span>
-                  <span className="text-xs font-mono text-slate-400 leading-none">
-                    {missionStats.subnets} subnets · {missionStats.events} events
-                  </span>
-                </>
-              )}
               {/* Agent Fleet inline stats */}
               {pathname === '/fleet' && fleetStats && (
                 <>
@@ -557,9 +545,15 @@ export default function Layout() {
                 </>
               )}
               <span className="text-slate-600 select-none">·</span>
-              <span className="text-sm font-semibold font-mono text-slate-400 leading-none">
-                {status?.simulation_mode ? 'Paper Trading' : 'Live Trading'}
-              </span>
+              {status?.simulation_mode ? (
+                <span className="px-2.5 py-1 rounded-md bg-yellow-500/15 border border-yellow-500/40 text-sm font-bold font-mono text-yellow-400 leading-none tracking-wide">
+                  ⚠ Paper Trading — Simulation Only
+                </span>
+              ) : (
+                <span className="text-sm font-semibold font-mono text-slate-400 leading-none">
+                  Live Trading
+                </span>
+              )}
             </div>
           )}
 
@@ -695,13 +689,10 @@ export default function Layout() {
             </button>
           )}
 
-          {/* Reload / reset page — universal; mission-control uses live refresh */}
+          {/* Reload / reset page — universal */}
           <button
-            onClick={() => pathname === '/mission-control' && missionStats
-              ? missionStats.refresh()
-              : window.location.reload()
-            }
-            title={pathname === '/mission-control' ? 'Refresh subnets & events' : 'Reload page'}
+            onClick={() => window.location.reload()}
+            title="Reload page"
             className="p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white hover:bg-dark-600 transition-colors flex-shrink-0"
           >
             <RefreshCw size={14} />

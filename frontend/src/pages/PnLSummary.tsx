@@ -388,7 +388,7 @@ export default function PnLSummary() {
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── Fleet Hero Cards ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 xl:grid-cols-7 gap-4">
         {[
           {
             icon: TrendingUp,
@@ -418,18 +418,42 @@ export default function PnLSummary() {
             icon: DollarSign,
             label: 'Volume',
             value: fmtUSD(fleet.total_volume_usd),
-            sub:   `Best: ${fmtTau(fleet.best_trade)}`,
+            sub:   'total traded',
             color: 'text-amber-400',
             glow:  'shadow-amber-500/10',
+          },
+          {
+            icon: TrendingUp,
+            label: 'Best Trade',
+            value: fmtTau(fleet.best_trade),
+            sub:   'single best',
+            color: 'text-emerald-400',
+            glow:  'shadow-emerald-500/10',
+          },
+          {
+            icon: TrendingDown,
+            label: 'Worst Trade',
+            value: fmtTau(fleet.worst_trade),
+            sub:   'single worst',
+            color: 'text-red-400',
+            glow:  'shadow-red-500/10',
+          },
+          {
+            icon: Zap,
+            label: 'Live Strategies',
+            value: String(by_strategy.filter(s => s.mode === 'LIVE').length),
+            sub:   'firing real trades',
+            color: 'text-emerald-400',
+            glow:  'shadow-emerald-500/10',
           },
         ].map(({ icon: Icon, label, value, sub, color, glow }) => (
           <div key={label} className={clsx('bg-dark-800 border border-dark-600 rounded-2xl p-4 shadow-lg', glow)}>
             <div className="flex items-center gap-2 mb-3">
               <Icon size={14} className="text-slate-400" />
-              <p className="text-[14px] text-slate-400 uppercase tracking-wider font-mono">{label}</p>
+              <p className="text-[13px] text-slate-400 uppercase tracking-wider font-mono">{label}</p>
             </div>
-            <p className={clsx('text-2xl font-bold font-mono', color)}>{value}</p>
-            <p className="text-[14px] text-slate-500 font-mono mt-1">{sub}</p>
+            <p className={clsx('text-xl font-bold font-mono', color)}>{value}</p>
+            <p className="text-[13px] text-slate-500 font-mono mt-1">{sub}</p>
           </div>
         ))}
       </div>

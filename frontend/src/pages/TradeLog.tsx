@@ -249,8 +249,15 @@ export default function TradeLog() {
   return (
     <div className="flex flex-col h-full bg-dark-900">
 
-      {/* ── Page Header Bar ───────────────────────────────────────────────── */}
-      
+      {/* ── Data Context (relocated from Analytics) ──────────────────────── */}
+      <div className="flex-shrink-0 mx-6 mt-4 flex items-center gap-3 px-4 py-2.5 bg-slate-800/60 border border-slate-700/40 rounded-lg text-[13px] font-mono text-slate-400">
+        <span className="text-blue-400 font-bold flex-shrink-0">ℹ DATA CONTEXT</span>
+        <span>
+          Stats include <span className="text-slate-300">full trade history</span> (paper + real on-chain).
+          Paper trades are simulation — they establish the win-rate and PnL baselines used for gate promotions.
+          Real on-chain trades are a small subset — filter by <span className="text-emerald-400">⛓ Real Only</span> below for the confirmed subset.
+        </span>
+      </div>
 
       {/* ── Filters ─────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 pt-3 pb-4 border-b border-dark-600">
