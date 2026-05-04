@@ -72,6 +72,7 @@ interface ChainTransfer {
   from_address?: string
   to_address?:   string
   tx_hash?:      string
+  extrinsic_id?: string   // Taostats v1 "block-index" id — e.g. "6925022-0021"
   block_number?: number
   timestamp?:    string
   source:        string
@@ -469,10 +470,28 @@ export default function WalletTransactions() {
 
       {/* Chain error banner */}
       {data?.chain_error && (
-        <div className="mx-6 mb-3 px-4 py-2 bg-amber-500/10 border border-amber-500/30
-                        rounded-lg flex items-center gap-2 text-amber-400 text-xs">
-          <AlertTriangle size={13} />
-          <span>Chain transfer API unavailable: {data.chain_error.slice(0, 120)}</span>
+        <div className="mx-6 mb-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30
+                        rounded-lg flex items-start gap-2 text-amber-300 text-xs">
+          <AlertTriangle size={14} className="mt-0.5 flex-shrink-0" />
+          <div>
+            <span className="font-semibold">Chain transfer data unavailable — </span>
+            {data.chain_error.includes('API key required') ? (
+              <>
+                Taostats API key not configured.{' '}
+                <a
+                  href="https://taostats.io/pro"
+                  target="_blank" rel="noopener noreferrer"
+                  className="underline hover:text-white"
+                >
+                  Sign up free at taostats.io/pro
+                </a>
+                {' '}then add <code className="bg-amber-500/20 px-1 rounded">TAOSTATS_API_KEY</code> to your environment.
+                Funding events tab and manual records always work without it.
+              </>
+            ) : (
+              <span className="text-amber-400">{data.chain_error.slice(0, 160)}</span>
+            )}
+          </div>
         </div>
       )}
 
@@ -694,11 +713,15 @@ export default function WalletTransactions() {
               <div>
                 <div className="font-semibold mb-1">On-chain transfer data from Taostats API</div>
                 <div className="text-blue-400/80">
-                  Shows inbound TAO transfers detected on-chain. If the API is unavailable, data may be empty.
-                  Cross-reference with Taostats.io for verification.
+                  Shows inbound TAO transfers detected on-chain. Requires a{' '}
+                  <a href="https://taostats.io/pro" target="_blank" rel="noopener noreferrer"
+                     className="underline hover:text-white">
+                    Taostats API key (free tier)
+                  </a>
+                  {' '}— set <code className="bg-blue-500/20 px-1 rounded">TAOSTATS_API_KEY</code> in your environment.
                   {s?.taostats_url && (
                     <>
-                      {' '}
+                      {' · '}
                       <a href={s.taostats_url} target="_blank" rel="noopener noreferrer"
                          className="underline hover:text-white">
                         View wallet on Taostats ↗
@@ -763,18 +786,25 @@ export default function WalletTransactions() {
                           {t.block_number?.toLocaleString() || '—'}
                         </td>
                         <td className="px-4 py-3">
-                          {t.tx_hash ? (
+                          {(t.tx_hash || t.extrinsic_id) ? (
                             <div className="flex items-center gap-1.5">
                               <span className="font-mono text-[10px] text-slate-400">
-                                {shortHash(t.tx_hash)}
+                                {shortHash(t.tx_hash || t.extrinsic_id)}
                               </span>
-                              <button onClick={() => copyText(t.tx_hash!)}
-                                className="text-slate-500 hover:text-cyan-400">
-                                <Copy size={10} />
-                              </button>
-                              <a href={`https://taostats.io/extrinsic/${t.tx_hash}`}
+                              {t.tx_hash && (
+                                <button onClick={() => copyText(t.tx_hash!)}
+                                  className="text-slate-500 hover:text-cyan-400">
+                                  <Copy size={10} />
+                                </button>
+                              )}
+                              {/* Prefer extrinsic_id link (e.g. "6925022-0021") — Taostats
+                                  routes both hash and extrinsic-id formats */}
+                              <a
+                                href={`https://taostats.io/extrinsic/${t.extrinsic_id || t.tx_hash}`}
                                 target="_blank" rel="noopener noreferrer"
-                                className="text-slate-500 hover:text-cyan-400">
+                                className="text-slate-500 hover:text-cyan-400"
+                                title="View on Taostats"
+                              >
                                 <ExternalLink size={10} />
                               </a>
                             </div>
@@ -874,9 +904,13 @@ function LedgerRow({
                 <button onClick={() => copyText(row.tx_hash!)} className="text-slate-500 hover:text-cyan-400">
                   <Copy size={10} />
                 </button>
-                <a href={`https://taostats.io/extrinsic/${row.tx_hash}`}
+                {/* Use extrinsic_id for Taostats link if available */}
+                <a
+                  href={`https://taostats.io/extrinsic/${(row as ChainTransfer).extrinsic_id || row.tx_hash}`}
                   target="_blank" rel="noopener noreferrer"
-                  className="text-slate-500 hover:text-cyan-400">
+                  className="text-slate-500 hover:text-cyan-400"
+                  title="View on Taostats"
+                >
                   <ExternalLink size={10} />
                 </a>
               </div>

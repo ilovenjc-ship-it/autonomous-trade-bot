@@ -404,71 +404,105 @@ class FundingRequest(BaseModel):
     block_number: Optional[int] = None
 
 
+def _parse_taostats_rows(rows: list) -> list:
+    """
+    Normalise a list of raw Taostats transfer records into our internal format.
+
+    Handles both the legacy flat schema and the current v1 schema:
+      - to/from  → nested {"ss58": "5...", "hex": "0x..."} objects or plain strings
+      - amount   → rao string (e.g. "6500000000") — divide by 1e9 to get TAO
+      - tx_hash  → "transaction_hash" (current) or "hash" / "tx_hash" (legacy)
+      - id       → extrinsic id in "block-index" format (e.g. "finney-6925022-0104")
+    """
+    out = []
+    for r in rows:
+        # ── Addresses ──────────────────────────────────────────────────────────
+        to_field   = r.get("to", {})
+        from_field = r.get("from", {})
+        to_addr   = (to_field.get("ss58")   if isinstance(to_field, dict)   else to_field)   or ""
+        from_addr = (from_field.get("ss58") if isinstance(from_field, dict) else from_field) or ""
+
+        # ── Amount (rao string → TAO float) ────────────────────────────────────
+        raw_amount = r.get("amount") or r.get("amount_tao") or 0
+        if isinstance(raw_amount, str):
+            try:
+                cleaned = raw_amount.replace("τ", "").replace(",", "").strip()
+                val = float(cleaned)
+                amount_tao = val / 1e9 if val > 1_000 else val   # rao threshold
+            except Exception:
+                amount_tao = 0.0
+        elif isinstance(raw_amount, (int, float)):
+            val = float(raw_amount)
+            amount_tao = val / 1e9 if val > 1_000 else val
+        else:
+            amount_tao = 0.0
+
+        # ── Identifiers ────────────────────────────────────────────────────────
+        tx_hash      = r.get("transaction_hash") or r.get("hash") or r.get("tx_hash") or ""
+        extrinsic_id = r.get("extrinsic_id") or r.get("id") or ""
+
+        out.append({
+            "from_address":  from_addr,
+            "to_address":    to_addr,
+            "amount_tao":    round(amount_tao, 6),
+            "block_number":  r.get("block_number") or r.get("block") or 0,
+            "tx_hash":       tx_hash,
+            "extrinsic_id":  extrinsic_id,
+            "timestamp":     r.get("timestamp") or r.get("created_at") or "",
+            "source":        "taostats",
+        })
+    return out
+
+
+def _taostats_headers() -> dict:
+    """
+    Build request headers for the Taostats API.
+    Includes Authorization if TAOSTATS_API_KEY is set in the environment.
+    """
+    import os
+    headers: dict = {"Accept": "application/json", "User-Agent": "TAO-Bot/1.0"}
+    api_key = os.environ.get("TAOSTATS_API_KEY", "").strip()
+    if api_key:
+        headers["Authorization"] = api_key
+    return headers
+
+
 async def _fetch_taostats_transfers(address: str) -> list:
     """
-    Pull transfer history from the Taostats public REST API.
-    Returns a list of dicts with normalised fields.
-    Fails silently — returns [] on any error so the page still loads.
+    Pull transfer history from the Taostats v1 REST API (async wrapper).
+    Raises RuntimeError with a user-visible message on 401/404/network failure
+    so callers can surface the error in the UI.
     """
-    import urllib.request, json, ssl
+    import urllib.request, json, ssl, urllib.error
 
-    urls = [
-        f"https://api.taostats.io/api/transfer/v1/?address={address}&limit=100",
-        f"https://api.taostats.io/api/v1/transfer?address={address}&limit=100",
-    ]
-
+    url = f"https://api.taostats.io/api/transfer/v1?address={address}&limit=100&order=block_number_desc"
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    ctx.verify_mode    = ssl.CERT_NONE
 
-    for url in urls:
+    try:
+        req = urllib.request.Request(url, headers=_taostats_headers())
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+            raw = json.loads(resp.read().decode())
+        rows = raw.get("data") or raw.get("results") or (raw if isinstance(raw, list) else [])
+        return _parse_taostats_rows(rows)
+    except urllib.error.HTTPError as e:
+        body = ""
         try:
-            req = urllib.request.Request(
-                url,
-                headers={"Accept": "application/json", "User-Agent": "TAO-Bot/1.0"},
-            )
-            with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:
-                raw = json.loads(resp.read().decode())
-
-            # Normalise — Taostats may return {"data": [...]} or {"results": [...]}
-            rows = raw.get("data") or raw.get("results") or (raw if isinstance(raw, list) else [])
-            out = []
-            for r in rows:
-                # Amount may be a string like "0.500000000 τ" or a float in rao
-                raw_amount = r.get("amount") or r.get("amount_tao") or 0
-                if isinstance(raw_amount, str):
-                    try:
-                        amount_tao = float(raw_amount.replace("τ", "").replace(",", "").strip())
-                    except Exception:
-                        amount_tao = 0.0
-                elif isinstance(raw_amount, (int, float)):
-                    # Could be in rao (1e9 rao = 1 TAO) — detect by magnitude
-                    amount_tao = float(raw_amount) / 1e9 if float(raw_amount) > 1000 else float(raw_amount)
-                else:
-                    amount_tao = 0.0
-
-                out.append({
-                    "from_address":  r.get("from") or r.get("from_address") or "",
-                    "to_address":    r.get("to")   or r.get("to_address")   or "",
-                    "amount_tao":    round(amount_tao, 6),
-                    "block_number":  r.get("block_number") or r.get("block") or 0,
-                    "tx_hash":       r.get("hash") or r.get("tx_hash") or r.get("extrinsic_id") or "",
-                    "timestamp":     r.get("timestamp") or r.get("created_at") or "",
-                    "source":        "taostats",
-                })
-            if out:
-                return out
-        except Exception as _e:
-            logger.debug(f"Taostats fetch attempt failed ({url}): {_e}")
-            continue
-
-    return []
+            body = e.read().decode()[:200]
+        except Exception:
+            pass
+        if e.code == 401:
+            raise RuntimeError("Taostats API key required — sign up free at taostats.io/pro then add TAOSTATS_API_KEY to your environment")
+        raise RuntimeError(f"Taostats API {e.code}: {body or e.reason}")
+    except Exception as exc:
+        raise RuntimeError(f"Taostats connection failed: {exc}")
 
 
 @router.get("/chain-transfers")
 async def get_chain_transfers():
     """
-    Fetch wallet transfer history from the Taostats public API.
+    Fetch wallet transfer history from the Taostats v1 API.
     Returns the raw normalised list — useful for reconciliation.
     Filtered to INBOUND transfers to our coldkey address only.
     """
@@ -476,61 +510,46 @@ async def get_chain_transfers():
     if not address:
         return {"transfers": [], "error": "No coldkey address configured — restore wallet first"}
 
-    transfers = await asyncio.get_running_loop().run_in_executor(
-        None, _fetch_taostats_transfers_sync, address
-    )
-    inbound = [t for t in transfers if t.get("to_address") == address]
-    return {"transfers": inbound, "count": len(inbound), "address": address}
+    try:
+        transfers = await _fetch_taostats_transfers(address)
+        inbound   = [t for t in transfers if t.get("to_address") == address]
+        return {"transfers": inbound, "count": len(inbound), "address": address}
+    except RuntimeError as e:
+        return {"transfers": [], "count": 0, "address": address, "error": str(e)}
 
 
 def _fetch_taostats_transfers_sync(address: str) -> list:
-    """Synchronous wrapper for executor."""
-    import urllib.request, json, ssl
+    """
+    Synchronous version of _fetch_taostats_transfers for use with run_in_executor.
+    Uses the correct v1 URL (no trailing slash) and new response schema.
+    Raises RuntimeError with user-visible message on auth/network failure.
+    """
+    import urllib.request, json, ssl, urllib.error
 
-    urls = [
-        f"https://api.taostats.io/api/transfer/v1/?address={address}&limit=100",
-    ]
+    url = f"https://api.taostats.io/api/transfer/v1?address={address}&limit=100&order=block_number_desc"
     ctx = ssl.create_default_context()
     ctx.check_hostname = False
-    ctx.verify_mode = ssl.CERT_NONE
+    ctx.verify_mode    = ssl.CERT_NONE
 
-    for url in urls:
+    try:
+        req = urllib.request.Request(url, headers=_taostats_headers())
+        with urllib.request.urlopen(req, timeout=10, context=ctx) as resp:
+            raw = json.loads(resp.read().decode())
+        rows = raw.get("data") or raw.get("results") or (raw if isinstance(raw, list) else [])
+        return _parse_taostats_rows(rows)
+    except urllib.error.HTTPError as e:
+        body = ""
         try:
-            req = urllib.request.Request(
-                url,
-                headers={"Accept": "application/json", "User-Agent": "TAO-Bot/1.0"},
-            )
-            with urllib.request.urlopen(req, timeout=8, context=ctx) as resp:
-                raw = json.loads(resp.read().decode())
-
-            rows = raw.get("data") or raw.get("results") or (raw if isinstance(raw, list) else [])
-            out = []
-            for r in rows:
-                raw_amount = r.get("amount") or r.get("amount_tao") or 0
-                if isinstance(raw_amount, str):
-                    try:
-                        amount_tao = float(raw_amount.replace("τ", "").replace(",", "").strip())
-                    except Exception:
-                        amount_tao = 0.0
-                elif isinstance(raw_amount, (int, float)):
-                    amount_tao = float(raw_amount) / 1e9 if float(raw_amount) > 1000 else float(raw_amount)
-                else:
-                    amount_tao = 0.0
-
-                out.append({
-                    "from_address":  r.get("from") or r.get("from_address") or "",
-                    "to_address":    r.get("to")   or r.get("to_address")   or "",
-                    "amount_tao":    round(amount_tao, 6),
-                    "block_number":  r.get("block_number") or r.get("block") or 0,
-                    "tx_hash":       r.get("hash") or r.get("tx_hash") or r.get("extrinsic_id") or "",
-                    "timestamp":     r.get("timestamp") or r.get("created_at") or "",
-                    "source":        "taostats",
-                })
-            return out
-        except Exception as _e:
-            logger.debug(f"Taostats sync fetch failed: {_e}")
-
-    return []
+            body = e.read().decode()[:200]
+        except Exception:
+            pass
+        if e.code == 401:
+            raise RuntimeError("Taostats API key required — sign up free at taostats.io/pro then add TAOSTATS_API_KEY to your environment")
+        raise RuntimeError(f"Taostats API {e.code}: {body or e.reason}")
+    except RuntimeError:
+        raise
+    except Exception as exc:
+        raise RuntimeError(f"Taostats connection failed: {exc}")
 
 
 @router.get("/db-check")
@@ -774,11 +793,12 @@ async def get_transactions(db: AsyncSession = Depends(get_db)):
                 {
                     "type":         "TRANSFER_IN",
                     "subtype":      "chain",
-                    "id":           f"chain-{t.get('tx_hash', i)}",
+                    "id":           f"chain-{t.get('tx_hash') or t.get('extrinsic_id') or i}",
                     "amount_tao":   t["amount_tao"],
                     "from_address": t["from_address"],
                     "to_address":   t["to_address"],
                     "tx_hash":      t["tx_hash"],
+                    "extrinsic_id": t.get("extrinsic_id", ""),
                     "block_number": t["block_number"],
                     "timestamp":    t["timestamp"],
                     "source":       "taostats",
@@ -786,8 +806,12 @@ async def get_transactions(db: AsyncSession = Depends(get_db)):
                 for i, t in enumerate(all_transfers)
                 if t.get("to_address") == coldkey
             ]
-        except Exception as _e:
+        except RuntimeError as _e:
+            # User-visible errors (401 API key, 404 endpoint, network failure)
             chain_error = str(_e)
+            logger.info(f"[TRANSACTIONS] Taostats: {_e}")
+        except Exception as _e:
+            chain_error = f"Unexpected error fetching chain data: {_e}"
             logger.debug(f"[TRANSACTIONS] Taostats fetch failed: {_e}")
 
     # ── Build unified ledger (sorted newest first) ────────────────────────────
