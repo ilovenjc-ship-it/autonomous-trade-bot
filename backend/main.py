@@ -19,8 +19,10 @@ from services.subnet_router import set_primary_validator
 from services.promotion_service import promotion_service
 from services.subnet_cache_service import subnet_cache_service
 from services.webhook_service import webhook_service
+from services import signal_ingestor
 from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent, alerts, wallet, pnl, override
 from routers import webhooks as webhooks_router
+from routers import signal_feeds as signal_feeds_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -198,6 +200,11 @@ async def lifespan(app: FastAPI):
         except Exception as _e:
             logger.error(f"Promotion engine start failed: {_e}")
 
+        try:
+            await signal_ingestor.start_all()
+        except Exception as _e:
+            logger.error(f"SignalIngestor start failed: {_e}")
+
     _aio.create_task(_boot_services())
 
     logger.info("=== Lifespan ready — /health is live ===")
@@ -279,6 +286,7 @@ app.include_router(wallet.router)
 app.include_router(pnl.router)
 app.include_router(override.router)
 app.include_router(webhooks_router.router)
+app.include_router(signal_feeds_router.router)
 
 
 @app.get("/")

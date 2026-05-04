@@ -78,7 +78,7 @@ function KindBadge({ kind }: { kind: string }) {
 // ── Legend bar ────────────────────────────────────────────────────────────────
 const LEGEND_ITEMS: { kind: string; desc: string }[] = [
   { kind: 'trade',  desc: 'TAO buy / sell executed'         },
-  { kind: 'signal', desc: 'Bot signal generated'            },
+  { kind: 'signal', desc: 'Bot signal or external feed event' },
   { kind: 'gate',   desc: 'Promotion / demotion checkpoint' },
   { kind: 'alert',  desc: 'Risk trigger or error'           },
   { kind: 'system', desc: 'Scheduler / system event'        },
@@ -635,14 +635,346 @@ function WebhookDrawer({ open, onClose }: { open: boolean; onClose: () => void }
   )
 }
 
+// ══════════════════════════════════════════════════════════════════════════════
+// ── Signal Feeds Drawer ───────────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+
+interface SignalFeed {
+  id:             string
+  name:           string
+  description:    string
+  icon:           string
+  auth:           'none' | 'api_key' | 'bot_token'
+  interval_label: string
+  enabled:        boolean
+  status:         'connected' | 'error' | 'disabled' | 'connecting' | 'pending_invite'
+  last_fetch:     string | null
+  last_value:     string | null
+  error:          string | null
+  events_total:   number
+  config:         Record<string, string>
+}
+
+const FEED_ICON: Record<string, string> = {
+  coin:    '💰',
+  reddit:  '🔴',
+  news:    '📰',
+  chain:   '⛓️',
+  ai:      '🤖',
+  discord: '💬',
+}
+
+const STATUS_META: Record<string, { label: string; cls: string }> = {
+  connected:      { label: 'Connected',      cls: 'text-accent-green bg-accent-green/10 border-accent-green/30' },
+  error:          { label: 'Error',          cls: 'text-red-400      bg-red-400/10      border-red-400/30'      },
+  disabled:       { label: 'Disabled',       cls: 'text-slate-400    bg-dark-700        border-dark-600'        },
+  connecting:     { label: 'Connecting…',    cls: 'text-yellow-400   bg-yellow-400/10   border-yellow-400/30'   },
+  pending_invite: { label: 'Pending Invite', cls: 'text-orange-400   bg-orange-400/10   border-orange-400/30'   },
+}
+
+function timeSinceShort(iso: string | null): string {
+  if (!iso) return 'Never'
+  const diff = Date.now() - new Date(iso).getTime()
+  const s = Math.floor(diff / 1000)
+  if (s < 60)  return `${s}s ago`
+  const m = Math.floor(s / 60)
+  if (m < 60)  return `${m}m ago`
+  return `${Math.floor(m / 60)}h ago`
+}
+
+function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
+  feed:       SignalFeed
+  onToggle:   (id: string, enabled: boolean) => void
+  onSaveKey:  (id: string, config: Record<string, string>) => void
+  onTest:     (id: string) => void
+}) {
+  const [keyVal,   setKeyVal]   = useState('')
+  const [showKey,  setShowKey]  = useState(false)
+  const [saving,   setSaving]   = useState(false)
+  const [testing,  setTesting]  = useState(false)
+  const sm = STATUS_META[feed.status] ?? STATUS_META.disabled
+
+  async function handleSaveKey() {
+    if (!keyVal.trim()) { toast.error('Enter an API key'); return }
+    setSaving(true)
+    try { await onSaveKey(feed.id, { api_key: keyVal.trim() }) }
+    finally { setSaving(false); setKeyVal('') }
+  }
+
+  async function handleTest() {
+    setTesting(true)
+    try { await onTest(feed.id) }
+    finally { setTesting(false) }
+  }
+
+  const isDiscord = feed.id === 'discord'
+
+  return (
+    <div className={clsx(
+      'bg-dark-800 border rounded-xl p-4 space-y-3 transition-all',
+      feed.enabled ? 'border-dark-500' : 'border-dark-700 opacity-75',
+    )}>
+      {/* Header row */}
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-xl leading-none flex-shrink-0">{FEED_ICON[feed.icon] ?? '📡'}</span>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-sm font-semibold text-white">{feed.name}</span>
+              <span className={clsx('inline-flex items-center px-1.5 py-0.5 rounded border text-[10px] font-mono font-semibold', sm.cls)}>
+                {sm.label}
+              </span>
+              <span className="text-[10px] font-mono text-slate-500 bg-dark-700 px-1.5 py-0.5 rounded border border-dark-600">
+                {feed.interval_label}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-400 font-mono mt-0.5 leading-snug">{feed.description}</p>
+          </div>
+        </div>
+
+        {/* Toggle */}
+        <button
+          onClick={() => onToggle(feed.id, !feed.enabled)}
+          disabled={isDiscord}
+          title={isDiscord ? 'Discord requires OTF server invite — cannot enable manually' : undefined}
+          className={clsx('flex-shrink-0 transition-colors', isDiscord && 'opacity-40 cursor-not-allowed')}
+        >
+          {feed.enabled
+            ? <ToggleRight size={28} className="text-accent-green" />
+            : <ToggleLeft  size={28} className="text-slate-500" />
+          }
+        </button>
+      </div>
+
+      {/* Stats strip */}
+      <div className="flex items-center gap-4 text-[10px] font-mono text-slate-500">
+        <span>Last fetch: <span className="text-slate-300">{timeSinceShort(feed.last_fetch)}</span></span>
+        {feed.last_value && (
+          <span>Value: <span className="text-slate-300">{feed.last_value}</span></span>
+        )}
+        <span className="ml-auto">
+          {feed.events_total} event{feed.events_total !== 1 ? 's' : ''} emitted
+        </span>
+      </div>
+
+      {/* Error banner */}
+      {feed.error && (
+        <div className="flex items-start gap-2 bg-red-500/8 border border-red-500/20 rounded-lg px-3 py-2">
+          <AlertTriangle size={11} className="text-red-400 flex-shrink-0 mt-0.5" />
+          <p className="text-[10px] text-red-300 font-mono leading-snug">{feed.error}</p>
+        </div>
+      )}
+
+      {/* API key input (for taostats / perplexity) */}
+      {feed.auth === 'api_key' && (
+        <div className="space-y-1.5">
+          <label className="text-[10px] text-slate-400 font-mono uppercase tracking-wide">
+            API Key {feed.config?.api_key ? '— currently saved (masked)' : '— required to enable'}
+          </label>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 flex items-center gap-2 bg-dark-700 border border-dark-500 focus-within:border-accent-blue rounded-lg px-3 py-2 transition-colors">
+              <input
+                type={showKey ? 'text' : 'password'}
+                value={keyVal}
+                onChange={e => setKeyVal(e.target.value)}
+                placeholder={feed.config?.api_key ? 'Enter new key to replace…' : 'Paste API key here…'}
+                className="flex-1 bg-transparent text-xs text-white font-mono focus:outline-none placeholder-slate-600"
+              />
+              <button onClick={() => setShowKey(v => !v)} className="text-slate-400 hover:text-white transition-colors flex-shrink-0">
+                {showKey ? <EyeOff size={11} /> : <Eye size={11} />}
+              </button>
+            </div>
+            <button
+              onClick={handleSaveKey}
+              disabled={saving || !keyVal.trim()}
+              className="flex items-center gap-1 px-3 py-2 bg-accent-blue/20 hover:bg-accent-blue/30 border border-accent-blue/40 text-accent-blue rounded-lg text-xs font-mono font-semibold transition-all disabled:opacity-50"
+            >
+              {saving ? <RefreshCw size={10} className="animate-spin" /> : <Check size={10} />}
+              Save
+            </button>
+          </div>
+          {feed.id === 'taostats' && (
+            <p className="text-[10px] text-slate-500 font-mono">
+              Sign up free at{' '}
+              <a href="https://taostats.io/pro" target="_blank" rel="noopener" className="text-accent-blue hover:underline">
+                taostats.io/pro
+              </a>
+            </p>
+          )}
+          {feed.id === 'perplexity' && (
+            <p className="text-[10px] text-slate-500 font-mono">
+              Get a key at{' '}
+              <a href="https://www.perplexity.ai/api" target="_blank" rel="noopener" className="text-accent-blue hover:underline">
+                perplexity.ai/api
+              </a>
+              {' '}· sonar model · ~$0.006/call · ~$16/month at 15-min interval
+            </p>
+          )}
+        </div>
+      )}
+
+      {/* Discord pending-invite note */}
+      {isDiscord && (
+        <div className="flex items-start gap-2 bg-orange-500/8 border border-orange-500/20 rounded-lg px-3 py-2">
+          <Info size={11} className="text-orange-400 flex-shrink-0 mt-0.5" />
+          <div className="text-[10px] text-orange-200 font-mono leading-snug space-y-0.5">
+            <p className="font-semibold">Requires OTF server admin invitation</p>
+            <p>Create a bot at <a href="https://discord.com/developers/applications" target="_blank" rel="noopener" className="text-orange-300 hover:underline">discord.com/developers</a>, enable the <span className="text-white">MESSAGE_CONTENT</span> privileged intent, then ask an OpenTensor Foundation admin to invite it to <span className="text-white">discord.gg/bittensor</span>.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Test button (non-Discord only) */}
+      {!isDiscord && feed.enabled && (
+        <button
+          onClick={handleTest}
+          disabled={testing}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-dark-700 hover:bg-dark-600 border border-dark-500 text-slate-300 hover:text-white rounded-lg text-xs font-mono transition-all disabled:opacity-50"
+        >
+          {testing
+            ? <RefreshCw size={10} className="animate-spin" />
+            : <Send size={10} />
+          }
+          {testing ? 'Fetching…' : 'Test fetch → Activity Log'}
+        </button>
+      )}
+    </div>
+  )
+}
+
+function SignalFeedsDrawer({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [feeds,    setFeeds]   = useState<SignalFeed[]>([])
+  const [loading,  setLoading] = useState(true)
+
+  const load = useCallback(async () => {
+    try {
+      const res = await api.get('/signal-feeds')
+      setFeeds(res.data.feeds ?? [])
+    } catch {}
+    finally { setLoading(false) }
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    load()
+    const t = setInterval(load, 8000)   // refresh status every 8s while open
+    return () => clearInterval(t)
+  }, [open, load])
+
+  async function handleToggle(id: string, enabled: boolean) {
+    try {
+      await api.post(`/signal-feeds/${id}/toggle`, { enabled })
+      setFeeds(prev => prev.map(f => f.id === id ? { ...f, enabled, status: enabled ? 'connecting' : 'disabled' } : f))
+      toast.success(enabled ? 'Feed enabled ✓' : 'Feed disabled')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Toggle failed')
+    }
+  }
+
+  async function handleSaveKey(id: string, config: Record<string, string>) {
+    try {
+      await api.post(`/signal-feeds/${id}/config`, { config })
+      toast.success('API key saved — feed enabled ✓')
+      load()
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Save failed')
+    }
+  }
+
+  async function handleTest(id: string) {
+    try {
+      await api.post(`/signal-feeds/${id}/test`)
+      toast.success('Test fetch triggered — check Activity Log')
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail ?? 'Test failed')
+    }
+  }
+
+  if (!open) return null
+
+  const connected  = feeds.filter(f => f.status === 'connected').length
+  const total      = feeds.length
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Drawer */}
+      <div className="fixed right-0 top-0 bottom-0 z-50 w-full max-w-xl bg-dark-900 border-l border-dark-500 shadow-2xl flex flex-col overflow-hidden">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-dark-600 flex-shrink-0">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 bg-accent-blue/10 border border-accent-blue/30 rounded-lg flex items-center justify-center">
+              <Radio size={15} className="text-accent-blue" />
+            </div>
+            <div>
+              <h2 className="text-white font-semibold text-base">Signal Feeds</h2>
+              <p className="text-slate-400 text-xs font-mono">
+                {loading ? 'Loading…' : `${connected} / ${total} connected`}
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={load} className="p-1.5 text-slate-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors">
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white hover:bg-dark-700 rounded-lg transition-colors">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
+
+        {/* Info banner */}
+        <div className="mx-5 mt-4 flex items-start gap-2.5 bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex-shrink-0">
+          <Info size={13} className="text-accent-blue flex-shrink-0 mt-0.5" />
+          <div className="text-xs text-slate-400 font-mono space-y-0.5">
+            <p><span className="text-white font-semibold">Inbound signal feeds</span> — external sources polled on a schedule and injected into the Activity Log as <span className="text-accent-blue font-semibold">SIGNAL</span> events.</p>
+            <p>Free sources auto-start. API-key sources activate when you paste a key. Discord requires an OTF server invite.</p>
+          </div>
+        </div>
+
+        {/* Feed cards */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          {loading && !feeds.length && (
+            <div className="flex items-center justify-center py-12">
+              <RefreshCw size={18} className="animate-spin text-slate-400" />
+            </div>
+          )}
+          {feeds.map(feed => (
+            <SignalFeedCard
+              key={feed.id}
+              feed={feed}
+              onToggle={handleToggle}
+              onSaveKey={handleSaveKey}
+              onTest={handleTest}
+            />
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div className="flex-shrink-0 px-5 py-3 border-t border-dark-600">
+          <p className="text-[10px] text-slate-500 font-mono">
+            Signal events appear in the Activity Log stream under the <span className="text-accent-blue font-semibold">SIGNAL</span> filter.
+            All polling is server-side — no browser connection required.
+          </p>
+        </div>
+
+      </div>
+    </>
+  )
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 export default function ActivityLog() {
-  const [events,        setEvents]        = useState<Event[]>([])
-  const [loading,       setLoading]       = useState(true)
-  const [live,          setLive]          = useState(true)
-  const [filter,        setFilter]        = useState<string>('all')
-  const [search,        setSearch]        = useState('')
-  const [webhookOpen,   setWebhookOpen]   = useState(false)
+  const [events,           setEvents]           = useState<Event[]>([])
+  const [loading,          setLoading]          = useState(true)
+  const [live,             setLive]             = useState(true)
+  const [filter,           setFilter]           = useState<string>('all')
+  const [search,           setSearch]           = useState('')
+  const [webhookOpen,      setWebhookOpen]      = useState(false)
+  const [signalFeedsOpen,  setSignalFeedsOpen]  = useState(false)
   const topRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
@@ -765,10 +1097,20 @@ export default function ActivityLog() {
           <button
             onClick={() => setWebhookOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 hover:border-indigo-500/50 text-indigo-300 hover:text-indigo-200 rounded-lg text-xs font-mono font-semibold transition-all"
-            title="Configure webhook notifications"
+            title="Configure outbound webhook notifications"
           >
             <Webhook size={12} />
             Webhooks
+          </button>
+
+          {/* Signal Feeds button */}
+          <button
+            onClick={() => setSignalFeedsOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-blue/10 hover:bg-accent-blue/20 border border-accent-blue/30 hover:border-accent-blue/50 text-accent-blue hover:text-sky-200 rounded-lg text-xs font-mono font-semibold transition-all"
+            title="Connect inbound signal feeds (CoinGecko, TaoDaily, Reddit, Taostats, Perplexity, Discord)"
+          >
+            <Radio size={12} />
+            Signal Feeds
           </button>
         </div>
       </div>
@@ -855,8 +1197,11 @@ export default function ActivityLog() {
       </div>
       </div>{/* end inner flex-col */}
 
-      {/* Webhook configuration drawer */}
+      {/* Outbound webhook configuration drawer */}
       <WebhookDrawer open={webhookOpen} onClose={() => setWebhookOpen(false)} />
+
+      {/* Inbound signal feeds drawer */}
+      <SignalFeedsDrawer open={signalFeedsOpen} onClose={() => setSignalFeedsOpen(false)} />
     </div>
   )
 }
