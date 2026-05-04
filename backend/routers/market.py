@@ -90,8 +90,71 @@ SUBNET_META = {
     62: ("Storb",                   "storb"),
     63: ("Melting Pot",             "meltingpot"),
     64: ("Chutes",                  "chutes"),
-    # Extended subnets — trading targets beyond the original display range
+    # ── SN65–SN128 — extended Bittensor subnet registry ─────────────────────
+    65: ("Subnet 65",               "sn65"),
+    66: ("Subnet 66",               "sn66"),
+    67: ("Subnet 67",               "sn67"),
+    68: ("Subnet 68",               "sn68"),
+    69: ("Subnet 69",               "sn69"),
+    70: ("Subnet 70",               "sn70"),
+    71: ("Subnet 71",               "sn71"),
+    72: ("Subnet 72",               "sn72"),
+    73: ("Subnet 73",               "sn73"),
+    74: ("Subnet 74",               "sn74"),
+    75: ("Subnet 75",               "sn75"),
+    76: ("Subnet 76",               "sn76"),
+    77: ("Subnet 77",               "sn77"),
+    78: ("Subnet 78",               "sn78"),
+    79: ("Subnet 79",               "sn79"),
+    80: ("Subnet 80",               "sn80"),
+    81: ("Subnet 81",               "sn81"),
+    82: ("Subnet 82",               "sn82"),
+    83: ("Subnet 83",               "sn83"),
+    84: ("Subnet 84",               "sn84"),
+    85: ("Subnet 85",               "sn85"),
+    86: ("Subnet 86",               "sn86"),
+    87: ("Subnet 87",               "sn87"),
+    88: ("Subnet 88",               "sn88"),
+    89: ("Subnet 89",               "sn89"),
+    90: ("Subnet 90",               "sn90"),
+    91: ("Subnet 91",               "sn91"),
+    92: ("Subnet 92",               "sn92"),
+    93: ("Subnet 93",               "sn93"),
+    94: ("Subnet 94",               "sn94"),
+    95: ("Subnet 95",               "sn95"),
     96: ("Subnet 96",               "sn96"),
+    97: ("Subnet 97",               "sn97"),
+    98: ("Subnet 98",               "sn98"),
+    99: ("Subnet 99",               "sn99"),
+    100: ("Subnet 100",             "sn100"),
+    101: ("Subnet 101",             "sn101"),
+    102: ("Subnet 102",             "sn102"),
+    103: ("Subnet 103",             "sn103"),
+    104: ("Subnet 104",             "sn104"),
+    105: ("Subnet 105",             "sn105"),
+    106: ("Subnet 106",             "sn106"),
+    107: ("Subnet 107",             "sn107"),
+    108: ("Subnet 108",             "sn108"),
+    109: ("Subnet 109",             "sn109"),
+    110: ("Subnet 110",             "sn110"),
+    111: ("Subnet 111",             "sn111"),
+    112: ("Subnet 112",             "sn112"),
+    113: ("Subnet 113",             "sn113"),
+    114: ("Subnet 114",             "sn114"),
+    115: ("Subnet 115",             "sn115"),
+    116: ("Subnet 116",             "sn116"),
+    117: ("Subnet 117",             "sn117"),
+    118: ("Subnet 118",             "sn118"),
+    119: ("Subnet 119",             "sn119"),
+    120: ("Subnet 120",             "sn120"),
+    121: ("Subnet 121",             "sn121"),
+    122: ("Subnet 122",             "sn122"),
+    123: ("Subnet 123",             "sn123"),
+    124: ("Subnet 124",             "sn124"),
+    125: ("Subnet 125",             "sn125"),
+    126: ("Subnet 126",             "sn126"),
+    127: ("Subnet 127",             "sn127"),
+    128: ("Subnet 128",             "sn128"),
 }
 
 # ── Subnet descriptions ───────────────────────────────────────────────────────
@@ -170,10 +233,8 @@ _TAOBOT_MONITORED = TRADING_NETUIDS  # {0, 8, 9, 18, 64, 96}
 # Used as fallback when real chain data is unavailable.
 _rng = random.Random(42)
 
-# Cover all UIDs that may be displayed or traded (1-64 + extended trading targets)
-_DISPLAY_UIDS = list(range(1, 65)) + sorted(
-    uid for uid in SUBNET_META if uid > 64
-)
+# Cover all UIDs that may be displayed or traded (SN1–SN128 full range)
+_DISPLAY_UIDS = list(range(1, 129))
 
 _BASE: dict[int, dict] = {}
 for uid in _DISPLAY_UIDS:
@@ -519,7 +580,7 @@ async def get_subnet_detail(uid: int):
         "description":   description,
         "is_monitored":  is_monitored,
         "price_history": [round(p, 6) for p in raw_history],
-        "taostats_url":  f"https://taostats.io/subnet/{uid}",
+        "taostats_url":  f"https://taostats.io/subnets/{uid}",
         "tao_app_url":   f"https://tao.app/subnet/{uid}",
         "taobot_label":  "TaoBot Active" if is_monitored else "Monitor Only",
     }
@@ -537,7 +598,7 @@ async def market_stats():
 
     return {
         "tao_price":       round(tao_price, 2),
-        "total_subnets":   64,
+        "total_subnets":   len(all_s),
         "total_stake_tao": round(total_stake, 0),
         "total_stake_usd": round(total_stake * tao_price, 0),
         "avg_apy":         round(avg_apy, 1),

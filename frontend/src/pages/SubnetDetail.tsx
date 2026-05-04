@@ -16,7 +16,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import {
   ArrowLeft, RefreshCw, ExternalLink, Shield, TrendingUp, TrendingDown,
   Minus, Lock, Unlock, AlertTriangle, CheckCircle2, Activity, Users,
-  Zap, BarChart2, Globe, X, Info,
+  Zap, BarChart2, Globe, X, Info, HelpCircle,
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
@@ -416,9 +416,33 @@ export default function SubnetDetail() {
 
         {/* ── Description ─────────────────────────────────────────────── */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-          <div className="flex items-center gap-2 mb-3">
-            <Info size={14} className="text-slate-400" />
-            <h2 className="text-white font-semibold text-sm">About SN{netuid}</h2>
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <Info size={14} className="text-slate-400" />
+              <h2 className="text-white font-semibold text-sm">About SN{netuid}</h2>
+            </div>
+            <div className="flex items-center gap-2">
+              <a
+                href={detail.taostats_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono text-slate-400 hover:text-accent-blue border border-dark-600 hover:border-accent-blue/40 transition-colors"
+              >
+                <BarChart2 size={10} />
+                Taostats
+                <ExternalLink size={9} />
+              </a>
+              <a
+                href={detail.tao_app_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-mono text-slate-400 hover:text-purple-400 border border-dark-600 hover:border-purple-500/40 transition-colors"
+              >
+                <Globe size={10} />
+                TAO.app
+                <ExternalLink size={9} />
+              </a>
+            </div>
           </div>
           <p className="text-slate-300 text-sm leading-relaxed">{detail.description}</p>
           {detail.is_monitored && (
@@ -507,76 +531,81 @@ export default function SubnetDetail() {
               )
             )}
 
-            {/* Two-column layout: input + info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Amount input */}
-              <div>
-                <label className="block text-xs text-slate-400 font-mono mb-1.5 uppercase tracking-wide">
+            {/* Input row — single column, help tooltip on label */}
+            <div className="max-w-md">
+              {/* Label row with hover-help */}
+              <div className="flex items-center gap-2 mb-1.5 group relative">
+                <label className="text-xs text-slate-400 font-mono uppercase tracking-wide">
                   {stakeTab === 'stake' ? 'Amount to Stake (τ TAO)' : 'Amount to Unstake (α alpha)'}
                 </label>
-                <div className="flex items-center gap-2 bg-dark-700 border border-dark-500 focus-within:border-accent-blue rounded-lg px-3 py-2.5 transition-colors">
-                  <input
-                    type="number"
-                    min="0"
-                    step="0.001"
-                    value={stakeAmt}
-                    onChange={e => setStakeAmt(e.target.value)}
-                    placeholder={stakeTab === 'stake' ? '0.000 τ' : '0.00000 α'}
-                    className="flex-1 bg-transparent text-white font-mono text-sm focus:outline-none placeholder-slate-600"
-                  />
-                  <span className="text-slate-400 font-mono text-xs">{stakeTab === 'stake' ? 'τ' : 'α'}</span>
+                {/* Help trigger */}
+                <div className="relative">
+                  <HelpCircle size={13} className="text-slate-600 hover:text-slate-300 cursor-help transition-colors" />
+                  {/* Tooltip — visible on hover of the icon */}
+                  <div className="absolute left-5 top-0 z-50 w-72 bg-dark-900 border border-dark-500 rounded-xl p-4 shadow-2xl text-xs font-mono text-slate-400 space-y-1.5 leading-relaxed
+                    opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto transition-opacity duration-150">
+                    {stakeTab === 'stake' ? (
+                      <>
+                        <p className="text-slate-200 font-bold mb-2">How staking works</p>
+                        <p>• Your τ TAO converts to α alpha tokens at the current bonding-curve rate</p>
+                        <p>• Alpha earns yield from subnet emission — current APY: <span className="text-accent-green font-bold">{detail.apy.toFixed(1)}%</span></p>
+                        <p>• Routes through TaoBot's configured validator for SN{netuid}</p>
+                        <p>• Minimum stake: 0.001 τ · Block time: ~12 s</p>
+                        <p>• Keep ≥ 0.01 τ liquid to cover future extrinsic fees</p>
+                      </>
+                    ) : (
+                      <>
+                        <p className="text-slate-200 font-bold mb-2">How unstaking works</p>
+                        <p>• α alpha converts back to τ TAO at the current alpha price</p>
+                        <p>• Partial unstake supported — enter any α ≤ your open position</p>
+                        <p>• Leave blank to unstake your full position</p>
+                        <p>• On-chain confirmation ~12 s (one Bittensor block)</p>
+                        <p>• Unstaked TAO arrives in your coldkey wallet immediately</p>
+                      </>
+                    )}
+                  </div>
                 </div>
-                <button
-                  onClick={stakeTab === 'stake' ? handleStake : handleUnstake}
-                  disabled={stakeLoading || (stakeTab === 'unstake' && !position && !stakeAmt)}
-                  className={clsx(
-                    'mt-3 w-full py-2.5 rounded-xl font-semibold font-mono text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
-                    stakeTab === 'stake'
-                      ? 'bg-accent-green/20 hover:bg-accent-green/30 border border-accent-green/40 text-accent-green hover:shadow-lg hover:shadow-accent-green/20'
-                      : 'bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 hover:shadow-lg hover:shadow-red-500/20'
-                  )}
-                >
-                  {stakeLoading ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <RefreshCw size={13} className="animate-spin" />
-                      {stakeTab === 'stake' ? 'Staking on-chain…' : 'Unstaking on-chain…'}
-                    </span>
-                  ) : stakeTab === 'stake' ? (
-                    <span className="flex items-center justify-center gap-1.5">
-                      <Lock size={13} />
-                      Stake τ{stakeAmt || '0'} → SN{netuid}
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-1.5">
-                      <Unlock size={13} />
-                      Unstake α{stakeAmt || (position?.alpha.toFixed(4) ?? '0')} ← SN{netuid}
-                    </span>
-                  )}
-                </button>
               </div>
 
-              {/* Info panel */}
-              <div className="bg-dark-700 border border-dark-600 rounded-lg p-4 space-y-2 text-xs font-mono text-slate-400">
-                {stakeTab === 'stake' ? (
-                  <>
-                    <p className="text-slate-300 font-semibold mb-1">How staking works</p>
-                    <p>• Your τ TAO is converted to α alpha tokens at the current exchange rate</p>
-                    <p>• Alpha earns yield based on subnet emission (current APY: <span className="text-accent-green">{detail.apy.toFixed(1)}%</span>)</p>
-                    <p>• Routes through TaoBot's validator for SN{netuid}</p>
-                    <p>• Minimum: 0.001 τ · Block time: ~12 s</p>
-                    <p>• Keep ≥ 0.01 τ liquid for future fees</p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-slate-300 font-semibold mb-1">How unstaking works</p>
-                    <p>• α alpha is converted back to τ TAO at the current alpha price</p>
-                    <p>• Partial unstake supported — enter any α amount ≤ your position</p>
-                    <p>• Leave blank to unstake the full position</p>
-                    <p>• On-chain confirmation ~12 s (one Bittensor block)</p>
-                    <p>• Unstaked TAO lands in your coldkey wallet immediately</p>
-                  </>
-                )}
+              <div className="flex items-center gap-2 bg-dark-700 border border-dark-500 focus-within:border-accent-blue rounded-lg px-3 py-2.5 transition-colors">
+                <input
+                  type="number"
+                  min="0"
+                  step="0.001"
+                  value={stakeAmt}
+                  onChange={e => setStakeAmt(e.target.value)}
+                  placeholder={stakeTab === 'stake' ? '0.000 τ' : '0.00000 α'}
+                  className="flex-1 bg-transparent text-white font-mono text-sm focus:outline-none placeholder-slate-600"
+                />
+                <span className="text-slate-400 font-mono text-xs">{stakeTab === 'stake' ? 'τ' : 'α'}</span>
               </div>
+              <button
+                onClick={stakeTab === 'stake' ? handleStake : handleUnstake}
+                disabled={stakeLoading || (stakeTab === 'unstake' && !position && !stakeAmt)}
+                className={clsx(
+                  'mt-3 w-full py-2.5 rounded-xl font-semibold font-mono text-sm transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed',
+                  stakeTab === 'stake'
+                    ? 'bg-accent-green/20 hover:bg-accent-green/30 border border-accent-green/40 text-accent-green hover:shadow-lg hover:shadow-accent-green/20'
+                    : 'bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-400 hover:shadow-lg hover:shadow-red-500/20'
+                )}
+              >
+                {stakeLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <RefreshCw size={13} className="animate-spin" />
+                    {stakeTab === 'stake' ? 'Staking on-chain…' : 'Unstaking on-chain…'}
+                  </span>
+                ) : stakeTab === 'stake' ? (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <Lock size={13} />
+                    Stake τ{stakeAmt || '0'} → SN{netuid}
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-1.5">
+                    <Unlock size={13} />
+                    Unstake α{stakeAmt || (position?.alpha.toFixed(4) ?? '0')} ← SN{netuid}
+                  </span>
+                )}
+              </button>
             </div>
           </div>
         </div>
