@@ -20,6 +20,7 @@ Feed status is exposed via get_feed_status() → served by signal_feeds router.
 
 import asyncio
 import logging
+import os
 import xml.etree.ElementTree as ET
 from datetime import datetime, timezone
 from typing import Optional
@@ -294,7 +295,7 @@ async def _poll_taostats() -> None:
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(url, headers={
-                "Authorization": f"Bearer {api_key}",
+                "Authorization": api_key,   # raw key — no "Bearer" prefix (matches Taostats v1 spec)
                 "User-Agent":    "TaoBot/1.0",
             })
         data  = resp.json()
@@ -484,7 +485,31 @@ async def start_all() -> None:
     """
     Launch all polling loops as background asyncio tasks.
     Called from main.py lifespan after yield (i.e. after the server is up).
+
+    Environment variable seeding (runs before any loop starts):
+      TAOSTATS_API_KEY   → _FEEDS["taostats"]["config"]["api_key"]
+      PERPLEXITY_API_KEY → _FEEDS["perplexity"]["config"]["api_key"]
+      DISCORD_BOT_TOKEN  → _FEEDS["discord"]["config"]["bot_token"]
+
+    This ensures keys survive Railway redeployments — Railway env vars are
+    the persistent store; the UI drawer lets operators update without a redeploy.
     """
+    # ── Seed keys from environment variables ──────────────────────────────────
+    taostats_key  = os.environ.get("TAOSTATS_API_KEY",   "").strip()
+    perplexity_key = os.environ.get("PERPLEXITY_API_KEY", "").strip()
+    discord_token  = os.environ.get("DISCORD_BOT_TOKEN",  "").strip()
+
+    if taostats_key:
+        _FEEDS["taostats"]["config"]["api_key"] = taostats_key
+        logger.info("SignalIngestor: TAOSTATS_API_KEY loaded from environment")
+    if perplexity_key:
+        _FEEDS["perplexity"]["config"]["api_key"] = perplexity_key
+        logger.info("SignalIngestor: PERPLEXITY_API_KEY loaded from environment")
+    if discord_token:
+        _FEEDS["discord"]["config"]["bot_token"] = discord_token
+        logger.info("SignalIngestor: DISCORD_BOT_TOKEN loaded from environment")
+
+    # ── Start pollers ─────────────────────────────────────────────────────────
     logger.info("SignalIngestor: starting feed pollers")
     asyncio.create_task(_run_loop("coingecko",    _poll_coingecko))
     asyncio.create_task(_run_loop("reddit_rss",   _poll_reddit_rss))
@@ -493,4 +518,10 @@ async def start_all() -> None:
     asyncio.create_task(_run_loop("perplexity",   _poll_perplexity))
     # Discord: scaffold only — Gateway loop deferred until bot token + OTF invite
     _FEEDS["discord"]["status"] = "pending_invite"
-    logger.info("SignalIngestor: CoinGecko/Reddit/TaoDaily auto-started · Taostats/Perplexity await keys · Discord awaits OTF invite")
+
+    active = sum(1 for k in ("taostats", "perplexity", "discord")
+                 if _FEEDS[k]["config"].get("api_key") or _FEEDS[k]["config"].get("bot_token"))
+    logger.info(
+        f"SignalIngestor: CoinGecko/Reddit/TaoDaily auto-started · "
+        f"{active}/3 keyed feeds pre-loaded from env · Discord awaits OTF invite"
+    )
