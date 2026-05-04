@@ -4,7 +4,7 @@
  */
 import React, { useState, useEffect, useCallback } from 'react'
 import {
-  ShieldCheck, ShieldX, Vote, Zap,
+  Shield, ShieldCheck, ShieldX, Vote, Zap,
   TrendingUp, TrendingDown, Minus, HelpCircle,
   CheckCircle2, XCircle, AlertTriangle, Clock,
   Activity, BarChart3, Users,
@@ -765,6 +765,34 @@ export default function OpenClaw() {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* ── Promotion Gate ── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
+        <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
+          <Shield size={13} className="text-yellow-400" /> Promotion Gate
+          <span className="ml-1 text-[11px] text-slate-500 font-mono normal-case font-normal">
+            — criteria a strategy must clear before any real trade fires
+          </span>
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-400">
+          {[
+            { n: '① Cycles ≥ 30',    desc: 'Must complete ≥ 30 honest evaluation cycles' },
+            { n: '② Win Rate ≥ 55%', desc: 'Must sustain >55% WR under honest physics' },
+            { n: '③ Win Margin ≥ 5', desc: 'Wins must exceed losses by ≥ 5' },
+            { n: '④ PnL > 0.01 τ',   desc: 'Cumulative PnL must exceed noise threshold' },
+          ].map(({ n, desc }) => (
+            <div key={n} className="space-y-0.5">
+              <p className="text-white font-mono text-[14px]">{n}</p>
+              <p className="leading-relaxed text-[14px]">{desc}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[13px] text-slate-500 mt-3">
+          Gate pass → <span className="text-orange-400">⏳ PENDING</span> →
+          Operator approves → <span className="text-accent-green">● LIVE</span>.
+          No strategy goes LIVE without human confirmation.
+        </p>
       </div>
 
       {/* ── How it works ── */}
