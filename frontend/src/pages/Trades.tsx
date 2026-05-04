@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useBotStore } from '@/store/botStore'
 import { ArrowUpDown, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw,
          ChevronLeft, ChevronRight, ExternalLink, Zap, AlertTriangle,
-         CheckCircle2, Copy, ShieldAlert, Activity } from 'lucide-react'
+         CheckCircle2, Copy, ShieldAlert, Activity, Shield, Timer, Shuffle } from 'lucide-react'
 import TransactionDetailModal, { type TradeRecord } from '@/components/TransactionDetailModal'
 /**
  * Timestamp formatter — New York / Eastern Time (US)
@@ -115,6 +115,59 @@ interface PaperActivity {
   tao_price: number
 }
 
+// ── Execution Guard types ──────────────────────────────────────────────────────
+interface GuardStatus {
+  fee_model: {
+    fee_per_leg_tao:    number
+    round_trip_fee_tao: number
+    description:        string
+  }
+  slippage_model: {
+    base_pct_per_leg:   number
+    model:              string
+    formula:            string
+    default_pool_depth: number
+    pool_depth_source:  string
+  }
+  jitter: {
+    enabled:         boolean
+    window_seconds:  number
+    description:     string
+    strategies:      Record<string, number>
+  }
+  mev_guard: {
+    enabled: boolean
+    status:  string
+    notes:   string
+  }
+  slippage_guard: {
+    enabled:          boolean
+    max_slippage_pct: number
+    status:           string
+    notes:            string
+  }
+  round_trip_cost_model: {
+    fee_pct_of_amount: string
+    slip_pct_approx:   string
+    total_approx_pct:  string
+  }
+}
+
+const STRATEGY_DISPLAY: Record<string, string> = {
+  momentum_cascade:   'Momentum Cascade',
+  dtao_flow_momentum: 'dTAO Flow Momentum',
+  liquidity_hunter:   'Liquidity Hunter',
+  breakout_hunter:    'Breakout Hunter',
+  yield_maximizer:    'Yield Maximizer',
+  contrarian_flow:    'Contrarian Flow',
+  volatility_arb:     'Volatility Arb',
+  sentiment_surge:    'Sentiment Surge',
+  balanced_risk:      'Balanced Risk',
+  mean_reversion:     'Mean Reversion',
+  emission_momentum:  'Emission Momentum',
+  macro_correlation:  'Macro Correlation',
+}
+
 export default function Trades() {
   const navigate = useNavigate()
   const { trades, tradeStats, tradeTotal, fetchTrades, fetchTradeStats, manualTrade, status, setTradesPageStats } = useBotStore()
@@ -188,6 +241,18 @@ export default function Trades() {
     const t = setInterval(fetchPaperActivity, 20_000)
     return () => clearInterval(t)
   }, [fetchPaperActivity])
+
+  // ── Execution Guard state ──────────────────────────────────────────────────
+  const [guardStatus, setGuardStatus] = useState<GuardStatus | null>(null)
+
+  const fetchGuardStatus = useCallback(async () => {
+    try {
+      const { data } = await api.get<GuardStatus>('/bot/execution-guard')
+      setGuardStatus(data)
+    } catch (_) {}
+  }, [])
+
+  useEffect(() => { fetchGuardStatus() }, [fetchGuardStatus])
 
   const stableRefresh = useCallback(() => { fetchTrades(page); fetchTradeStats() }, [fetchTrades, fetchTradeStats, page])
 
@@ -662,6 +727,188 @@ export default function Trades() {
               )}
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* ── Execution Guard ─────────────────────────────────────────────────── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-dark-700"
+             style={{ background: 'linear-gradient(90deg, rgba(251,191,36,0.07) 0%, transparent 100%)' }}>
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg bg-amber-500/12 border border-amber-500/30 flex items-center justify-center">
+              <Shield size={15} className="text-amber-400" />
+            </div>
+            <div>
+              <p className="text-sm font-bold text-white">Execution Guard</p>
+              <p className="text-[11px] text-slate-500 font-mono">
+                Fee model · slippage estimation · MEV jitter · signal protection
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="px-2 py-0.5 text-[10px] font-bold font-mono rounded bg-emerald-500/15 border border-emerald-500/25 text-emerald-400">JITTER ACTIVE</span>
+            <span className="px-2 py-0.5 text-[10px] font-bold font-mono rounded bg-amber-500/10 border border-amber-500/20 text-amber-400">MEV SCAFFOLD</span>
+          </div>
+        </div>
+
+        <div className="p-5 space-y-5">
+
+          {/* Cost model row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {/* Fee */}
+            <div className="rounded-xl border border-dark-600 bg-dark-700/40 p-4 space-y-1.5">
+              <div className="flex items-center gap-2 mb-2">
+                <DollarSign size={13} className="text-sky-400" />
+                <span className="text-[11px] font-mono font-bold text-slate-300 uppercase tracking-wider">Fee Model</span>
+                <span className="ml-auto px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">ACTIVE</span>
+              </div>
+              <div className="space-y-1 text-[12px] font-mono">
+                <div className="flex justify-between text-slate-400">
+                  <span>Per leg</span>
+                  <span className="text-white">τ{guardStatus?.fee_model.fee_per_leg_tao ?? '0.003'}</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Round trip</span>
+                  <span className="text-white">τ{guardStatus?.fee_model.round_trip_fee_tao ?? '0.006'}</span>
+                </div>
+                <p className="text-[10px] text-slate-600 pt-1 leading-relaxed">
+                  Substrate weight-based extrinsic fee. Flat — not gas-auction-based.
+                </p>
+              </div>
+            </div>
+
+            {/* Slippage */}
+            <div className="rounded-xl border border-dark-600 bg-dark-700/40 p-4 space-y-1.5">
+              <div className="flex items-center gap-2 mb-2">
+                <Shuffle size={13} className="text-purple-400" />
+                <span className="text-[11px] font-mono font-bold text-slate-300 uppercase tracking-wider">Slippage Model</span>
+                <span className="ml-auto px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">ACTIVE</span>
+              </div>
+              <div className="space-y-1 text-[12px] font-mono">
+                <div className="flex justify-between text-slate-400">
+                  <span>Model</span>
+                  <span className="text-white">AMM x·y=k</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Base per leg</span>
+                  <span className="text-white">{guardStatus?.slippage_model.base_pct_per_leg ?? '0.2'}%</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Default pool</span>
+                  <span className="text-white">τ{guardStatus?.slippage_model.default_pool_depth ?? '200'}</span>
+                </div>
+                <p className="text-[10px] text-slate-600 pt-1 leading-relaxed">
+                  Pool-depth-aware. Live SDK depth data planned.
+                </p>
+              </div>
+            </div>
+
+            {/* Total round-trip cost */}
+            <div className="rounded-xl border border-dark-600 bg-dark-700/40 p-4 space-y-1.5">
+              <div className="flex items-center gap-2 mb-2">
+                <TrendingDown size={13} className="text-rose-400" />
+                <span className="text-[11px] font-mono font-bold text-slate-300 uppercase tracking-wider">Round-Trip Cost</span>
+              </div>
+              <div className="space-y-1 text-[12px] font-mono">
+                <div className="flex justify-between text-slate-400">
+                  <span>Fee</span>
+                  <span>0.6% (flat τ)</span>
+                </div>
+                <div className="flex justify-between text-slate-400">
+                  <span>Slippage</span>
+                  <span>≈0.4%</span>
+                </div>
+                <div className="flex justify-between text-white font-bold border-t border-dark-600 pt-1 mt-1">
+                  <span>Total</span>
+                  <span className="text-amber-400">≈1.0%</span>
+                </div>
+                <p className="text-[10px] text-slate-600 pt-1 leading-relaxed">
+                  Minimum edge any strategy must generate per trade to be profitable.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* MEV / Signal Protection explainer */}
+          <div className="rounded-xl border border-amber-500/15 bg-amber-500/5 px-4 py-3 text-[12px] font-mono text-slate-400 leading-relaxed">
+            <span className="text-amber-300 font-bold">Why this matters on Bittensor: </span>
+            Bittensor (Finney) is a Substrate chain — there is no EVM-style public mempool for sandwich attacks.
+            The real risk is <span className="text-white font-bold">signal self-contamination</span>: all 12 bots firing
+            simultaneously creates a correlated α-price spike that poisons the next cycle's indicators.
+            Execution jitter desynchronises each strategy across a 0–{guardStatus?.jitter.window_seconds ?? 45}s window
+            so no two bots hit the same block. MEV monitoring scaffolded for full rollout when fleet scales to live capital.
+          </div>
+
+          {/* Jitter table */}
+          {guardStatus?.jitter.strategies && (
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <Timer size={12} className="text-emerald-400" />
+                <p className="text-[11px] font-mono text-slate-500 uppercase tracking-wider">
+                  Execution Jitter — per-strategy offset (deterministic, 0–{guardStatus.jitter.window_seconds}s)
+                </p>
+                <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">ACTIVE</span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-2">
+                {Object.entries(guardStatus.jitter.strategies)
+                  .sort(([,a],[,b]) => a - b)
+                  .map(([name, delay]) => {
+                    const pct = (delay / guardStatus.jitter.window_seconds) * 100
+                    return (
+                      <div key={name} className="rounded-lg border border-dark-600 bg-dark-700/40 p-2.5 flex flex-col gap-1">
+                        <p className="text-[10px] font-bold text-white truncate">
+                          {STRATEGY_DISPLAY[name] ?? name}
+                        </p>
+                        <div className="flex items-center gap-1.5">
+                          <div className="flex-1 h-1 bg-dark-600 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-emerald-500/60 rounded-full"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] font-mono text-emerald-400 font-bold tabular-nums w-8 text-right">
+                            {delay}s
+                          </span>
+                        </div>
+                        <p className="text-[9px] text-slate-600 font-mono">fires at +{delay}s</p>
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+          )}
+
+          {/* MEV & Slippage guard status row */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="rounded-xl border border-dark-600 bg-dark-700/30 px-4 py-3 flex items-start gap-3">
+              <Shield size={14} className="text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-[12px] font-bold text-white">MEV Guard</p>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/25">SCAFFOLDED</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-mono leading-relaxed">
+                  {guardStatus?.mev_guard.notes ?? 'Monitoring framework in place. Full activation when fleet scales to live capital.'}
+                </p>
+              </div>
+            </div>
+            <div className="rounded-xl border border-dark-600 bg-dark-700/30 px-4 py-3 flex items-start gap-3">
+              <AlertTriangle size={14} className="text-slate-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <p className="text-[12px] font-bold text-white">Slippage Guard</p>
+                  <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/25">SCAFFOLDED</span>
+                </div>
+                <p className="text-[11px] text-slate-500 font-mono leading-relaxed">
+                  Pre-flight check runs on every live trade — logs warnings, does not block.
+                  Max threshold: {guardStatus?.slippage_guard.max_slippage_pct ?? 2}% cost.
+                  Enable blocking: set SLIPPAGE_GUARD_ENABLED=True in execution_guard.py.
+                </p>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
 

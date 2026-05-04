@@ -93,6 +93,9 @@ async def init_db():
         ("bot_config", "openclaw_total_rounds",    "INTEGER DEFAULT 0"),
         ("bot_config", "openclaw_approved_rounds", "INTEGER DEFAULT 0"),
         ("bot_config", "openclaw_rejected_rounds", "INTEGER DEFAULT 0"),
+        # Added in Session XIX: Execution Guard — AMM slippage estimate per trade.
+        # Populated by cycle_service for all paper and live trades going forward.
+        ("trades", "slippage_est", "REAL DEFAULT 0.0"),
     ]
 
     async with async_engine.begin() as conn:

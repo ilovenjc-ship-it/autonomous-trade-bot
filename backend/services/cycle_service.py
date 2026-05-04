@@ -30,6 +30,9 @@ from services.consensus_service import consensus_service
 from services.alert_service import alert_service
 from services.bittensor_service import bittensor_service
 from services.subnet_router import get_stake_target
+from services.execution_guard import (
+    jitter_seconds, pre_flight_check, fee_for_trade, slippage_tao
+)
 
 logger = logging.getLogger(__name__)
 
@@ -920,6 +923,27 @@ async def _run_one_cycle() -> None:
                         strategy=s.name,
                     )
                 else:
+                    # ── Execution Guard pre-flight ────────────────────────────
+                    # Logs cost estimate + high-slippage warnings.
+                    # Does NOT block (SLIPPAGE_GUARD_ENABLED=False) — passive only.
+                    _guard = pre_flight_check(live_amount, target_netuid, "LIVE", s.name)
+                    if _guard.warnings:
+                        logger.info(
+                            f"[GUARD] {s.name}: cost={_guard.cost_pct:.2f}% "
+                            f"fee={_guard.fee_tao:.6f}τ slip={_guard.slippage_tao:.6f}τ "
+                            f"pool≈{_guard.pool_depth:.0f}τ — {_guard.reason}"
+                        )
+
+                    # ── Execution jitter ──────────────────────────────────────
+                    # Each strategy has a deterministic 0-45 s offset so all 12
+                    # bots never submit stake extrinsics in the same block.
+                    # Prevents simultaneous fleet execution from creating a
+                    # correlated α-price spike that contaminates the next signal.
+                    _jitter = jitter_seconds(s.name)
+                    if _jitter > 0:
+                        logger.debug(f"[JITTER] {s.name}: waiting {_jitter}s before live execution")
+                        await asyncio.sleep(_jitter)
+
                     if side == "buy":
                         exec_result = await bittensor_service.stake(hotkey, live_amount, target_netuid)
                     else:
@@ -1020,19 +1044,24 @@ async def _run_one_cycle() -> None:
             # ─────────────────────────────────────────────────────────────────
 
             # Persist trade — netuid reflects actual subnet used (router decision)
+            _trade_netuid  = target_netuid if tx_hash else (config.netuid if config else 1)
+            _fee_est       = fee_for_trade(amount)                          # τ0.006 flat per round trip
+            _slip_est      = slippage_tao(amount, _trade_netuid)            # AMM pool-depth-aware
             trade = Trade(
                 trade_type      = side,
                 status          = trade_status,
                 amount          = amount,
                 price_at_trade  = price,
                 usd_value       = amount * price,
-                fee             = round(PAPER_ROUND_TRIP_COST * amount, 6) if not tx_hash else 0.0,
+                # Paper trades: use paper sim cost; live trades: use guard estimate
+                fee             = round(PAPER_ROUND_TRIP_COST * amount, 6) if not tx_hash else _fee_est,
+                slippage_est    = _slip_est,
                 pnl             = pnl,
                 pnl_pct         = (pnl / (amount * price) * 100) if price else 0,
                 strategy        = s.name,
                 signal_reason   = reason[:200],
                 tx_hash         = tx_hash,
-                netuid          = target_netuid if tx_hash else (config.netuid if config else 1),
+                netuid          = _trade_netuid,
                 network         = "finney",
                 executed_at     = datetime.utcnow(),
             )

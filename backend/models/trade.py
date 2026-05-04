@@ -27,7 +27,8 @@ class Trade(Base):
     amount = Column(Float, nullable=False)                 # TAO amount
     price_at_trade = Column(Float, nullable=False)         # USD price when trade executed
     usd_value = Column(Float, nullable=False)              # amount * price_at_trade
-    fee = Column(Float, default=0.0)                       # network fee in TAO
+    fee = Column(Float, default=0.0)                       # network fee in TAO (est.)
+    slippage_est = Column(Float, default=0.0)              # AMM slippage estimate in TAO
 
     # P&L
     pnl = Column(Float, default=0.0)                       # realised P&L in USD

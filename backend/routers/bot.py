@@ -14,6 +14,7 @@ from services.bittensor_service import bittensor_service
 from services.price_service import price_service
 from services.cycle_service import cycle_service, get_force_paper_mode, set_force_paper_mode
 from services.activity_service import push_event
+from services.execution_guard import guard_status
 from core.config import settings
 
 router = APIRouter(prefix="/api/bot", tags=["bot"])
@@ -487,3 +488,13 @@ async def get_trading_mode(db: AsyncSession = Depends(get_db)):
         "wallet_balance_tao":  bittensor_service._last_balance or 0.0,
         "network":             "finney",
     }
+
+
+@router.get("/execution-guard")
+async def get_execution_guard():
+    """
+    Return current Execution Guard configuration and jitter table.
+    Consumed by the Trades page status card.
+    """
+    return guard_status()
+
