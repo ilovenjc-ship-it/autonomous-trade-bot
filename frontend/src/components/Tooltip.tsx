@@ -1,21 +1,24 @@
 /**
  * Tooltip — universal hover-bubble component.
  *
+ * Renders via React Portal at document.body with position:fixed so it is
+ * NEVER clipped by ancestor overflow:hidden / overflow-y:auto containers.
+ * Coordinates are calculated from the trigger element's getBoundingClientRect()
+ * so the bubble always appears adjacent to the icon regardless of scroll position.
+ *
  * Usage:
- *   <Tooltip content="Explains the thing">
+ *   <Tooltip content="Explains the thing" side="right">
  *     <SomeElement />
  *   </Tooltip>
- *
- * Supports multi-line ReactNode content, four sides, and an optional delay.
- * Wraps children in an inline-flex span so it works with any element type.
  */
 import { useState, useRef } from 'react'
+import { createPortal } from 'react-dom'
 
 interface TooltipProps {
   /** Tooltip body — plain string or rich ReactNode */
   content: React.ReactNode
   children: React.ReactNode
-  /** Which side to open on (default: top) */
+  /** Which side to open on (default: right — horizontal, never clips at page bottom) */
   side?: 'top' | 'bottom' | 'left' | 'right'
   /** Max pixel width of the tooltip box (default 280) */
   maxWidth?: number
@@ -28,40 +31,50 @@ interface TooltipProps {
 export default function Tooltip({
   content,
   children,
-  side = 'top',
+  side = 'right',
   maxWidth = 280,
   className = '',
   delay = 200,
 }: TooltipProps) {
   const [visible, setVisible] = useState(false)
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const [pos, setPos]         = useState({ top: 0, left: 0 })
+  const timerRef              = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const triggerRef            = useRef<HTMLSpanElement>(null)
 
   const show = () => {
-    timerRef.current = setTimeout(() => setVisible(true), delay)
+    timerRef.current = setTimeout(() => {
+      if (triggerRef.current) {
+        const r   = triggerRef.current.getBoundingClientRect()
+        const GAP = 10   // px gap between trigger and bubble edge
+        let top = 0, left = 0
+        switch (side) {
+          case 'right':  top = r.top + r.height / 2; left = r.right + GAP;         break
+          case 'left':   top = r.top + r.height / 2; left = r.left  - GAP;         break
+          case 'top':    top = r.top  - GAP;          left = r.left + r.width / 2;  break
+          case 'bottom': top = r.bottom + GAP;        left = r.left + r.width / 2;  break
+        }
+        setPos({ top, left })
+      }
+      setVisible(true)
+    }, delay)
   }
+
   const hide = () => {
     if (timerRef.current) clearTimeout(timerRef.current)
     setVisible(false)
   }
 
-  // Positioning classes
-  const positionMap = {
-    top:    'bottom-full left-1/2 -translate-x-1/2 mb-2',
-    bottom: 'top-full   left-1/2 -translate-x-1/2 mt-2',
-    left:   'right-full top-1/2  -translate-y-1/2  mr-2',
-    right:  'left-full  top-1/2  -translate-y-1/2  ml-2',
-  }
-
-  // Arrow classes (CSS border-trick triangle)
-  const arrowMap = {
-    top:    'absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-[#2d3f5a]',
-    bottom: 'absolute bottom-full left-1/2 -translate-x-1/2 border-4 border-transparent border-b-[#2d3f5a]',
-    left:   'absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-[#2d3f5a]',
-    right:  'absolute right-full top-1/2 -translate-y-1/2 border-4 border-transparent border-r-[#2d3f5a]',
+  // CSS transform so the bubble is anchored correctly to the calculated point
+  const transformMap = {
+    right:  'translateY(-50%)',
+    left:   'translateX(-100%) translateY(-50%)',
+    top:    'translateX(-50%) translateY(-100%)',
+    bottom: 'translateX(-50%)',
   }
 
   return (
     <span
+      ref={triggerRef}
       className={`relative inline-flex items-center ${className}`}
       onMouseEnter={show}
       onMouseLeave={hide}
@@ -70,20 +83,26 @@ export default function Tooltip({
     >
       {children}
 
-      {visible && (
+      {visible && createPortal(
         <span
           role="tooltip"
-          style={{ maxWidth, zIndex: 9999 }}
-          className={`absolute pointer-events-none ${positionMap[side]}`}
+          style={{
+            position:      'fixed',
+            top:           pos.top,
+            left:          pos.left,
+            maxWidth,
+            zIndex:        9999,
+            transform:     transformMap[side],
+            pointerEvents: 'none',
+          }}
         >
-          {/* Bubble */}
-          <span className="block bg-[#0b1526] border border-[#2d3f5a] rounded-xl px-3.5 py-2.5 shadow-2xl shadow-black/50
-                           text-[12px] font-mono text-slate-200 leading-relaxed whitespace-normal">
+          <span className="block bg-[#0b1526] border border-[#2d3f5a] rounded-xl px-3.5 py-2.5
+                           shadow-2xl shadow-black/50 text-[12px] font-mono text-slate-200
+                           leading-relaxed whitespace-normal">
             {content}
           </span>
-          {/* Arrow */}
-          <span className={arrowMap[side]} />
-        </span>
+        </span>,
+        document.body,
       )}
     </span>
   )
@@ -91,11 +110,11 @@ export default function Tooltip({
 
 /**
  * InfoBubble — a small ⓘ icon that shows a tooltip on hover.
- * Drop this anywhere next to a label.
+ * Defaults to side="right" (horizontal) — never clips at the page bottom.
  */
 export function InfoBubble({
   content,
-  side = 'top',
+  side = 'right',
   maxWidth,
   className = '',
 }: Omit<TooltipProps, 'children'>) {

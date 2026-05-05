@@ -731,8 +731,11 @@ export default function IIAgent() {
     }
   }
 
-  // Scroll to bottom when new message arrives
+  // Scroll to bottom when a new message arrives — but NOT on initial page load.
+  // Without this guard, the useEffect fires once on mount (chatHistory=[]) and
+  // scrollIntoView() jumps the whole page to the chat panel at the bottom.
   useEffect(() => {
+    if (chatHistory.length === 0) return
     chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [chatHistory, chatLoading])
 

@@ -508,7 +508,8 @@ export default function Trades() {
         )}
       </div>
 
-      {/* Filter + Table */}
+      {/* Trade Log History removed — full history lives on the Trade Log page */}
+      {false && (
       <div className="card">
         <div className="flex items-center gap-2 p-4 border-b border-dark-600 flex-wrap">
           {(['all', 'buy', 'sell'] as const).map((f) => (
@@ -666,6 +667,7 @@ export default function Trades() {
           </table>
         </div>
       </div>
+      )}
 
       {/* ── Execution Guard ─────────────────────────────────────────────────── */}
       <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">

@@ -813,6 +813,24 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
         </div>
       )}
 
+      {/* TaoStats status — not connected banner */}
+      {feed.id === 'taostats' && feed.status !== 'connected' && (
+        <div className="flex items-start gap-2 bg-red-500/8 border border-red-500/25 rounded-lg px-3 py-2.5">
+          <span className="text-red-400 flex-shrink-0 text-[11px] font-bold mt-0.5">⊗</span>
+          <div className="text-[11px] font-mono leading-snug space-y-1">
+            <p className="text-red-300 font-bold uppercase tracking-wide">TaoStats Not Connected</p>
+            <p className="text-slate-400">
+              Status: <span className="text-orange-300 font-semibold">{feed.status || 'disconnected'}</span>
+            </p>
+            <p className="text-slate-500 text-[10px]">
+              TaoStats price signals are not flowing into the Activity Log.
+              Verify your API key below or check your subscription at{' '}
+              <a href="https://taostats.io/pro" target="_blank" rel="noopener" className="text-orange-300 hover:underline">taostats.io/pro</a>.
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Discord status — not connected banner */}
       {isDiscord && feed.status !== 'connected' && (
         <div className="flex items-start gap-2 bg-red-500/8 border border-red-500/25 rounded-lg px-3 py-2.5">
