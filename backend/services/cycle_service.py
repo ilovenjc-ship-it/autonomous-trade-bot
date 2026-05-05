@@ -99,6 +99,93 @@ DEMOTE_PNL        = 0.0    # must also have negative cumulative PnL to demote
 # Dedup sets — prevent same demotion alert firing every cycle
 _demoted_alerted: set = set()
 
+# ── Regime-aware strategy gating ──────────────────────────────────────────────
+#
+# Market regimes:
+#   SIDEWAYS      — RSI 40–60, no meaningful directional bias
+#   TRENDING_UP   — RSI > 60 (bullish momentum)
+#   TRENDING_DOWN — RSI < 40 (bearish momentum)
+#   VOLATILE      — Bollinger Band width > 8% of mid (large swings, directionless)
+#   UNKNOWN       — Not enough indicator data yet (early cycles)
+#
+# Momentum/trend strategies are BENCHED in SIDEWAYS — they accumulate losses
+# by chasing signals that don't exist in flat, choppy markets.  Mean-reversion
+# strategies are BENCHED in strong trends — fading a trend is a losing trade.
+# Regime-agnostic strategies (liquidity/sentiment/macro) always run.
+#
+# Design: benched strategies do NOT fire a trade signal this cycle.
+# Their cycle counter still advances (time keeps passing; history keeps building).
+# Consecutive losses do NOT accumulate while benched — this is the whole point.
+
+_current_regime: str = "UNKNOWN"
+_regime_benched_log: set = set()   # dedup bench activity events (strategy:regime)
+
+# Defines which regimes each strategy is permitted to trade in.
+# A strategy not in this dict defaults to ALL regimes (safe fallback).
+REGIME_SUITABILITY: Dict[str, List[str]] = {
+    # ── Momentum / trend-following: bench in sideways chop ────────────────
+    "momentum_cascade":   ["TRENDING_UP", "TRENDING_DOWN", "VOLATILE"],
+    "yield_maximizer":    ["TRENDING_UP", "TRENDING_DOWN", "VOLATILE"],
+    "breakout_hunter":    ["TRENDING_UP", "TRENDING_DOWN", "VOLATILE"],
+    "dtao_flow_momentum": ["TRENDING_UP", "TRENDING_DOWN", "VOLATILE"],
+    "emission_momentum":  ["TRENDING_UP", "TRENDING_DOWN", "VOLATILE"],
+    # ── Mean-reversion / range: bench in strong trends ────────────────────
+    "mean_reversion":     ["SIDEWAYS", "VOLATILE"],
+    "contrarian_flow":    ["SIDEWAYS", "VOLATILE"],
+    "volatility_arb":     ["SIDEWAYS", "VOLATILE"],
+    # ── Regime-agnostic: always active ───────────────────────────────────
+    "macro_correlation":  ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"],
+    "liquidity_hunter":   ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"],
+    "sentiment_surge":    ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"],
+    "balanced_risk":      ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"],
+}
+
+
+def _detect_regime(indicators: Dict[str, Any]) -> str:
+    """
+    Classify the current market regime from RSI and Bollinger Band width.
+
+    Returns one of: SIDEWAYS | TRENDING_UP | TRENDING_DOWN | VOLATILE | UNKNOWN
+
+    Logic (in priority order):
+      1. No RSI data → UNKNOWN (too early; no false gating)
+      2. BB width > 8% of mid → VOLATILE (high swing amplitude)
+         - But if RSI is clearly directional inside VOLATILE, sub-classify as
+           TRENDING_UP / TRENDING_DOWN so momentum strategies can still run.
+      3. RSI > 60 → TRENDING_UP
+      4. RSI < 40 → TRENDING_DOWN
+      5. RSI 40–60 → SIDEWAYS
+    """
+    rsi   = indicators.get("rsi_14")
+    bb_up = indicators.get("bb_upper")
+    bb_lo = indicators.get("bb_lower")
+    bb_md = indicators.get("bb_mid")
+
+    if rsi is None:
+        return "UNKNOWN"
+
+    # Bollinger Band width as volatility proxy
+    if bb_up is not None and bb_lo is not None and bb_md and bb_md > 0:
+        bb_width_pct = (bb_up - bb_lo) / bb_md
+        if bb_width_pct > 0.08:                  # >8% band width → volatile
+            if rsi > 62:
+                return "TRENDING_UP"             # directional within volatility
+            elif rsi < 38:
+                return "TRENDING_DOWN"
+            return "VOLATILE"
+
+    # RSI-primary classification
+    if rsi > 60:
+        return "TRENDING_UP"
+    elif rsi < 40:
+        return "TRENDING_DOWN"
+    return "SIDEWAYS"
+
+
+def get_current_regime() -> str:
+    """Public accessor for the last detected regime (read by fleet router)."""
+    return _current_regime
+
 # ── Signal fire probability per strategy ─────────────────────────────────────
 # Controls how often each strategy's indicator logic produces a signal this cycle.
 # Derived from the signal logic selectivity in _compute_signal():
@@ -697,6 +784,24 @@ async def _run_one_cycle() -> None:
 
     indicators = price_service.compute_indicators()
 
+    # ── Regime detection ─────────────────────────────────────────────────────
+    # Classify the market once per cycle; all 12 strategies inherit the result.
+    # When the regime changes, push a single activity event and clear the bench
+    # dedup log (so each strategy logs its new bench status once per regime).
+    global _current_regime, _regime_benched_log
+    new_regime = _detect_regime(indicators)
+    if new_regime != _current_regime:
+        old_regime   = _current_regime
+        _current_regime = new_regime
+        _regime_benched_log.clear()   # new regime → let each bot announce once
+        push_event(
+            "system",
+            f"📊 Market regime: {old_regime} → {_current_regime}",
+            detail="Strategy regime gating updated — unsuitable strategies will bench automatically",
+        )
+        logger.info(f"[REGIME] Regime change: {old_regime} → {_current_regime}")
+    # ─────────────────────────────────────────────────────────────────────────
+
     async with AsyncSessionLocal() as db:
         result = await db.execute(select(Strategy))
         strategies: List[Strategy] = result.scalars().all()
@@ -742,6 +847,39 @@ async def _run_one_cycle() -> None:
         for s in strategies:
             # Human-readable name available throughout this iteration
             display = DISPLAY_NAMES.get(s.name, s.name)
+
+            # ── Regime gate ───────────────────────────────────────────────
+            # If the current market regime is not suitable for this strategy,
+            # bench it: skip the trade signal, advance the cycle counter
+            # (time passes; history keeps building), but do NOT record a trade
+            # so consecutive losses cannot accumulate while benched.
+            # UNKNOWN regime (early boot, no indicator data) → always let through.
+            if _current_regime != "UNKNOWN":
+                suitable_regimes = REGIME_SUITABILITY.get(
+                    s.name,
+                    ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"],
+                )
+                if _current_regime not in suitable_regimes:
+                    s.cycles_completed = (s.cycles_completed or 0) + 1
+                    await db.flush()
+                    bench_key = f"{s.name}:{_current_regime}"
+                    if bench_key not in _regime_benched_log:
+                        _regime_benched_log.add(bench_key)
+                        push_event(
+                            "system",
+                            f"⏸ {display} benched — {_current_regime} regime",
+                            strategy=s.name,
+                            detail=(
+                                f"Suitable regimes: {', '.join(suitable_regimes)}. "
+                                f"Will resume automatically when regime changes."
+                            ),
+                        )
+                        logger.info(
+                            f"[REGIME] {s.name} benched in {_current_regime} regime "
+                            f"(suitable: {suitable_regimes})"
+                        )
+                    continue
+            # ─────────────────────────────────────────────────────────────
 
             # Does this strategy fire a trade signal this cycle?
             trade_prob = SIGNAL_CONFIG.get(s.name, 0.30)

@@ -22,12 +22,15 @@ interface Bot {
   win_rate: number; net_pnl_tao: number; capital_allocation_pct: number
   performance_score: number; consecutive_losses: number; gate_passed: boolean
   gate: Gate; cycles_completed: number
+  regime_benched: boolean; suitable_regimes: string[]
 }
 interface Summary {
   total: number; live: number; paper: number; approved: number
   green: number; yellow: number; red: number
   last_rebalanced_at: string | null
   promotions_this_session: number
+  current_regime: string
+  benched_count: number
 }
 
 function HealthDot({ health }: { health: string }) {
@@ -278,6 +281,40 @@ export default function AgentFleet() {
       {/* Left list + right carousel */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
+        {/* Regime banner — shown whenever strategies are benched */}
+        {summary && summary.current_regime && summary.current_regime !== 'UNKNOWN' && (
+          <div className={clsx(
+            'px-6 py-2.5 border-b flex items-center justify-between text-[13px]',
+            summary.benched_count > 0
+              ? 'bg-amber-950/40 border-amber-600/40'
+              : 'bg-emerald-950/30 border-emerald-700/30'
+          )}>
+            <div className="flex items-center gap-3">
+              <span className={clsx(
+                'px-2 py-0.5 rounded font-bold tracking-wider text-[12px] uppercase',
+                {
+                  'bg-amber-500/20 text-amber-300 border border-amber-500/40': summary.current_regime === 'SIDEWAYS',
+                  'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40': summary.current_regime === 'TRENDING_UP',
+                  'bg-red-500/20 text-red-300 border border-red-500/40': summary.current_regime === 'TRENDING_DOWN',
+                  'bg-purple-500/20 text-purple-300 border border-purple-500/40': summary.current_regime === 'VOLATILE',
+                }
+              )}>
+                {summary.current_regime.replace('_', ' ')}
+              </span>
+              <span className="text-slate-300">Market regime detected</span>
+              {summary.benched_count > 0 && (
+                <span className="text-amber-400 font-bold">
+                  ⏸ {summary.benched_count} {summary.benched_count === 1 ? 'strategy' : 'strategies'} benched — not suitable for this regime
+                </span>
+              )}
+              {summary.benched_count === 0 && (
+                <span className="text-emerald-400">All strategies active in this regime</span>
+              )}
+            </div>
+            <span className="text-slate-500 text-[12px]">Auto-resumes when regime changes</span>
+          </div>
+        )}
+
         {/* Header bar */}
         <div className="px-6 py-3 border-b border-slate-800/60 flex items-center justify-between">
           <div className="flex items-center gap-6">
@@ -439,7 +476,12 @@ export default function AgentFleet() {
                         'bg-slate-600': !bot.is_active,
                       })} />
                       <div>
-                        <div className="text-slate-100 font-bold uppercase tracking-wider text-[13px]">{bot.display_name}</div>
+                        <div className="flex items-center gap-2">
+                          <div className="text-slate-100 font-bold uppercase tracking-wider text-[13px]">{bot.display_name}</div>
+                          {bot.regime_benched && (
+                            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 tracking-wider">⏸ BENCHED</span>
+                          )}
+                        </div>
                         <div className="text-slate-300 text-[15px] truncate max-w-[160px]">{bot.mode === 'LIVE' ? '● LIVE MODE' : bot.mode === 'APPROVED_FOR_LIVE' ? '◆ APPROVED' : '✗ PAPER'}</div>
                       </div>
                     </div>
@@ -556,10 +598,23 @@ export default function AgentFleet() {
                 <div className="p-4 space-y-3">
                   {/* Name + health */}
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-white uppercase tracking-wider">{selected.display_name}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-white uppercase tracking-wider">{selected.display_name}</span>
+                      {selected.regime_benched && (
+                        <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">⏸ BENCHED</span>
+                      )}
+                    </div>
                     <HealthDot health={selected.health} />
                   </div>
                   <p className="text-[13px] text-slate-400 leading-relaxed -mt-1">{selected.strategy}</p>
+                  {selected.regime_benched && (
+                    <div className="rounded border border-amber-500/30 bg-amber-950/30 px-3 py-2 text-[12px] text-amber-300">
+                      <span className="font-bold">Regime gated:</span> Sitting out the current{' '}
+                      <span className="font-bold">{summary?.current_regime?.replace('_', ' ')}</span> regime.
+                      Active in: {selected.suitable_regimes.map(r => r.replace('_', ' ')).join(', ')}.
+                      No trades fired, no losses accumulated. Resumes automatically.
+                    </div>
+                  )}
 
                   {/* Radar chart — fills width */}
                   <div className="bg-slate-900/30 rounded-lg border border-slate-800/60 pt-3 pb-1">

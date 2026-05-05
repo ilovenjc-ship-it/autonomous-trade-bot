@@ -18,6 +18,7 @@ from models.trade import Trade
 from models.stake_position import StakePosition
 from services.price_service import price_service
 from services.activity_service import push_event as _push_event_raw, get_events
+from services.cycle_service import get_current_regime, REGIME_SUITABILITY
 
 router = APIRouter(prefix="/api/fleet", tags=["fleet"])
 
@@ -438,6 +439,8 @@ async def fleet_bots(db: AsyncSession = Depends(get_db)):
     # Compute performance score: win_rate * 0.6 + (pnl_normalised) * 0.4
     max_pnl = max((abs(s.total_pnl or 0) for s in strategies), default=0.001) or 0.001
 
+    current_regime = get_current_regime()
+
     bots = []
     for s in strategies:
         pnl = s.total_pnl or 0
@@ -452,6 +455,14 @@ async def fleet_bots(db: AsyncSession = Depends(get_db)):
 
         # Allocation: prefer DB-persisted value, fall back to in-memory default
         alloc = s.allocation_pct if s.allocation_pct is not None else _ALLOCATION_DEFAULTS.get(s.name, 11.9)
+
+        # Regime bench status: is this strategy currently sitting out?
+        suitable_regimes = REGIME_SUITABILITY.get(
+            s.name, ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"]
+        )
+        regime_benched = (
+            current_regime != "UNKNOWN" and current_regime not in suitable_regimes
+        )
 
         bots.append({
             "name": s.name,
@@ -474,6 +485,8 @@ async def fleet_bots(db: AsyncSession = Depends(get_db)):
             "cycles_completed": s.cycles_completed or 0,
             "last_promoted_at": s.last_promoted_at if isinstance(s.last_promoted_at, str)
                                 else (s.last_promoted_at.isoformat() + "Z" if s.last_promoted_at else None),
+            "regime_benched": regime_benched,
+            "suitable_regimes": suitable_regimes,
         })
 
     # Sort by performance_score descending, assign rank
@@ -489,6 +502,8 @@ async def fleet_bots(db: AsyncSession = Depends(get_db)):
     # Import here to avoid circular import
     from services.promotion_service import promotion_service as _ps
 
+    benched_count = sum(1 for b in bots if b["regime_benched"])
+
     return {
         "bots": bots,
         "summary": {
@@ -502,6 +517,8 @@ async def fleet_bots(db: AsyncSession = Depends(get_db)):
             "total_allocation": round(total_allocation, 1),
             "last_rebalanced_at": _ps.last_rebalanced_at,
             "promotions_this_session": len(_ps.promotions_this_session),
+            "current_regime": current_regime,
+            "benched_count": benched_count,
         },
     }
 
@@ -988,4 +1005,42 @@ async def get_daily_cap():
         "remaining_tao":     round(max(0, cap - _daily_staked_tao), 6),
         "reset_date":        _daily_reset_date,
         "fraction":          MAX_DAILY_STAKE_FRACTION,
+    }
+
+
+# ── Regime Status ─────────────────────────────────────────────────────────────
+
+@router.get("/regime/current")
+async def get_regime():
+    """
+    Return the current detected market regime and per-strategy bench status.
+
+    Regime values: SIDEWAYS | TRENDING_UP | TRENDING_DOWN | VOLATILE | UNKNOWN
+    A strategy is 'benched' when the current regime is not in its suitable list.
+    """
+    regime = get_current_regime()
+    benched = [
+        name
+        for name, regimes in REGIME_SUITABILITY.items()
+        if regime != "UNKNOWN" and regime not in regimes
+    ]
+    active = [
+        name
+        for name, regimes in REGIME_SUITABILITY.items()
+        if regime == "UNKNOWN" or regime in regimes
+    ]
+    descriptions = {
+        "SIDEWAYS":      "RSI 40–60 — flat, choppy, no directional edge",
+        "TRENDING_UP":   "RSI > 60 — bullish momentum, trend in play",
+        "TRENDING_DOWN": "RSI < 40 — bearish pressure, trend in play",
+        "VOLATILE":      "Wide Bollinger Bands — high swing amplitude, uncertain direction",
+        "UNKNOWN":       "Insufficient indicator data — all strategies active by default",
+    }
+    return {
+        "regime":      regime,
+        "description": descriptions.get(regime, ""),
+        "benched":     benched,
+        "active":      active,
+        "benched_count": len(benched),
+        "active_count":  len(active),
     }
