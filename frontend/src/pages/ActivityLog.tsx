@@ -1012,35 +1012,43 @@ export default function ActivityLog() {
     return acc
   }, {})
 
+  // Paper training baseline started 2026-05-04 on Railway
+  const PAPER_START = new Date('2026-05-04T14:10:00Z')
+  const paperDay = Math.max(1, Math.floor((Date.now() - PAPER_START.getTime()) / 86_400_000) + 1)
+
+  // Signal rate: signals in last 200 events (counts.signal) over time window
+  // Approximate: if events span ~1 hr, rate = counts.signal / 1 hr
+  const signalPct = events.length ? Math.round((counts.signal ?? 0) / events.length * 100) : 0
+
   const heroSlides = [
     {
       title: 'Activity Overview', subtitle: 'Live Stream', accent: 'blue' as const,
       stats: [
         { label: 'Total Events', value: String(events.length),          color: 'white'   as const },
-        { label: 'Filtered',     value: String(filtered.length),        color: 'blue'    as const },
-        { label: 'Live',         value: live ? 'ON' : 'OFF',           color: live ? 'emerald' : 'slate' as any },
-        { label: 'Filter',       value: filter.toUpperCase(),           color: 'slate'   as const },
-        { label: 'Refresh',      value: '5s',                           color: 'slate'   as const },
+        { label: 'Showing',      value: String(filtered.length),        color: 'blue'    as const },
+        { label: 'Live Feed',    value: live ? 'ON' : 'OFF',            color: live ? 'emerald' : 'slate' as any },
+        { label: 'Kind Filter',  value: filter === 'all' ? 'All' : filter.charAt(0).toUpperCase() + filter.slice(1), color: filter !== 'all' ? 'yellow' as const : 'slate' as const },
+        { label: 'Paper Day',    value: `Day ${paperDay}`,              color: paperDay >= 7 ? 'emerald' : 'yellow' as any, sub: paperDay >= 7 ? 'window open' : `of 7+ min` },
       ],
     },
     {
       title: 'Event Breakdown', subtitle: 'By Type', accent: 'purple' as const,
       stats: [
-        { label: 'Trade',  value: String(counts.trade  ?? 0), color: 'emerald' as const },
-        { label: 'Signal', value: String(counts.signal ?? 0), color: 'yellow'  as const },
-        { label: 'Gate',   value: String(counts.gate   ?? 0), color: 'purple'  as const },
-        { label: 'System', value: String(counts.system ?? 0), color: 'slate'   as const },
-        { label: 'Alert',  value: String(counts.alert  ?? 0), color: 'orange'  as const },
+        { label: 'Trade',   value: String(counts.trade  ?? 0), color: 'emerald' as const, sub: 'executions' },
+        { label: 'Signal',  value: String(counts.signal ?? 0), color: 'yellow'  as const, sub: `${signalPct}% of log` },
+        { label: 'Gate',    value: String(counts.gate   ?? 0), color: 'purple'  as const, sub: 'promotions' },
+        { label: 'System',  value: String(counts.system ?? 0), color: 'slate'   as const, sub: 'scheduler' },
+        { label: 'Alert',   value: String(counts.alert  ?? 0), color: counts.alert > 0 ? 'orange' as const : 'slate' as const, sub: 'risk triggers' },
       ],
     },
     {
       title: 'System Status', subtitle: 'Health Check', accent: 'emerald' as const,
       stats: [
-        { label: 'Events Logged', value: String(events.length),                                           color: 'white'   as const },
-        { label: 'Last Kind',     value: events[0]?.kind?.toUpperCase() ?? '—',                          color: 'blue'    as const },
-        { label: 'Strategy',      value: events[0]?.strategy ?? '—',                                     color: 'slate'   as const },
-        { label: 'Log Limit',     value: '200',                                                          color: 'slate'   as const },
-        { label: 'Search',        value: search || 'None',                                               color: search ? 'yellow' : 'slate' as any },
+        { label: 'Events Buffered', value: `${events.length} / 200`,                                     color: 'white'   as const },
+        { label: 'Latest Event',    value: events[0]?.kind?.toUpperCase() ?? '—',                        color: 'blue'    as const },
+        { label: 'Alerts',          value: String(counts.alert ?? 0),                                    color: (counts.alert ?? 0) > 0 ? 'orange' as const : 'emerald' as const, sub: (counts.alert ?? 0) > 0 ? 'needs review' : 'all clear' },
+        { label: 'Trades',          value: String(counts.trade ?? 0),                                    color: 'emerald' as const, sub: 'this buffer' },
+        { label: 'Paper Day',       value: `Day ${paperDay}`,                                            color: paperDay >= 7 ? 'emerald' : 'yellow' as any, sub: 'training baseline' },
       ],
     },
   ]

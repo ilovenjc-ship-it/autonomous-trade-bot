@@ -41,8 +41,8 @@ _FEEDS: dict = {
         "description":    "TAO/USD spot price, 24h change, volume — free public API",
         "icon":           "coin",
         "auth":           "none",
-        "interval_label": "60s",
-        "interval_s":     60,
+        "interval_label": "120s",
+        "interval_s":     120,
         "enabled":        True,
         "status":         "connecting",
         "last_fetch":     None,
@@ -192,32 +192,81 @@ def _parse_rss(xml_text: str) -> list:
 # ── Source pollers ────────────────────────────────────────────────────────────
 
 async def _poll_coingecko() -> None:
-    """Fetch TAO/USD from CoinGecko free public API. No auth required."""
+    """
+    Emit a TAO/USD signal from CoinGecko.
+
+    Strategy to avoid double-hitting the free-tier public API:
+      1. price_service already polls CoinGecko every 30 s — use its cache first.
+      2. Only make a fresh HTTP call when the cache is stale (>90 s old).
+      3. On HTTP 429 / any error: mark feed error, do NOT emit a $0.00 signal.
+         The last known good price from price_service is surfaced instead,
+         so the activity log always shows a meaningful price, never $0.00.
+    """
+    from services.price_service import price_service
+    from datetime import datetime, timezone as _tz
+
     url = (
         "https://api.coingecko.com/api/v3/simple/price"
         "?ids=bittensor&vs_currencies=usd"
         "&include_24hr_change=true"
         "&include_24hr_vol=true"
     )
-    try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            resp = await client.get(url, headers={"User-Agent": "TaoBot/1.0"})
-        data   = resp.json().get("bittensor", {})
-        price  = float(data.get("usd", 0))
-        change = float(data.get("usd_24h_change", 0) or 0)
-        vol    = float(data.get("usd_24h_vol",    0) or 0)
-        arrow  = "▲" if change >= 0 else "▼"
-        sign   = "+" if change >= 0 else ""
-        msg    = (
-            f"TAO ${price:,.2f}  {arrow} {sign}{change:.2f}% 24h"
-            + (f"  Vol ${vol/1e6:.1f}M" if vol else "")
-        )
-        push_event("signal", msg, strategy=None, detail="source:coingecko")
-        _mark_ok("coingecko", f"${price:,.2f}")
-        logger.debug(f"CoinGecko signal: {msg}")
-    except Exception as exc:
-        _mark_error("coingecko", str(exc))
-        logger.warning(f"CoinGecko poll failed: {exc}")
+
+    # ── Prefer the already-cached price from price_service ────────────────
+    cached   = price_service.price_data          # dict with price_usd, timestamp …
+    cached_ts_str = cached.get("timestamp")
+    cache_age = 999.0
+    if cached_ts_str:
+        try:
+            ts        = datetime.fromisoformat(cached_ts_str)
+            cache_age = (datetime.now(_tz.utc) - ts.replace(tzinfo=_tz.utc)).total_seconds()
+        except Exception:
+            pass
+
+    price  = float(cached.get("price_usd") or 0)
+    change = float(cached.get("price_change_pct_24h") or 0)
+    vol    = float(cached.get("volume_24h") or 0)
+
+    # ── Only do a live HTTP call when the cache is stale (>90 s) ─────────
+    if cache_age > 90 or price == 0:
+        try:
+            async with httpx.AsyncClient(timeout=10) as client:
+                resp = await client.get(url, headers={"User-Agent": "TaoBot/1.0"})
+
+            if resp.status_code == 429:
+                # Rate-limited — back off, do NOT emit $0.00 noise
+                _mark_error("coingecko", "429 Too Many Requests — using cached price")
+                logger.warning("CoinGecko 429: rate-limited; skipping signal emission")
+                # Fall through with whatever `price` is from cache
+            else:
+                resp.raise_for_status()
+                data   = resp.json().get("bittensor", {})
+                price  = float(data.get("usd",            0) or 0)
+                change = float(data.get("usd_24h_change", 0) or 0)
+                vol    = float(data.get("usd_24h_vol",    0) or 0)
+
+        except Exception as exc:
+            _mark_error("coingecko", str(exc))
+            logger.warning(f"CoinGecko poll failed: {exc}")
+            # Use whatever price we have from the cache; if still 0 → skip
+            if price == 0:
+                return
+
+    # ── Guard: never emit a $0.00 signal ─────────────────────────────────
+    if price == 0:
+        logger.debug("CoinGecko: price is 0 — skipping signal (no data yet)")
+        _mark_error("coingecko", "No price data available yet")
+        return
+
+    arrow = "▲" if change >= 0 else "▼"
+    sign  = "+" if change >= 0 else ""
+    msg   = (
+        f"TAO ${price:,.2f}  {arrow} {sign}{change:.2f}% 24h"
+        + (f"  Vol ${vol/1e6:.1f}M" if vol else "")
+    )
+    push_event("signal", msg, strategy=None, detail="source:coingecko")
+    _mark_ok("coingecko", f"${price:,.2f}")
+    logger.debug(f"CoinGecko signal: {msg}")
 
 
 async def _poll_reddit_rss() -> None:

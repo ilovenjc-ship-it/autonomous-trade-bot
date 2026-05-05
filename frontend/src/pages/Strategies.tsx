@@ -183,7 +183,9 @@ function FleetSummary({ strategies }: { strategies: Strategy[] }) {
                 {TIERS[tier].emoji} {TIERS[tier].label}
               </span>
               <span className="text-sm font-bold font-mono text-white">{count}</span>
-              <span className={clsx('text-[13px] font-mono', TIERS[tier].allocClass)}>{TIERS[tier].multiplier} capital</span>
+              <span className={clsx('text-[13px] font-mono', TIERS[tier].allocClass)}>
+                {TIERS[tier].multiplier === 'SUSP' ? 'suspended' : `${TIERS[tier].multiplier} capital`}
+              </span>
             </div>
           ))}
         </div>
@@ -329,9 +331,15 @@ function StrategyCard({ s, onRefresh }: { s: Strategy; onRefresh: () => void }) 
       <div className="mt-auto">
         <div className="flex justify-between text-[13px] font-mono mb-1">
           <span className="text-slate-500">Promotion gate</span>
-          <span className={clsx(s.cycles_completed >= gateMax ? 'text-accent-green' : 'text-slate-400')}>
-            {s.cycles_completed}/{gateMax} cycles
-          </span>
+          {s.cycles_completed >= gateMax ? (
+            <span className="text-accent-green flex items-center gap-1">
+              ✓ {s.cycles_completed.toLocaleString()} cycles
+            </span>
+          ) : (
+            <span className="text-slate-400">
+              {s.cycles_completed}/{gateMax} cycles
+            </span>
+          )}
         </div>
         <div className="h-1 bg-dark-600 rounded-full overflow-hidden">
           <div
@@ -339,6 +347,19 @@ function StrategyCard({ s, onRefresh }: { s: Strategy; onRefresh: () => void }) 
             style={{ width: `${gatePct}%` }}
           />
         </div>
+        {/* WR gap to 55% promotion threshold */}
+        {s.mode !== 'LIVE' && s.total_trades > 5 && (
+          <div className="mt-1.5 flex items-center justify-between">
+            <span className="text-[11px] font-mono text-slate-600">WR threshold: 55%</span>
+            {s.win_rate >= 55 ? (
+              <span className="text-[11px] font-mono text-accent-green">✓ Gate clear</span>
+            ) : (
+              <span className="text-[11px] font-mono text-slate-500">
+                Gap: <span className="text-red-400/80">-{(55 - s.win_rate).toFixed(1)}%</span>
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* ── Human Approval Gate ─────────────────────────── */}
@@ -519,36 +540,45 @@ export default function Strategies() {
   const bestWR = strategies.length ? Math.max(...strategies.map(s => s.win_rate)) : 0
   const topPnL = strategies.length ? Math.max(...strategies.map(s => s.total_pnl)) : 0
 
+  // Paper training baseline started 2026-05-04 (Railway deployment)
+  const PAPER_BASELINE_START = new Date('2026-05-04T14:10:00Z')
+  const trainingDayNum = Math.max(1, Math.floor((Date.now() - PAPER_BASELINE_START.getTime()) / 86_400_000) + 1)
+  const trainingDayStr = `Day ${trainingDayNum}`
+  const trainingSubStr = `of 7+ min`
+
+  const fleetPnl  = strategies.reduce((s, x) => s + x.total_pnl, 0)
+  const fleetTrades = strategies.reduce((s, x) => s + x.total_trades, 0)
+
   const heroSlides = [
     {
       title: 'Strategy Fleet', subtitle: '12 Autonomous Bots', accent: 'purple' as const,
       stats: [
-        { label: 'Total',    value: String(strategies.length || 12), color: 'white'   as const },
-        { label: 'LIVE',     value: String(liveCount),               color: 'emerald' as const },
-        { label: 'APPROVED', value: String(approvedCount),           color: 'purple'  as const },
-        { label: 'PENDING',  value: String(pendingCount),            color: pendingCount > 0 ? 'yellow' as const : 'slate' as const },
-        { label: 'PAPER',    value: String(paperCount),              color: 'yellow'  as const },
-        { label: 'Showing',  value: String(sorted.length),           color: 'slate'   as const },
+        { label: 'Total',         value: String(strategies.length || 12), color: 'white'   as const },
+        { label: 'LIVE',          value: String(liveCount),               color: 'emerald' as const },
+        { label: 'APPROVED',      value: String(approvedCount),           color: 'purple'  as const },
+        { label: 'PENDING',       value: String(pendingCount),            color: pendingCount > 0 ? 'yellow' as const : 'slate' as const },
+        { label: 'PAPER',         value: String(paperCount),              color: 'yellow'  as const },
+        { label: 'Training',      value: trainingDayStr,                  color: 'blue'    as const, sub: trainingSubStr },
       ],
     },
     {
       title: 'Performance', subtitle: 'Fleet Stats', accent: 'emerald' as const,
       stats: [
-        { label: 'Best Win Rate', value: strategies.length ? `${(bestWR ?? 0).toFixed(0)}%` : '—',  color: 'emerald' as const },
+        { label: 'Best Win Rate', value: strategies.length ? `${(bestWR ?? 0).toFixed(0)}%` : '—',   color: 'emerald' as const },
         { label: 'Avg Win Rate',  value: strategies.length ? `${(strategies.reduce((s,x)=>s+x.win_rate,0)/strategies.length).toFixed(0)}%` : '—', color: 'blue' as const },
-        { label: 'Top PnL',      value: strategies.length ? `+${(topPnL ?? 0).toFixed(3)}τ` : '—', color: 'emerald' as const },
-        { label: 'Fleet PnL',    value: strategies.length ? `${strategies.reduce((s,x)=>s+x.total_pnl,0) >= 0 ? '+' : ''}${strategies.reduce((s,x)=>s+x.total_pnl,0).toFixed(3)}τ` : '—', color: strategies.reduce((s,x)=>s+x.total_pnl,0) >= 0 ? 'emerald' : 'red' as any },
-        { label: 'Sort By',      value: sortKey.replace('_', ' ').toUpperCase(),             color: 'slate'   as const },
+        { label: 'Fleet Trades',  value: fleetTrades.toLocaleString(),                                color: 'white'   as const },
+        { label: 'Fleet PnL',     value: `${fleetPnl >= 0 ? '+' : ''}${fleetPnl.toFixed(3)}τ`,       color: fleetPnl >= 0 ? 'emerald' as const : 'red' as const },
+        { label: 'Training',      value: trainingDayStr,                                              color: 'slate'   as const, sub: trainingSubStr },
       ],
     },
     {
       title: 'Gate Progress', subtitle: 'Live Qualification', accent: 'blue' as const,
       stats: [
-        { label: 'Gates Passed', value: String(strategies.filter(s => (s as any).gate_passed).length),    color: 'emerald' as const },
-        { label: 'High Traders', value: String(strategies.filter(s => s.total_trades >= 50).length),      color: 'blue'    as const },
-        { label: 'WR ≥ 55%',    value: String(strategies.filter(s => s.win_rate >= 55).length),          color: 'emerald' as const },
-        { label: 'WR < 45%',    value: String(strategies.filter(s => s.win_rate < 45 && s.total_trades > 10).length), color: 'red' as const },
-        { label: 'Filter',      value: modeFilter === 'all' ? 'All' : modeFilter.replace('_FOR_LIVE','').replace('_ONLY',''), color: 'slate' as const },
+        { label: 'WR ≥ 55%',    value: String(strategies.filter(s => s.win_rate >= 55).length),                                            color: 'emerald' as const, sub: 'pass gate' },
+        { label: 'WR 45–54%',   value: String(strategies.filter(s => s.win_rate >= 45 && s.win_rate < 55).length),                         color: 'yellow'  as const, sub: 'borderline' },
+        { label: 'WR < 45%',    value: String(strategies.filter(s => s.win_rate < 45 && s.total_trades > 10).length),                      color: 'red'     as const, sub: 'failing gate' },
+        { label: 'Best Trader', value: strategies.length ? strategies.reduce((a,b) => a.total_trades > b.total_trades ? a : b).display_name.split(' ').slice(0,1).join('') : '—', color: 'blue' as const, sub: 'most trades' },
+        { label: 'Min 7-day',   value: `Day ${trainingDayNum}`, color: trainingDayNum >= 7 ? 'emerald' as const : 'yellow' as const, sub: trainingDayNum >= 7 ? 'window open' : 'building data' },
       ],
     },
   ]

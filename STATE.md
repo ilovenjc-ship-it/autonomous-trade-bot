@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-03 (Session XVII — Research + Hosting + Record Corrections)
-**Status:** PAPER TRAINING — FORCE_PAPER_MODE=1. Bot crashed on Railway (memory exhaustion, `--log-level debug`). Fix committed (`1fc9763a` — switched to `--log-level info`). Awaiting Railway redeploy confirmation OR hosting migration decision. Wife's card available for Railway Hobby upgrade or Vultr setup. See Section 7.
+**Last updated:** 2026-05-05 (Session XXII — Morning Brief + CoinGecko Fix + UI/UX Polish)
+**Status:** PAPER TRAINING ACTIVE — Day 2 of 7+ min baseline. All 12 strategies PAPER_ONLY on Railway. Bot online, signal feeds running. CoinGecko $0.00 emission bug fixed. UI: training day counters added, gate progress fixed, WR gap indicators added.
 **Maintained by:** II Agent + Owner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -12,6 +12,52 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXII SUMMARY (May 5, 2026) — Morning Brief + CoinGecko Fix + UI Polish
+
+### Morning Brief Findings
+- **Deploy**: Last Railway deploy 20 hours ago (`2caf9931` — Discord status type fix). Container clean, 12 strategies seeded, all DB tables confirmed.
+- **CoinGecko 429 at boot**: Both `price_service.py` (every 30s) AND `signal_ingestor.py` (every 60s) were hitting CoinGecko simultaneously — 3 requests/min against free public API. On 429, signal_ingestor was emitting `TAO $0.00 ▲ +0.00% 24h` noise into Activity Log.
+- **Fleet**: All 12 strategies WEAK/FAILING (33–37% WR). Expected — this is Day 2 of honest paper baseline. Market regime: SIDEWAYS (RSI=46.7, TAO=$287.21). No strategies near 55% gate. Paper training clock running.
+- **Activity Log**: 137/200 events are SIGNAL type. Velocity: 20 trades/hr. Fleet PnL: -1.824τ paper (all simulated, wallet untouched). TaoStats signals working ($287.19–$287.24), CoinGecko signals rate-limited ($0.00 before fix).
+
+### Changes This Session
+
+**Backend fix — `signal_ingestor.py`:**
+- `_poll_coingecko()` now checks `price_service.price_data` cache first (age ≤ 90s → no HTTP call)
+- On HTTP 429: sets feed error, does NOT emit $0.00 signal, falls back to cached price
+- On price == 0 with no cache: skips emission entirely (no $0.00 noise)
+- CoinGecko signal interval: 60s → 120s (further reduces collision with price_service 30s poll)
+
+**Frontend — `Strategies.tsx`:**
+- Hero Slide 1: "Showing: N" → "Training: Day X / of 7+ min baseline"
+- Hero Slide 2: "Sort By: WIN RATE" (UI state) → "Fleet Trades: 11,473" + "Training: Day X"
+- Hero Slide 3: "Filter: All" (UI state) → "Min 7-day: Day X (building data/window open)" with WR gate breakdown
+- Strategy cards gate bar: "3968/30 cycles" (confusing) → "✓ 3,968 cycles" (green, when past threshold)
+- Strategy cards: Added WR gap indicator — "Gap: -17.7%" shows distance to 55% promotion gate
+- FleetSummary tier bar: "SUSP capital" → "suspended" (correct word for FAILING tier display)
+
+**Frontend — `ActivityLog.tsx`:**
+- Hero Slide 1: "Filter: SIGNAL" → "Kind Filter: Signal" + "Paper Day: Day X"
+- Hero Slide 2 (Event Breakdown): added sub-labels per event type (e.g., "executions", "% of log", "risk triggers")
+- Hero Slide 3 (System Status): removed "Log Limit: 200" / "Search: None" UI state → "Alerts: N (all clear/needs review)" + "Paper Day: Day X"
+
+**Frontend — `Dashboard.tsx`:**
+- Fleet Performance hero slide: added "Paper Day: Day X / of 7+ min baseline" stat
+
+### Paper Training Status
+```
+Start date  :  2026-05-04 14:10 EDT (Railway deployment)
+Day         :  2 of 7+ minimum
+TAO price   :  $287.21 (+14.73% 7d)
+Regime      :  SIDEWAYS (RSI 46.7)
+Best WR     :  37.3% (Mean Reversion)
+Gate target :  55.0% WR
+All 12 bots :  PAPER_ONLY, 3,968+ cycles each
+Next read   :  Day 7 (May 11, 2026) — first meaningful evaluation window
+```
 
 ---
 
@@ -483,16 +529,18 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | ~~HOSTING DECISION~~ | ✅ DONE | **Railway Hobby Plan active** — $5/mo, card charged, bot deployed at autonomous-trade-bot-production.up.railway.app |
 | ~~Railway redeploy confirmation~~ | ✅ DONE | Session XVIII: Redeployed 562056c5 — SUCCESS. Bot confirmed LIVE mode. |
 | ~~Transaction audit trail~~ | ✅ DONE | All Railway trades: live=False, tx=NO_HASH. Zero real txs since Session VII. Wallet 0.227τ untouched. |
-| **Strategy re-promotion** | **High** | All strategies reset to PAPER_ONLY by FORCE_PAPER_MODE. Must re-earn 55%+ WR on Railway before promotion. Monitor autonomous engine. |
-| **Wallet balance verification** | **High** | Balance shows 0.0 (RPC async startup). Confirm 0.227τ still on-chain via Taostats next session. |
+| **Strategy re-promotion** | **Active** | All strategies PAPER_ONLY. Honest sim WRs 33-37%, none near 55% gate. Day 2 of 7+ baseline. Next eval: May 11. |
+| **Wallet balance verification** | Medium | Balance shows 0.0 (RPC async startup). Confirm 0.227τ still on-chain via Taostats. |
 | MANTIS API research | Medium | Is SN123 output queryable via API? If yes, direct signal feed into TaoBot. |
 | SN3 owner key resolution | Monitor | Const warned: do not buy SN3 alpha until resolved. Check each session. |
 | Orchestrator/Architect PDF | Medium | Owner has a PDF on this concept — share it for extraction and filing. Not yet received. |
-| Paper training monitoring | **Active** | Railway honest baseline started. Min 7 days; first read ~Day 7. Clock started 2026-05-04. |
+| Paper training monitoring | **Active** | Day 2 / 7+ min. Clock: 2026-05-04 14:10 EDT. First read: ~May 11. Best WR: 37.3%. All WEAK/FAILING. |
+| CoinGecko $0.00 fix | ✅ DONE | signal_ingestor now uses cached price, 120s interval, skips $0.00 on 429. Deployed this session. |
+| UI/UX: Training Day counters | ✅ DONE | All 3 hero pages (Dashboard, Strategies, Activity Log) now show Paper Day X / 7+ min. |
+| UI/UX: Gate progress display | ✅ DONE | Strategy cards: "3968/30" → "✓ 3,968 cycles" when past threshold. WR gap indicator added. |
 | Auto-demotion on drawdown breach | Medium | Inverse of promotion — not yet built |
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
-| Session XVI/XVII PDF Archive | Low | Session XVI PDF pushed. Session XVII research notes in STATE.md Section 12. |
-| Session XVIII PDF | Low | Generate session PDF next session |
+| Session XXII PDF Archive | Low | Generate session PDF next session |
 
 ---
 

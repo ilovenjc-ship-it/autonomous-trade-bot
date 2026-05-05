@@ -784,10 +784,11 @@ export default function Dashboard() {
       subtitle: 'Fleet Stats',
       accent: 'emerald',
       stats: [
-        { label: 'Total PnL',        value: summary ? `${fmt(summary.total_pnl, 4)} τ` : '—', color: (summary?.total_pnl ?? 0) >= 0 ? 'emerald' : 'red' },
-        { label: 'Win Rate',         value: summary ? `${summary.win_rate.toFixed(1)}%` : '—', sub: summary ? `${summary.wins}W / ${summary.losses}L` : '', color: (summary?.win_rate ?? 0) >= 55 ? 'emerald' : 'yellow' },
+        { label: 'Total PnL',         value: summary ? `${fmt(summary.total_pnl, 4)} τ` : '—', color: (summary?.total_pnl ?? 0) >= 0 ? 'emerald' : 'red' },
+        { label: 'Win Rate',          value: summary ? `${summary.win_rate.toFixed(1)}%` : '—', sub: summary ? `${summary.wins}W / ${summary.losses}L` : '', color: (summary?.win_rate ?? 0) >= 55 ? 'emerald' : 'yellow' },
         { label: 'Active Strategies', value: `${summary?.active_strategies ?? '—'}`, sub: 'in fleet', color: 'blue' },
-        { label: 'Total Trades',     value: summary ? summary.total_trades.toLocaleString() : '—', sub: 'all time', color: 'white' },
+        { label: 'Total Trades',      value: summary ? summary.total_trades.toLocaleString() : '—', sub: 'all time', color: 'white' },
+        { label: 'Paper Day',         value: (() => { const d = Math.max(1, Math.floor((Date.now() - new Date('2026-05-04T14:10:00Z').getTime()) / 86_400_000) + 1); return `Day ${d}` })(), sub: 'of 7+ min baseline', color: (() => { const d = Math.max(1, Math.floor((Date.now() - new Date('2026-05-04T14:10:00Z').getTime()) / 86_400_000) + 1); return d >= 7 ? 'emerald' : 'yellow' as any })() },
       ],
     },
     {
