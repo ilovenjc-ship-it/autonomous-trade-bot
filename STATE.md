@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-05 (Session XXII — Morning Brief + CoinGecko Fix + UI/UX Polish)
-**Status:** PAPER TRAINING ACTIVE — Day 2 of 7+ min baseline. All 12 strategies PAPER_ONLY on Railway. Bot online, signal feeds running. CoinGecko $0.00 emission bug fixed. UI: training day counters added, gate progress fixed, WR gap indicators added.
+**Last updated:** 2026-05-05 (Session XXIII — UI Layout Rework: BFT/Council Swap, Subnets Relocation, Trades Cleanup, Discord Banner)
+**Status:** PAPER TRAINING ACTIVE — Day 2 of 7+ min baseline. All 12 strategies PAPER_ONLY on Railway. Bot online, signal feeds running. All 5 UI layout tasks complete and pushed (`91c341ae`).
 **Maintained by:** II Agent + Owner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -12,6 +12,49 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXIII SUMMARY (May 5, 2026) — UI Layout Rework (5-Item Task List)
+
+### Changes This Session
+
+**Frontend — `OpenClaw.tsx`:**
+- Imported and rendered `OpenClawBFTSection` at the top of the page (before the vote/council grid)
+  - Open/close toggle preserved; positioned above page content so the slider cannot push it to the bottom
+- Removed `CouncilPanel` from this page
+- All InfoBubble `side` props changed → `"right"` (horizontal; no bottom clipping)
+
+**Frontend — `IIAgent.tsx`:**
+- Imported `CouncilPanel` and all required types
+- Added `latestRound` state + live fetch from `/consensus/latest-round`
+- Rendered `<CouncilPanel>` between architecture diagram and chat panel
+- Removed `OpenClawBFTSection` from this page
+- All InfoBubble `side` props changed → `"right"` (horizontal)
+
+**Frontend — `AgentFleet.tsx`:**
+- Removed entire Top Subnets section: `SubnetCard`, `SubnetTrendIcon` components, subnets state, 60s fetch, all JSX
+- Fixed InfoBubble `side="bottom"` → `"right"` across agent action buttons and all tooltip placements
+- Fixed `VOTE_META` indexing TypeScript error in `BotVoteCard`
+
+**Frontend — `Analytics.tsx`:**
+- Added Top Subnets section: `SubnetCard`/`SubnetTrendIcon`, `subnets` state + 60s interval fetch, rendered above `<SubnetHeatMap />`
+
+**Frontend — `Trades.tsx`:**
+- Removed Paper Trading Activity section entirely: simulation cards, recent paper trade stream, `PaperTrade`/`PaperStratCard` interfaces, associated state
+- Page is now leaner; this section already exists on Trade Log page — no information lost
+
+**Frontend — `StrategyDetail.tsx`:**
+- Timestamp display fixed: raw UTC strings from backend now converted to Eastern Time (ET)
+  - e.g., `May 4 14:10 EDT` instead of raw UTC
+
+**Frontend — `ActivityLog.tsx` / Market Data signal feeds:**
+- Discord "pending invite" note upgraded to a prominent red `⊗ Discord Not Connected` banner
+- Status string surfaced clearly instead of a buried footnote
+
+**Commit:** `91c341ae` pushed to `main` — Railway auto-deploy triggered.
+
+**TypeScript:** Zero errors before push (all TS compilation checks passed).
 
 ---
 
@@ -535,12 +578,19 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | SN3 owner key resolution | Monitor | Const warned: do not buy SN3 alpha until resolved. Check each session. |
 | Orchestrator/Architect PDF | Medium | Owner has a PDF on this concept — share it for extraction and filing. Not yet received. |
 | Paper training monitoring | **Active** | Day 2 / 7+ min. Clock: 2026-05-04 14:10 EDT. First read: ~May 11. Best WR: 37.3%. All WEAK/FAILING. |
-| CoinGecko $0.00 fix | ✅ DONE | signal_ingestor now uses cached price, 120s interval, skips $0.00 on 429. Deployed this session. |
+| CoinGecko $0.00 fix | ✅ DONE | signal_ingestor now uses cached price, 120s interval, skips $0.00 on 429. Deployed Session XXII. |
 | UI/UX: Training Day counters | ✅ DONE | All 3 hero pages (Dashboard, Strategies, Activity Log) now show Paper Day X / 7+ min. |
 | UI/UX: Gate progress display | ✅ DONE | Strategy cards: "3968/30" → "✓ 3,968 cycles" when past threshold. WR gap indicator added. |
+| UI/UX: BFT/Council swap | ✅ DONE | `OpenClawBFTSection` → OpenClaw page; `CouncilPanel` (with live fetch) → IIAgent page. `91c341ae`. |
+| UI/UX: Top Subnets relocation | ✅ DONE | Moved AgentFleet → Analytics with full state/fetch/JSX. `91c341ae`. |
+| UI/UX: Trades page cleanup | ✅ DONE | Paper Trading Activity section removed from Trades page. `91c341ae`. |
+| UI/UX: InfoBubbles horizontal | ✅ DONE | All `side="bottom"/"top"` → `"right"` across IIAgent, OpenClaw, AgentFleet. `91c341ae`. |
+| UI/UX: Discord status banner | ✅ DONE | Prominent red `⊗ Discord Not Connected` banner in ActivityLog/Market Data feeds. `91c341ae`. |
+| UI/UX: StrategyDetail timezone | ✅ DONE | UTC timestamps → Eastern Time (ET) format. `91c341ae`. |
 | Auto-demotion on drawdown breach | Medium | Inverse of promotion — not yet built |
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
-| Session XXII PDF Archive | Low | Generate session PDF next session |
+| Session XXII/XXIII PDF Archive | Low | Generate combined session PDF next session |
+| Discord Gateway connection | Waiting | Awaiting OTF invite — external dependency, not a code issue |
 
 ---
 
