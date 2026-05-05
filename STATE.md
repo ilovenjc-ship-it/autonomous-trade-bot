@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-05 (Session XXIII — UI Layout Rework: BFT/Council Swap, Subnets Relocation, Trades Cleanup, Discord Banner)
-**Status:** PAPER TRAINING ACTIVE — Day 2 of 7+ min baseline. All 12 strategies PAPER_ONLY on Railway. Bot online, signal feeds running. All 5 UI layout tasks complete and pushed (`91c341ae`).
+**Last updated:** 2026-05-05 (Session XXIII continued — Regime Gating, Tooltip Portal, UI fixes, Code Protection)
+**Status:** PAPER TRAINING ACTIVE — Day 2 of 7+ min baseline. All 12 strategies PAPER_ONLY on Railway. Bot online. Regime gating LIVE (5 momentum bots benched in SIDEWAYS). App in cleanest state since inception.
 **Maintained by:** II Agent + Owner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -12,6 +12,33 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXIII SUMMARY (May 5, 2026) — Regime Gating + UI Fixes + Code Protection
+
+### Regime-Aware Strategy Gating (major feature)
+- `_detect_regime()` in `cycle_service.py`: reads RSI + BB width → `SIDEWAYS | TRENDING_UP | TRENDING_DOWN | VOLATILE | UNKNOWN`
+- `REGIME_SUITABILITY` map: 5 momentum bots bench in SIDEWAYS, 3 mean-rev bots bench in strong trends, 4 always active
+- Gate fires once per cycle at top of `_run_one_cycle()` — mismatched bots skip signal, cycle counter still ticks, NO consecutive losses accumulated while benched
+- Regime change pushes one activity event; bench event fires once per bot per regime (deduped)
+- `fleet.py`: `regime_benched` + `suitable_regimes` per bot in `/bots` response; `current_regime` + `benched_count` in summary; new `GET /fleet/regime/current` endpoint
+- `AgentFleet.tsx`: amber regime banner at top of page with benched count; `⏸ BENCHED` chip on table rows and detail panel
+
+**Current regime: SIDEWAYS** — Momentum Cascade, Yield Maximizer, Breakout Hunter, dTAO Flow Momentum, Emission Momentum all benched. Mean Reversion, Contrarian Flow, Volatility Arb, Macro Correlation, Liquidity Hunter, Sentiment Surge, Balanced Risk all active.
+
+### UI Fixes (4 items)
+- **Tooltip.tsx**: Rewritten with `createPortal` + `position:fixed` + `getBoundingClientRect()` — tooltips now render at `document.body`, impossible to clip by any `overflow:hidden` parent. Default `side` changed `'top'` → `'right'` globally for both `Tooltip` and `InfoBubble`. Fixes all explainer bubbles across entire app.
+- **IIAgent.tsx**: Scroll-to-bottom guard — `chatHistory.length === 0 → return`. Page no longer jumps to bottom on open.
+- **Trades.tsx**: Trade Log History (Filter + Table, largest section) removed — already exists on Trade Log page.
+- **ActivityLog.tsx**: `⊗ TaoStats Not Connected` red banner added — mirrors Discord banner pattern. Shows when `feed.status !== 'connected'`.
+
+### Conversation Archived
+- `report/CONVERSATIONS/2026-05-05_The-Goal.md` — the mission statement: full autonomy, no human intervention, II Agent as Main Orchestrator. Filed per D-19.
+
+### End-of-Day Assessment
+*"The tightest the App has been since inception."* — Owner, May 5, 2026.
+Foundation complete. Real work begins: proficient performance through live training data.
 
 ---
 
@@ -591,6 +618,8 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
 | Session XXII/XXIII PDF Archive | Low | Generate combined session PDF next session |
 | Discord Gateway connection | Waiting | Awaiting OTF invite — external dependency, not a code issue |
+| Wallet balance on-chain verify | Low | Railway shows 0.0τ at boot (async RPC). Verify 0.227τ intact via Taostats before next session. |
+| Regime gating — live observation | Active | SIDEWAYS regime active. 5 momentum bots benched. First TRENDING switch will auto-wake them. Monitor May 11. |
 
 ---
 
