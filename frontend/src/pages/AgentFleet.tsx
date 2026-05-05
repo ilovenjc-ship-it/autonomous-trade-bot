@@ -8,65 +8,7 @@ import PageHeroSlider from '@/components/PageHeroSlider'
 import { useBotStore } from '@/store/botStore'
 import Tooltip, { InfoBubble } from '@/components/Tooltip'
 
-// ── Subnet types + card (from Mission Control) ───────────────────────────────
-interface Subnet {
-  uid: number; name: string; ticker: string
-  stake_tao: number; stake_usd: number
-  emission: number; apy: number; miners: number
-  trend: 'up' | 'down' | 'neutral'; score: number
-}
-function SubnetTrendIcon({ trend }: { trend: string }) {
-  if (trend === 'up')   return <ArrowUp   size={10} className="text-accent-green" />
-  if (trend === 'down') return <ArrowDown size={10} className="text-red-400" />
-  return <Minus size={10} className="text-slate-500" />
-}
-function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
-  const stakePct   = maxStake ? (s.stake_tao / maxStake) * 100 : 0
-  const trendColor = s.trend === 'up' ? 'text-accent-green' : s.trend === 'down' ? 'text-red-400' : 'text-slate-500'
-  const scoreColor = s.score >= 90 ? '#34d399' : s.score >= 70 ? '#60a5fa' : s.score >= 50 ? '#fbbf24' : '#f87171'
-  return (
-    <div className="flex-shrink-0 w-[160px] bg-dark-900 border border-dark-600 rounded-xl p-3 hover:border-dark-500 transition-colors">
-      <div className="flex items-start justify-between mb-2">
-        <div className="min-w-0">
-          <p className="text-[12px] font-semibold text-white truncate">{s.name}</p>
-          <p className="text-[10px] text-slate-500 font-mono uppercase">{s.ticker}</p>
-        </div>
-        <div className="flex items-center gap-0.5 flex-shrink-0 ml-1">
-          <SubnetTrendIcon trend={s.trend} />
-          <span className={clsx('text-[9px] font-mono font-bold', trendColor)}>{s.trend.toUpperCase()}</span>
-        </div>
-      </div>
-      <div className="mb-2">
-        <div className="flex justify-between text-[10px] font-mono mb-0.5">
-          <span className="text-slate-500">Stake</span>
-          <span className="text-slate-300">{((s.stake_tao ?? 0) / 1e6).toFixed(2)}M τ</span>
-        </div>
-        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
-          <div className="h-full bg-accent-blue/60 rounded-full" style={{ width: `${stakePct}%` }} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-1 mb-2">
-        <div className="bg-dark-800 rounded px-1.5 py-0.5 text-center">
-          <p className="text-[9px] text-slate-500 font-mono">APY</p>
-          <p className="text-[11px] font-bold text-accent-green font-mono">{(s.apy ?? 0).toFixed(1)}%</p>
-        </div>
-        <div className="bg-dark-800 rounded px-1.5 py-0.5 text-center">
-          <p className="text-[9px] text-slate-500 font-mono">Emit</p>
-          <p className="text-[11px] font-bold text-yellow-400 font-mono">{((s.emission ?? 0) * 100).toFixed(2)}%</p>
-        </div>
-      </div>
-      <div>
-        <div className="flex justify-between text-[10px] font-mono mb-0.5">
-          <span className="text-slate-500">Score</span>
-          <span className="font-bold" style={{ color: scoreColor }}>{(s.score ?? 0).toFixed(1)}</span>
-        </div>
-        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
-          <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.score ?? 0)}%`, background: scoreColor }} />
-        </div>
-      </div>
-    </div>
-  )
-}
+// ── (Top Subnets relocated to Analytics page) ────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface GateCheck { value: number; required: number; ok: boolean }
@@ -237,7 +179,6 @@ export default function AgentFleet() {
   const [rebalancing, setRebalancing] = useState(false)
   const [lastUpdated, setLastUpdated] = useState<string>('')
   const [slide, setSlide] = useState(0) // 0 = radar profile, 1 = capital allocation
-  const [subnets, setSubnets] = useState<Subnet[]>([])
 
   const setFleetStats = useBotStore(s => s.setFleetStats)
 
@@ -278,18 +219,7 @@ export default function AgentFleet() {
     return () => clearInterval(t)
   }, [fetchBots])
 
-  // Top Subnets fetch — 60s refresh
-  useEffect(() => {
-    const fetchSubnets = async () => {
-      try {
-        const r = await api.get('/market/subnets?limit=20&sort=stake')
-        setSubnets(r.data.subnets ?? [])
-      } catch { /* silent — non-critical */ }
-    }
-    fetchSubnets()
-    const t = setInterval(fetchSubnets, 60_000)
-    return () => clearInterval(t)
-  }, [])
+  // Top Subnets relocated to Analytics page
 
   const maxAlloc = Math.max(...bots.map(b => b.capital_allocation_pct), 25)
 
@@ -342,24 +272,6 @@ export default function AgentFleet() {
     <div className="flex flex-col h-full bg-[#080d18] text-slate-100 font-mono overflow-hidden">
 
       <PageHeroSlider slides={heroSlides} />
-
-      {/* ── Top Subnets by Stake (relocated from Mission Control) ──────────── */}
-      <div className="flex-shrink-0 border-b border-slate-800/60">
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-slate-800/40">
-          <BarChart2 size={12} className="text-accent-blue" />
-          <span className="text-[12px] font-bold tracking-widest text-slate-300 uppercase">Top Subnets</span>
-          <span className="text-[11px] text-slate-600 font-mono ml-1">by stake · live</span>
-          <span className="ml-auto text-[11px] text-slate-600 font-mono">{subnets.length} subnets</span>
-        </div>
-        <div className="flex gap-3 overflow-x-auto px-4 py-3 scrollbar-thin">
-          {subnets.length === 0 ? (
-            <div className="text-[11px] text-slate-600 font-mono py-2">Loading subnets…</div>
-          ) : (() => {
-            const maxStake = Math.max(...subnets.map(s => s.stake_tao), 1)
-            return subnets.map(s => <SubnetCard key={s.uid} s={s} maxStake={maxStake} />)
-          })()}
-        </div>
-      </div>
 
       {/* Main content — fills rest of height */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -440,7 +352,7 @@ export default function AgentFleet() {
                 <th className="text-left px-4 py-2.5 text-slate-300 font-normal">
                   <span className="flex items-center gap-1.5">
                     HEALTH
-                    <InfoBubble side="bottom" content={
+                    <InfoBubble side="right" content={
                       <div className="space-y-1">
                         <p className="text-white font-bold mb-1">Health Status</p>
                         <p><span className="text-emerald-400">🔥 HOT</span> — Winning streak, elite performance</p>
@@ -455,7 +367,7 @@ export default function AgentFleet() {
                 <th className="text-left px-4 py-2.5 text-slate-300 font-normal">
                   <span className="flex items-center gap-1.5">
                     SIGNAL
-                    <InfoBubble side="bottom" content={
+                    <InfoBubble side="right" content={
                       <div className="space-y-1">
                         <p className="text-white font-bold mb-1">Last Signal</p>
                         <p>The most recent trade signal this bot generated in its last cycle.</p>
@@ -470,7 +382,7 @@ export default function AgentFleet() {
                 <th className="text-right px-4 py-2.5 text-slate-300 font-normal">
                   <span className="flex items-center justify-end gap-1.5">
                     WIN RATE
-                    <InfoBubble side="bottom" content={
+                    <InfoBubble side="right" content={
                       <div className="space-y-1">
                         <p className="text-white font-bold mb-1">Win Rate</p>
                         <p>Percentage of completed paper trades that were profitable.</p>
@@ -486,19 +398,19 @@ export default function AgentFleet() {
                 <th className="text-left px-4 py-2.5 text-slate-300 font-normal">
                   <span className="flex items-center gap-1.5">
                     ALLOCATION
-                    <InfoBubble side="bottom" content="Capital allocation as a % of the active trading budget assigned to this bot. Bots with higher performance scores receive proportionally more capital." />
+                    <InfoBubble side="right" content="Capital allocation as a % of the active trading budget assigned to this bot. Bots with higher performance scores receive proportionally more capital." />
                   </span>
                 </th>
                 <th className="text-left px-4 py-2.5 text-slate-300 font-normal">
                   <span className="flex items-center gap-1.5">
                     SCORE
-                    <InfoBubble side="bottom" content="Composite performance score (0–100). Factors: win rate × 50% + PnL momentum × 30% + trade frequency × 20%. Higher score = more capital allocation." />
+                    <InfoBubble side="right" content="Composite performance score (0–100). Factors: win rate × 50% + PnL momentum × 30% + trade frequency × 20%. Higher score = more capital allocation." />
                   </span>
                 </th>
                 <th className="text-center px-4 py-2.5 text-slate-300 font-normal">
                   <span className="flex items-center justify-center gap-1.5">
                     CONTROLS
-                    <InfoBubble side="bottom" content={
+                    <InfoBubble side="right" content={
                       <div className="space-y-1">
                         <p className="text-white font-bold mb-1">Row Controls</p>
                         <p><span className="text-red-400 font-bold">OFF</span> — Pause this bot (stops cycling)</p>

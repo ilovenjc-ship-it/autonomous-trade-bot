@@ -6,11 +6,72 @@ import {
 import {
   TrendingUp, TrendingDown, Activity, BarChart2,
   Award, RefreshCw, ChevronUp, ChevronDown, Clock,
+  ArrowUp, ArrowDown, Minus,
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 import SubnetHeatMap from '@/components/SubnetHeatMap'
 import { useBotStore } from '@/store/botStore'
+
+// ── Top Subnets (relocated from Agent Fleet) ──────────────────────────────────
+interface Subnet {
+  uid: number; name: string; ticker: string
+  stake_tao: number; stake_usd: number
+  emission: number; apy: number; miners: number
+  trend: 'up' | 'down' | 'neutral'; score: number
+}
+function SubnetTrendIcon({ trend }: { trend: string }) {
+  if (trend === 'up')   return <ArrowUp   size={10} className="text-emerald-400" />
+  if (trend === 'down') return <ArrowDown size={10} className="text-red-400" />
+  return <Minus size={10} className="text-slate-500" />
+}
+function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
+  const stakePct   = maxStake ? (s.stake_tao / maxStake) * 100 : 0
+  const trendColor = s.trend === 'up' ? 'text-emerald-400' : s.trend === 'down' ? 'text-red-400' : 'text-slate-500'
+  const scoreColor = s.score >= 90 ? '#34d399' : s.score >= 70 ? '#60a5fa' : s.score >= 50 ? '#fbbf24' : '#f87171'
+  return (
+    <div className="flex-shrink-0 w-[160px] bg-dark-900 border border-dark-600 rounded-xl p-3 hover:border-dark-500 transition-colors">
+      <div className="flex items-start justify-between mb-2">
+        <div className="min-w-0">
+          <p className="text-[12px] font-semibold text-white truncate">{s.name}</p>
+          <p className="text-[10px] text-slate-500 font-mono uppercase">{s.ticker}</p>
+        </div>
+        <div className="flex items-center gap-0.5 flex-shrink-0 ml-1">
+          <SubnetTrendIcon trend={s.trend} />
+          <span className={clsx('text-[9px] font-mono font-bold', trendColor)}>{s.trend.toUpperCase()}</span>
+        </div>
+      </div>
+      <div className="mb-2">
+        <div className="flex justify-between text-[10px] font-mono mb-0.5">
+          <span className="text-slate-500">Stake</span>
+          <span className="text-slate-300">{((s.stake_tao ?? 0) / 1e6).toFixed(2)}M τ</span>
+        </div>
+        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
+          <div className="h-full bg-blue-500/60 rounded-full" style={{ width: `${stakePct}%` }} />
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-1 mb-2">
+        <div className="bg-dark-800 rounded px-1.5 py-0.5 text-center">
+          <p className="text-[9px] text-slate-500 font-mono">APY</p>
+          <p className="text-[11px] font-bold text-emerald-400 font-mono">{(s.apy ?? 0).toFixed(1)}%</p>
+        </div>
+        <div className="bg-dark-800 rounded px-1.5 py-0.5 text-center">
+          <p className="text-[9px] text-slate-500 font-mono">Emit</p>
+          <p className="text-[11px] font-bold text-yellow-400 font-mono">{((s.emission ?? 0) * 100).toFixed(2)}%</p>
+        </div>
+      </div>
+      <div>
+        <div className="flex justify-between text-[10px] font-mono mb-0.5">
+          <span className="text-slate-500">Score</span>
+          <span className="font-bold" style={{ color: scoreColor }}>{(s.score ?? 0).toFixed(1)}</span>
+        </div>
+        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
+          <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.score ?? 0)}%`, background: scoreColor }} />
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ── colours ───────────────────────────────────────────────────────────────────
 const C_GREEN  = '#00ff88'
@@ -132,6 +193,7 @@ export default function Analytics() {
   const [activeChart, setActiveChart] = useState<'equity' | 'drawdown' | 'winrate'>('equity')
   const [timeRange,  setTimeRange]  = useState<TimeRange>('all')
   const [wrWindow,   setWrWindow]   = useState<WrWindow>(20)
+  const [subnets,    setSubnets]    = useState<Subnet[]>([])
 
   const setAnalyticsStats = useBotStore(s => s.setAnalyticsStats)
 
@@ -171,6 +233,19 @@ export default function Analytics() {
   }, [timeRange, wrWindow])
 
   useEffect(() => { load() }, [load])
+
+  // Top Subnets — 60s refresh (relocated from Agent Fleet)
+  useEffect(() => {
+    const fetchSubnets = async () => {
+      try {
+        const r = await api.get('/market/subnets?limit=20&sort=stake')
+        setSubnets(r.data.subnets ?? [])
+      } catch { /* silent — non-critical */ }
+    }
+    fetchSubnets()
+    const t = setInterval(fetchSubnets, 60_000)
+    return () => clearInterval(t)
+  }, [])
 
   const handleTimeRange = useCallback((r: TimeRange) => {
     setTimeRange(r)
@@ -555,6 +630,26 @@ export default function Analytics() {
         <div className="flex gap-4 mt-2 justify-end text-xs font-mono text-slate-300">
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-accent-green inline-block" /> Positive</span>
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
+        </div>
+      </div>
+
+      {/* ── Top Subnets by Stake (relocated from Agent Fleet) ────────────── */}
+      <div className="card overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-dark-600">
+          <BarChart2 size={13} className="text-accent-blue" />
+          <span className="text-[12px] font-bold tracking-widest text-slate-300 uppercase">Top Subnets</span>
+          <span className="text-[11px] text-slate-600 font-mono ml-1">by stake · live</span>
+          <span className="ml-auto text-[11px] text-slate-600 font-mono">{subnets.length} loaded</span>
+        </div>
+        <div className="flex gap-3 overflow-x-auto px-4 py-3">
+          {subnets.length === 0 ? (
+            <div className="text-[11px] text-slate-600 font-mono py-2 flex items-center gap-2">
+              <Activity size={11} className="animate-pulse" /> Loading subnets…
+            </div>
+          ) : (() => {
+            const maxStake = Math.max(...subnets.map(s => s.stake_tao), 1)
+            return subnets.map(s => <SubnetCard key={s.uid} s={s} maxStake={maxStake} />)
+          })()}
         </div>
       </div>
 

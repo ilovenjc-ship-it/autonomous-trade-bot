@@ -813,13 +813,21 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
         </div>
       )}
 
-      {/* Discord pending-invite note — only when not yet connected */}
+      {/* Discord status — not connected banner */}
       {isDiscord && feed.status !== 'connected' && (
-        <div className="flex items-start gap-2 bg-orange-500/8 border border-orange-500/20 rounded-lg px-3 py-2">
-          <Info size={11} className="text-orange-400 flex-shrink-0 mt-0.5" />
-          <div className="text-[10px] text-orange-200 font-mono leading-snug space-y-0.5">
-            <p className="font-semibold">Requires OTF server admin invitation</p>
-            <p>Create a bot at <a href="https://discord.com/developers/applications" target="_blank" rel="noopener" className="text-orange-300 hover:underline">discord.com/developers</a>, enable the <span className="text-white">MESSAGE_CONTENT</span> privileged intent, then ask an OpenTensor Foundation admin to invite it to <span className="text-white">discord.gg/bittensor</span>.</p>
+        <div className="flex items-start gap-2 bg-red-500/8 border border-red-500/25 rounded-lg px-3 py-2.5">
+          <span className="text-red-400 flex-shrink-0 text-[11px] font-bold mt-0.5">⊗</span>
+          <div className="text-[11px] font-mono leading-snug space-y-1">
+            <p className="text-red-300 font-bold uppercase tracking-wide">Discord Not Connected</p>
+            <p className="text-slate-400">
+              Status: <span className="text-orange-300 font-semibold">{feed.status === 'pending_invite' ? 'Awaiting OTF Server Invite' : feed.status}</span>
+            </p>
+            <p className="text-slate-500 text-[10px]">
+              The Discord gateway bot token is loaded, but the bot hasn't been invited to the Bittensor server.
+              Ask an OpenTensor Foundation admin to invite it to{' '}
+              <a href="https://discord.gg/bittensor" target="_blank" rel="noopener" className="text-orange-300 hover:underline">discord.gg/bittensor</a>.
+              Until then, Discord signals will not flow.
+            </p>
           </div>
         </div>
       )}

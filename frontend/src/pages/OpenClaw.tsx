@@ -7,7 +7,7 @@ import {
   Shield, ShieldCheck, ShieldX, Vote, Zap,
   TrendingUp, TrendingDown, Minus, HelpCircle,
   CheckCircle2, XCircle, AlertTriangle, Clock,
-  Activity, BarChart3, Users,
+  Activity, BarChart3, Users, ChevronRight,
 } from 'lucide-react'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
@@ -130,7 +130,7 @@ function StatCard({ icon: Icon, label, value, sub, accent, tip }: {
       <div className="min-w-0">
         <p className="text-[14px] text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
           {label}
-          {tip && <InfoBubble content={tip} side="bottom" maxWidth={300} />}
+          {tip && <InfoBubble content={tip} side="right" maxWidth={300} />}
         </p>
         <p className="text-xl font-bold text-white font-mono mt-0.5">{value}</p>
         {sub && <p className="text-[14px] text-slate-300 mt-0.5">{sub}</p>}
@@ -280,6 +280,207 @@ function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
       <td className="px-3 py-2 text-[14px] text-slate-300">{timeSince(round.timestamp)}</td>
       <td className="px-3 py-2 text-[13px] text-slate-300 font-mono">{round.duration_ms}ms</td>
     </tr>
+  )
+}
+
+// ── OpenClaw BFT Explanation Component ────────────────────────────────────────
+
+function OpenClawBFTSection() {
+  const [expanded, setExpanded] = useState(true)
+
+  // 12 bots: 7 agree (green), 3 faulty (red), 2 neutral (grey)
+  const BOT_STATES: ('agree' | 'faulty' | 'neutral')[] = [
+    'agree','agree','agree','agree','agree','agree','agree',
+    'neutral','neutral','faulty','faulty','faulty',
+  ]
+
+  const stateStyle = {
+    agree:   { bg: 'bg-emerald-500/20', border: 'border-emerald-500/60', text: 'text-emerald-400', glow: '0 0 10px rgba(52,211,153,0.4)', icon: '✓' },
+    faulty:  { bg: 'bg-red-500/15',     border: 'border-red-500/50',     text: 'text-red-400',     glow: '0 0 10px rgba(239,68,68,0.3)',  icon: '✗' },
+    neutral: { bg: 'bg-slate-700/30',   border: 'border-slate-600/40',   text: 'text-slate-400',   glow: 'none',                         icon: '—' },
+  }
+
+  const references = [
+    { src: 'L. Lamport, R. Shostak & M. Pease', year: '1982', title: '"Byzantine Generals Problem"', journal: 'ACM TOCS', color: 'text-indigo-400' },
+    { src: 'Bitcoin (Nakamoto, 2008)',           year: '—',    title: 'Proof-of-Work as BFT',         journal: 'Network', color: 'text-amber-400' },
+    { src: 'Ethereum (Buterin et al., 2014)',    year: '—',    title: 'Casper PoS BFT variant',       journal: 'Finality', color: 'text-purple-400' },
+    { src: 'Bittensor (Yuma Consensus, 2021)',   year: '—',    title: 'Metagraph weight trust',       journal: 'On-chain', color: 'text-emerald-400' },
+  ]
+
+  return (
+    <div className="rounded-2xl border border-purple-500/25 overflow-hidden"
+         style={{ background: 'linear-gradient(135deg, #0d1020 0%, #12102a 50%, #0d1020 100%)' }}>
+
+      {/* Header — click to expand/collapse */}
+      <button
+        onClick={() => setExpanded(v => !v)}
+        className="w-full flex items-center gap-4 px-6 py-4 border-b border-purple-500/20 hover:bg-purple-500/5 transition-colors text-left"
+        style={{ background: 'linear-gradient(90deg, rgba(139,92,246,0.10) 0%, rgba(99,102,241,0.05) 60%, transparent 100%)' }}
+      >
+        {/* Icon orb */}
+        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-purple-500/40 bg-purple-500/15"
+             style={{ boxShadow: '0 0 18px rgba(139,92,246,0.25)' }}>
+          <span className="text-lg">⚡</span>
+        </div>
+        <div>
+          <p className="text-sm font-bold text-white font-mono tracking-wide">OpenClaw — Byzantine Fault Tolerant Consensus</p>
+          <p className="text-[12px] text-purple-300/70 font-mono">The mathematical firewall between every strategy and the blockchain · Lamport, Shostak &amp; Pease, 1982</p>
+        </div>
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[11px] font-mono text-purple-400 border border-purple-500/30 rounded px-2 py-0.5 bg-purple-500/10">
+            7 / 12 · 58.3% threshold
+          </span>
+          <ChevronRight size={16} className={`text-slate-500 transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`} />
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="px-6 py-5 space-y-6">
+
+          {/* ── Row 1: Problem statement + Math ── */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+            {/* Problem Statement */}
+            <div className="bg-[#0a0e1e]/80 border border-purple-500/20 rounded-xl p-4 space-y-3">
+              <p className="text-[11px] font-mono text-purple-400 uppercase tracking-[0.15em] font-bold">The Byzantine Generals Problem</p>
+              <p className="text-[13px] text-slate-300 leading-relaxed">
+                Lamport, Shostak &amp; Pease (1982) asked: <span className="text-white font-semibold">how can a group of actors reach correct
+                agreement when some members might be wrong, corrupt, or sending bad information?</span>
+              </p>
+              <p className="text-[13px] text-slate-400 leading-relaxed">
+                Imagine N generals surrounding a city. Each must vote ATTACK or RETREAT. If some generals are traitors,
+                they may send different votes to different generals. The loyal generals must still reach the
+                <span className="text-amber-300 font-semibold"> same correct decision</span>, even with traitors in the room.
+              </p>
+              <p className="text-[13px] text-slate-300 leading-relaxed">
+                The solution: if you have <span className="text-purple-300 font-bold">N actors</span>, you can tolerate up to{' '}
+                <span className="text-red-400 font-bold">⌊(N−1)/3⌋ traitors</span> and still reach correct consensus — as long as the
+                threshold is met.
+              </p>
+              <div className="border-t border-purple-500/15 pt-2 text-[12px] font-mono text-slate-500">
+                Bitcoin, Ethereum, and Bittensor all use variants of this principle.
+              </div>
+            </div>
+
+            {/* Math Box */}
+            <div className="bg-[#0a0e1e]/80 border border-indigo-500/20 rounded-xl p-4 space-y-3">
+              <p className="text-[11px] font-mono text-indigo-400 uppercase tracking-[0.15em] font-bold">The OpenClaw Numbers</p>
+              <div className="space-y-2.5 font-mono">
+                {[
+                  { label: 'Total voting bots',         val: 'N = 12',                  color: 'text-white',      desc: 'One per strategy personality' },
+                  { label: 'Max tolerable faulty bots', val: 'f = ⌊(N−1)/3⌋ = 3',      color: 'text-red-400',    desc: '3 bots can be wrong/biased' },
+                  { label: 'Consensus threshold',       val: '2f + 1 = 7 votes',         color: 'text-emerald-400',desc: 'Minimum to guarantee correctness' },
+                  { label: 'Threshold as % of N',       val: '7/12 = 58.3%',             color: 'text-purple-300', desc: 'Supermajority' },
+                  { label: 'Result if threshold met',   val: 'TRADE APPROVED ✓',         color: 'text-emerald-400',desc: 'Executes on-chain' },
+                  { label: 'Result if not met',         val: 'VETOED — no execution',    color: 'text-red-400',    desc: 'Position stays closed' },
+                ].map(row => (
+                  <div key={row.label} className="flex items-start justify-between gap-3">
+                    <span className="text-[11px] text-slate-500 flex-shrink-0 w-44">{row.label}</span>
+                    <span className={`text-[12px] font-bold ${row.color} flex-shrink-0`}>{row.val}</span>
+                    <span className="text-[11px] text-slate-600 text-right">{row.desc}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="border-t border-indigo-500/15 pt-2">
+                <p className="text-[11px] font-mono text-indigo-400/70">
+                  The math guarantees: even if 3 bots are misbehaving, biased, or running stale data —
+                  the remaining 9 can still produce a <span className="text-indigo-300">provably correct majority</span>.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* ── Row 2: Voting visualiser ── */}
+          <div className="bg-[#0a0e1e]/80 border border-slate-700/30 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-4">
+              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-[0.15em] font-bold">
+                What a consensus round looks like — BUY signal, 7 agree, 3 faulty, 2 neutral
+              </p>
+              <div className="flex items-center gap-4 text-[11px] font-mono">
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />Agree (7)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-600 inline-block" />Neutral (2)</span>
+                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />Faulty (3)</span>
+              </div>
+            </div>
+            <div className="flex flex-wrap justify-center gap-3">
+              {BOT_STATES.map((state, i) => {
+                const s = stateStyle[state]
+                return (
+                  <div key={i}
+                    className={`flex flex-col items-center gap-1 w-14 rounded-xl border ${s.bg} ${s.border} py-2 px-1 transition-all`}
+                    style={{ boxShadow: s.glow }}>
+                    <span className="text-[10px] font-mono text-slate-500">BOT {i + 1}</span>
+                    <span className={`text-base font-bold ${s.text}`}>{s.icon}</span>
+                    <span className={`text-[10px] font-bold font-mono ${s.text}`}>
+                      {state === 'agree' ? 'BUY' : state === 'faulty' ? 'ERR' : 'HOLD'}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="mt-4 flex items-center justify-center gap-3">
+              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-emerald-500/40" />
+              <span className="px-4 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-[12px] font-bold font-mono text-emerald-400"
+                    style={{ boxShadow: '0 0 12px rgba(52,211,153,0.25)' }}>
+                ✓ CONSENSUS REACHED — 7 of 12 agree · TRADE APPROVED
+              </span>
+              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-emerald-500/40" />
+            </div>
+          </div>
+
+          {/* ── Row 3: Blockchain parallels ── */}
+          <div>
+            <p className="text-[11px] font-mono text-slate-500 uppercase tracking-[0.15em] mb-3">
+              The same principle powers every major blockchain:
+            </p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {references.map(ref => (
+                <div key={ref.src} className="bg-[#0a0e1e]/60 border border-slate-700/30 rounded-xl p-3 space-y-1">
+                  <p className={`text-[11px] font-bold font-mono ${ref.color}`}>{ref.src}</p>
+                  {ref.year !== '—' && <p className="text-[10px] text-slate-500 font-mono">{ref.year}</p>}
+                  <p className="text-[12px] text-slate-300 font-mono">{ref.title}</p>
+                  <span className="inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">
+                    {ref.journal}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* ── Row 4: Why this matters for OpenClaw ── */}
+          <div className="bg-purple-950/30 border border-purple-500/20 rounded-xl p-4">
+            <p className="text-[11px] font-mono text-purple-400 uppercase tracking-[0.15em] font-bold mb-2">
+              Why this matters for your TAO
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] font-mono">
+              {[
+                {
+                  icon: '🛡️', title: 'No single point of failure',
+                  body: 'Even if 3 bots are badly tuned, running stale data, or outright wrong — their votes are mathematically overridden by the supermajority.',
+                },
+                {
+                  icon: '📊', title: 'Signal quality filter',
+                  body: 'Low-conviction signals that only 4–6 bots agree on are automatically vetoed. Only high-agreement signals — where ≥7 independent models concur — move real capital.',
+                },
+                {
+                  icon: '⛓️', title: 'Blockchain-grade guarantee',
+                  body: 'The same class of math that secures Bitcoin blocks and Ethereum finality is what stands between an uncertain signal and a real trade on Finney mainnet.',
+                },
+              ].map(card => (
+                <div key={card.title} className="flex gap-3">
+                  <span className="text-xl flex-shrink-0 mt-0.5">{card.icon}</span>
+                  <div>
+                    <p className="text-slate-200 font-bold mb-1">{card.title}</p>
+                    <p className="text-slate-400 leading-relaxed">{card.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -542,13 +743,11 @@ export default function OpenClaw() {
         />
       </div>
 
-      {/* ── Council + Latest Round — 2-column: Council sidebar left, round detail right ── */}
-      <div className="grid grid-cols-1 xl:grid-cols-[340px_1fr] gap-4 items-start">
+      {/* ── BFT Explainer (relocated from II Agent page) ── */}
+      <OpenClawBFTSection />
 
-        {/* Left — OpenClaw Council sidebar (vertical, compact) */}
-        <div className="xl:max-w-[340px] xl:sticky xl:top-0" style={{ minHeight: '400px' }}>
-          <CouncilPanel stats={stats} latestRound={latestRound} />
-        </div>
+      {/* ── Council + Latest Round — 2-column: round detail full width (council on II Agent) ── */}
+      <div className="grid grid-cols-1 gap-4 items-start">
 
         {/* Right — Latest Round full detail */}
         {latestRound ? (
@@ -564,7 +763,7 @@ export default function OpenClaw() {
               <span className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 uppercase tracking-widest">
                 Manual trigger:
                 <InfoBubble
-                  side="bottom"
+                  side="right"
                   maxWidth={300}
                   content={
                     <div className="space-y-2">
@@ -600,7 +799,7 @@ export default function OpenClaw() {
               <span className="flex items-center gap-1.5">
                 triggered by
                 <InfoBubble
-                  side="top"
+                  side="right"
                   maxWidth={280}
                   content={
                     <div className="space-y-1.5">

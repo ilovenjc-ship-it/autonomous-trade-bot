@@ -5,7 +5,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Brain, TrendingUp, TrendingDown, Minus, Zap,
-  Activity, RefreshCw, ChevronRight, AlertTriangle,
+  Activity, RefreshCw, ChevronRight, AlertTriangle, Users,
+  HelpCircle, ShieldCheck, ShieldX,
   CheckCircle2, Flame, Eye, BarChart3, Lightbulb,
   Cpu, Radio, ShieldAlert, ArrowUpRight, MessageSquare,
   Send, Sparkles, User, Bot,
@@ -270,206 +271,381 @@ function RecommendationCard({ rec, index }: { rec: Recommendation; index: number
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-// ── OpenClaw BFT Explanation Component ────────────────────────────────────────
 
-function OpenClawBFTSection() {
-  const [expanded, setExpanded] = useState(true)
 
-  // 12 bots: 7 agree (green), 3 faulty (red), 2 neutral (grey)
-  const BOT_STATES: ('agree' | 'faulty' | 'neutral')[] = [
-    'agree','agree','agree','agree','agree','agree','agree',
-    'neutral','neutral','faulty','faulty','faulty',
-  ]
 
-  const stateStyle = {
-    agree:   { bg: 'bg-emerald-500/20', border: 'border-emerald-500/60', text: 'text-emerald-400', glow: '0 0 10px rgba(52,211,153,0.4)', icon: '✓' },
-    faulty:  { bg: 'bg-red-500/15',     border: 'border-red-500/50',     text: 'text-red-400',     glow: '0 0 10px rgba(239,68,68,0.3)',  icon: '✗' },
-    neutral: { bg: 'bg-slate-700/30',   border: 'border-slate-600/40',   text: 'text-slate-400',   glow: 'none',                         icon: '—' },
-  }
+interface BotVote {
+  bot_name:    string
+  display_name: string
+  vote:        string
+  confidence:  number
+  reason:      string
+  mode?:       string
+  reasoning?:  string
+}
 
-  const references = [
-    { src: 'L. Lamport, R. Shostak & M. Pease', year: '1982', title: '"Byzantine Generals Problem"', journal: 'ACM TOCS', color: 'text-indigo-400' },
-    { src: 'Bitcoin (Nakamoto, 2008)',           year: '—',    title: 'Proof-of-Work as BFT',         journal: 'Network', color: 'text-amber-400' },
-    { src: 'Ethereum (Buterin et al., 2014)',    year: '—',    title: 'Casper PoS BFT variant',       journal: 'Finality', color: 'text-purple-400' },
-    { src: 'Bittensor (Yuma Consensus, 2021)',   year: '—',    title: 'Metagraph weight trust',       journal: 'On-chain', color: 'text-emerald-400' },
-  ]
+interface ConsensusRound {
+  round_id:       number
+  triggered_by:   string
+  direction:      string
+  price_at_round: number
+  timestamp:      string
+  votes:          BotVote[]
+  result:         string
+  buy_count:      number
+  sell_count:     number
+  hold_count:     number
+  abstain_count:  number
+  supermajority:  number
+  approved:       boolean
+  duration_ms:    number
+}
+
+interface ConsensusStats {
+  total_rounds:       number
+  approved_rounds:    number
+  rejected_rounds:    number
+  total_buy_votes:    number
+  total_sell_votes:   number
+  total_hold_votes:   number
+  approval_rate_pct:  number
+  supermajority_threshold: number
+  total_bots:         number
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const VOTE_META: Record<string, { label: string; color: string; bg: string; border: string; text: string; icon: any }> = {
+  BUY:     { label: 'BUY',     color: '#10b981', bg: 'bg-emerald-500/15', border: 'border-emerald-500/40', text: 'text-emerald-400', icon: TrendingUp    },
+  SELL:    { label: 'SELL',    color: '#ef4444', bg: 'bg-red-500/15',     border: 'border-red-500/40',     text: 'text-red-400',     icon: TrendingDown  },
+  HOLD:    { label: 'HOLD',    color: '#f59e0b', bg: 'bg-amber-500/15',   border: 'border-amber-500/40',   text: 'text-amber-400',   icon: Minus         },
+  ABSTAIN: { label: 'ABSTAIN', color: '#6b7280', bg: 'bg-slate-700/40',   border: 'border-slate-600/40',   text: 'text-slate-300',   icon: HelpCircle    },
+}
+
+const RESULT_META: Record<string, { label: string; color: string; bg: string; icon: typeof ShieldCheck }> = {
+  APPROVED_BUY:  { label: 'APPROVED BUY',  color: 'text-emerald-400', bg: 'bg-emerald-500/10 border-emerald-500/30', icon: ShieldCheck },
+  APPROVED_SELL: { label: 'APPROVED SELL', color: 'text-sky-400',     bg: 'bg-sky-500/10 border-sky-500/30',         icon: ShieldCheck },
+  REJECTED:      { label: 'REJECTED',      color: 'text-red-400',     bg: 'bg-red-500/10 border-red-500/30',         icon: ShieldX     },
+  DEADLOCK:      { label: 'DEADLOCK',      color: 'text-amber-400',   bg: 'bg-amber-500/10 border-amber-500/30',     icon: AlertTriangle },
+}
+
+// ── Sub-components ────────────────────────────────────────────────────────────
+
+/** Compact top-of-page legend identifying every symbol on the page */
+function LegendBar() {
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 bg-dark-800/70 border border-dark-700 rounded-xl text-[13px] font-mono">
+
+      {/* Vote types */}
+      <span className="text-slate-500 uppercase tracking-widest text-[15px]">Votes</span>
+      <span className="flex items-center gap-1 text-emerald-400"><TrendingUp  size={10} /> BUY — strategy recommends buying</span>
+      <span className="flex items-center gap-1 text-red-400">   <TrendingDown size={10} /> SELL — strategy recommends selling</span>
+      <span className="flex items-center gap-1 text-amber-400"> <Minus        size={10} /> HOLD — no clear edge, wait</span>
+      <span className="flex items-center gap-1 text-slate-400"> <HelpCircle   size={10} /> ABSTAIN — insufficient data</span>
+
+      {/* Divider */}
+      <span className="hidden sm:block w-px h-4 bg-dark-600" />
+
+      {/* Round results */}
+      <span className="text-slate-500 uppercase tracking-widest text-[15px]">Result</span>
+      <span className="flex items-center gap-1 text-emerald-400"><ShieldCheck   size={10} /> APPROVED — supermajority reached</span>
+      <span className="flex items-center gap-1 text-red-400">   <ShieldX       size={10} /> REJECTED — vote failed</span>
+      <span className="flex items-center gap-1 text-amber-400"> <AlertTriangle size={10} /> DEADLOCK — tie, no majority</span>
+
+      {/* Divider */}
+      <span className="hidden sm:block w-px h-4 bg-dark-600" />
+
+      {/* Mode badges */}
+      <span className="text-slate-500 uppercase tracking-widest text-[15px]">Mode</span>
+      <span className="text-emerald-400">🚀 LIVE — executes real on-chain trades</span>
+      <span className="text-sky-400">✅ APPROVED — gate passed, awaiting deploy</span>
+      <span className="text-slate-400">📄 PAPER — simulated, no real funds</span>
+    </div>
+  )
+}
+
+function StatCard({ icon: Icon, label, value, sub, accent, tip }: {
+  icon: typeof Zap; label: string; value: string | number
+  sub?: string; accent?: string; tip?: React.ReactNode
+}) {
+  return (
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-4 flex items-start gap-3">
+      <div className={clsx('p-2 rounded-lg mt-0.5 flex-shrink-0', accent ?? 'bg-indigo-500/15')}>
+        <Icon size={16} className={clsx(accent ? '' : 'text-indigo-400')} />
+      </div>
+      <div className="min-w-0">
+        <p className="text-[14px] text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
+          {label}
+          {tip && <InfoBubble content={tip} side="right" maxWidth={300} />}
+        </p>
+        <p className="text-xl font-bold text-white font-mono mt-0.5">{value}</p>
+        {sub && <p className="text-[14px] text-slate-300 mt-0.5">{sub}</p>}
+      </div>
+    </div>
+  )
+}
+
+function VoteBar({ buyCount, sellCount, holdCount, abstainCount, threshold }: {
+  buyCount: number; sellCount: number; holdCount: number; abstainCount: number; threshold: number
+}) {
+  const total = 12
+  const buyPct     = (buyCount / total) * 100
+  const sellPct    = (sellCount / total) * 100
+  const holdPct    = (holdCount / total) * 100
+  const abstainPct = (abstainCount / total) * 100
+  const threshPct  = (threshold / total) * 100
 
   return (
-    <div className="rounded-2xl border border-purple-500/25 overflow-hidden"
-         style={{ background: 'linear-gradient(135deg, #0d1020 0%, #12102a 50%, #0d1020 100%)' }}>
+    <div className="space-y-2">
+      <div className="flex justify-between text-xs text-slate-300 font-mono mb-1">
+        <span>0</span>
+        <span>12</span>
+      </div>
+      <div className="relative h-8 rounded-lg overflow-hidden bg-dark-700 flex">
+        {buyCount > 0 && (
+          <div
+            className="h-full flex items-center justify-center text-xs font-bold text-white transition-all duration-700"
+            style={{ width: `${buyPct}%`, background: '#10b981' }}
+          >
+            {buyPct > 8 && `${buyCount}B`}
+          </div>
+        )}
+        {sellCount > 0 && (
+          <div
+            className="h-full flex items-center justify-center text-xs font-bold text-white transition-all duration-700"
+            style={{ width: `${sellPct}%`, background: '#ef4444' }}
+          >
+            {sellPct > 8 && `${sellCount}S`}
+          </div>
+        )}
+        {holdCount > 0 && (
+          <div
+            className="h-full flex items-center justify-center text-xs font-bold text-white transition-all duration-700"
+            style={{ width: `${holdPct}%`, background: '#f59e0b' }}
+          >
+            {holdPct > 8 && `${holdCount}H`}
+          </div>
+        )}
+        {abstainCount > 0 && (
+          <div
+            className="h-full flex items-center justify-center text-xs font-bold text-slate-300 transition-all duration-700"
+            style={{ width: `${abstainPct}%`, background: '#374151' }}
+          >
+            {abstainPct > 8 && `${abstainCount}A`}
+          </div>
+        )}
+        {/* Threshold marker */}
+        <div
+          className="absolute top-0 h-full w-0.5 bg-white/60 border-l border-dashed border-white/40"
+          style={{ left: `${threshPct}%` }}
+        />
+      </div>
+      <div className="flex gap-4 text-xs font-mono">
+        <span className="text-emerald-400">● BUY {buyCount}</span>
+        <span className="text-red-400">● SELL {sellCount}</span>
+        <span className="text-amber-400">● HOLD {holdCount}</span>
+        <span className="text-slate-300">● ABSTAIN {abstainCount}</span>
+      </div>
+    </div>
+  )
+}
 
-      {/* Header — click to expand/collapse */}
-      <button
-        onClick={() => setExpanded(v => !v)}
-        className="w-full flex items-center gap-4 px-6 py-4 border-b border-purple-500/20 hover:bg-purple-500/5 transition-colors text-left"
-        style={{ background: 'linear-gradient(90deg, rgba(139,92,246,0.10) 0%, rgba(99,102,241,0.05) 60%, transparent 100%)' }}
-      >
-        {/* Icon orb */}
-        <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border border-purple-500/40 bg-purple-500/15"
-             style={{ boxShadow: '0 0 18px rgba(139,92,246,0.25)' }}>
-          <span className="text-lg">⚡</span>
+function BotVoteCard({ vote }: { vote: BotVote }) {
+  const meta = VOTE_META[vote.vote] ?? VOTE_META.HOLD
+  const Icon = meta.icon
+
+  return (
+    <div className={clsx(
+      'rounded-xl border p-3 flex flex-col gap-2 transition-all duration-500',
+      meta.bg, meta.border,
+    )}>
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <p className="text-[14px] font-semibold text-white truncate pr-1">{vote.display_name}</p>
+        <div className={clsx('flex items-center gap-1 px-2 py-0.5 rounded-full text-[13px] font-bold', meta.bg)}>
+          <Icon size={10} className={meta.text} />
+          <span className={meta.text}>{vote.vote}</span>
         </div>
-        <div>
-          <p className="text-sm font-bold text-white font-mono tracking-wide">OpenClaw — Byzantine Fault Tolerant Consensus</p>
-          <p className="text-[12px] text-purple-300/70 font-mono">The mathematical firewall between every strategy and the blockchain · Lamport, Shostak &amp; Pease, 1982</p>
+      </div>
+
+      {/* Confidence bar */}
+      <div>
+        <div className="flex justify-between text-[13px] font-mono mb-1">
+          <span className="text-slate-300">Confidence</span>
+          <span className={meta.text}>{((vote.confidence ?? 0) * 100).toFixed(0)}%</span>
         </div>
-        <div className="ml-auto flex items-center gap-2">
-          <span className="text-[11px] font-mono text-purple-400 border border-purple-500/30 rounded px-2 py-0.5 bg-purple-500/10">
-            7 / 12 · 58.3% threshold
-          </span>
-          <ChevronRight size={16} className={`text-slate-500 transition-transform duration-300 ${expanded ? 'rotate-90' : ''}`} />
+        <div className="h-1.5 rounded-full bg-dark-700 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{ width: `${vote.confidence * 100}%`, background: meta.color }}
+          />
         </div>
-      </button>
+      </div>
 
-      {expanded && (
-        <div className="px-6 py-5 space-y-6">
+      {/* Mode badge */}
+      <div className="flex items-center justify-between">
+        <span className={clsx(
+          'text-[15px] font-mono px-1.5 py-0.5 rounded font-semibold',
+          vote.mode === 'LIVE'             ? 'bg-emerald-500/20 text-emerald-400' :
+          vote.mode === 'APPROVED_FOR_LIVE'? 'bg-sky-500/20 text-sky-400' :
+                                             'bg-slate-700 text-slate-300'
+        )}>
+          {vote.mode === 'LIVE' ? '🚀 LIVE' : vote.mode === 'APPROVED_FOR_LIVE' ? '✅ APPROVED' : '📄 PAPER'}
+        </span>
+      </div>
 
-          {/* ── Row 1: Problem statement + Math ── */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Reasoning */}
+      <p className="text-[13px] text-slate-300 leading-tight line-clamp-2">{vote.reasoning}</p>
+    </div>
+  )
+}
 
-            {/* Problem Statement */}
-            <div className="bg-[#0a0e1e]/80 border border-purple-500/20 rounded-xl p-4 space-y-3">
-              <p className="text-[11px] font-mono text-purple-400 uppercase tracking-[0.15em] font-bold">The Byzantine Generals Problem</p>
-              <p className="text-[13px] text-slate-300 leading-relaxed">
-                Lamport, Shostak &amp; Pease (1982) asked: <span className="text-white font-semibold">how can a group of actors reach correct
-                agreement when some members might be wrong, corrupt, or sending bad information?</span>
-              </p>
-              <p className="text-[13px] text-slate-400 leading-relaxed">
-                Imagine N generals surrounding a city. Each must vote ATTACK or RETREAT. If some generals are traitors,
-                they may send different votes to different generals. The loyal generals must still reach the
-                <span className="text-amber-300 font-semibold"> same correct decision</span>, even with traitors in the room.
-              </p>
-              <p className="text-[13px] text-slate-300 leading-relaxed">
-                The solution: if you have <span className="text-purple-300 font-bold">N actors</span>, you can tolerate up to{' '}
-                <span className="text-red-400 font-bold">⌊(N−1)/3⌋ traitors</span> and still reach correct consensus — as long as the
-                threshold is met.
-              </p>
-              <div className="border-t border-purple-500/15 pt-2 text-[12px] font-mono text-slate-500">
-                Bitcoin, Ethereum, and Bittensor all use variants of this principle.
-              </div>
-            </div>
+function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
+  const rm = RESULT_META[round.result] ?? RESULT_META.REJECTED
+  const ResultIcon = rm.icon
+  return (
+    <tr className={clsx('border-b border-dark-700 hover:bg-dark-700/40 transition-colors', index === 0 && 'bg-dark-700/30')}>
+      <td className="px-3 py-2 font-mono text-xs text-slate-300">#{round.round_id}</td>
+      <td className="px-3 py-2 text-xs text-slate-300 truncate max-w-[120px]">{round.triggered_by}</td>
+      <td className="px-3 py-2">
+        <span className={clsx(
+          'text-[13px] font-bold font-mono px-2 py-0.5 rounded-full border',
+          rm.bg, rm.color,
+        )}>
+          {rm.label}
+        </span>
+      </td>
+      <td className="px-3 py-2 font-mono text-xs text-center">
+        <span className="text-emerald-400">{round.buy_count}B</span>
+        <span className="text-slate-300 mx-1">/</span>
+        <span className="text-red-400">{round.sell_count}S</span>
+        <span className="text-slate-300 mx-1">/</span>
+        <span className="text-amber-400">{round.hold_count}H</span>
+      </td>
+      <td className="px-3 py-2 text-[14px] text-slate-300 font-mono">${(round.price_at_round ?? 0).toFixed(2)}</td>
+      <td className="px-3 py-2 text-[14px] text-slate-300">{timeSince(round.timestamp)}</td>
+      <td className="px-3 py-2 text-[13px] text-slate-300 font-mono">{round.duration_ms}ms</td>
+    </tr>
+  )
+}
 
-            {/* Math Box */}
-            <div className="bg-[#0a0e1e]/80 border border-indigo-500/20 rounded-xl p-4 space-y-3">
-              <p className="text-[11px] font-mono text-indigo-400 uppercase tracking-[0.15em] font-bold">The OpenClaw Numbers</p>
-              <div className="space-y-2.5 font-mono">
-                {[
-                  { label: 'Total voting bots',         val: 'N = 12',                  color: 'text-white',      desc: 'One per strategy personality' },
-                  { label: 'Max tolerable faulty bots', val: 'f = ⌊(N−1)/3⌋ = 3',      color: 'text-red-400',    desc: '3 bots can be wrong/biased' },
-                  { label: 'Consensus threshold',       val: '2f + 1 = 7 votes',         color: 'text-emerald-400',desc: 'Minimum to guarantee correctness' },
-                  { label: 'Threshold as % of N',       val: '7/12 = 58.3%',             color: 'text-purple-300', desc: 'Supermajority' },
-                  { label: 'Result if threshold met',   val: 'TRADE APPROVED ✓',         color: 'text-emerald-400',desc: 'Executes on-chain' },
-                  { label: 'Result if not met',         val: 'VETOED — no execution',    color: 'text-red-400',    desc: 'Position stays closed' },
-                ].map(row => (
-                  <div key={row.label} className="flex items-start justify-between gap-3">
-                    <span className="text-[11px] text-slate-500 flex-shrink-0 w-44">{row.label}</span>
-                    <span className={`text-[12px] font-bold ${row.color} flex-shrink-0`}>{row.val}</span>
-                    <span className="text-[11px] text-slate-600 text-right">{row.desc}</span>
-                  </div>
-                ))}
-              </div>
-              <div className="border-t border-indigo-500/15 pt-2">
-                <p className="text-[11px] font-mono text-indigo-400/70">
-                  The math guarantees: even if 3 bots are misbehaving, biased, or running stale data —
-                  the remaining 9 can still produce a <span className="text-indigo-300">provably correct majority</span>.
-                </p>
-              </div>
+
+// VOTE_COLORS — used by CouncilPanel (matches OpenClaw's compact vote style)
+const VOTE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
+  BUY:     { bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', text: 'text-emerald-400' },
+  SELL:    { bg: 'bg-red-500/10',     border: 'border-red-500/25',     text: 'text-red-400'     },
+  HOLD:    { bg: 'bg-amber-500/10',   border: 'border-amber-500/25',   text: 'text-amber-400'   },
+  ABSTAIN: { bg: 'bg-slate-700/30',   border: 'border-slate-700/50',   text: 'text-slate-400'   },
+}
+
+function CouncilPanel({
+  stats, latestRound: round,
+}: {
+  stats: ConsensusStats | null
+  latestRound: ConsensusRound | null
+}) {
+  const rMeta = round
+    ? (RESULT_META[round.result] ?? { label: round.result, color: 'text-slate-400', bg: '', icon: AlertTriangle })
+    : null
+
+  return (
+    <div className="bg-dark-800 border border-dark-600 rounded-xl flex flex-col h-full min-h-0 overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center gap-2 px-4 py-2.5 border-b border-dark-600 flex-shrink-0">
+        <div className="p-1 rounded bg-purple-500/15">
+          <Users size={12} className="text-purple-400" />
+        </div>
+        <span className="text-[13px] font-bold tracking-widest text-slate-200 uppercase">OpenClaw Council</span>
+        <span className="ml-auto text-[11px] font-mono text-purple-400/70 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">
+          BFT · 7/12
+        </span>
+      </div>
+
+      {/* Stats strip */}
+      {stats ? (
+        <div className="flex flex-shrink-0 border-b border-dark-600">
+          <div className="flex-1 px-3 py-2 border-r border-dark-600 text-center">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Approval</p>
+            <p className={clsx('text-lg font-bold font-mono leading-tight',
+              stats.approval_rate_pct >= 45 && stats.approval_rate_pct <= 65 ? 'text-emerald-400'
+              : stats.approval_rate_pct > 65 ? 'text-yellow-400' : 'text-orange-400'
+            )}>{(stats.approval_rate_pct ?? 0).toFixed(1)}%</p>
+          </div>
+          <div className="flex-1 px-3 py-2 border-r border-dark-600 text-center">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Rounds</p>
+            <p className="text-lg font-bold font-mono text-slate-200 leading-tight">{stats.total_rounds}</p>
+          </div>
+          <div className="flex-1 px-3 py-2 text-center">
+            <p className="text-[10px] text-slate-500 uppercase tracking-wider">Approved</p>
+            <p className="text-lg font-bold font-mono text-emerald-400 leading-tight">{stats.approved_rounds}</p>
+          </div>
+        </div>
+      ) : (
+        <div className="px-4 py-2.5 text-[11px] text-slate-500 font-mono flex-shrink-0 border-b border-dark-600">Loading…</div>
+      )}
+
+      {/* Latest result */}
+      {round && rMeta && (
+        <div className="flex-shrink-0 px-4 py-2.5 border-b border-dark-600">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] text-slate-500 uppercase tracking-wider font-mono">Round #{round.round_id}</span>
+            <div className={clsx('flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-bold border', rMeta.bg, rMeta.color)}>
+              <rMeta.icon size={11} />
+              {rMeta.label}
             </div>
           </div>
+          <p className="text-[10px] text-slate-500 font-mono mt-0.5 truncate">
+            {round.triggered_by.replace(/_/g, ' ')} · {round.direction} · ${(round.price_at_round ?? 0).toFixed(2)} TAO
+          </p>
+        </div>
+      )}
 
-          {/* ── Row 2: Voting visualiser ── */}
-          <div className="bg-[#0a0e1e]/80 border border-slate-700/30 rounded-xl p-4">
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-[0.15em] font-bold">
-                What a consensus round looks like — BUY signal, 7 agree, 3 faulty, 2 neutral
-              </p>
-              <div className="flex items-center gap-4 text-[11px] font-mono">
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500 inline-block" />Agree (7)</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-600 inline-block" />Neutral (2)</span>
-                <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />Faulty (3)</span>
-              </div>
-            </div>
-            <div className="flex flex-wrap justify-center gap-3">
-              {BOT_STATES.map((state, i) => {
-                const s = stateStyle[state]
+      {/* 2-col vote grid */}
+      <div className="flex-1 overflow-y-auto px-3 py-2">
+        {round?.votes && round.votes.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 gap-1 mb-3">
+              {round.votes.map(v => {
+                const vc = VOTE_COLORS[v.vote as keyof typeof VOTE_COLORS] ?? VOTE_COLORS.ABSTAIN
                 return (
-                  <div key={i}
-                    className={`flex flex-col items-center gap-1 w-14 rounded-xl border ${s.bg} ${s.border} py-2 px-1 transition-all`}
-                    style={{ boxShadow: s.glow }}>
-                    <span className="text-[10px] font-mono text-slate-500">BOT {i + 1}</span>
-                    <span className={`text-base font-bold ${s.text}`}>{s.icon}</span>
-                    <span className={`text-[10px] font-bold font-mono ${s.text}`}>
-                      {state === 'agree' ? 'BUY' : state === 'faulty' ? 'ERR' : 'HOLD'}
-                    </span>
+                  <div key={v.bot_name}
+                    className={clsx('flex items-center gap-1.5 px-2 py-1.5 rounded-lg border', vc.bg, vc.border)}>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[11px] font-semibold text-slate-200 truncate leading-tight">{v.display_name}</p>
+                      <p className="text-[9px] text-slate-500 font-mono">{((v.confidence ?? 0) * 100).toFixed(0)}% conf</p>
+                    </div>
+                    <span className={clsx('text-[11px] font-bold font-mono flex-shrink-0', vc.text)}>{v.vote}</span>
                   </div>
                 )
               })}
             </div>
-            <div className="mt-4 flex items-center justify-center gap-3">
-              <div className="h-px flex-1 bg-gradient-to-r from-transparent to-emerald-500/40" />
-              <span className="px-4 py-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/40 text-[12px] font-bold font-mono text-emerald-400"
-                    style={{ boxShadow: '0 0 12px rgba(52,211,153,0.25)' }}>
-                ✓ CONSENSUS REACHED — 7 of 12 agree · TRADE APPROVED
-              </span>
-              <div className="h-px flex-1 bg-gradient-to-l from-transparent to-emerald-500/40" />
-            </div>
-          </div>
 
-          {/* ── Row 3: Blockchain parallels ── */}
-          <div>
-            <p className="text-[11px] font-mono text-slate-500 uppercase tracking-[0.15em] mb-3">
-              The same principle powers every major blockchain:
-            </p>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {references.map(ref => (
-                <div key={ref.src} className="bg-[#0a0e1e]/60 border border-slate-700/30 rounded-xl p-3 space-y-1">
-                  <p className={`text-[11px] font-bold font-mono ${ref.color}`}>{ref.src}</p>
-                  {ref.year !== '—' && <p className="text-[10px] text-slate-500 font-mono">{ref.year}</p>}
-                  <p className="text-[12px] text-slate-300 font-mono">{ref.title}</p>
-                  <span className="inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-700/50 text-slate-400">
-                    {ref.journal}
-                  </span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* ── Row 4: Why this matters for OpenClaw ── */}
-          <div className="bg-purple-950/30 border border-purple-500/20 rounded-xl p-4">
-            <p className="text-[11px] font-mono text-purple-400 uppercase tracking-[0.15em] font-bold mb-2">
-              Why this matters for your TAO
-            </p>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[12px] font-mono">
+            {/* Tally bars */}
+            <div className="space-y-1.5">
               {[
-                {
-                  icon: '🛡️', title: 'No single point of failure',
-                  body: 'Even if 3 bots are badly tuned, running stale data, or outright wrong — their votes are mathematically overridden by the supermajority.',
-                },
-                {
-                  icon: '📊', title: 'Signal quality filter',
-                  body: 'Low-conviction signals that only 4–6 bots agree on are automatically vetoed. Only high-agreement signals — where ≥7 independent models concur — move real capital.',
-                },
-                {
-                  icon: '⛓️', title: 'Blockchain-grade guarantee',
-                  body: 'The same class of math that secures Bitcoin blocks and Ethereum finality is what stands between an uncertain signal and a real trade on Finney mainnet.',
-                },
-              ].map(card => (
-                <div key={card.title} className="flex gap-3">
-                  <span className="text-xl flex-shrink-0 mt-0.5">{card.icon}</span>
-                  <div>
-                    <p className="text-slate-200 font-bold mb-1">{card.title}</p>
-                    <p className="text-slate-400 leading-relaxed">{card.body}</p>
+                { label: 'BUY',     count: round.buy_count,     color: 'bg-emerald-500/70', text: 'text-emerald-400' },
+                { label: 'SELL',    count: round.sell_count,    color: 'bg-red-500/70',     text: 'text-red-400'     },
+                { label: 'HOLD',    count: round.hold_count,    color: 'bg-yellow-500/50',  text: 'text-yellow-400'  },
+                { label: 'ABSTAIN', count: round.abstain_count, color: 'bg-slate-600/50',   text: 'text-slate-400'   },
+              ].map(({ label, count, color, text }) => (
+                <div key={label} className="flex items-center gap-2 text-[10px] font-mono">
+                  <span className={clsx('w-16 flex-shrink-0', text)}>{label} {count}</span>
+                  <div className="flex-1 h-1.5 bg-dark-700 rounded-full overflow-hidden">
+                    <div className={clsx('h-full rounded-full transition-all', color)}
+                      style={{ width: `${(count / 12) * 100}%` }} />
                   </div>
                 </div>
               ))}
             </div>
-          </div>
-
-        </div>
-      )}
+          </>
+        ) : (
+          <div className="py-6 text-center text-slate-500 text-[12px] font-mono">No votes yet</div>
+        )}
+      </div>
     </div>
   )
 }
+
 
 export default function IIAgent() {
   const [status,      setStatus]      = useState<AgentStatus | null>(null)
@@ -478,7 +654,8 @@ export default function IIAgent() {
   const [lastReport,  setLastReport]  = useState<AnalysisReport | null>(null)
   const [analyzing,   setAnalyzing]   = useState(false)
   const [flash,       setFlash]       = useState(false)
-  const [cStats,      setCStats]      = useState<{total_rounds:number,approved_rounds:number,approval_rate_pct:number}|null>(null)
+  const [cStats,      setCStats]      = useState<ConsensusStats | null>(null)
+  const [latestRound, setLatestRound] = useState<ConsensusRound | null>(null)
 
   // Chat state
   const [chatHistory, setChatHistory] = useState<ChatMsg[]>([])
@@ -487,11 +664,12 @@ export default function IIAgent() {
   const chatBottomRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
-    const [statusRes, obsRes, recsRes, cStatsRes] = await Promise.allSettled([
+    const [statusRes, obsRes, recsRes, cStatsRes, latestRoundRes] = await Promise.allSettled([
       api.get('/agent/status'),
       api.get('/agent/observations', { params: { limit: 40 } }),
       api.get('/agent/recommendations'),
       api.get('/consensus/stats'),
+      api.get('/consensus/latest-round'),
     ])
     if (statusRes.status === 'fulfilled') setStatus(statusRes.value.data)
     if (obsRes.status === 'fulfilled' && obsRes.value.data.observations)
@@ -500,6 +678,8 @@ export default function IIAgent() {
       setRecs(recsRes.value.data.recommendations)
     if (cStatsRes.status === 'fulfilled' && cStatsRes.value.data.total_rounds != null)
       setCStats(cStatsRes.value.data)
+    if (latestRoundRes.status === 'fulfilled' && latestRoundRes.value.data.round_id != null)
+      setLatestRound(latestRoundRes.value.data)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -654,7 +834,7 @@ export default function IIAgent() {
               <div className="flex items-center gap-2">
                 <Icon size={14} className={accent} />
                 <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
-                <InfoBubble content={tip} side="bottom" maxWidth={280} className="ml-auto" />
+                <InfoBubble content={tip} side="right" maxWidth={280} className="ml-auto" />
               </div>
               <p className={clsx('text-xl font-bold font-mono', accent)}>{value}</p>
               <p className="text-[13px] text-slate-300">{sub}</p>
@@ -886,8 +1066,11 @@ export default function IIAgent() {
         </div>
       </div>
 
-      {/* ── OpenClaw BFT Explanation ── */}
-      <OpenClawBFTSection />
+
+      {/* ── OpenClaw Council (relocated from OpenClaw page) ── */}
+      <div className="h-[460px]">
+        <CouncilPanel stats={cStats} latestRound={latestRound} />
+      </div>
 
       {/* ── Chat Panel ── */}
       <div className="rounded-2xl border border-indigo-500/25 overflow-hidden flex flex-col"

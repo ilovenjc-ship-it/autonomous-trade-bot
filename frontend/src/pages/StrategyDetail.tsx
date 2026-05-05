@@ -11,6 +11,26 @@ import {
 import clsx from 'clsx'
 import api from '@/api/client'
 
+/** Convert a UTC timestamp string "YYYY-MM-DD HH:MM" → "HH:MM EDT/EST" */
+function toET(raw: string): string {
+  if (!raw) return '—'
+  try {
+    const utc = raw.length === 16 ? raw + ':00Z' : (raw.endsWith('Z') ? raw : raw.replace(' ', 'T') + 'Z')
+    const d = new Date(utc)
+    const tzAbbr = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', timeZoneName: 'short' })
+      .formatToParts(d).find(p => p.type === 'timeZoneName')?.value ?? 'ET'
+    const hhmm = d.toLocaleTimeString('en-US', {
+      timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit', hour12: false,
+    })
+    const datePart = d.toLocaleDateString('en-US', {
+      timeZone: 'America/New_York', month: 'short', day: 'numeric',
+    })
+    return `${datePart} ${hhmm} ${tzAbbr}`
+  } catch {
+    return raw
+  }
+}
+
 // ── types ─────────────────────────────────────────────────────────────────────
 interface GateCheck { value: number; required: number; ok: boolean }
 interface Gate { cycles: GateCheck; win_rate: GateCheck; margin: GateCheck; pnl: GateCheck }
@@ -265,7 +285,7 @@ export default function StrategyDetail() {
                     }
                   </td>
                   <td className="px-4 py-2 text-slate-300 max-w-[200px] truncate">{t.signal || '—'}</td>
-                  <td className="px-4 py-2 font-mono text-slate-300 whitespace-nowrap">{t.time}</td>
+                  <td className="px-4 py-2 font-mono text-slate-300 whitespace-nowrap">{toET(t.time)}</td>
                 </tr>
               ))}
               {detail.recent_trades.length === 0 && (
