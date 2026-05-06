@@ -129,7 +129,10 @@ class PriceService:
             loss = (-delta.clip(upper=0)).rolling(14).mean()
             rs = gain / loss.replace(0, np.nan)
             rsi = 100 - (100 / (1 + rs))
-            result["rsi_14"] = float(rsi.iloc[-1]) if not np.isnan(rsi.iloc[-1]) else None
+            rsi_val = float(rsi.iloc[-1])
+            # When all deltas are zero (flat / rate-limited price), rsi is NaN.
+            # A perfectly flat price has no directional bias → RSI 50 (neutral/SIDEWAYS).
+            result["rsi_14"] = rsi_val if not np.isnan(rsi_val) else 50.0
         else:
             result["rsi_14"] = None
 

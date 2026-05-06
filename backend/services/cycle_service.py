@@ -192,13 +192,28 @@ def get_current_regime() -> str:
 
     The cycle engine continues to use _current_regime (updated each cycle) for
     strategy gating — that path is unaffected by this change.
+
+    Fallback chain (each level tried only if the previous returns UNKNOWN):
+      1. Fresh classification from current indicators
+      2. Cached module-level _current_regime (set by the cycle engine)
+      3. Agent service's cached regime (uses fast-path price-trend detection)
     """
     try:
         indicators = price_service.compute_indicators()
         fresh = _detect_regime(indicators)
-        # If we have a real reading, return it; fall back to cached value only
-        # when indicators are absent (price service not yet warmed up).
-        return fresh if fresh != "UNKNOWN" else _current_regime
+        if fresh != "UNKNOWN":
+            return fresh
+        # Fresh is UNKNOWN — try cached cycle-engine value
+        if _current_regime != "UNKNOWN":
+            return _current_regime
+        # Both UNKNOWN — try agent_service fast-path (price-trend + MACD)
+        try:
+            from services.agent_service import agent_service as _agent_svc
+            if _agent_svc.current_regime not in ("", None, "UNKNOWN"):
+                return _agent_svc.current_regime
+        except Exception:
+            pass
+        return "UNKNOWN"
     except Exception:
         return _current_regime
 
