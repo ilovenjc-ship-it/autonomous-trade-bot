@@ -183,8 +183,24 @@ def _detect_regime(indicators: Dict[str, Any]) -> str:
 
 
 def get_current_regime() -> str:
-    """Public accessor for the last detected regime (read by fleet router)."""
-    return _current_regime
+    """
+    Always returns a FRESH regime classification from the current price_service
+    indicators rather than the cached module-level variable.
+
+    This prevents stale labels on the UI — e.g. showing TRENDING_DOWN during
+    a +11% TAO rally simply because the module was last updated when RSI was low.
+
+    The cycle engine continues to use _current_regime (updated each cycle) for
+    strategy gating — that path is unaffected by this change.
+    """
+    try:
+        indicators = price_service.compute_indicators()
+        fresh = _detect_regime(indicators)
+        # If we have a real reading, return it; fall back to cached value only
+        # when indicators are absent (price service not yet warmed up).
+        return fresh if fresh != "UNKNOWN" else _current_regime
+    except Exception:
+        return _current_regime
 
 # ── Signal fire probability per strategy ─────────────────────────────────────
 # Controls how often each strategy's indicator logic produces a signal this cycle.
