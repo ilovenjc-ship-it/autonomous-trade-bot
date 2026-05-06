@@ -812,21 +812,40 @@ async def get_risk_status(db: AsyncSession = Depends(get_db)):
     from sqlalchemy import func as sqlfunc
     from models.strategy import Strategy as StrategyModel
 
-    # Compute real peak-to-trough drawdown from strategy PnL records
+    # Fleet PnL (paper + live combined) — for display only
     pnl_result = await db.execute(
         select(sqlfunc.sum(StrategyModel.total_pnl))
     )
     fleet_pnl = float(pnl_result.scalar() or 0.0)
 
-    # Drawdown expressed as % of max_drawdown threshold for UI gauge
-    max_dd = float(_RISK_CONFIG.get("max_drawdown_pct", 45.0))
-    if fleet_pnl < 0:
-        # How deep into drawdown territory are we?
-        drawdown_depth_pct = round(min(abs(fleet_pnl) / max(max_dd / 100.0, 0.001), 1.0) * 100, 2)
-    else:
-        drawdown_depth_pct = 0.0
+    # ── Real drawdown — LIVE trades only (tx_hash IS NOT NULL) ──────────────
+    # Paper PnL is simulated and does not represent real capital at risk.
+    # Drawdown is expressed as % of the current wallet balance so the gauge
+    # reflects genuine on-chain exposure.  While all strategies are PAPER_ONLY
+    # this will correctly read 0.0% (no real money has moved).
+    from models.trade import Trade as TradeModel
+    live_pnl_result = await db.execute(
+        select(sqlfunc.sum(TradeModel.pnl)).where(
+            TradeModel.tx_hash.isnot(None)
+        )
+    )
+    live_pnl = float(live_pnl_result.scalar() or 0.0)
 
-    _RISK_STATUS["drawdown_pct"] = drawdown_depth_pct
+    # Reference balance: use current wallet balance; floor at 0.001 to avoid /0
+    try:
+        from services.bittensor_service import bittensor_service as _bt
+        ref_balance = max((_bt._last_balance or 0.0), 0.001)
+    except Exception:
+        ref_balance = 0.001
+
+    max_dd = float(_RISK_CONFIG.get("max_drawdown_pct", 8.0))
+    if live_pnl < 0:
+        # Real drawdown as % of wallet — capped at max_dd for the gauge
+        real_drawdown_pct = round(min((abs(live_pnl) / ref_balance) * 100, max_dd), 2)
+    else:
+        real_drawdown_pct = 0.0
+
+    _RISK_STATUS["drawdown_pct"] = real_drawdown_pct
 
     return {**_RISK_STATUS, "config": _RISK_CONFIG, "fleet_pnl_tao": round(fleet_pnl, 6)}
 

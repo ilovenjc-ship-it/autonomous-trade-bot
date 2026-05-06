@@ -655,7 +655,6 @@ export default function IIAgent() {
   const [analyzing,   setAnalyzing]   = useState(false)
   const [flash,       setFlash]       = useState(false)
   const [cStats,      setCStats]      = useState<ConsensusStats | null>(null)
-  const [latestRound, setLatestRound] = useState<ConsensusRound | null>(null)
 
   // Chat state
   const [chatHistory, setChatHistory] = useState<ChatMsg[]>([])
@@ -664,12 +663,11 @@ export default function IIAgent() {
   const chatBottomRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
-    const [statusRes, obsRes, recsRes, cStatsRes, latestRoundRes] = await Promise.allSettled([
+    const [statusRes, obsRes, recsRes, cStatsRes] = await Promise.allSettled([
       api.get('/agent/status'),
       api.get('/agent/observations', { params: { limit: 40 } }),
       api.get('/agent/recommendations'),
       api.get('/consensus/stats'),
-      api.get('/consensus/latest-round'),
     ])
     if (statusRes.status === 'fulfilled') setStatus(statusRes.value.data)
     if (obsRes.status === 'fulfilled' && obsRes.value.data.observations)
@@ -678,8 +676,6 @@ export default function IIAgent() {
       setRecs(recsRes.value.data.recommendations)
     if (cStatsRes.status === 'fulfilled' && cStatsRes.value.data.total_rounds != null)
       setCStats(cStatsRes.value.data)
-    if (latestRoundRes.status === 'fulfilled' && latestRoundRes.value.data.round_id != null)
-      setLatestRound(latestRoundRes.value.data)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -1069,11 +1065,6 @@ export default function IIAgent() {
         </div>
       </div>
 
-
-      {/* ── OpenClaw Council (relocated from OpenClaw page) ── */}
-      <div className="h-[460px]">
-        <CouncilPanel stats={cStats} latestRound={latestRound} />
-      </div>
 
       {/* ── Chat Panel ── */}
       <div className="rounded-2xl border border-indigo-500/25 overflow-hidden flex flex-col"

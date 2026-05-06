@@ -330,7 +330,7 @@ export default function RiskConfig() {
           icon={TrendingDown}
           label="Drawdown"
           value={`${(drawdown ?? 0).toFixed(1)}%`}
-          sub={`${(drawdownPct ?? 0).toFixed(0)}% of ${config.max_drawdown_pct}% limit`}
+          sub={drawdown === 0 ? 'Live trades only · 0% used' : `${Math.min(drawdownPct ?? 0, 100).toFixed(0)}% of ${config.max_drawdown_pct}% limit`}
           danger={drawdownPct >= 80}
           warn={drawdownPct >= 50}
         />

@@ -480,6 +480,18 @@ export default function MarketData() {
         </div>
       </div>
 
+      {/* ── Legend ─────────────────────────────────────────────────────────── */}
+      <div className="px-4 py-2 flex items-center gap-5 border-b border-dark-700/40 text-[11px] font-mono text-slate-400">
+        <span className="flex items-center gap-1.5">
+          <Star size={10} className="text-yellow-400 flex-shrink-0" />
+          <span>Top 3 subnets by rank</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-accent-green animate-pulse flex-shrink-0" />
+          <span>Actively monitored by TaoBot</span>
+        </span>
+      </div>
+
       {/* ── Table ──────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto">
         <table className="w-full text-xs">

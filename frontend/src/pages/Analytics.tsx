@@ -319,6 +319,26 @@ export default function Analytics() {
         </div>
       )}
 
+      {/* ── Top Subnets by Stake ── TOP OF PAGE ──────────────────────────── */}
+      <div className="card overflow-hidden">
+        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-dark-600">
+          <BarChart2 size={13} className="text-accent-blue" />
+          <span className="text-[12px] font-bold tracking-widest text-slate-300 uppercase">Top Subnets</span>
+          <span className="text-[11px] text-slate-600 font-mono ml-1">by stake · live</span>
+          <span className="ml-auto text-[11px] text-slate-600 font-mono">{subnets.length} loaded</span>
+        </div>
+        <div className="flex gap-3 overflow-x-auto px-4 py-3">
+          {subnets.length === 0 ? (
+            <div className="text-[11px] text-slate-600 font-mono py-2 flex items-center gap-2">
+              <Activity size={11} className="animate-pulse" /> Loading subnets…
+            </div>
+          ) : (() => {
+            const maxStake = Math.max(...subnets.map(s => s.stake_tao), 1)
+            return subnets.map(s => <SubnetCard key={s.uid} s={s} maxStake={maxStake} />)
+          })()}
+        </div>
+      </div>
+
       {/* ── Chart area ─────────────────────────────────────────────────────── */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
         {/* Tab selector + win rate window toggle */}
@@ -633,27 +653,7 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* ── Top Subnets by Stake (relocated from Agent Fleet) ────────────── */}
-      <div className="card overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-dark-600">
-          <BarChart2 size={13} className="text-accent-blue" />
-          <span className="text-[12px] font-bold tracking-widest text-slate-300 uppercase">Top Subnets</span>
-          <span className="text-[11px] text-slate-600 font-mono ml-1">by stake · live</span>
-          <span className="ml-auto text-[11px] text-slate-600 font-mono">{subnets.length} loaded</span>
-        </div>
-        <div className="flex gap-3 overflow-x-auto px-4 py-3">
-          {subnets.length === 0 ? (
-            <div className="text-[11px] text-slate-600 font-mono py-2 flex items-center gap-2">
-              <Activity size={11} className="animate-pulse" /> Loading subnets…
-            </div>
-          ) : (() => {
-            const maxStake = Math.max(...subnets.map(s => s.stake_tao), 1)
-            return subnets.map(s => <SubnetCard key={s.uid} s={s} maxStake={maxStake} />)
-          })()}
-        </div>
-      </div>
-
-      {/* ── Network Heat Map (relocated from Mission Control) ──────────────── */}
+      {/* ── Network Heat Map ──────────────────────────────────────────────── */}
       <SubnetHeatMap />
 
       </div>{/* end scrollable */}
