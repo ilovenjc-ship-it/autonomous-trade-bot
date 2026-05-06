@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-05 (Session XXIII continued — Regime Gating, Tooltip Portal, UI fixes, Code Protection)
-**Status:** PAPER TRAINING ACTIVE — Day 2 of 7+ min baseline. All 12 strategies PAPER_ONLY on Railway. Bot online. Regime gating LIVE (5 momentum bots benched in SIDEWAYS). App in cleanest state since inception.
+**Last updated:** 2026-05-06 (Session XXIV — Full walkthrough, regime UNKNOWN bug fixed)
+**Status:** PAPER TRAINING ACTIVE — Day 3 of 7+ min baseline. All 12 strategies PAPER_ONLY on Railway. Bot online. Regime gating LIVE. All 14 pages confirmed rendering. TAO +10.96% 24h ($313.58). Fleet at 30–37% WR (expected Day 3).
 **Maintained by:** II Agent + Owner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -12,6 +12,35 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXIV SUMMARY (May 6, 2026) — Full Walkthrough + Regime UNKNOWN Bug Fix
+
+### Regime UNKNOWN Bug (fixed — commit 49f6cfc3)
+- **Root cause**: When CoinGecko rate-limits (429), `_price_history` fills with identical prices. `s.diff()` → all zeros → `gain=0, loss=0 → rs=NaN → rsi=NaN → rsi_14=None → _detect_regime() → UNKNOWN`
+- **Fix 1** (`price_service.py`): When RSI calculation yields NaN (flat-price market), return `50.0` instead of `None`. Mathematically correct — a perfectly flat price has no directional bias → RSI 50 = neutral/SIDEWAYS.
+- **Fix 2** (`cycle_service.get_current_regime()`): 3-tier fallback chain: (1) fresh indicators, (2) cached `_current_regime`, (3) `agent_service.current_regime` fast-path (price-trend + MACD). Ensures the UI always has a meaningful regime even during warmup.
+- **Confirmed**: agent_service singleton exported as `agent_service` — import reference corrected.
+
+### Full Page Walkthrough — All 14 pages confirmed rendering
+- Frontend URL confirmed: `profound-expression-production-75c7.up.railway.app` (stored in STATE.md)
+- Previous 3.4K "blank" pages were NOT bugs — I was navigating to wrong route paths (`/activity-log` vs `/activity`, `/agent-fleet` vs `/fleet`, etc.). All pages render correctly via nav links and correct direct URLs.
+- Route mapping: `/fleet` `/risk` `/activity` `/market` `/override` `/wallet-transactions` `/pnl`
+
+### Fleet Status (Day 3, May 6, ~7PM EDT)
+```
+Best WR  : Mean Reversion 37.3% (503 trades)
+Worst WR : Breakout Hunter 30.4% (863 trades)  
+TAO price: $313.58 ▲ +10.96% 24h
+Fleet PnL: -1.118τ paper (expected at Day 3)
+Velocity : 12 trades/hr
+Regime   : SIDEWAYS (was UNKNOWN before fix — flat CoinGecko prices)
+```
+
+### Railway Platform Note
+- Build incident active on Railway (builds delayed/slow). Backend deploy `49f6cfc3` may be slow to roll out.
+- Frontend deploy `38af77a8` confirmed active 15min after push.
 
 ---
 
@@ -353,7 +382,8 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 ```
 PLATFORM           :  Railway Hobby Plan ($5/mo) ✅  — Hobby Plan confirmed active
 SERVICE            :  stunning-spirit / autonomous-trade-bot / production
-SERVICE URL        :  autonomous-trade-bot-production.up.railway.app
+SERVICE URL        :  autonomous-trade-bot-production.up.railway.app (backend)
+FRONTEND URL       :  profound-expression-production-75c7.up.railway.app (frontend)
 DEPLOYMENT         :  562056c5 — SUCCESS (2026-05-04 12:51 UTC)
 
 LIVE STATUS (confirmed via API at session end):
