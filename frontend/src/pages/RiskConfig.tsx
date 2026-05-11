@@ -3,7 +3,6 @@ import { CheckCircle2, RefreshCw, ShieldAlert, Zap, BarChart2, TrendingDown, Lay
 import clsx from 'clsx'
 import api from '@/api/client'
 import toast from 'react-hot-toast'
-import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Config {
@@ -249,43 +248,9 @@ export default function RiskConfig() {
   const maxPos      = status?.max_positions   ?? config.max_concurrent_positions
   const drawdownPct = (drawdown / config.max_drawdown_pct) * 100
 
-  const heroSlides = [
-    {
-      title: 'Risk Overview', subtitle: 'Safety Status', accent: isHalted ? 'red' : 'orange' as any,
-      stats: [
-        { label: 'Global Halt',    value: isHalted ? 'HALTED' : 'ACTIVE',               color: isHalted ? 'red' : 'emerald' as any },
-        { label: 'Circuit Breaker',value: isCBTripped ? 'TRIPPED' : 'OK',               color: isCBTripped ? 'red' : 'emerald' as any },
-        { label: 'Open Positions', value: `${openPos}/${maxPos}`,                       color: openPos >= maxPos ? 'red' : 'white' as any },
-        { label: 'Drawdown',       value: `${(drawdown ?? 0).toFixed(2)}%`,                    color: drawdown > config.max_drawdown_pct * 0.8 ? 'red' : 'orange' as any },
-        { label: 'Daily Loss',     value: `${(dailyLoss ?? 0).toFixed(2)}%`,                  color: 'slate' as const },
-      ],
-    },
-    {
-      title: 'Capital Config', subtitle: 'Position Limits', accent: 'blue' as const,
-      stats: [
-        { label: 'Max Drawdown',  value: `${(config.max_drawdown_pct ?? 0).toFixed(1)}%`,      color: 'orange' as const },
-        { label: 'Max Daily Loss',value: '—',                                           color: 'orange' as const },
-        { label: 'Max Positions', value: String(config.max_concurrent_positions),       color: 'white'  as const },
-        { label: 'Max Per Trade', value: '—',                                          color: 'blue'   as const },
-        { label: 'Min Conf.',     value: '—',                                          color: 'purple' as const },
-      ],
-    },
-    {
-      title: 'Safety Status', subtitle: 'All Checks', accent: 'emerald' as const,
-      stats: [
-        { label: 'Halt Status',   value: isHalted ? '⛔ HALT' : '✓ Running',            color: isHalted ? 'red' : 'emerald' as any },
-        { label: 'Circuit Brk',  value: isCBTripped ? '⛔ Tripped' : '✓ Clear',        color: isCBTripped ? 'red' : 'emerald' as any },
-        { label: 'Drawdown Chk', value: drawdownPct < 80 ? '✓ OK' : '⚠ Near Limit',  color: drawdownPct < 80 ? 'emerald' : 'orange' as any },
-        { label: 'Pos. Limit',   value: openPos < maxPos ? '✓ OK' : '⛔ At Limit',   color: openPos < maxPos ? 'emerald' : 'red' as any },
-        { label: 'Config',       value: saving ? 'Saving…' : 'Saved',                 color: saving ? 'yellow' : 'emerald' as any },
-      ],
-    },
-  ]
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
-      <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#080d18] text-slate-100 font-mono">
 
       {/* ── Trading status banner ───────────────────────────────────────────── */}

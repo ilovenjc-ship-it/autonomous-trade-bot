@@ -15,7 +15,6 @@ import {
 } from 'recharts'
 import clsx from 'clsx'
 import api from '@/api/client'
-import PageHeroSlider from '@/components/PageHeroSlider'
 import { InfoBubble } from '@/components/Tooltip'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -660,43 +659,9 @@ export default function OpenClaw() {
 
   const rm = latestRound ? (RESULT_META[latestRound.result] ?? RESULT_META.REJECTED) : null
 
-  const heroSlides = [
-    {
-      title: 'BFT Consensus', subtitle: 'OpenClaw Council', accent: 'purple' as const,
-      stats: [
-        { label: 'Approval Rate', value: stats ? `${(stats.approval_rate_pct ?? 0).toFixed(1)}%` : '—', color: 'emerald' as const },
-        { label: 'Total Rounds',  value: stats ? String(stats.total_rounds) : '—',             color: 'white'   as const },
-        { label: 'Approved',      value: stats ? String(stats.approved_rounds) : '—',          color: 'emerald' as const },
-        { label: 'Rejected',      value: stats ? String(stats.rejected_rounds ?? (stats.total_rounds - stats.approved_rounds)) : '—', color: 'orange' as const },
-        { label: 'Threshold',     value: '7/12',                                               color: 'purple'  as const },
-      ],
-    },
-    {
-      title: 'Latest Round', subtitle: latestRound ? `#${latestRound.round_id}` : 'Pending', accent: 'blue' as const,
-      stats: [
-        { label: 'Direction',   value: latestRound?.direction ?? '—',                          color: latestRound?.direction === 'BUY' ? 'emerald' : latestRound?.direction === 'SELL' ? 'red' : 'slate' as any },
-        { label: 'Result',      value: latestRound ? (latestRound.approved ? 'APPROVED' : 'REJECTED') : '—', color: latestRound?.approved ? 'emerald' : 'orange' as any },
-        { label: 'BUY votes',   value: latestRound ? String(latestRound.buy_count)  : '—',    color: 'emerald' as const },
-        { label: 'SELL votes',  value: latestRound ? String(latestRound.sell_count) : '—',    color: 'red'     as const },
-        { label: 'HOLD votes',  value: latestRound ? String(latestRound.hold_count) : '—',    color: 'yellow'  as const },
-      ],
-    },
-    {
-      title: 'Round History', subtitle: `Last ${history.length} rounds`, accent: 'emerald' as const,
-      stats: [
-        { label: 'Rounds Logged', value: String(history.length),                               color: 'white'   as const },
-        { label: 'History Cap',   value: '200',                                                color: 'slate'   as const },
-        { label: 'Buy Bias',      value: history.length ? `${((history.filter(r => r.direction==='BUY').length / history.length)*100).toFixed(0)}%` : '—', color: 'emerald' as const },
-        { label: 'Approval Pct',  value: history.length ? `${((history.filter(r => r.approved).length / history.length)*100).toFixed(0)}%` : '—', color: 'purple' as const },
-        { label: 'Bots',          value: '12',                                                 color: 'blue'    as const },
-      ],
-    },
-  ]
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
-      <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── Symbol Legend ── */}

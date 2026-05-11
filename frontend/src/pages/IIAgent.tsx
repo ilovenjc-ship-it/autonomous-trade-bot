@@ -13,7 +13,6 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
-import PageHeroSlider from '@/components/PageHeroSlider'
 import { useBotStore } from '@/store/botStore'
 import { InfoBubble } from '@/components/Tooltip'
 
@@ -752,43 +751,9 @@ export default function IIAgent() {
     return () => setIIAgentStats(null)
   }, [analyzing, stableAnalyze, setIIAgentStats])
 
-  const heroSlides = [
-    {
-      title: 'Agent Intelligence', subtitle: 'Master Orchestrator', accent: 'blue' as const,
-      stats: [
-        { label: 'Market Regime',   value: regime,                                               color: regime === 'BULLISH' ? 'emerald' : regime === 'BEARISH' ? 'red' : 'yellow' as any },
-        { label: 'TAO / USD',       value: '—',                                                                    color: 'white' as const },
-        { label: 'RSI-14',          value: '—',                                                                    color: 'slate' as const },
-        { label: 'Analysis',        value: analyzing ? 'Running…' : 'Idle',                     color: analyzing ? 'yellow' : 'slate' as any },
-        { label: 'Observations',    value: String(observations.length),                          color: 'white' as const },
-      ],
-    },
-    {
-      title: 'Fleet Intelligence', subtitle: 'Bot Health', accent: 'purple' as const,
-      stats: [
-        { label: 'Hot Bots',        value: String(hotCount),                                     color: hotCount > 0 ? 'emerald' : 'slate' as any },
-        { label: 'Struggling',      value: String(strugglingCount),                              color: strugglingCount > 0 ? 'red' : 'slate' as any },
-        { label: 'Recommendations', value: String(recommendations.length),                       color: recommendations.length > 0 ? 'yellow' : 'white' as any },
-        { label: 'Fleet Bots',      value: String(fleetBots.length || 12),                      color: 'white' as const },
-        { label: 'Last Analysis',   value: lastReport ? 'Complete' : 'Pending',                 color: lastReport ? 'emerald' : 'slate' as any },
-      ],
-    },
-    {
-      title: 'OpenClaw Consensus', subtitle: 'BFT Council', accent: 'emerald' as const,
-      stats: [
-        { label: 'Approval Rate',   value: cStats ? `${(cStats.approval_rate_pct ?? 0).toFixed(1)}%` : '—',   color: 'emerald' as const },
-        { label: 'Total Rounds',    value: cStats ? String(cStats.total_rounds) : '—',          color: 'white' as const },
-        { label: 'Approved',        value: cStats ? String(cStats.approved_rounds) : '—',       color: 'emerald' as const },
-        { label: 'Threshold',       value: '7/12',                                              color: 'purple' as const },
-        { label: 'BFT Status',      value: cStats ? 'Active' : 'Waiting',                      color: cStats ? 'emerald' : 'slate' as any },
-      ],
-    },
-  ]
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
 
-      <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── Top row: Regime + Stats ── */}

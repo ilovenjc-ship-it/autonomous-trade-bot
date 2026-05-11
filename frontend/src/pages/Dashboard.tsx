@@ -1,16 +1,10 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import {
   TrendingUp, TrendingDown,
-  Activity, Bot, BarChart2, Clock, Award, Radio,
-  Brain, Vote, Bell, Gauge, ShieldAlert, ChevronRight,
+  Activity, BarChart2, Clock, Award, Radio,
+  Brain, Vote, Bell, Gauge, ChevronRight, DollarSign, Target, Hash, CalendarDays,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import PageHeroSlider, { SliderSlide } from '@/components/PageHeroSlider'
-import {
-  AreaChart, Area, XAxis, YAxis, CartesianGrid,
-  Tooltip, ResponsiveContainer, ReferenceLine,
-  ComposedChart, Bar,
-} from 'recharts'
 import clsx from 'clsx'
 import api from '@/api/client'
 
@@ -64,15 +58,6 @@ interface ActivityEvent {
   strategy?: string; timestamp: string
 }
 
-interface PricePoint {
-  timestamp: number
-  price: number
-  volume: number
-  time: string   // formatted label
-}
-
-type PriceRange = '1H' | '6H' | '24H' | '7D'
-
 interface RecentTrade {
   id: number
   trade_type: string
@@ -90,120 +75,6 @@ function fmt(n: number, d = 4) {
   return n >= 0 ? `+${s}` : `-${s}`
 }
 
-// ── TAO price chart ───────────────────────────────────────────────────────────
-const RANGE_LABELS: PriceRange[] = ['1H', '6H', '24H', '7D']
-const RANGE_HOURS: Record<PriceRange, number> = { '1H': 1, '6H': 6, '24H': 24, '7D': 168 }
-
-function fmtPriceTime(ts: number, range: PriceRange): string {
-  const d = new Date(ts)
-  if (range === '7D') return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-  return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false })
-}
-
-function TaoPriceChart({ data, range, onRange }: {
-  data: PricePoint[]; range: PriceRange; onRange: (r: PriceRange) => void
-}) {
-  const prices = data.map(d => d.price)
-  const high   = prices.length ? Math.max(...prices) : 0
-  const low    = prices.length ? Math.min(...prices) : 0
-  const first  = data[0]?.price ?? 0
-  const last   = data[data.length - 1]?.price ?? 0
-  const pctChg = first ? ((last - first) / first) * 100 : 0
-  const up     = pctChg >= 0
-
-  return (
-    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-      {/* header */}
-      <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
-        <div className="flex items-center gap-4">
-          <div>
-            <p className="text-[13px] text-slate-400 uppercase tracking-widest font-mono">TAO / USD</p>
-            <div className="flex items-baseline gap-2 mt-0.5">
-              <span className="text-2xl font-bold font-mono text-white">
-                ${last ? last.toFixed(2) : '—'}
-              </span>
-              {data.length > 1 && (
-                <span className={clsx('text-sm font-mono font-bold', up ? 'text-accent-green' : 'text-red-400')}>
-                  {up ? '+' : ''}{pctChg.toFixed(2)}%
-                </span>
-              )}
-            </div>
-          </div>
-          {data.length > 1 && (
-            <div className="flex gap-4 text-xs font-mono hidden sm:flex">
-              <div>
-                <p className="text-slate-500">High</p>
-                <p className="text-accent-green font-bold">${high.toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="text-slate-500">Low</p>
-                <p className="text-red-400 font-bold">${low.toFixed(2)}</p>
-              </div>
-              <div>
-                <p className="text-slate-500">Range</p>
-                <p className="text-slate-300 font-bold">${(high - low).toFixed(2)}</p>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* range selector */}
-        <div className="flex items-center gap-1 bg-dark-900 border border-dark-600 rounded-lg p-1">
-          {RANGE_LABELS.map(r => (
-            <button key={r} onClick={() => onRange(r)}
-              className={clsx(
-                'px-3 py-1 rounded text-xs font-mono font-bold transition-all',
-                range === r
-                  ? up ? 'bg-accent-green/20 text-accent-green border border-accent-green/30'
-                       : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                  : 'text-slate-500 hover:text-slate-300'
-              )}
-            >{r}</button>
-          ))}
-        </div>
-      </div>
-
-      {/* chart */}
-      {data.length > 1 ? (
-        <ResponsiveContainer width="100%" height={180}>
-          <ComposedChart data={data} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
-            <defs>
-              <linearGradient id="taoGr" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor={up ? '#34d399' : '#f87171'} stopOpacity={0.25} />
-                <stop offset="95%" stopColor={up ? '#34d399' : '#f87171'} stopOpacity={0.02} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-            <XAxis dataKey="time" tick={{ fill: '#475569', fontSize: 9 }}
-              tickLine={false} axisLine={false} interval="preserveStartEnd" />
-            <YAxis
-              domain={['auto', 'auto']}
-              tick={{ fill: '#475569', fontSize: 9 }}
-              tickLine={false} axisLine={false}
-              tickFormatter={v => `$${v.toFixed(0)}`}
-              width={52}
-            />
-            <Tooltip
-              contentStyle={{ background: '#0d1117', border: '1px solid #1e293b', borderRadius: 8, fontSize: 11, fontFamily: 'monospace' }}
-              formatter={(v: any, name: string) => [
-                name === 'price' ? `$${(v as number).toFixed(2)}` : `$${((v as number) / 1e6).toFixed(1)}M`,
-                name === 'price' ? 'TAO Price' : 'Volume',
-              ]}
-              labelFormatter={label => `Time: ${label}`}
-            />
-            <Bar dataKey="volume" fill={up ? '#34d399' : '#f87171'} fillOpacity={0.12} yAxisId={0} />
-            <Area dataKey="price" stroke={up ? '#34d399' : '#f87171'} strokeWidth={2}
-              fill="url(#taoGr)" dot={false} />
-          </ComposedChart>
-        </ResponsiveContainer>
-      ) : (
-        <div className="h-[180px] flex items-center justify-center text-slate-500 font-mono text-sm">
-          Loading price data…
-        </div>
-      )}
-    </div>
-  )
-}
 
 // ── TradingView TAO Chart ─────────────────────────────────────────────────────
 function TaoTradingViewChart() {
@@ -647,36 +518,9 @@ export default function Dashboard() {
   const [openPositions,  setOpenPositions]  = useState<OpenPositionsSummary | null>(null)
   // TAO.app Fear & Greed (refreshed every 5 min — matches backend cache)
   const [taoFearGreed,   setTaoFearGreed]   = useState<number | null>(null)
-  // Charts
-  const [priceHistory,   setPriceHistory]   = useState<PricePoint[]>([])
-  const [priceRange,     setPriceRange]     = useState<PriceRange>('24H')
 
   // Recent trades (for bottom panel)
   const [recentTrades, setRecentTrades] = useState<RecentTrade[]>([])
-
-  const loadCharts = useCallback(async (range: PriceRange) => {
-    try {
-      const days = range === '7D' ? 7 : 1
-      const priceRes = await fetch(`/api/price/history?days=${days}`).then(r => r.json()).catch(() => null)
-      if (priceRes?.data) {
-        // Filter to the requested range
-        const cutoffMs = Date.now() - RANGE_HOURS[range] * 3600 * 1000
-        const raw: PricePoint[] = priceRes.data
-          .filter((p: any) => p.timestamp >= cutoffMs)
-          .map((p: any) => ({
-            timestamp: p.timestamp,
-            price: p.price,
-            volume: p.volume ?? 0,
-            time: fmtPriceTime(p.timestamp, range),
-          }))
-        // Downsample to max 120 points for perf
-        const stride = Math.max(1, Math.floor(raw.length / 120))
-        setPriceHistory(raw.filter((_, i) => i % stride === 0))
-      }
-    } catch (e) {
-      console.error('Chart load error', e)
-    }
-  }, [])
 
   const load = useCallback(async () => {
     try {
@@ -728,7 +572,6 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => { load() }, [load])
-  useEffect(() => { loadCharts(priceRange) }, [loadCharts, priceRange])
   useEffect(() => {
     loadFearGreed()
     const id = setInterval(loadFearGreed, 5 * 60 * 1000)
@@ -738,10 +581,9 @@ export default function Dashboard() {
   // refresh every 15s, tick every second for cycle countdown
   useEffect(() => {
     const refresh = setInterval(load, 15_000)
-    const chartRefresh = setInterval(() => loadCharts(priceRange), 60_000)
     const countdown = setInterval(() => setTick(t => t + 1), 1_000)
-    return () => { clearInterval(refresh); clearInterval(chartRefresh); clearInterval(countdown) }
-  }, [load, loadCharts, priceRange])
+    return () => { clearInterval(refresh); clearInterval(countdown) }
+  }, [load])
 
   const navigate = useNavigate()
   const ind = botStatus?.indicators ?? {}
@@ -756,59 +598,18 @@ export default function Dashboard() {
   const secInCycle = tick % interval
   const secToNext  = interval - secInCycle
 
-  // ── Build PageHeroSlider slides from live data ──────────────────────────────
-  const _rsi        = ind.rsi_14 as number | null
-  const _regime     = agentStatus?.current_regime ?? 'UNKNOWN'
-  const _up24h      = (change24h ?? 0) >= 0
-  const _totalRounds   = consensusStats?.total_rounds ?? 0
+  // ── Static card-grid computed values ───────────────────────────────────────
+  const _up24h         = (change24h ?? 0) >= 0
   const _approvalRate  = consensusStats?.approval_rate_pct ?? 0
-  const _buyVotes      = consensusStats?.total_buy_votes ?? 0
-  const _sellVotes     = consensusStats?.total_sell_votes ?? 0
-  const _bias = _buyVotes > _sellVotes ? 'BULLISH' : _buyVotes < _sellVotes ? 'BEARISH' : 'NEUTRAL'
-
-  const heroSlides: SliderSlide[] = [
-    {
-      title: 'Market Pulse',
-      subtitle: 'TAO / USD',
-      accent: 'blue',
-      stats: [
-        { label: 'TAO Price',     value: price ? `$${price.toFixed(2)}` : '—', color: 'blue' },
-        { label: '24h Change',    value: change24h != null ? `${_up24h ? '+' : ''}${change24h.toFixed(2)}%` : '—', color: _up24h ? 'emerald' : 'red' },
-        { label: 'II Agent',      value: REGIME_LABEL[_regime] ?? _regime, color: _regime === 'BULL' ? 'emerald' : _regime === 'BEAR' ? 'red' : 'slate' },
-        { label: 'RSI-14',        value: _rsi != null ? _rsi.toFixed(1) : '—', sub: _rsi == null ? '' : _rsi < 35 ? 'Oversold' : _rsi > 65 ? 'Overbought' : 'Neutral', color: _rsi == null ? 'slate' : _rsi < 35 ? 'emerald' : _rsi > 65 ? 'red' : 'yellow' },
-        { label: 'Block',         value: walletStatus?.block_cached ? `#${walletStatus.block_cached.toLocaleString()}` : '—', color: 'slate' },
-      ],
-    },
-    {
-      title: 'Fleet Performance',
-      subtitle: 'Fleet Stats',
-      accent: 'emerald',
-      stats: [
-        { label: 'Total PnL',         value: summary ? `${fmt(summary.total_pnl, 4)} τ` : '—', color: (summary?.total_pnl ?? 0) >= 0 ? 'emerald' : 'red' },
-        { label: 'Win Rate',          value: summary ? `${summary.win_rate.toFixed(1)}%` : '—', sub: summary ? `${summary.wins}W / ${summary.losses}L` : '', color: (summary?.win_rate ?? 0) >= 55 ? 'emerald' : 'yellow' },
-        { label: 'Active Strategies', value: `${summary?.active_strategies ?? '—'}`, sub: 'in fleet', color: 'blue' },
-        { label: 'Total Trades',      value: summary ? summary.total_trades.toLocaleString() : '—', sub: 'all time', color: 'white' },
-        { label: 'Paper Day',         value: (() => { const d = Math.max(1, Math.floor((Date.now() - new Date('2026-05-04T14:10:00Z').getTime()) / 86_400_000) + 1); return `Day ${d}` })(), sub: 'of 7+ min baseline', color: (() => { const d = Math.max(1, Math.floor((Date.now() - new Date('2026-05-04T14:10:00Z').getTime()) / 86_400_000) + 1); return d >= 7 ? 'emerald' : 'yellow' as any })() },
-      ],
-    },
-    {
-      title: 'OpenClaw Status',
-      subtitle: 'BFT Council',
-      accent: 'purple',
-      stats: [
-        { label: 'Approval Rate', value: `${_approvalRate.toFixed(1)}%`, sub: '7/12 threshold', color: _approvalRate >= 45 && _approvalRate <= 65 ? 'emerald' : 'yellow' },
-        { label: 'Rounds',        value: _totalRounds.toLocaleString(), sub: 'consensus rounds', color: 'blue' },
-        { label: 'Vote Bias',     value: _bias, color: _bias === 'BULLISH' ? 'emerald' : _bias === 'BEARISH' ? 'red' : 'slate' },
-        { label: 'Status',        value: _approvalRate >= 45 && _approvalRate <= 65 ? 'CALIBRATED' : 'REVIEW', color: _approvalRate >= 45 && _approvalRate <= 65 ? 'emerald' : 'yellow' },
-      ],
-    },
-  ]
+  // Paper Day counter — counts from Zero Day (Session XXV, 2026-05-11 fossil wipe)
+  const ZERO_DAY_UTC   = new Date('2026-05-11T10:00:00Z').getTime()
+  const paperDay       = Math.max(1, Math.floor((Date.now() - ZERO_DAY_UTC) / 86_400_000) + 1)
+  const totalPnl       = summary?.total_pnl ?? 0
+  const winRate        = summary?.win_rate ?? 0
+  const totalTrades    = summary?.total_trades ?? 0
 
   return (
     <div className="p-6 space-y-5">
-
-      {/* ── Hero Slider ────────────────────────────────────────────────────── */}
-      <PageHeroSlider slides={heroSlides} intervalMs={10000} />
 
       {/* ── Cycle status bar ─────────────────────────────────────────────────── */}
       <div className={clsx(
@@ -839,35 +640,131 @@ export default function Dashboard() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          OPERATOR STRIP — 4 high-signal cards: TAO/USD · Daily Cap · Alerts · II Agent
+          OPERATOR STATIC CARDS — 10 cards in 2 rows of 5 (Session XXV spec)
+          Row 1 — Market:  TAO/USD · 24h Change · Total PnL · Win Rate · Total Trades
+          Row 2 — System:  Approval Rate · II Agent · Daily Cap · Alerts · Paper Day
           ══════════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
 
-        {/* 1 — TAO / USD price (first position) */}
+        {/* 1 — TAO / USD price */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
           <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            (change24h ?? 0) >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
+            _up24h ? 'bg-emerald-500/10' : 'bg-red-500/10'
           )}>
-            {(change24h ?? 0) >= 0
-              ? <TrendingUp size={14} className="text-emerald-400" />
-              : <TrendingDown size={14} className="text-red-400" />}
+            {_up24h ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-red-400" />}
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">TAO / USD</p>
             <p className="text-base font-black font-mono text-white mt-0.5">
               {price ? `$${price.toFixed(2)}` : '—'}
             </p>
-            <p className={clsx('text-[11px] font-mono mt-0.5',
-              (change24h ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">spot</p>
+          </div>
+        </div>
+
+        {/* 2 — 24h Change */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            _up24h ? 'bg-emerald-500/10' : 'bg-red-500/10'
+          )}>
+            {_up24h ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-red-400" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">24h Change</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5', _up24h ? 'text-emerald-400' : 'text-red-400')}>
+              {change24h != null ? `${_up24h ? '+' : ''}${change24h.toFixed(2)}%` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">TAO spot</p>
+          </div>
+        </div>
+
+        {/* 3 — Total PnL */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
+          )}>
+            <DollarSign size={14} className={totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total PnL</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              totalPnl > 0 ? 'text-emerald-400' : totalPnl < 0 ? 'text-red-400' : 'text-slate-300'
             )}>
-              {change24h != null
-                ? `${change24h >= 0 ? '+' : ''}${change24h.toFixed(2)}% 24h`
-                : 'loading…'}
+              {summary ? `${fmt(totalPnl, 4)} τ` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">fleet cumulative</p>
+          </div>
+        </div>
+
+        {/* 4 — Win Rate */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            winRate >= 55 ? 'bg-emerald-500/10' : winRate >= 40 ? 'bg-amber-500/10' : 'bg-red-500/10'
+          )}>
+            <Target size={14} className={winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Win Rate</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'
+            )}>
+              {summary ? `${winRate.toFixed(1)}%` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+              {summary ? `${summary.wins}W · ${summary.losses}L` : 'gate: 55%'}
             </p>
           </div>
         </div>
 
-        {/* 2 — Daily Cap meter */}
+        {/* 5 — Total Trades */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
+            <Hash size={14} className="text-slate-300" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
+            <p className="text-base font-black font-mono text-white mt-0.5">
+              {summary ? totalTrades.toLocaleString() : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
+          </div>
+        </div>
+
+        {/* 6 — Approval Rate (BFT) */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+            <Vote size={14} className="text-purple-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Approval Rate</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              _approvalRate >= 45 && _approvalRate <= 65 ? 'text-emerald-400' : 'text-amber-400'
+            )}>
+              {consensusStats ? `${_approvalRate.toFixed(1)}%` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">BFT · 7/12 threshold</p>
+          </div>
+        </div>
+
+        {/* 7 — II Agent regime */}
+        <button onClick={() => navigate('/ii-agent')}
+          className="bg-dark-800 border border-dark-600 hover:border-indigo-500/40 rounded-xl px-4 py-3.5 flex items-start gap-3 text-left transition-all group">
+          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
+            <Brain size={14} style={{ color: agentStatus?.regime_color ?? '#818cf8' }} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">II Agent</p>
+            <p className="text-base font-black font-mono mt-0.5 truncate" style={{ color: agentStatus?.regime_color ?? '#818cf8' }}>
+              {REGIME_LABEL[agentStatus?.current_regime ?? 'UNKNOWN'] ?? '⟳ SCANNING'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5 truncate">
+              {agentStatus?.analysis_count ?? 0} analyses
+            </p>
+          </div>
+          <ChevronRight size={11} className="text-slate-600 group-hover:text-indigo-400 transition-colors mt-1 flex-shrink-0" />
+        </button>
+
+        {/* 8 — Daily Cap */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
           <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
             <Gauge size={14} className="text-amber-400" />
@@ -886,13 +783,10 @@ export default function Dashboard() {
                 (dailyCap?.pct_used ?? 0) >= 60 ? 'bg-amber-400' : 'bg-emerald-500'
               )} style={{ width: `${Math.min(100, dailyCap?.pct_used ?? 0)}%` }} />
             </div>
-            <p className="text-[11px] font-mono text-slate-500 mt-1">
-              {dailyCap ? `${dailyCap.staked_today_tao.toFixed(3)} / ${dailyCap.cap_tao.toFixed(3)}τ` : 'no data'}
-            </p>
           </div>
         </div>
 
-        {/* 3 — Alerts */}
+        {/* 9 — Alerts */}
         <button onClick={() => navigate('/alerts')}
           className={clsx(
             'rounded-xl px-4 py-3.5 flex items-start gap-3 text-left transition-all group border',
@@ -907,7 +801,7 @@ export default function Dashboard() {
           </div>
           <div className="min-w-0 flex-1">
             <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Alerts</p>
-            <p className={clsx('text-base font-black font-mono mt-0.5',
+            <p className={clsx('text-base font-black font-mono mt-0.5 truncate',
               unreadAlerts > 0 ? 'text-red-400' : 'text-emerald-400'
             )}>
               {unreadAlerts > 0 ? `${unreadAlerts} unread` : 'All clear ✓'}
@@ -916,50 +810,35 @@ export default function Dashboard() {
               {unreadAlerts > 0 ? 'click to review' : 'no new alerts'}
             </p>
           </div>
-          {unreadAlerts > 0 && (
-            <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-500/20 text-red-400 border border-red-500/30 flex-shrink-0 mt-0.5">
-              {unreadAlerts}
-            </span>
-          )}
-          <ChevronRight size={11} className="text-slate-600 group-hover:text-white transition-colors mt-1" />
+          <ChevronRight size={11} className="text-slate-600 group-hover:text-white transition-colors mt-1 flex-shrink-0" />
         </button>
 
-        {/* 4 — II Agent regime status */}
-        <button onClick={() => navigate('/ii-agent')}
-          className="bg-dark-800 border border-dark-600 hover:border-indigo-500/40 rounded-xl px-4 py-3.5 flex items-start gap-3 text-left transition-all group">
-          <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
-            <Brain size={14} style={{ color: agentStatus?.regime_color ?? '#818cf8' }} />
+        {/* 10 — Paper Day */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            paperDay >= 7 ? 'bg-emerald-500/10' : 'bg-amber-500/10'
+          )}>
+            <CalendarDays size={14} className={paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">II Agent</p>
-            <p className="text-base font-black font-mono mt-0.5" style={{ color: agentStatus?.regime_color ?? '#818cf8' }}>
-              {REGIME_LABEL[agentStatus?.current_regime ?? 'UNKNOWN'] ?? '⟳ SCANNING'}
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Paper Day</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'
+            )}>
+              Day {paperDay}
             </p>
             <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-              {agentStatus?.analysis_count ?? 0} analyses · Master Orchestrator
+              {paperDay >= 7 ? 'WR gate active' : `${7 - paperDay}d to gate`}
             </p>
           </div>
-          <ChevronRight size={11} className="text-slate-600 group-hover:text-indigo-400 transition-colors mt-1" />
-        </button>
-      </div>
+        </div>
 
-      {/* ── Main 2-col: TradingView (Traditional) + Market Sentiment ────────── */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+      </div>{/* end 10-card grid */}
 
-        {/* TAO/USDT TradingView chart — Traditional — 2/3 width */}
-        <TaoTradingViewChart />
-
-        {/* Market Sentiment — 1/3 width (relocated from bottom row) */}
+      {/* ── Market Sentiment (full-width) ──────────────────────────────────── */}
+      <div className="grid grid-cols-1">
         <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
-
       </div>
-
-      {/* ── TAO/USD Price Chart (Modern / Alternative) ───────────────────────── */}
-      <TaoPriceChart
-        data={priceHistory}
-        range={priceRange}
-        onRange={r => setPriceRange(r)}
-      />
 
       {/* ── Bottom row: Top Strategies · Recent Trades · Live Indicators ─────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
@@ -1030,6 +909,12 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {/* ══════════════════════════════════════════════════════════════════════
+          TAO / USDT CHART — bottom of page (last tool on page, per Session XXV)
+          ══════════════════════════════════════════════════════════════════ */}
+      <TaoTradingViewChart />
+
     </div>
   )
 }

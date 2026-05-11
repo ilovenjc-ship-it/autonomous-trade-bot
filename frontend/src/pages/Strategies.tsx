@@ -10,7 +10,6 @@ import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
 import type { Strategy } from '@/types'
-import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── performance tier engine ───────────────────────────────────────────────────
 type Tier = 'elite' | 'solid' | 'neutral' | 'weak' | 'failing'
@@ -549,44 +548,9 @@ export default function Strategies() {
   const fleetPnl  = strategies.reduce((s, x) => s + x.total_pnl, 0)
   const fleetTrades = strategies.reduce((s, x) => s + x.total_trades, 0)
 
-  const heroSlides = [
-    {
-      title: 'Strategy Fleet', subtitle: '12 Autonomous Bots', accent: 'purple' as const,
-      stats: [
-        { label: 'Total',         value: String(strategies.length || 12), color: 'white'   as const },
-        { label: 'LIVE',          value: String(liveCount),               color: 'emerald' as const },
-        { label: 'APPROVED',      value: String(approvedCount),           color: 'purple'  as const },
-        { label: 'PENDING',       value: String(pendingCount),            color: pendingCount > 0 ? 'yellow' as const : 'slate' as const },
-        { label: 'PAPER',         value: String(paperCount),              color: 'yellow'  as const },
-        { label: 'Training',      value: trainingDayStr,                  color: 'blue'    as const, sub: trainingSubStr },
-      ],
-    },
-    {
-      title: 'Performance', subtitle: 'Fleet Stats', accent: 'emerald' as const,
-      stats: [
-        { label: 'Best Win Rate', value: strategies.length ? `${(bestWR ?? 0).toFixed(0)}%` : '—',   color: 'emerald' as const },
-        { label: 'Avg Win Rate',  value: strategies.length ? `${(strategies.reduce((s,x)=>s+x.win_rate,0)/strategies.length).toFixed(0)}%` : '—', color: 'blue' as const },
-        { label: 'Fleet Trades',  value: fleetTrades.toLocaleString(),                                color: 'white'   as const },
-        { label: 'Fleet PnL',     value: `${fleetPnl >= 0 ? '+' : ''}${fleetPnl.toFixed(3)}τ`,       color: fleetPnl >= 0 ? 'emerald' as const : 'red' as const },
-        { label: 'Training',      value: trainingDayStr,                                              color: 'slate'   as const, sub: trainingSubStr },
-      ],
-    },
-    {
-      title: 'Gate Progress', subtitle: 'Live Qualification', accent: 'blue' as const,
-      stats: [
-        { label: 'WR ≥ 55%',    value: String(strategies.filter(s => s.win_rate >= 55).length),                                            color: 'emerald' as const, sub: 'pass gate' },
-        { label: 'WR 45–54%',   value: String(strategies.filter(s => s.win_rate >= 45 && s.win_rate < 55).length),                         color: 'yellow'  as const, sub: 'borderline' },
-        { label: 'WR < 45%',    value: String(strategies.filter(s => s.win_rate < 45 && s.total_trades > 10).length),                      color: 'red'     as const, sub: 'failing gate' },
-        { label: 'Best Trader', value: strategies.length ? strategies.reduce((a,b) => a.total_trades > b.total_trades ? a : b).display_name.split(' ').slice(0,1).join('') : '—', color: 'blue' as const, sub: 'most trades' },
-        { label: 'Min 7-day',   value: `Day ${trainingDayNum}`, color: trainingDayNum >= 7 ? 'emerald' as const : 'yellow' as const, sub: trainingDayNum >= 7 ? 'window open' : 'building data' },
-      ],
-    },
-  ]
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
-      <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── Allocation Tier Key ─────────────────────────────────────────────── */}

@@ -11,7 +11,6 @@ import {
 import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
-import PageHeroSlider from '@/components/PageHeroSlider'
 import { useBotStore } from '@/store/botStore'
 
 /** Masks an SS58 address: first 6 chars + bullets + last 4 chars */
@@ -535,42 +534,8 @@ export default function WalletPage() {
   const usdValue       = taoPrice != null && balance ? balance * taoPrice : null
   const portfolioUsd   = taoPrice != null && portfolioTotal ? portfolioTotal * taoPrice : null
 
-  const heroSlides = [
-    {
-      title: 'Wallet Overview', subtitle: 'Coldkey & Portfolio', accent: 'emerald' as const,
-      stats: [
-        { label: 'Balance',     value: `${(balance ?? 0).toFixed(4)} τ`,                          color: balance > 0 ? 'emerald' : 'slate' as any },
-        { label: 'USD Value',   value: usdValue != null ? `$${(usdValue ?? 0).toFixed(2)}` : '—', color: 'white'   as const },
-        { label: 'TAO Price',   value: taoPrice != null ? `$${(taoPrice ?? 0).toFixed(2)}` : '—', color: 'yellow'  as const },
-        { label: 'Status',      value: isConnected ? 'Connected' : 'Disconnected',         color: isConnected ? 'emerald' : 'red' as any },
-        { label: 'Network',     value: 'Finney',                                           color: 'blue'    as const },
-      ],
-    },
-    {
-      title: 'Chain Info', subtitle: 'Block Data', accent: 'blue' as const,
-      stats: [
-        { label: 'Block',       value: block ? `#${block.toLocaleString()}` : '—',         color: 'white'   as const },
-        { label: 'Connected',   value: isConnected ? '✓ Yes' : '✗ No',                   color: isConnected ? 'emerald' : 'red' as any },
-        { label: 'Address',     value: displayAddr !== '—' ? `${displayAddr.slice(0,6)}…${displayAddr.slice(-4)}` : '—', color: 'slate' as const },
-        { label: 'Chain',       value: 'Bittensor',                                        color: 'purple'  as const },
-        { label: 'Validator',   value: chainInfo?.address ? 'Configured' : 'None',                  color: 'slate' as const },
-      ],
-    },
-    {
-      title: 'Security', subtitle: 'Wallet Health', accent: 'purple' as const,
-      stats: [
-        { label: 'Wallet',      value: chainInfo?.address ? '✓ Configured' : '✗ Not Set', color: chainInfo?.address ? 'emerald' : 'red' as any },
-        { label: 'Seed Phrase', value: showWords ? 'VISIBLE' : 'Hidden',                  color: showWords ? 'yellow' : 'emerald' as any },
-        { label: 'Backed Up',   value: backedUp ? '✓ Yes' : 'Pending',                   color: backedUp ? 'emerald' : 'yellow' as any },
-        { label: 'Generated',   value: generated ? '✓ Ready' : '—',                      color: generated ? 'emerald' : 'slate' as any },
-        { label: 'Tab',         value: walletTab.charAt(0).toUpperCase() + walletTab.slice(1), color: 'slate' as const },
-      ],
-    },
-  ]
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <PageHeroSlider slides={heroSlides} />
 
       <div className="flex-1 overflow-y-auto bg-dark-900">
 

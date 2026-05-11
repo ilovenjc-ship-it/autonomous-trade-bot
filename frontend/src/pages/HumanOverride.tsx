@@ -8,7 +8,6 @@ import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
-import PageHeroSlider from '@/components/PageHeroSlider'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface OverrideStatus {
@@ -175,43 +174,9 @@ export default function HumanOverride() {
   const approvedCount = strategies.filter(s => s.mode === 'APPROVED_FOR_LIVE').length
   const paperCount    = strategies.filter(s => s.mode === 'PAPER_ONLY').length
 
-  const heroSlides = [
-    {
-      title: 'System Status', subtitle: 'Command Authority', accent: halted ? 'red' : 'emerald' as any,
-      stats: [
-        { label: 'System',          value: halted ? '⛔ HALTED' : '✓ Running',                   color: halted ? 'red' : 'emerald' as any },
-        { label: 'Cycle Engine',    value: status?.cycle_engine_running   ? '✓ Online' : '✗ Off', color: status?.cycle_engine_running   ? 'emerald' : 'red' as any },
-        { label: 'Trading Engine',  value: status?.trading_engine_running ? '✓ Online' : '✗ Off', color: status?.trading_engine_running ? 'emerald' : 'red' as any },
-        { label: 'Override Gate',   value: halted ? '⛔ Closed' : '✓ Open',                      color: halted ? 'red' : 'emerald' as any },
-        { label: 'Strategies',      value: String(strategies.length),                              color: 'white'   as const },
-      ],
-    },
-    {
-      title: 'Mode Distribution', subtitle: 'Strategy Modes', accent: forcePaper ? 'yellow' as const : 'purple' as const,
-      stats: [
-        { label: 'Override',  value: forcePaper ? 'PAPER LOCK' : 'None',  color: forcePaper ? 'yellow' : 'slate' as any },
-        { label: 'LIVE',      value: String(liveCount),                    color: forcePaper ? 'slate' : 'emerald' as any },
-        { label: 'APPROVED',  value: String(approvedCount),                color: 'purple'  as const },
-        { label: 'PAPER',     value: String(paperCount),                   color: 'yellow'  as const },
-        { label: 'Status',    value: forcePaper ? 'PAPER ONLY' : halted ? 'HALTED' : 'Active', color: forcePaper ? 'yellow' : halted ? 'red' : 'emerald' as any },
-      ],
-    },
-    {
-      title: 'Manual Controls', subtitle: 'Override Tools', accent: 'orange' as const,
-      stats: [
-        { label: 'Halt Control',  value: halted ? 'Release Ready' : 'Halt Ready',  color: halted ? 'yellow' : 'orange' as any },
-        { label: 'Mode Override', value: 'Available',                               color: 'blue'    as const },
-        { label: 'Manual Trade',  value: 'Available',                               color: 'emerald' as const },
-        { label: 'Live Bots',     value: String(liveCount),                         color: liveCount > 0 ? 'emerald' : 'slate' as any },
-        { label: 'Authority',     value: 'Full Override',                           color: 'orange'  as const },
-      ],
-    },
-  ]
-
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
-      <PageHeroSlider slides={heroSlides} />
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
       {/* ── PAPER MODE OVERRIDE BANNER ──────────────────────────────────────── */}
