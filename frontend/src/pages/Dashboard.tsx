@@ -835,8 +835,9 @@ export default function Dashboard() {
 
       </div>{/* end 10-card grid */}
 
-      {/* ── Market Sentiment (full-width) ──────────────────────────────────── */}
-      <div className="grid grid-cols-1">
+      {/* ── TradingView Chart + Sentiment Gauge (side-by-side, near top) ───── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <TaoTradingViewChart />
         <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
       </div>
 
@@ -909,11 +910,6 @@ export default function Dashboard() {
         </div>
 
       </div>
-
-      {/* ══════════════════════════════════════════════════════════════════════
-          TAO / USDT CHART — bottom of page (last tool on page, per Session XXV)
-          ══════════════════════════════════════════════════════════════════ */}
-      <TaoTradingViewChart />
 
     </div>
   )
