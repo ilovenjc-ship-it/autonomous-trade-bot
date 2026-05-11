@@ -184,6 +184,7 @@ async def reset_paper_stats(db: AsyncSession = Depends(get_db)):
         cycles_completed = 0,
         win_trades       = 0,
         loss_trades      = 0,
+        total_trades     = 0,      # Bug #2 fix — was never reset in prior wipes
         win_rate         = 0.0,
         total_pnl        = 0.0,
         avg_return       = 0.0,

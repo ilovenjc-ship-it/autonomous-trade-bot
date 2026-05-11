@@ -111,41 +111,62 @@ async def lifespan(app: FastAPI):
             from sqlalchemy import update
             from db.database import AsyncSessionLocal
             from models.strategy import Strategy
+            from models.trade import Trade
             from services.cycle_service import set_force_paper_mode
             set_force_paper_mode(True)
             from datetime import datetime, timezone as _tz
             from sqlalchemy import select as _select
             from models.strategy import Strategy as _Strategy
             _reset_ts = datetime.now(_tz.utc)
+
+            # ── FOSSIL CLEANUP THRESHOLD ──────────────────────────────────────
+            # Any strategy whose stats_reset_at is older than this timestamp is
+            # considered to be carrying legacy biased-sim data in the `trades`
+            # table (from the pre-fossil-wipe era). Bumping this constant forces
+            # a one-time re-wipe on next deploy. After the wipe, stats_reset_at
+            # is stamped with a value > threshold and subsequent restarts skip.
+            # Commander's call, Session XXV: Zero Day = 2026-05-11.
+            FOSSIL_CLEANUP_THRESHOLD = datetime(2026, 5, 11, 10, 0, 0, tzinfo=_tz.utc)
+
             async with AsyncSessionLocal() as db:
-                # Check whether stats have already been reset (stats_reset_at set)
-                # Only perform the full wipe on the FIRST deploy after the env var
-                # is set — so subsequent restarts don't erase accumulated honest data.
                 _existing = await db.execute(_select(_Strategy).limit(1))
                 _first = _existing.scalar_one_or_none()
-                _already_reset = _first and _first.stats_reset_at is not None
+                _needs_wipe = (
+                    _first is None
+                    or _first.stats_reset_at is None
+                    or _first.stats_reset_at < FOSSIL_CLEANUP_THRESHOLD
+                )
 
-                if not _already_reset:
-                    # First time — wipe the old biased stats and stamp the reset
+                if _needs_wipe:
+                    # Full wipe — zero ALL strategy counters AND delete paper trades
                     await db.execute(update(Strategy).values(
                         mode             = "PAPER_ONLY",
                         cycles_completed = 0,
                         win_trades       = 0,
                         loss_trades      = 0,
+                        total_trades     = 0,      # ← Bug #2 fix: was never reset
                         win_rate         = 0.0,
                         total_pnl        = 0.0,
                         avg_return       = 0.0,
                         stats_reset_at   = _reset_ts,
                     ))
-                    logger.warning("FORCE_PAPER_MODE: first-time stats wipe — honest baseline established")
+                    # Bug #1 fix: purge paper trades from trades table (no tx_hash = paper)
+                    # Live on-chain trades are preserved (tx_hash IS NOT NULL).
+                    _del_result = await db.execute(
+                        Trade.__table__.delete().where(Trade.tx_hash.is_(None))
+                    )
+                    logger.warning(
+                        f"FORCE_PAPER_MODE: FOSSIL WIPE — zeroed strategy counters + "
+                        f"deleted {_del_result.rowcount} paper trade rows. Zero Day established."
+                    )
                 else:
-                    # Already reset — only enforce PAPER_ONLY mode, never wipe stats
+                    # Already clean — only enforce PAPER_ONLY mode, preserve honest stats
                     await db.execute(update(Strategy).values(mode = "PAPER_ONLY"))
-                    logger.info("FORCE_PAPER_MODE: mode enforced, accumulated stats preserved")
+                    logger.info("FORCE_PAPER_MODE: mode enforced, accumulated honest stats preserved")
                 await db.commit()
             logger.warning(
                 "FORCE_PAPER_MODE=1 — strategies reset to PAPER_ONLY, "
-                "biased stats wiped, honest simulation active"
+                "fossil data purged, honest simulation active"
             )
         except Exception as _e:
             logger.error(f"Force paper mode startup reset failed: {_e}")

@@ -328,7 +328,7 @@ export default function Trades() {
               isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400')} />
             {isLive
               ? 'LIVE — real add_stake() on Finney'
-              : 'PAPER — simulated · no real TAO moving'}
+              : 'Paper Trading · uses Simulated USD · no real TAO moves'}
           </div>
         </div>
 

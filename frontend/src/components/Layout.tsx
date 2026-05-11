@@ -35,24 +35,69 @@ const PAGE_TITLES: Record<string, string> = {
   '/override':             'Human Override',
 }
 
-const navItems = [
-  { to: '/',                    icon: LayoutDashboard, label: 'Dashboard'       },
-  { to: '/ii-agent',            icon: Brain,           label: 'II Agent'        },
-  { to: '/openclaw',            icon: Vote,            label: 'OpenClaw BFT'    },
-  { to: '/fleet',               icon: Bot,             label: 'Agent Fleet'     },
-  { to: '/alerts',              icon: Bell,            label: 'Alerts',         badge: true },
-  { to: '/trades',              icon: ArrowLeftRight,  label: 'Trades'          },
-  { to: '/trade-log',           icon: BookOpen,        label: 'Trade Log'       },
-  { to: '/analytics',           icon: BarChart2,       label: 'Analytics'       },
-  { to: '/pnl',                 icon: DollarSign,      label: 'P&L Summary'     },
-  { to: '/market',              icon: Globe,           label: 'Market Data'     },
-  { to: '/strategies',          icon: TrendingUp,      label: 'Strategies'      },
-  { to: '/activity',            icon: Activity,        label: 'Activity Log'    },
-  { to: '/risk',                icon: Shield,          label: 'Risk Config'     },
-  { to: '/wallet',              icon: Wallet,          label: 'Wallet'          },
-  { to: '/wallet-transactions', icon: Landmark,        label: 'Transactions'    },
-  { to: '/settings',            icon: Settings,        label: 'Settings'        },
-  { to: '/override',            icon: ShieldOff,       label: 'Human Override', danger: true },
+// ── Sidebar structure ──────────────────────────────────────────────────────
+// Grouped for visual scannability. Order & grouping set Session XXV per Commander.
+type NavItem = { to: string; icon: any; label: string; badge?: boolean; danger?: boolean }
+type NavGroup = { heading: string; items: NavItem[] }
+
+const navGroups: NavGroup[] = [
+  {
+    heading: 'OVERVIEW',
+    items: [
+      { to: '/',          icon: LayoutDashboard, label: 'Dashboard' },
+    ],
+  },
+  {
+    heading: 'INTELLIGENCE',
+    items: [
+      { to: '/ii-agent',  icon: Brain, label: 'II Agent'     },
+      { to: '/openclaw',  icon: Vote,  label: 'OpenClaw BFT' },
+    ],
+  },
+  {
+    heading: 'EXECUTION',
+    items: [
+      { to: '/fleet',      icon: Bot,        label: 'Agent Fleet' },
+      { to: '/strategies', icon: TrendingUp, label: 'Strategies'  },
+    ],
+  },
+  {
+    heading: 'PERFORMANCE',
+    items: [
+      { to: '/analytics', icon: BarChart2,   label: 'Analytics'   },
+      { to: '/pnl',       icon: DollarSign,  label: 'P&L Summary' },
+    ],
+  },
+  {
+    heading: 'MARKET',
+    items: [
+      { to: '/market',    icon: Globe, label: 'Market Data' },
+    ],
+  },
+  {
+    heading: 'EVENTS',
+    items: [
+      { to: '/alerts',    icon: Bell,     label: 'Alerts',      badge: true },
+      { to: '/activity',  icon: Activity, label: 'Activity Log' },
+      { to: '/trade-log', icon: BookOpen, label: 'Trade Log'    },
+    ],
+  },
+  {
+    heading: 'ADMIN',
+    items: [
+      { to: '/risk',                icon: Shield,   label: 'Risk Config'  },
+      { to: '/wallet',              icon: Wallet,   label: 'Wallet'       },
+      { to: '/wallet-transactions', icon: Landmark, label: 'Transactions' },
+      { to: '/settings',            icon: Settings, label: 'Settings'     },
+    ],
+  },
+  {
+    heading: 'ACTION',
+    items: [
+      { to: '/trades',    icon: ArrowLeftRight, label: 'Trades'                        },
+      { to: '/override',  icon: ShieldOff,      label: 'Human Override', danger: true  },
+    ],
+  },
 ]
 
 export default function Layout() {
@@ -187,34 +232,43 @@ export default function Layout() {
           </p>
         </div>
 
-        {/* Nav */}
-        <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-          {navItems.map(({ to, icon: Icon, label, badge, danger }) => (
-            <NavLink
-              key={to}
-              to={to}
-              end={to === '/'}
-              className={({ isActive }) =>
-                clsx(
-                  'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                  isActive
-                    ? danger
-                      ? 'bg-red-500/15 text-red-400 font-medium border border-red-500/20'
-                      : 'bg-accent-blue/15 text-accent-blue font-medium'
-                    : danger
-                      ? 'text-red-400/70 hover:text-red-400 hover:bg-red-500/10'
-                      : 'text-slate-300 hover:text-white hover:bg-dark-700'
-                )
-              }
-            >
-              <Icon size={16} />
-              <span className="flex-1">{label}</span>
-              {badge && criticalUnreadCount > 0 && (
-                <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[13px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
-                  {criticalUnreadCount > 99 ? '99+' : criticalUnreadCount}
-                </span>
-              )}
-            </NavLink>
+        {/* Nav — grouped with heading dividers */}
+        <nav className="flex-1 px-3 py-3 overflow-y-auto">
+          {navGroups.map((group, gi) => (
+            <div key={group.heading} className={gi === 0 ? '' : 'mt-3'}>
+              <p className="px-3 pb-1 text-[9px] font-semibold tracking-[0.18em] text-slate-600 uppercase">
+                {group.heading}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map(({ to, icon: Icon, label, badge, danger }) => (
+                  <NavLink
+                    key={to}
+                    to={to}
+                    end={to === '/'}
+                    className={({ isActive }) =>
+                      clsx(
+                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                        isActive
+                          ? danger
+                            ? 'bg-red-500/15 text-red-400 font-medium border border-red-500/20'
+                            : 'bg-accent-blue/15 text-accent-blue font-medium'
+                          : danger
+                            ? 'text-red-400/70 hover:text-red-400 hover:bg-red-500/10'
+                            : 'text-slate-300 hover:text-white hover:bg-dark-700'
+                      )
+                    }
+                  >
+                    <Icon size={16} />
+                    <span className="flex-1">{label}</span>
+                    {badge && criticalUnreadCount > 0 && (
+                      <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[13px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
+                        {criticalUnreadCount > 99 ? '99+' : criticalUnreadCount}
+                      </span>
+                    )}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
 
@@ -545,15 +599,24 @@ export default function Layout() {
                 </>
               )}
               <span className="text-slate-600 select-none">·</span>
-              {status?.simulation_mode ? (
-                <span className="px-2.5 py-1 rounded-md bg-yellow-500/15 border border-yellow-500/40 text-sm font-bold font-mono text-yellow-400 leading-none tracking-wide">
-                  ⚠ Paper Trading — Simulation Only
-                </span>
-              ) : (
-                <span className="text-sm font-semibold font-mono text-slate-400 leading-none">
-                  Live Trading
-                </span>
-              )}
+              {/* Trading mode — ground-truth: paper if any of
+                  (a) force_paper_mode flag, (b) simulation_mode flag,
+                  (c) zero live strategies in the fleet. */}
+              {(() => {
+                const liveCount = fleetStats?.live ?? strategiesStats?.live ?? 0
+                const isPaper = !!status?.simulation_mode
+                  || !!(status as any)?.force_paper_mode
+                  || liveCount === 0
+                return isPaper ? (
+                  <span className="px-2.5 py-1 rounded-md bg-yellow-500/15 border border-yellow-500/40 text-sm font-bold font-mono text-yellow-400 leading-none tracking-wide">
+                    ⚠ Paper Trading — Simulated USD
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-sm font-bold font-mono text-emerald-400 leading-none tracking-wide">
+                    ● Live Trading
+                  </span>
+                )
+              })()}
             </div>
           )}
 

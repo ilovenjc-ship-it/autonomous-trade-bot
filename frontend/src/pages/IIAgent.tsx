@@ -359,7 +359,7 @@ function LegendBar() {
       <span className="text-slate-500 uppercase tracking-widest text-[15px]">Mode</span>
       <span className="text-emerald-400">🚀 LIVE — executes real on-chain trades</span>
       <span className="text-sky-400">✅ APPROVED — gate passed, awaiting deploy</span>
-      <span className="text-slate-400">📄 PAPER — simulated, no real funds</span>
+      <span className="text-slate-400">📄 Paper Trading · uses Simulated USD · no real TAO moves</span>
     </div>
   )
 }
