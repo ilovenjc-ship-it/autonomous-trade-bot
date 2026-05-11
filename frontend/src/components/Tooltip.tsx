@@ -41,18 +41,45 @@ export default function Tooltip({
   const timerRef              = useRef<ReturnType<typeof setTimeout> | null>(null)
   const triggerRef            = useRef<HTMLSpanElement>(null)
 
+  // Runtime-chosen side after collision check — start with requested, flip if it overflows
+  const [actualSide, setActualSide] = useState<'top' | 'bottom' | 'left' | 'right'>(side)
+
   const show = () => {
     timerRef.current = setTimeout(() => {
       if (triggerRef.current) {
         const r   = triggerRef.current.getBoundingClientRect()
         const GAP = 10   // px gap between trigger and bubble edge
+        const vw  = window.innerWidth
+        const vh  = window.innerHeight
+        const PAD = 16   // viewport edge padding
+
+        // Collision-aware side selection: flip if the requested side would overflow
+        let chosen: typeof side = side
+        if (side === 'right' && r.right + GAP + maxWidth > vw - PAD) chosen = 'left'
+        if (side === 'left'  && r.left  - GAP - maxWidth < PAD)      chosen = 'right'
+        if (side === 'top'   && r.top   - GAP - 80 < PAD)            chosen = 'bottom'
+        if (side === 'bottom'&& r.bottom + GAP + 80 > vh - PAD)      chosen = 'top'
+        setActualSide(chosen)
+
         let top = 0, left = 0
-        switch (side) {
+        switch (chosen) {
           case 'right':  top = r.top + r.height / 2; left = r.right + GAP;         break
           case 'left':   top = r.top + r.height / 2; left = r.left  - GAP;         break
           case 'top':    top = r.top  - GAP;          left = r.left + r.width / 2;  break
           case 'bottom': top = r.bottom + GAP;        left = r.left + r.width / 2;  break
         }
+
+        // Final clamp: keep the tooltip fully inside the viewport horizontally
+        if (chosen === 'top' || chosen === 'bottom') {
+          const halfW = maxWidth / 2
+          if (left - halfW < PAD)     left = PAD + halfW
+          if (left + halfW > vw - PAD) left = vw - PAD - halfW
+        } else if (chosen === 'right') {
+          if (left + maxWidth > vw - PAD) left = vw - PAD - maxWidth
+        } else if (chosen === 'left') {
+          if (left < PAD) left = PAD
+        }
+
         setPos({ top, left })
       }
       setVisible(true)
@@ -92,7 +119,7 @@ export default function Tooltip({
             left:          pos.left,
             maxWidth,
             zIndex:        9999,
-            transform:     transformMap[side],
+            transform:     transformMap[actualSide],
             pointerEvents: 'none',
           }}
         >

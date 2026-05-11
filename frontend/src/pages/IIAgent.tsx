@@ -807,6 +807,162 @@ export default function IIAgent() {
         </div>
       </div>
 
+      {/* ── Chat Panel ── */}
+      <div className="rounded-2xl border border-indigo-500/25 overflow-hidden flex flex-col"
+           style={{ background: 'linear-gradient(180deg, #0d1525 0%, #0a1020 100%)' }}>
+
+        {/* Chat header — larger, more prominent orb-style */}
+        <div className="flex items-center gap-4 px-5 py-4 border-b border-indigo-500/20"
+             style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.06) 60%, transparent 100%)' }}>
+
+          {/* Chat orb */}
+          <div className="relative flex-shrink-0">
+            <div className="w-11 h-11 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center
+                            shadow-lg shadow-indigo-500/20"
+                 style={{ boxShadow: '0 0 20px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+              <MessageSquare size={22} className="text-indigo-400" />
+            </div>
+            {/* Online pulse dot */}
+            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#0d1525] flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping absolute" />
+            </span>
+          </div>
+
+          {/* Labels */}
+          <div className="flex flex-col gap-0.5">
+            <span className="text-base font-bold text-white tracking-wide font-mono">Chat with II Agent</span>
+            <div className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="text-[12px] font-mono text-emerald-400">ONLINE</span>
+              <span className="text-slate-600">·</span>
+              <span className="text-[12px] font-mono text-slate-400">backed by live fleet &amp; market data</span>
+            </div>
+          </div>
+
+          <span className="ml-auto text-[12px] font-mono text-slate-500 flex items-center gap-1.5">
+            <Sparkles size={12} className="text-indigo-400" />
+            keyword-matched · real-time indicators
+          </span>
+        </div>
+
+        {/* Quick prompt pills */}
+        <div className="flex flex-wrap gap-2 px-5 py-3 border-b border-dark-700/50">
+          {QUICK_PROMPTS.map(qp => (
+            <button
+              key={qp.label}
+              onClick={() => sendChat(qp.text)}
+              disabled={chatLoading}
+              className="text-[14px] font-mono px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/50 hover:text-indigo-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {qp.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Message history */}
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ minHeight: '320px', maxHeight: '420px' }}>
+          {chatHistory.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full py-10 text-center">
+              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3">
+                <Brain size={26} className="text-indigo-400" />
+              </div>
+              <p className="text-sm font-semibold text-slate-200 mb-1">Ask me anything about the fleet</p>
+              <p className="text-xs text-slate-400 font-mono max-w-xs leading-relaxed">
+                I'm backed by live market data, strategy metrics, and the autonomous cycle engine.
+                Use the quick prompts above or type your own question.
+              </p>
+            </div>
+          ) : (
+            chatHistory.map((msg, i) => (
+              <div key={i} className={clsx('flex gap-3', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
+                {/* Avatar */}
+                <div className={clsx(
+                  'w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5',
+                  msg.role === 'user'
+                    ? 'bg-indigo-600/30 border border-indigo-500/40'
+                    : 'bg-purple-600/30 border border-purple-500/40'
+                )}>
+                  {msg.role === 'user'
+                    ? <User size={13} className="text-indigo-300" />
+                    : <Bot  size={13} className="text-purple-300" />
+                  }
+                </div>
+
+                {/* Bubble */}
+                <div className={clsx(
+                  'max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed font-mono',
+                  msg.role === 'user'
+                    ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-100 rounded-tr-sm'
+                    : 'bg-dark-700 border border-dark-600 text-slate-200 rounded-tl-sm'
+                )}>
+                  {/* Format **bold** inline */}
+                  {msg.content.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
+                    part.startsWith('**') && part.endsWith('**')
+                      ? <strong key={j} className="text-white font-bold">{part.slice(2, -2)}</strong>
+                      : <span key={j}>{part}</span>
+                  )}
+                  <p className="text-[15px] text-slate-500 mt-1.5 text-right">
+                    {new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'America/New_York' })}
+                  </p>
+                </div>
+              </div>
+            ))
+          )}
+
+          {/* Typing indicator */}
+          {chatLoading && (
+            <div className="flex gap-3 flex-row">
+              <div className="w-7 h-7 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Bot size={13} className="text-purple-300" />
+              </div>
+              <div className="bg-dark-700 border border-dark-600 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              </div>
+            </div>
+          )}
+
+          <div ref={chatBottomRef} />
+        </div>
+
+        {/* Input bar */}
+        <div className="border-t border-dark-700 px-4 py-3">
+          <form
+            onSubmit={e => { e.preventDefault(); sendChat(chatInput) }}
+            className="flex items-center gap-3"
+          >
+            <input
+              type="text"
+              value={chatInput}
+              onChange={e => setChatInput(e.target.value)}
+              placeholder="Ask about PnL, regime, strategies, risk controls…"
+              disabled={chatLoading}
+              className={clsx(
+                'flex-1 bg-dark-700 border border-dark-600 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-200',
+                'placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30',
+                'transition-all duration-200 disabled:opacity-50',
+              )}
+            />
+            <button
+              type="submit"
+              disabled={!chatInput.trim() || chatLoading}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
+                chatInput.trim() && !chatLoading
+                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                  : 'bg-dark-700 text-slate-500 border border-dark-600 cursor-not-allowed'
+              )}
+            >
+              <Send size={14} />
+              <span className="hidden sm:inline">Send</span>
+            </button>
+          </form>
+          <p className="text-[13px] text-slate-500 font-mono mt-1.5 px-1">
+            Responses are generated from live DB data · no LLM required
+          </p>
+        </div>
+      </div>
       {/* ── Fleet Health Grid ── */}
       {fleetBots.length > 0 && (
         <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 space-y-3">
@@ -1031,162 +1187,6 @@ export default function IIAgent() {
       </div>
 
 
-      {/* ── Chat Panel ── */}
-      <div className="rounded-2xl border border-indigo-500/25 overflow-hidden flex flex-col"
-           style={{ background: 'linear-gradient(180deg, #0d1525 0%, #0a1020 100%)' }}>
-
-        {/* Chat header — larger, more prominent orb-style */}
-        <div className="flex items-center gap-4 px-5 py-4 border-b border-indigo-500/20"
-             style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.06) 60%, transparent 100%)' }}>
-
-          {/* Chat orb */}
-          <div className="relative flex-shrink-0">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center
-                            shadow-lg shadow-indigo-500/20"
-                 style={{ boxShadow: '0 0 20px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <MessageSquare size={22} className="text-indigo-400" />
-            </div>
-            {/* Online pulse dot */}
-            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#0d1525] flex items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping absolute" />
-            </span>
-          </div>
-
-          {/* Labels */}
-          <div className="flex flex-col gap-0.5">
-            <span className="text-base font-bold text-white tracking-wide font-mono">Chat with II Agent</span>
-            <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-[12px] font-mono text-emerald-400">ONLINE</span>
-              <span className="text-slate-600">·</span>
-              <span className="text-[12px] font-mono text-slate-400">backed by live fleet &amp; market data</span>
-            </div>
-          </div>
-
-          <span className="ml-auto text-[12px] font-mono text-slate-500 flex items-center gap-1.5">
-            <Sparkles size={12} className="text-indigo-400" />
-            keyword-matched · real-time indicators
-          </span>
-        </div>
-
-        {/* Quick prompt pills */}
-        <div className="flex flex-wrap gap-2 px-5 py-3 border-b border-dark-700/50">
-          {QUICK_PROMPTS.map(qp => (
-            <button
-              key={qp.label}
-              onClick={() => sendChat(qp.text)}
-              disabled={chatLoading}
-              className="text-[14px] font-mono px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/50 hover:text-indigo-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
-            >
-              {qp.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Message history */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ minHeight: '320px', maxHeight: '420px' }}>
-          {chatHistory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full py-10 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3">
-                <Brain size={26} className="text-indigo-400" />
-              </div>
-              <p className="text-sm font-semibold text-slate-200 mb-1">Ask me anything about the fleet</p>
-              <p className="text-xs text-slate-400 font-mono max-w-xs leading-relaxed">
-                I'm backed by live market data, strategy metrics, and the autonomous cycle engine.
-                Use the quick prompts above or type your own question.
-              </p>
-            </div>
-          ) : (
-            chatHistory.map((msg, i) => (
-              <div key={i} className={clsx('flex gap-3', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
-                {/* Avatar */}
-                <div className={clsx(
-                  'w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5',
-                  msg.role === 'user'
-                    ? 'bg-indigo-600/30 border border-indigo-500/40'
-                    : 'bg-purple-600/30 border border-purple-500/40'
-                )}>
-                  {msg.role === 'user'
-                    ? <User size={13} className="text-indigo-300" />
-                    : <Bot  size={13} className="text-purple-300" />
-                  }
-                </div>
-
-                {/* Bubble */}
-                <div className={clsx(
-                  'max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed font-mono',
-                  msg.role === 'user'
-                    ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-100 rounded-tr-sm'
-                    : 'bg-dark-700 border border-dark-600 text-slate-200 rounded-tl-sm'
-                )}>
-                  {/* Format **bold** inline */}
-                  {msg.content.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
-                    part.startsWith('**') && part.endsWith('**')
-                      ? <strong key={j} className="text-white font-bold">{part.slice(2, -2)}</strong>
-                      : <span key={j}>{part}</span>
-                  )}
-                  <p className="text-[15px] text-slate-500 mt-1.5 text-right">
-                    {new Date(msg.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'America/New_York' })}
-                  </p>
-                </div>
-              </div>
-            ))
-          )}
-
-          {/* Typing indicator */}
-          {chatLoading && (
-            <div className="flex gap-3 flex-row">
-              <div className="w-7 h-7 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
-                <Bot size={13} className="text-purple-300" />
-              </div>
-              <div className="bg-dark-700 border border-dark-600 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
-              </div>
-            </div>
-          )}
-
-          <div ref={chatBottomRef} />
-        </div>
-
-        {/* Input bar */}
-        <div className="border-t border-dark-700 px-4 py-3">
-          <form
-            onSubmit={e => { e.preventDefault(); sendChat(chatInput) }}
-            className="flex items-center gap-3"
-          >
-            <input
-              type="text"
-              value={chatInput}
-              onChange={e => setChatInput(e.target.value)}
-              placeholder="Ask about PnL, regime, strategies, risk controls…"
-              disabled={chatLoading}
-              className={clsx(
-                'flex-1 bg-dark-700 border border-dark-600 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-200',
-                'placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30',
-                'transition-all duration-200 disabled:opacity-50',
-              )}
-            />
-            <button
-              type="submit"
-              disabled={!chatInput.trim() || chatLoading}
-              className={clsx(
-                'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
-                chatInput.trim() && !chatLoading
-                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
-                  : 'bg-dark-700 text-slate-500 border border-dark-600 cursor-not-allowed'
-              )}
-            >
-              <Send size={14} />
-              <span className="hidden sm:inline">Send</span>
-            </button>
-          </form>
-          <p className="text-[13px] text-slate-500 font-mono mt-1.5 px-1">
-            Responses are generated from live DB data · no LLM required
-          </p>
-        </div>
-      </div>
       </div>{/* end scrollable content */}
     </div>
   )
