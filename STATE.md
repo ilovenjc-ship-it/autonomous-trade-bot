@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-06 (Session XXIV — Full walkthrough, regime UNKNOWN bug fixed)
-**Status:** PAPER TRAINING ACTIVE — Day 3 of 7+ min baseline. All 12 strategies PAPER_ONLY on Railway. Bot online. Regime gating LIVE. All 14 pages confirmed rendering. TAO +10.96% 24h ($313.58). Fleet at 30–37% WR (expected Day 3).
+**Last updated:** 2026-05-11 (Session XXV — UI/UX overhaul + forensic data integrity + Day 7 WR gate)
+**Status:** PAPER TRAINING ACTIVE — Day 7 of 7+ min baseline (WR gate day). All 12 strategies PAPER_ONLY on Railway. Fossil trade rows wiped (Option A). UI restructured across 11 pages. Bot online. All commits on `origin/main` through `f82c301b`.
 **Maintained by:** II Agent + Owner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -12,6 +12,98 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXV SUMMARY (May 11, 2026) — UI/UX Overhaul + Forensic Data Integrity
+
+### Overview
+Day 7 of paper training — WR gate evaluation day. Session delivered in **6 focused commits** on top of `bbc42b15`:
+
+```
+bbc42b15 (previous session end)
+  ├─ 022d29b4  Pass 1+2: fossil wipe + menu reorder + Paper Trading label
+  ├─ b25d5308  Pass 3a: hero slider removal (11 pages) + Dashboard refactor
+  ├─ 976cf31f  Pass 3b: section relocations across 6 pages
+  ├─ c805ea1f  Pass 3c: AgentFleet cleanup + II Agent chat reorder + tooltip collision
+  ├─ 8839a791  Pass 3d + 3e: Trades calibration + OpenClaw reorg
+  └─ f82c301b  Dashboard: restore TradingView next to Sentiment Gauge (follow-up fix)
+```
+
+### Forensic Bugs Fixed (Pass 1 — commit 022d29b4)
+Four integrity defects discovered in earlier walkthrough:
+
+1. **Asymmetric wipe**: `FORCE_PAPER_MODE` zeroed strategy rollups but never cleared the `trades` table → 3,691 fossilized pre-reset rows contaminating Total PnL (+0.6152τ fake vs −1.450τ honest).
+   - **Fix** (`backend/main.py`): FORCE_PAPER_MODE wipe now also executes `DELETE FROM trades WHERE tx_hash IS NULL` (paper rows only — real on-chain rows preserved by the `tx_hash IS NOT NULL` guard).
+   - **Option A (destructive fossil wipe)** applied one-time for the May 11 Zero Day baseline.
+
+2. **`total_trades` never reset**: Wipes zeroed `total_pnl` and `win_rate` but left `total_trades` intact, creating phantom counters.
+   - **Fix** (`backend/main.py` + `backend/routers/bot.py` `/reset-paper-stats`): both wipe paths now `total_trades = 0`.
+
+3. **Seeded phantom trade counts in DEFAULT_STRATEGIES**: `backend/services/strategy_service.py` had 377 hardcoded `total_trades` counters across 12 strategies used as initial seeds.
+   - **Fix**: All 12 strategies zeroed. No more phantom history on fresh initialization.
+
+4. **"Fleet PnL" vs "Total PnL" UX convergence**: Different labels pointing to the same number caused confusion during walkthroughs. Converged on consistent "Simulated USD" terminology across Trades page.
+
+### UI/UX Overhaul (Passes 2–4) — 11 pages restructured
+
+**Menu hierarchy rewrite** (Pass 2 — `Sidebar.tsx`): New visual grouping with subtle dividers:
+```
+OVERVIEW  (Dashboard · II Agent)
+INTELLIGENCE  (OpenClaw · Agent Fleet)
+EXECUTION  (Trades · Strategies)
+PERFORMANCE  (Analytics · PnL Summary)
+MARKET  (Market Data)
+EVENTS  (Activity Log)
+ADMIN  (Wallet · Settings)
+ACTION  (Human Override)
+```
+
+**"Paper Trading" label intelligence** (Pass 2): Previously showed "Live Trading" when chain was connected even if all strategies were paper-only. Now derives ground-truth from fleet state — if any strategy is LIVE, display LIVE; otherwise PAPER. Removes misleading badge.
+
+**Hero slider removal** (Pass 3a): Removed hero/banner sliders from all 11 pages. **Net −502 lines**. Dashboard rebuilt with 10-card static grid (Approval Rate · Win Rate · Total P&L · 24hr change · Total Trades · Paper Days + 4 originals).
+
+**Per-page changes** (Passes 3b–3e):
+- **Dashboard**: 10-card grid → TradingView + Sentiment side-by-side (follow-up fix `f82c301b` restored this after initial over-correction) → Top Strategies | Recent Trades | Live Indicators row. Standalone TAO/USD line chart deferred ("for now").
+- **II Agent**: Hero slider removed. Chat relocated to top. Recommendations tooltip fixed with Radix collision-aware positioning (`side="left"`, `align="start"`, `avoidCollisions`) — no more viewport overflow.
+- **OpenClaw**: Removed Hero Slider, Vote Breakdown, Approval Trend. VOTES | RESULT | MODE reorganized **above** Trigger Buy/Sell. BFT Consensus moved to top (not auto-extended). "How OpenClaw Works" and "Promotion Gate" moved to top. **Consensus History paginated** (200 rounds fetched, 20/page — same pattern as Trade Log).
+- **Agent Fleet**: Fleet Health reorganized. Strategy Leaderboard + BFT Consensus + Gate Passed + Paper counters relocated from Strategies.
+- **Trades**: Calibration fixed (Win Rate was reading 100% from phantom rows). "Simulated USD" terminology everywhere. "PAPER - Simulated" → "Paper Trading, uses Simulated USD - No Real Tao Moves". Paper/Live toggle added to Manual Trade panel.
+- **Analytics**: Cumulative PnL moved to PnL Summary bottom. Strategy Performance Leaderboard + PnL Distribution moved to Strategies.
+- **PnL Summary**: Recovery Tracker moved below Staking Positions. 7 small cards removed. Strategy Leaderboard relocated to Agent Fleet. By Trade Type moved below Best/Worst Single Trade. Cumulative PnL added at bottom (equity_series shape).
+- **Strategies**: Hero slider, small cards, Capital Allocation Tiers removed. Tier/WR/PnL/Trades/Cycles boxed as proper table. Strategy Mode Override extracted to `components/StrategyModeOverride.tsx` and relocated to Settings. PnL Distribution + Leaderboard added from Analytics.
+- **Settings**: System Operational removed. Network & Identity extracted → moved to Wallet. Danger Zone extracted → moved to Human Override. Manual Trade moved to Trades. Strategy Mode Override added here.
+- **Wallet**: Network & Identity component integrated.
+- **Human Override**: Danger Zone integrated. Duplicate Manual Trade removed.
+
+### Component Extractions (new shared components)
+- `frontend/src/components/StrategyModeOverride.tsx` — was deeply coupled inside Strategies.tsx
+- `frontend/src/components/NetworkIdentity.tsx` — from Settings
+- `frontend/src/components/DangerZone.tsx` — from Settings
+- `frontend/src/components/InfoBubble.tsx` — updated with collision-aware Radix positioning
+
+### Quality Gate
+- TypeScript `tsc --noEmit` passed after every commit (zero-error discipline)
+- No test suite exists yet; validation via direct walkthrough
+- Owner performed full walkthrough post-deploy; only follow-up was the Dashboard TradingView positioning (fixed in `f82c301b`)
+
+### Session-Level Rules Established
+- **Zero Day = May 11, 2026**: Option A fossil wipe reset the baseline. Day N counter restarts from this date.
+- **WR Gate Day = May 18, 2026** (Day 7 from Zero Day): first date any strategy is eligible to cross the 55% WR promotion gate.
+- **"Simulated USD"** is the canonical terminology for paper-mode currency display. Do not regress to "Paper USD" / "Fake Tao" / "Test $".
+
+### PAT Security Handling (Session Hygiene)
+- User-provided GitHub PAT used for the 6 pushes
+- Stored at `~/.secrets/github_pat` (mode 600, outside `/workspace`, not in `.git/config`, not in env files)
+- PTY logs scrubbed via pattern-based redaction (`ghp_[A-Za-z0-9]{36}` → `***PAT_REDACTED***`)
+- Final filesystem sweep: zero residue outside the vault
+- Shell history cleared at session close
+
+### Pending / Next Session
+- **Pass 5: Verification** — agent-browser walkthrough of all 11 changed pages for final sign-off (owner already did manual walkthrough and approved; formal agent-browser screenshots still on deck if desired)
+- **Day 7 WR evaluation**: Check if any strategy crosses the 55% WR gate now that fossil rows are gone
+- **Discord gateway OTF server invite** — still pending (external dependency, unchanged)
+- **TAO/USD standalone chart resurrection** — deferred "for now" per owner note. Target: recharts line fed from the same candle series as TradingView, placed at bottom of Dashboard when requested
 
 ---
 
