@@ -9,10 +9,7 @@ import {
   CheckCircle2, XCircle, AlertTriangle, Clock,
   Activity, BarChart3, Users, ChevronRight,
 } from 'lucide-react'
-import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell,
-  LineChart, Line, CartesianGrid,
-} from 'recharts'
+// Recharts imports removed Session XXV (Vote Breakdown + Approval Trend charts gone)
 import clsx from 'clsx'
 import api from '@/api/client'
 import { InfoBubble } from '@/components/Tooltip'
@@ -285,7 +282,8 @@ function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
 // ── OpenClaw BFT Explanation Component ────────────────────────────────────────
 
 function OpenClawBFTSection() {
-  const [expanded, setExpanded] = useState(true)
+  // Session XXV: collapse by default — user requested no auto-expand
+  const [expanded, setExpanded] = useState(false)
 
   // 12 bots: 7 agree (green), 3 faulty (red), 2 neutral (grey)
   const BOT_STATES: ('agree' | 'faulty' | 'neutral')[] = [
@@ -609,10 +607,20 @@ export default function OpenClaw() {
   const [triggering,    setTriggering]    = useState(false)
   const [flashRound,    setFlashRound]    = useState(false)
 
+  // ── Consensus History pagination (Session XXV spec) ───────────────────
+  const HISTORY_PAGE_SIZE = 20
+  const [historyPage, setHistoryPage] = useState(1)
+  const historyTotal  = history.length
+  const historyPages  = Math.max(1, Math.ceil(historyTotal / HISTORY_PAGE_SIZE))
+  const historyStart  = (historyPage - 1) * HISTORY_PAGE_SIZE
+  const historySlice  = history.slice(historyStart, historyStart + HISTORY_PAGE_SIZE)
+  // Reset to page 1 when history shrinks/refreshes
+  useEffect(() => { if (historyPage > historyPages) setHistoryPage(1) }, [historyPages, historyPage])
+
   const load = useCallback(async () => {
     const [latestRes, histRes, statsRes] = await Promise.allSettled([
       api.get('/consensus/latest'),
-      api.get('/consensus/history', { params: { limit: 30 } }),
+      api.get('/consensus/history', { params: { limit: 200 } }),
       api.get('/consensus/stats'),
     ])
     if (latestRes.status === 'fulfilled' && latestRes.value.data.round)
@@ -649,14 +657,7 @@ export default function OpenClaw() {
   }
 
   // Build chart data from history
-  const chartData = [...history].reverse().slice(-20).map((r, i) => ({
-    id:       `#${r.round_id}`,
-    buy:      r.buy_count,
-    sell:     r.sell_count,
-    hold:     r.hold_count,
-    approved: r.approved ? 1 : 0,
-  }))
-
+  // chartData removed — Vote Breakdown + Approval Trend charts retired Session XXV
   const rm = latestRound ? (RESULT_META[latestRound.result] ?? RESULT_META.REJECTED) : null
 
   return (
@@ -710,6 +711,58 @@ export default function OpenClaw() {
 
       {/* ── BFT Explainer (relocated from II Agent page) ── */}
       <OpenClawBFTSection />
+
+      {/* ── How OpenClaw Works (relocated to top, per Session XXV spec) ── */}
+      <div className="bg-dark-800/60 border border-dark-700 rounded-xl p-4">
+        <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">How OpenClaw Works</p>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs text-slate-300">
+          <div className="flex gap-2">
+            <span className="text-indigo-400 font-bold font-mono">01</span>
+            <span>A <span className="text-white">LIVE</span> strategy generates a trade signal (BUY or SELL)</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="text-indigo-400 font-bold font-mono">02</span>
+            <span>All <span className="text-white">12 bots</span> independently cast votes using RSI, MACD + personality</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="text-indigo-400 font-bold font-mono">03</span>
+            <span><span className="text-white">7 of 12</span> bots must agree (58.3% supermajority) for trade approval</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="text-indigo-400 font-bold font-mono">04</span>
+            <span>Approved trades execute · Vetoed trades are <span className="text-red-400">blocked</span> and logged</span>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Promotion Gate (relocated to top, per Session XXV spec) ── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
+        <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
+          <Shield size={13} className="text-yellow-400" /> Promotion Gate
+          <span className="ml-1 text-[11px] text-slate-500 font-mono normal-case font-normal">
+            — criteria a strategy must clear before any real trade fires
+          </span>
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-400">
+          {[
+            { n: '① Cycles ≥ 30',    desc: 'Must complete ≥ 30 honest evaluation cycles' },
+            { n: '② Win Rate ≥ 55%', desc: 'Must sustain >55% WR under honest physics' },
+            { n: '③ Win Margin ≥ 5', desc: 'Wins must exceed losses by ≥ 5' },
+            { n: '④ PnL > 0.01 τ',   desc: 'Cumulative PnL must exceed noise threshold' },
+          ].map(({ n, desc }) => (
+            <div key={n} className="space-y-0.5">
+              <p className="text-white font-mono text-[14px]">{n}</p>
+              <p className="leading-relaxed text-[14px]">{desc}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[13px] text-slate-500 mt-3">
+          Gate pass → <span className="text-orange-400">⏳ PENDING</span> →
+          Operator approves → <span className="text-accent-green">● LIVE</span>.
+          No strategy goes LIVE without human confirmation.
+        </p>
+      </div>
+
 
       {/* ── Council + Latest Round — 2-column: round detail full width (council on II Agent) ── */}
       <div className="grid grid-cols-1 gap-4 items-start">
@@ -844,64 +897,21 @@ export default function OpenClaw() {
 
       </div>{/* end 2-col council+round grid */}
 
-      {/* ── Charts row ── */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Vote breakdown chart */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
-          <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-4">Vote Breakdown — Last 20 Rounds</p>
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
-              <BarChart data={chartData} barSize={8} barGap={1}>
-                <XAxis dataKey="id" tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false} domain={[0, 12]} />
-                <Tooltip
-                  contentStyle={{ background: '#152030', border: '1px solid #1e293b', borderRadius: 8, fontSize: 11 }}
-                  labelStyle={{ color: '#94a3b8' }}
-                />
-                <Bar dataKey="buy"  fill="#10b981" name="BUY"     radius={[2,2,0,0]} />
-                <Bar dataKey="sell" fill="#ef4444" name="SELL"    radius={[2,2,0,0]} />
-                <Bar dataKey="hold" fill="#f59e0b" name="HOLD"    radius={[2,2,0,0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[180px] flex items-center justify-center text-slate-300 text-sm">No data yet</div>
-          )}
-        </div>
+      {/* Vote Breakdown + Approval Trend charts removed per Session XXV spec —
+          vote counts remain visible on the Latest Round panel; approval trend
+          is captured by the Approval Rate stat card + Consensus History table. */}
 
-        {/* Approval trend */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
-          <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-4">Approval Trend (1=approved · 0=rejected)</p>
-          {chartData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={180}>
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="id" tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fill: '#475569', fontSize: 9 }} axisLine={false} tickLine={false} domain={[-0.1, 1.1]} ticks={[0, 1]} />
-                <Tooltip
-                  contentStyle={{ background: '#152030', border: '1px solid #1e293b', borderRadius: 8, fontSize: 11 }}
-                />
-                <Line
-                  type="step"
-                  dataKey="approved"
-                  stroke="#818cf8"
-                  strokeWidth={2}
-                  dot={{ fill: '#818cf8', r: 3 }}
-                  name="Approved"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          ) : (
-            <div className="h-[180px] flex items-center justify-center text-slate-300 text-sm">No data yet</div>
-          )}
-        </div>
-      </div>
-
-      {/* ── History Table ── */}
+      {/* ── History Table (paginated per Session XXV spec) ── */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden">
         <div className="px-4 py-3 border-b border-dark-700 flex items-center gap-2">
           <Clock size={14} className="text-slate-300" />
           <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Consensus History</span>
-          <span className="ml-auto text-xs text-slate-300 font-mono">{history.length} rounds</span>
+          <span className="ml-auto text-xs text-slate-300 font-mono">
+            {historyTotal} rounds
+            {historyPages > 1 && (
+              <span className="text-slate-500"> · page {historyPage} / {historyPages}</span>
+            )}
+          </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -924,63 +934,61 @@ export default function OpenClaw() {
                   </td>
                 </tr>
               ) : (
-                history.map((r, i) => <RoundRow key={r.round_id} round={r} index={i} />)
+                historySlice.map((r, i) => <RoundRow key={r.round_id} round={r} index={historyStart + i} />)
               )}
             </tbody>
           </table>
         </div>
-      </div>
 
-      {/* ── Promotion Gate ── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
-        <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
-          <Shield size={13} className="text-yellow-400" /> Promotion Gate
-          <span className="ml-1 text-[11px] text-slate-500 font-mono normal-case font-normal">
-            — criteria a strategy must clear before any real trade fires
-          </span>
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-400">
-          {[
-            { n: '① Cycles ≥ 30',    desc: 'Must complete ≥ 30 honest evaluation cycles' },
-            { n: '② Win Rate ≥ 55%', desc: 'Must sustain >55% WR under honest physics' },
-            { n: '③ Win Margin ≥ 5', desc: 'Wins must exceed losses by ≥ 5' },
-            { n: '④ PnL > 0.01 τ',   desc: 'Cumulative PnL must exceed noise threshold' },
-          ].map(({ n, desc }) => (
-            <div key={n} className="space-y-0.5">
-              <p className="text-white font-mono text-[14px]">{n}</p>
-              <p className="leading-relaxed text-[14px]">{desc}</p>
+        {/* Pagination controls — shown when there are multiple pages */}
+        {historyPages > 1 && (
+          <div className="px-4 py-2.5 border-t border-dark-700 flex items-center justify-between text-[13px] font-mono">
+            <span className="text-slate-500">
+              Showing {historyStart + 1}–{Math.min(historyStart + HISTORY_PAGE_SIZE, historyTotal)} of {historyTotal}
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setHistoryPage(p => Math.max(1, p - 1))}
+                disabled={historyPage === 1}
+                className="px-2 py-1 rounded bg-dark-700 border border-dark-600 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                ‹ Prev
+              </button>
+              {Array.from({ length: Math.min(historyPages, 7) }).map((_, i) => {
+                // Window around current page for friendly pagination
+                let p: number
+                if (historyPages <= 7)                  p = i + 1
+                else if (historyPage <= 4)              p = i + 1
+                else if (historyPage >= historyPages - 3) p = historyPages - 6 + i
+                else                                      p = historyPage - 3 + i
+                if (p < 1 || p > historyPages) return null
+                return (
+                  <button
+                    key={p}
+                    onClick={() => setHistoryPage(p)}
+                    className={clsx(
+                      'w-8 h-7 rounded font-bold transition-colors',
+                      p === historyPage
+                        ? 'bg-indigo-500/25 text-indigo-300 border border-indigo-500/40'
+                        : 'bg-dark-700 border border-dark-600 text-slate-400 hover:text-white'
+                    )}
+                  >
+                    {p}
+                  </button>
+                )
+              })}
+              <button
+                onClick={() => setHistoryPage(p => Math.min(historyPages, p + 1))}
+                disabled={historyPage === historyPages}
+                className="px-2 py-1 rounded bg-dark-700 border border-dark-600 text-slate-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              >
+                Next ›
+              </button>
             </div>
-          ))}
-        </div>
-        <p className="text-[13px] text-slate-500 mt-3">
-          Gate pass → <span className="text-orange-400">⏳ PENDING</span> →
-          Operator approves → <span className="text-accent-green">● LIVE</span>.
-          No strategy goes LIVE without human confirmation.
-        </p>
+          </div>
+        )}
       </div>
 
-      {/* ── How it works ── */}
-      <div className="bg-dark-800/60 border border-dark-700 rounded-xl p-4">
-        <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">How OpenClaw Works</p>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs text-slate-300">
-          <div className="flex gap-2">
-            <span className="text-indigo-400 font-bold font-mono">01</span>
-            <span>A <span className="text-white">LIVE</span> strategy generates a trade signal (BUY or SELL)</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-indigo-400 font-bold font-mono">02</span>
-            <span>All <span className="text-white">12 bots</span> independently cast votes using RSI, MACD + personality</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-indigo-400 font-bold font-mono">03</span>
-            <span><span className="text-white">7 of 12</span> bots must agree (58.3% supermajority) for trade approval</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-indigo-400 font-bold font-mono">04</span>
-            <span>Approved trades execute · Vetoed trades are <span className="text-red-400">blocked</span> and logged</span>
-          </div>
-        </div>
-      </div>
       </div>{/* end scrollable */}
     </div>
   )

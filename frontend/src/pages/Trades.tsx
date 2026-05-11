@@ -248,24 +248,34 @@ export default function Trades() {
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* Stats */}
+      {/* Stats — labels clarified per Session XXV: Simulated USD in paper mode */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard label="Total Trades" value={tradeStats?.total_trades ?? 0} icon={ArrowUpDown} />
-        <StatCard label="Win Rate" value={`${tradeStats?.win_rate ?? 0}%`} icon={Percent} color="green"
-          sub="Execution success rate" />
         <StatCard
-          label="Total Volume"
+          label="Total Trades"
+          value={tradeStats?.total_trades ?? 0}
+          icon={ArrowUpDown}
+          sub={isLive ? 'Live + paper combined' : 'Paper only'}
+        />
+        <StatCard
+          label="Win Rate"
+          value={`${tradeStats?.win_rate ?? 0}%`}
+          icon={Percent}
+          color={(tradeStats?.win_rate ?? 0) >= 55 ? 'green' : 'yellow'}
+          sub={(tradeStats?.total_trades ?? 0) === 0 ? 'No trades yet' : 'Execution success rate'}
+        />
+        <StatCard
+          label={isLive ? 'Total Volume' : 'Total Volume (Simulated USD)'}
           value={`$${(tradeStats?.total_volume_usd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
           icon={DollarSign}
           color="blue"
-          sub="Simulated USD"
+          sub={isLive ? 'all trades' : 'Simulated USD · no real USD'}
         />
         <StatCard
-          label="Total P&L"
+          label={isLive ? 'Total P&L' : 'Total P&L (Simulated USD)'}
           value={`$${(tradeStats?.total_pnl_usd ?? 0).toFixed(2)}`}
           icon={(tradeStats?.total_pnl_usd ?? 0) >= 0 ? TrendingUp : TrendingDown}
           color={(tradeStats?.total_pnl_usd ?? 0) >= 0 ? 'green' : 'red'}
-          sub="Simulated USD"
+          sub={isLive ? 'realized + unrealized' : 'Simulated USD · paper only'}
         />
       </div>
 
@@ -314,6 +324,51 @@ export default function Trades() {
 
         {/* Controls row */}
         <div className="flex items-end gap-3 flex-wrap">
+          {/* Trade Mode — Paper / Live selector (Session XXV spec).
+              Mode reflects bot-wide state. Clicking to switch flips the
+              FORCE_PAPER_MODE override (requires confirmation on Live). */}
+          <div>
+            <label className="block text-[13px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">Trade Mode</label>
+            <div className="flex gap-1">
+              <button
+                onClick={async () => {
+                  if (isLive) {
+                    if (!confirm('Switch bot to PAPER MODE?\n\nThis will halt all on-chain execution across the whole fleet until you resume Live.')) return
+                    try { await api.post('/bot/force-paper-mode'); toast.success('🛑 Paper mode active'); loadTradingMode() }
+                    catch { toast.error('Switch failed') }
+                  }
+                }}
+                className={clsx(
+                  'px-4 py-2 rounded-lg text-sm font-bold transition-all border',
+                  !isLive
+                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                    : 'bg-dark-700 text-slate-500 border-dark-600 hover:text-slate-300'
+                )}
+                title={isLive ? 'Switch bot to Paper mode (halts all live trades)' : 'Bot is already in Paper mode'}
+              >
+                📄 Paper
+              </button>
+              <button
+                onClick={async () => {
+                  if (!isLive) {
+                    if (!confirm('Switch bot to LIVE MODE?\n\n⚠ This enables real on-chain execution. Real TAO will be staked. Only proceed if the fleet has earned promotion.')) return
+                    try { await api.post('/bot/resume-live'); toast.success('⚡ Live mode active'); loadTradingMode() }
+                    catch { toast.error('Switch failed — check wallet/chain connection') }
+                  }
+                }}
+                className={clsx(
+                  'px-4 py-2 rounded-lg text-sm font-bold transition-all border',
+                  isLive
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                    : 'bg-dark-700 text-slate-500 border-dark-600 hover:text-slate-300'
+                )}
+                title={!isLive ? 'Switch bot to Live mode (real on-chain execution)' : 'Bot is already in Live mode'}
+              >
+                ⚡ Live
+              </button>
+            </div>
+          </div>
+
           {/* BUY / SELL toggle */}
           <div>
             <label className="block text-[13px] text-slate-500 uppercase tracking-wider font-mono mb-1.5">Action</label>
