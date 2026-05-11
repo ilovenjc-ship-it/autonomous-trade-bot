@@ -3,12 +3,10 @@ import { useBotStore } from '@/store/botStore'
 import { botApi } from '@/api/client'
 import type { BotConfig } from '@/types'
 import {
-  Save, Settings as SettingsIcon, ArrowLeftRight, Clock,
-  Globe, Hash, KeyRound, User, AlertTriangle, RefreshCw,
-  FlaskConical, Wifi,
+  Save, ArrowLeftRight, Clock, Hash, AlertTriangle,
 } from 'lucide-react'
 import toast from 'react-hot-toast'
-import clsx from 'clsx'
+import StrategyModeOverride from '@/components/StrategyModeOverride'
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function fmtInterval(s: number): string {
@@ -76,10 +74,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 // ═════════════════════════════════════════════════════════════════════════════
 export default function Settings() {
   const { status, fetchStatus } = useBotStore()
-  const [config,       setConfig]       = useState<Partial<BotConfig>>({})
-  const [saving,       setSaving]       = useState(false)
-  const [resetArmed,   setResetArmed]   = useState(false)   // two-step confirm
-  const [resetting,    setResetting]    = useState(false)
+  const [config,    setConfig]    = useState<Partial<BotConfig>>({})
+  const [saving,    setSaving]    = useState(false)
 
   useEffect(() => {
     botApi.getConfig().then(c => setConfig(c)).catch(console.error)
@@ -101,53 +97,21 @@ export default function Settings() {
     }
   }
 
-  const handleReset = async () => {
-    setResetting(true)
-    try {
-      // Soft reset — clears trade history, keeps wallet + config
-      await botApi.updateConfig({ _reset_trades: true } as Record<string, unknown>)
-      toast.success('Trade history cleared')
-      setResetArmed(false)
-    } catch {
-      toast.error('Reset failed — no data was changed')
-    } finally {
-      setResetting(false)
-    }
-  }
-
-  const isMainnet    = (config.network ?? 'finney') === 'finney'
   const isRunning    = status?.is_running ?? false
-  const simMode      = status?.simulation_mode ?? true
   const tradeInterval = config.trade_interval ?? 0
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      {/* ── Page Header Bar ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-6 space-y-5">
 
-        {/* ── Combined status / mode / save strip ──────────────────────────── */}
+        {/* ── Save bar — minimal, "System Operational" box removed per Session XXV ── */}
         <div className="flex flex-wrap items-center gap-2">
-
-          {/* Trading mode pill */}
-          <span className={clsx(
-            'flex items-center gap-1.5 px-3 py-1 rounded-full text-[14px] font-mono font-semibold border',
-            simMode
-              ? 'bg-slate-700/60 text-slate-300 border-slate-600'
-              : 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30',
-          )}>
-            <FlaskConical size={11} />
-            {simMode ? 'PAPER MODE — no real funds at risk' : 'LIVE MODE — real TAO executing'}
-          </span>
-
-          {/* Bot-is-running — compact pill, matches badge height */}
           {isRunning && (
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[13px] font-mono font-semibold border bg-yellow-500/10 text-yellow-400 border-yellow-500/25">
               <AlertTriangle size={10} />
               Bot is running — changes apply next cycle
             </span>
           )}
-
-          {/* Save Config — right-anchored */}
           <button
             onClick={handleSave}
             disabled={saving}
@@ -158,11 +122,9 @@ export default function Settings() {
           </button>
         </div>
 
-        {/* ── 3 sections in a row across full page width ───────────────────── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Trade Execution */}
-          <Section title="Trade Execution">
+        {/* ── Trade Execution (only section remaining on this page) ────────── */}
+        <Section title="Trade Execution">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
             <FieldRow icon={ArrowLeftRight} label="Trade Amount (TAO)"
               hint="Default TAO amount placed per individual trade">
               <NumberInput
@@ -198,104 +160,15 @@ export default function Settings() {
                 onChange={v => set('max_daily_trades', v)}
               />
             </FieldRow>
-          </Section>
-
-          {/* Network & Identity */}
-          <Section title="Network &amp; Identity">
-            <FieldRow icon={Globe} label="Network"
-              hint={isMainnet ? '⚠ Finney mainnet — real TAO, real consequences' : 'Safe testing environment — no real funds'}>
-              <select
-                value={config.network ?? 'finney'}
-                onChange={e => set('network', e.target.value)}
-                className={clsx('input w-full', isMainnet && 'border-amber-500/40 text-amber-400')}
-              >
-                <option value="finney">Finney (Mainnet) — real TAO</option>
-                <option value="test">Testnet — no real funds</option>
-                <option value="local">Local — development only</option>
-              </select>
-            </FieldRow>
-            <FieldRow icon={Hash} label="Subnet UID (netuid)"
-              hint="Bittensor subnet the bot stakes and trades on — SN0 is the root network">
-              <NumberInput
-                value={config.netuid} min={0} max={512} step={1}
-                onChange={v => set('netuid', v)}
-              />
-            </FieldRow>
-            <FieldRow icon={User} label="Wallet Name (coldkey)"
-              hint="Name of the Bittensor coldkey wallet on disk">
-              <input
-                type="text"
-                value={(config.wallet_name as string | undefined) ?? ''}
-                onChange={e => set('wallet_name', e.target.value)}
-                className="input w-full font-mono"
-                placeholder="default"
-              />
-            </FieldRow>
-            <FieldRow icon={KeyRound} label="Hotkey Name"
-              hint="Hotkey associated with the coldkey — used for staking and voting">
-              <input
-                type="text"
-                value={(config.wallet_hotkey as string | undefined) ?? ''}
-                onChange={e => set('wallet_hotkey', e.target.value)}
-                className="input w-full font-mono"
-                placeholder="default"
-              />
-            </FieldRow>
-            <div className="flex items-start gap-2 px-3 py-2.5 bg-blue-500/8 border border-blue-500/15 rounded-lg">
-              <Wifi size={12} className="text-blue-400 flex-shrink-0 mt-0.5" />
-              <p className="text-[14px] text-blue-400/80 leading-snug">
-                Stop-loss %, take-profit %, and consensus thresholds are managed on the{' '}
-                <span className="font-semibold text-blue-400">Risk Config</span> page.
-              </p>
-            </div>
-          </Section>
-
-          {/* Danger Zone */}
-          <div className="bg-dark-800 border border-red-500/20 rounded-xl p-5">
-            <h2 className="text-xs font-bold text-red-400 uppercase tracking-widest border-b border-red-500/15 pb-3 mb-4">
-              Danger Zone
-            </h2>
-            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-              Clears all trade history from the local database. Wallet, configuration, and strategy
-              state are preserved. This action cannot be undone.
-            </p>
-            {!resetArmed ? (
-              <button
-                onClick={() => setResetArmed(true)}
-                className="flex items-center gap-2 px-4 py-2 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-xs font-semibold hover:bg-red-500/20 transition-colors"
-              >
-                <AlertTriangle size={13} />
-                Reset All Trade Data
-              </button>
-            ) : (
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 px-3 py-2.5 bg-red-500/10 border border-red-500/30 rounded-lg">
-                  <AlertTriangle size={13} className="text-red-400 flex-shrink-0" />
-                  <p className="text-xs text-red-400 font-semibold">
-                    This will permanently delete all trade history. Are you sure?
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleReset}
-                    disabled={resetting}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-500/20 border border-red-500/40 rounded-lg text-red-400 text-xs font-bold hover:bg-red-500/30 disabled:opacity-50 transition-colors"
-                  >
-                    {resetting ? <RefreshCw size={12} className="animate-spin" /> : <AlertTriangle size={12} />}
-                    {resetting ? 'Clearing…' : 'Yes, delete everything'}
-                  </button>
-                  <button
-                    onClick={() => setResetArmed(false)}
-                    className="px-4 py-2 bg-dark-700 border border-dark-600 rounded-lg text-slate-400 text-xs hover:text-white hover:border-dark-500 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
+        </Section>
 
-        </div>{/* end 3-col row */}
+        {/* ── Strategy Mode Override (relocated from Strategies, per Session XXV) ── */}
+        <StrategyModeOverride />
+
+        {/* Network & Identity relocated to Wallet page. */}
+        {/* Danger Zone relocated to Human Override page. */}
+
       </div>{/* end scrollable */}
     </div>
   )

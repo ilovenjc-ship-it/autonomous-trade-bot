@@ -10,6 +10,11 @@ import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
 import type { Strategy } from '@/types'
+import {
+  BarChart, Bar, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, ReferenceLine,
+} from 'recharts'
 
 // ── performance tier engine ───────────────────────────────────────────────────
 type Tier = 'elite' | 'solid' | 'neutral' | 'weak' | 'failing'
@@ -576,14 +581,16 @@ export default function Strategies() {
         </p>
       </div>
 
-      {/* ── fleet summary ───────────────────────────────────────────────────── */}
-      <FleetSummary strategies={strategies} />
+      {/* (FleetSummary small-cards + Capital Allocation Tiers removed — Session XXV spec) */}
 
-      {/* ── controls row ────────────────────────────────────────────────────── */}
-      <div className="flex flex-wrap items-center gap-3">
+      {/* ── Filter & Sort controls (wrapped in a single container, per Session XXV spec) ── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-xl p-3 flex flex-wrap items-center gap-3">
+
+        {/* Section label */}
+        <span className="text-[11px] font-mono uppercase tracking-widest text-slate-500 pl-1 pr-1">Filters</span>
 
         {/* mode filter */}
-        <div className="flex items-center gap-1 bg-dark-800 border border-dark-600 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-dark-900 border border-dark-700 rounded-lg p-1">
           {MODE_FILTERS.map(({ key, label }) => (
             <button
               key={key}
@@ -601,7 +608,7 @@ export default function Strategies() {
         </div>
 
         {/* tier filter */}
-        <div className="flex items-center gap-1 bg-dark-800 border border-dark-600 rounded-lg p-1">
+        <div className="flex items-center gap-1 bg-dark-900 border border-dark-700 rounded-lg p-1">
           {TIER_FILTERS.map(({ key, label }) => (
             <button
               key={key}
@@ -618,9 +625,10 @@ export default function Strategies() {
           ))}
         </div>
 
-        {/* sort */}
-        <div className="flex items-center gap-1 ml-auto">
-          <ArrowUpDown size={12} className="text-slate-500" />
+        {/* sort — Tier, Win%↓, PnL, Trades, Cycles */}
+        <div className="flex items-center gap-1 ml-auto bg-dark-900 border border-dark-700 rounded-lg p-1">
+          <ArrowUpDown size={12} className="text-slate-500 ml-1" />
+          <span className="text-[11px] font-mono uppercase tracking-widest text-slate-500 pl-1 pr-1">Sort</span>
           {SORT_BTNS.map(({ key, label }) => (
             <button
               key={key}
@@ -652,163 +660,39 @@ export default function Strategies() {
         </div>
       )}
 
-      {/* ── Strategy Mode Override ───────────────────────────────────────────── */}
-      <div className="card p-5">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-            <ArrowUp size={13} className="text-accent-green" /> Strategy Mode Override
-          </h2>
-          <p className="text-[13px] text-slate-500 font-mono">bypasses gate · instant · permanent until changed</p>
+      {/* (Strategy Mode Override relocated to Settings page, per Session XXV spec) */}
+
+      {/* ── Strategy PnL Distribution (relocated from Analytics, per Session XXV spec) ── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
+        <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+          <BarChart2 size={13} className="text-accent-green" />
+          Strategy PnL Distribution
+          <span className="ml-auto text-[13px] text-slate-500 font-mono">sorted by total PnL (τ)</span>
+        </h2>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={[...strategies].sort((a, b) => b.total_pnl - a.total_pnl)}
+            margin={{ top: 5, right: 10, left: 10, bottom: 40 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#243450" vertical={false} />
+            <XAxis dataKey="display_name" tick={{ fill: "#64748b", fontSize: 9 }}
+              tickLine={false} axisLine={false} angle={-30} textAnchor="end" interval={0} height={50} />
+            <YAxis tick={{ fill: "#64748b", fontSize: 10 }} tickLine={false} axisLine={false}
+              tickFormatter={(v: number) => v.toFixed(3)} />
+            <ReferenceLine y={0} stroke="#334155" />
+            <Tooltip contentStyle={{ background: "#152030", border: "1px solid #243450", borderRadius: 8, fontSize: 12, fontFamily: "monospace" }}
+              formatter={(v: any) => [(v as number).toFixed(4) + "τ", "Total PnL"]} />
+            <Bar dataKey="total_pnl" radius={[4, 4, 0, 0]}>
+              {[...strategies].sort((a, b) => b.total_pnl - a.total_pnl).map(s => (
+                <Cell key={s.name} fill={s.total_pnl >= 0 ? "#10b981" : "#f87171"} />
+              ))}
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
+        <div className="flex gap-4 mt-2 justify-end text-xs font-mono text-slate-300">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-accent-green inline-block" /> Positive</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
         </div>
+      </div>
 
-        {/* Mode legend */}
-        <div className="flex items-center gap-3 mb-4 flex-wrap">
-          {MODE_ORDER.map(m => {
-            const meta = MODE_META[m]
-            return (
-              <span key={m} className={clsx('px-2 py-0.5 rounded border text-[13px] font-mono font-bold', meta.badge)}>
-                {meta.prefix} {meta.label}
-              </span>
-            )
-          })}
-          <span className="text-[13px] text-slate-500 ml-2">— click ↑ to promote, ↓ to demote</span>
-        </div>
-
-        {/* Strategy rows — always the full fleet, unaffected by active filters */}
-        <div className="space-y-1.5">
-          {strategies.map(s => {
-            const atCeiling   = s.mode === 'LIVE'
-            const atFloor     = s.mode === 'PAPER_ONLY'
-            const upPending   = opPending === s.name + '_up'
-            const downPending = opPending === s.name + '_down'
-            return (
-              <div
-                key={s.name}
-                className="flex items-center gap-3 px-3 py-2.5 bg-dark-900 rounded-lg border border-dark-700/60 hover:border-dark-600 transition-colors group"
-              >
-                {/* Name */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-white font-medium truncate">{s.display_name}</p>
-                  <p className="text-[13px] text-slate-500 font-mono">{s.name}</p>
-                </div>
-
-                {/* Win rate */}
-                <div className="text-right flex-shrink-0 w-16 hidden sm:block">
-                  <p className={clsx('text-xs font-mono font-bold',
-                    s.win_rate >= 55 ? 'text-accent-green' : s.win_rate >= 40 ? 'text-yellow-400' : 'text-red-400')}>
-                    {(s.win_rate ?? 0).toFixed(1)}%
-                  </p>
-                  <p className="text-[11px] text-slate-500">win rate</p>
-                </div>
-
-                {/* PnL */}
-                <div className="text-right flex-shrink-0 w-24 hidden md:block">
-                  <p className={clsx('text-xs font-mono font-bold',
-                    s.total_pnl > 0 ? 'text-accent-green' : s.total_pnl < 0 ? 'text-red-400' : 'text-slate-400')}>
-                    {fmt(s.total_pnl)}
-                  </p>
-                  <p className="text-[11px] text-slate-500">PnL</p>
-                </div>
-
-                {/* Stake per trade — inline editable */}
-                <div className="flex-shrink-0 hidden lg:block">
-                  {stakeEditing === s.name ? (
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="number" min="0.001" max="1.0" step="0.001"
-                        value={stakeInput}
-                        onChange={e => setStakeInput(e.target.value)}
-                        onKeyDown={e => {
-                          if (e.key === 'Enter')  doSetStake(s.name)
-                          if (e.key === 'Escape') setStakeEditing(null)
-                        }}
-                        autoFocus
-                        className="w-20 px-2 py-1 text-xs font-mono bg-dark-800 border border-accent-blue/50 rounded text-white focus:outline-none focus:border-accent-blue"
-                        placeholder="0.0100"
-                      />
-                      <span className="text-[13px] text-slate-500 font-mono">τ</span>
-                      <button onClick={() => doSetStake(s.name)}
-                        className="text-accent-green hover:text-white text-[13px] font-mono font-bold transition-colors" title="Save">✓</button>
-                      <button onClick={() => setStakeEditing(null)}
-                        className="text-slate-500 hover:text-red-400 text-[13px] font-mono transition-colors" title="Cancel">✗</button>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setStakeEditing(s.name)
-                        setStakeInput(s.stake_amount != null ? Number(s.stake_amount).toFixed(4) : '')
-                      }}
-                      className="text-right group/stake"
-                      title="Click to edit stake per trade"
-                    >
-                      <p className={clsx('text-xs font-mono font-bold group-hover/stake:text-accent-blue transition-colors',
-                        s.mode === 'LIVE' ? 'text-white' : 'text-slate-500')}>
-                        {s.stake_amount != null ? `${Number(s.stake_amount).toFixed(4)} τ` : '—'}
-                      </p>
-                      <p className="text-[11px] text-slate-500">stake/trade</p>
-                    </button>
-                  )}
-                </div>
-
-                {/* Mode step buttons — PAPER → APPROVED → LIVE */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  {MODE_ORDER.map((m, i) => {
-                    const modeKey  = m as 'PAPER_ONLY' | 'APPROVED_FOR_LIVE' | 'LIVE'
-                    const isPending = opPending === s.name + '_' + m
-                    return (
-                      <div key={m} className="flex items-center gap-1">
-                        <ModeStep
-                          mode={m}
-                          active={m === s.mode}
-                          pending={isPending}
-                          onClick={() => doSetMode(s.name, modeKey)}
-                        />
-                        {i < MODE_ORDER.length - 1 && <ChevronRight size={10} className="text-slate-600" />}
-                      </div>
-                    )
-                  })}
-                </div>
-
-                {/* UP / DOWN quick promote / demote */}
-                <div className="flex gap-1.5 flex-shrink-0">
-                  <button
-                    onClick={() => doPromote(s.name)}
-                    disabled={atCeiling || upPending || downPending}
-                    title={atCeiling ? 'Already at LIVE' : 'Promote one level'}
-                    className={clsx(
-                      'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all',
-                      atCeiling
-                        ? 'text-slate-600 border-dark-700 cursor-not-allowed'
-                        : 'text-accent-green border-accent-green/30 bg-accent-green/5 hover:bg-accent-green/15 hover:border-accent-green/50 active:scale-95',
-                    )}
-                  >
-                    {upPending ? <RefreshCw size={10} className="animate-spin" /> : <ArrowUp size={10} />} UP
-                  </button>
-                  <button
-                    onClick={() => doDemote(s.name)}
-                    disabled={atFloor || upPending || downPending}
-                    title={atFloor ? 'Already at PAPER' : 'Demote one level'}
-                    className={clsx(
-                      'flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all',
-                      atFloor
-                        ? 'text-slate-600 border-dark-700 cursor-not-allowed'
-                        : 'text-red-400 border-red-500/30 bg-red-500/5 hover:bg-red-500/15 hover:border-red-500/50 active:scale-95',
-                    )}
-                  >
-                    {downPending ? <RefreshCw size={10} className="animate-spin" /> : <ArrowDown size={10} />} DOWN
-                  </button>
-                </div>
-              </div>
-            )
-          })}
-        </div>
-
-        <p className="text-[13px] text-slate-500 font-mono mt-4 leading-relaxed">
-          Mode changes are instant and persistent (written to DB). Promoting to LIVE while paper mode is active
-          means the strategy will execute real on-chain trades when paper mode is lifted. Demoting from LIVE does not cancel open positions.
-          The full fleet is always shown here regardless of the filter applied above.
-        </p>
-      </div>{/* end Strategy Mode Override */}
 
       </div>{/* end scrollable */}
     </div>

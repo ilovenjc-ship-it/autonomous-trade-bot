@@ -190,7 +190,7 @@ export default function Analytics() {
   const [fetchErrors, setFetchErrors] = useState<string[]>([])
   const [sortKey,    setSortKey]    = useState<SortKey>('total_pnl')
   const [sortAsc,    setSortAsc]    = useState(false)
-  const [activeChart, setActiveChart] = useState<'equity' | 'drawdown' | 'winrate'>('equity')
+  const [activeChart, setActiveChart] = useState<'drawdown' | 'winrate'>('drawdown')
   const [timeRange,  setTimeRange]  = useState<TimeRange>('all')
   const [wrWindow,   setWrWindow]   = useState<WrWindow>(20)
   const [subnets,    setSubnets]    = useState<Subnet[]>([])
@@ -345,7 +345,7 @@ export default function Analytics() {
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             {[
-              { key: 'equity',   icon: TrendingUp,   label: 'Equity Curve' },
+              /* Equity Curve / Cumulative PnL relocated to P&L Summary (Session XXV) */
               { key: 'drawdown', icon: TrendingDown,  label: 'Drawdown' },
               { key: 'winrate',  icon: Activity,      label: 'Rolling Win Rate' },
             ].map(({ key, icon: Icon, label }) => (
@@ -383,35 +383,7 @@ export default function Analytics() {
           )}
         </div>
 
-        {/* ── Equity Curve ─────────────────────────────────────────────────── */}
-        {activeChart === 'equity' && (
-          <div>
-            <p className="text-xs text-slate-300 font-mono mb-3 uppercase tracking-widest">
-              Cumulative PnL — {equity.length} trades
-            </p>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={equityThin} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="cumulGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor={C_GREEN} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={C_GREEN} stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="pnlGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor={C_BLUE} stopOpacity={0.2} />
-                    <stop offset="95%" stopColor={C_BLUE} stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#243450" />
-                <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => v.toFixed(3)} />
-                <ReferenceLine y={0} stroke="#334155" strokeDasharray="4 4" />
-                <Tooltip content={<EquityTooltip />} />
-                <Area dataKey="cumulative" stroke={C_GREEN} strokeWidth={2} fill="url(#cumulGrad)" dot={false} name="Cumulative" />
-                <Area dataKey="pnl"        stroke={C_BLUE}  strokeWidth={1} fill="url(#pnlGrad)"  dot={false} name="Trade PnL" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        {/* Equity Curve / Cumulative PnL — relocated to P&L Summary page (Session XXV) */}
 
         {/* ── Drawdown ─────────────────────────────────────────────────────── */}
         {activeChart === 'drawdown' && (
@@ -514,144 +486,7 @@ export default function Analytics() {
         </span>
       </div>
 
-      {/* ── Strategy comparison table ───────────────────────────────────────── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden">
-        <div className="px-5 py-4 border-b border-dark-600 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2">
-            <Award size={16} className="text-accent-blue" />
-            Strategy Performance Leaderboard
-          </h2>
-          <p className="text-xs text-slate-300 font-mono">{strategies.length} strategies</p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-dark-600 text-xs text-slate-300 uppercase tracking-wider font-mono">
-                <th className="px-5 py-3 text-left">#</th>
-                <th className="px-5 py-3 text-left">Strategy</th>
-                <th className="px-5 py-3 text-right cursor-pointer hover:text-white select-none" onClick={() => toggleSort('total_trades')}>
-                  <span className="flex items-center justify-end gap-1">Trades <SortIcon col="total_trades" /></span>
-                </th>
-                <th className="px-5 py-3 text-right cursor-pointer hover:text-white select-none" onClick={() => toggleSort('win_rate')}>
-                  <span className="flex items-center justify-end gap-1">Win Rate <SortIcon col="win_rate" /></span>
-                </th>
-                <th className="px-5 py-3 text-right">W / L</th>
-                <th className="px-5 py-3 text-right cursor-pointer hover:text-white select-none" onClick={() => toggleSort('total_pnl')}>
-                  <span className="flex items-center justify-end gap-1">Total PnL <SortIcon col="total_pnl" /></span>
-                </th>
-                <th className="px-5 py-3 text-right">Avg PnL</th>
-                <th className="px-5 py-3 text-right cursor-pointer hover:text-white select-none" onClick={() => toggleSort('best_trade')}>
-                  <span className="flex items-center justify-end gap-1">Best <SortIcon col="best_trade" /></span>
-                </th>
-                <th className="px-5 py-3 text-right cursor-pointer hover:text-white select-none" onClick={() => toggleSort('worst_trade')}>
-                  <span className="flex items-center justify-end gap-1">Worst <SortIcon col="worst_trade" /></span>
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((s, idx) => (
-                <tr key={s.name} className="border-b border-dark-700/50 hover:bg-dark-700/40 transition-colors">
-                  {/* Rank */}
-                  <td className="px-5 py-3 text-slate-300 font-mono text-xs">{idx + 1}</td>
-
-                  {/* Strategy name */}
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      {idx === 0 && <span className="text-yellow-400">🥇</span>}
-                      {idx === 1 && <span className="text-slate-300">🥈</span>}
-                      {idx === 2 && <span className="text-amber-600">🥉</span>}
-                      <div>
-                        <p className="text-white font-medium text-xs">{s.label}</p>
-                        <p className="text-slate-300 font-mono text-[13px]">{s.name}</p>
-                      </div>
-                    </div>
-                  </td>
-
-                  {/* Trades */}
-                  <td className="px-5 py-3 text-right">
-                    <span className="font-mono text-slate-300">{s.total_trades}</span>
-                  </td>
-
-                  {/* Win rate badge */}
-                  <td className="px-5 py-3 text-right">
-                    <WinRateBadge rate={s.win_rate} />
-                  </td>
-
-                  {/* W/L */}
-                  <td className="px-5 py-3 text-right font-mono text-xs">
-                    <span className="text-accent-green">{s.wins}</span>
-                    <span className="text-slate-300"> / </span>
-                    <span className="text-red-400">{s.losses}</span>
-                  </td>
-
-                  {/* Total PnL */}
-                  <td className="px-5 py-3 text-right"><PnlCell v={s.total_pnl} /></td>
-
-                  {/* Avg PnL */}
-                  <td className="px-5 py-3 text-right"><PnlCell v={s.avg_pnl} /></td>
-
-                  {/* Best */}
-                  <td className="px-5 py-3 text-right">
-                    <span className="font-mono text-xs text-accent-green">{fmt(s.best_trade, 4)}</span>
-                  </td>
-
-                  {/* Worst */}
-                  <td className="px-5 py-3 text-right">
-                    <span className="font-mono text-xs text-red-400">{fmt(s.worst_trade, 4)}</span>
-                  </td>
-                </tr>
-              ))}
-              {sorted.length === 0 && (
-                <tr><td colSpan={9} className="px-5 py-8 text-center text-slate-300 font-mono text-xs">No trade data available</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ── PnL distribution mini bar chart ────────────────────────────────── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-          <Activity size={16} className="text-accent-green" />
-          Strategy PnL Distribution
-        </h2>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart
-            data={[...strategies].sort((a, b) => b.total_pnl - a.total_pnl)}
-            margin={{ top: 5, right: 10, left: 10, bottom: 40 }}
-          >
-            <CartesianGrid strokeDasharray="3 3" stroke="#243450" vertical={false} />
-            <XAxis
-              dataKey="label"
-              tick={{ fill: '#64748b', fontSize: 9 }}
-              tickLine={false}
-              axisLine={false}
-              angle={-30}
-              textAnchor="end"
-              interval={0}
-              height={50}
-            />
-            <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => v.toFixed(3)} />
-            <ReferenceLine y={0} stroke="#334155" />
-            <Tooltip
-              contentStyle={{ background: '#152030', border: '1px solid #243450', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
-              formatter={(v: any) => [v.toFixed(4), 'Total PnL']}
-            />
-            <Bar dataKey="total_pnl" radius={[4, 4, 0, 0]}>
-              {[...strategies]
-                .sort((a, b) => b.total_pnl - a.total_pnl)
-                .map((s, i) => (
-                  <Cell key={s.name} fill={s.total_pnl >= 0 ? C_GREEN : C_RED} />
-                ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-        <div className="flex gap-4 mt-2 justify-end text-xs font-mono text-slate-300">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-accent-green inline-block" /> Positive</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
-        </div>
-      </div>
+      {/* Strategy Performance Leaderboard + Strategy PnL Distribution relocated to Strategies (Session XXV) */}
 
       {/* ── Network Heat Map ──────────────────────────────────────────────── */}
       <SubnetHeatMap />

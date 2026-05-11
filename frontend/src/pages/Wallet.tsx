@@ -12,6 +12,7 @@ import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
+import NetworkIdentityPanel from '@/components/NetworkIdentityPanel'
 
 /** Masks an SS58 address: first 6 chars + bullets + last 4 chars */
 function maskAddr(addr: string): string {
@@ -1062,6 +1063,9 @@ export default function WalletPage() {
         </div>
 
         {/* Recovery Tracker relocated → P&L Summary page */}
+
+        {/* ── Network & Identity (relocated from Settings, per Session XXV spec) ── */}
+        <NetworkIdentityPanel />
 
         </div>{/* end inner padding */}
       </div>{/* end scrollable */}

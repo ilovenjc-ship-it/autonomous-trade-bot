@@ -8,6 +8,7 @@ import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
+import DangerZonePanel from '@/components/DangerZonePanel'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface OverrideStatus {
@@ -366,79 +367,9 @@ export default function HumanOverride() {
           </p>
         </div>
 
-        {/* Manual trade */}
-        <div className="card p-5 space-y-4">
-          <h2 className="text-xs font-bold text-white uppercase tracking-widest flex items-center gap-2">
-            <TrendingUp size={13} className="text-accent-green" /> Manual Trade
-          </h2>
-          {halted && (
-            <div className="flex items-center gap-2 px-3 py-2 bg-red-500/10 border border-red-500/20 rounded-lg">
-              <AlertTriangle size={11} className="text-red-400" />
-              <span className="text-[14px] text-red-400 font-mono">System halted — resume before trading</span>
-            </div>
-          )}
-          <div className="flex rounded-lg overflow-hidden border border-dark-600">
-            <button
-              onClick={() => { setTradeAction('buy'); setConfirmTrade(false) }}
-              className={clsx('flex-1 py-2.5 text-sm font-bold font-mono transition-all flex items-center justify-center gap-1.5',
-                tradeAction === 'buy' ? 'bg-accent-green/20 text-accent-green' : 'text-slate-500 hover:text-slate-300')}
-            >
-              <TrendingUp size={14} /> BUY
-            </button>
-            <button
-              onClick={() => { setTradeAction('sell'); setConfirmTrade(false) }}
-              className={clsx('flex-1 py-2.5 text-sm font-bold font-mono transition-all flex items-center justify-center gap-1.5',
-                tradeAction === 'sell' ? 'bg-red-500/20 text-red-400' : 'text-slate-500 hover:text-slate-300')}
-            >
-              <TrendingDown size={14} /> SELL
-            </button>
-          </div>
-          <div>
-            <label className="text-[13px] text-slate-400 uppercase tracking-wider font-mono block mb-1.5">Amount (τ)</label>
-            <input type="number" min="0" step="0.001" value={tradeAmt}
-              onChange={e => { setTradeAmt(e.target.value); setConfirmTrade(false) }}
-              placeholder="e.g. 0.005"
-              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2.5 text-sm font-mono text-white placeholder-slate-600 focus:outline-none focus:border-accent-blue/50"
-            />
-          </div>
-          <div>
-            <label className="text-[13px] text-slate-400 uppercase tracking-wider font-mono block mb-1.5">Reason (optional)</label>
-            <input type="text" value={tradeReason} onChange={e => setTradeReason(e.target.value)}
-              placeholder="Human override — manual buy"
-              className="w-full bg-dark-900 border border-dark-600 rounded-lg px-3 py-2.5 text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-accent-blue/50"
-            />
-          </div>
-          <button
-            onClick={doManualTrade}
-            disabled={tradingNow || halted || !tradeAmt}
-            className={clsx(
-              'w-full py-3 rounded-xl font-bold text-sm font-mono transition-all flex items-center justify-center gap-2',
-              confirmTrade
-                ? tradeAction === 'buy'
-                  ? 'bg-accent-green text-dark-900 shadow-[0_0_16px_rgba(52,211,153,0.4)] animate-pulse'
-                  : 'bg-red-500 text-white shadow-[0_0_16px_rgba(239,68,68,0.4)] animate-pulse'
-                : tradeAction === 'buy'
-                  ? 'bg-accent-green/15 border border-accent-green/40 text-accent-green hover:bg-accent-green/25'
-                  : 'bg-red-500/15 border border-red-500/40 text-red-400 hover:bg-red-500/25',
-              (tradingNow || halted || !tradeAmt) && 'opacity-40 cursor-not-allowed',
-            )}
-          >
-            {tradingNow ? <><RefreshCw size={14} className="animate-spin" /> Executing…</>
-              : confirmTrade ? <><CheckCircle2 size={14} /> CONFIRM — {tradeAction.toUpperCase()} {tradeAmt} τ</>
-              : <>{tradeAction === 'buy' ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                  {tradeAction.toUpperCase()} {tradeAmt ? `${tradeAmt} τ` : '—'}</>
-            }
-          </button>
-          {confirmTrade && (
-            <button onClick={() => setConfirmTrade(false)}
-              className="w-full text-xs text-slate-500 hover:text-slate-300 transition-colors font-mono flex items-center justify-center gap-1">
-              <XCircle size={11} /> Cancel
-            </button>
-          )}
-          <p className="text-[13px] text-slate-500 font-mono">
-            First click stages the trade. Second click executes. In paper mode this records a simulated trade. In live mode this submits to chain.
-          </p>
-        </div>
+        {/* Manual Trade duplicate removed — canonical Manual Trade lives on the Trades page (Session XXV spec). */}
+        {/* Danger Zone (relocated from Settings) */}
+        <DangerZonePanel />
 
       </div>{/* end 3-box control row */}
 
