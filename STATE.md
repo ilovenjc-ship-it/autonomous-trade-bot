@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-12 (Session XXVI — True Clean Slate + Forensic fixes + Final UI polish)
-**Status:** PAPER TRAINING ACTIVE — Day 1 of 7 (NEW Zero Day = 2026-05-12 12:00 UTC). All 12 strategies PAPER_ONLY. True Clean Slate wipe: BotConfig singleton + Strategy rollups + trades table all zeroed. UI polished across Dashboard + 6 other pages. Settings page deleted, menu collapsed. All commits on `origin/main`.
+**Last updated:** 2026-05-12 (Session XXVII — Counter regression fix + follow-up UI polish)
+**Status:** PAPER TRAINING ACTIVE — Day 1 of 7 (RE-wiped on Zero Day = 2026-05-12 20:40 UTC — counters truly zero now). All 12 strategies PAPER_ONLY. XXVII wipe now covers OpenClaw round counters too (prior miss). UI: TradingView 4× height, Rolling Win Rate relocated to PnL Summary, Staking/Live Positions elevated on Transactions, Manual Trades pill simplified, "triggered by" → "Triggered By". All commits on `origin/main`.
 **Maintained by:** II Agent + Partner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -12,6 +12,133 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXVII SUMMARY (May 12, 2026 — late) — Counter Regression Fix + UI Polish Follow-up
+
+### Overview
+Partner's post-deploy walkthrough of Session XXVI was positive — the new menu
+structure, Dashboard card order, chart sizing, and page relocations all landed
+well. Follow-up list was brief:
+
+1. **Dashboard:** TradingView chart another 2× height (640 → 1280px, page-wide)
+2. **Dashboard:** "Total Trades" showed ~7,600 (expected zero)
+3. **OpenClaw:** "Total Rounds" showed ~13,569 (expected zero)
+4. **OpenClaw:** Lowercase "triggered by" → "Triggered By" (title case, top of
+   latest-round container — NOT a rename of the "Manual Trigger" section below)
+5. **Network Analytics → PnL Summary:** Relocate Rolling Win Rate directly
+   below Cumulative PnL
+6. **Transactions:** Staking + Live Positions panels moved above the
+   "Chain transfer data unavailable" banner (currently sat at page bottom)
+7. **Manual Trades:** Gold pill verbose explainer replaced with minimal
+   static label — "Simulated USD/ TAO" (paper) / "Real USD/ TAO" (live)
+8. **Manual Trades:** "Total Trades" showed ~7,600 (same root cause as #2)
+
+### The Counter Regression — Root Cause
+
+The Session XXVI wipe DID run successfully. The 7,600 trades + 13,569 rounds
+partner saw were real — but partly new accumulation since deploy AND partly a
+missed wipe-set:
+
+- **Session XXVI wipe covered:** Strategy rollups (12 rows), trades table
+  (DELETE WHERE tx_hash IS NULL), BotConfig singleton (total_trades,
+  successful_trades, total_pnl, daily_trades).
+- **Session XXVI wipe MISSED:** `bot_config.openclaw_total_rounds`,
+  `openclaw_approved_rounds`, `openclaw_rejected_rounds`.
+- **Ordering race on top of that:** `main.py` called
+  `consensus_service.load_from_db()` BEFORE the FORCE_PAPER_MODE wipe block,
+  so the in-memory `_stats["total_rounds"]` was loaded from OLD DB values,
+  then the wipe zeroed the DB, then the next consensus round persisted the
+  in-memory (pre-wipe) value back to DB — effectively undoing any future wipe
+  attempt for round counters.
+
+### Pass 0 — Counter Regression Fix (Session XXVII)
+
+**`backend/main.py`:**
+- Added `openclaw_total_rounds`, `openclaw_approved_rounds`,
+  `openclaw_rejected_rounds` to the BotConfig reset set in the
+  FORCE_PAPER_MODE startup wipe.
+- **Moved `consensus_service.load_from_db()` call from BEFORE the wipe block
+  to AFTER it.** This breaks the race — when a wipe runs, the service now
+  loads the zeroed counters into memory (not the pre-wipe values).
+- Bumped `FOSSIL_CLEANUP_THRESHOLD` from `2026-05-12 12:00 UTC` to
+  `2026-05-12 20:40 UTC` — forces one-time re-wipe on next deploy.
+
+**`backend/routers/bot.py /reset-paper-stats`:**
+- Added the three openclaw_* fields to the BotConfig reset.
+- After DB commit, also zeroes consensus_service in-memory counters
+  (`_round_counter`, `_stats["total_rounds"|"approved_rounds"|"rejected_rounds"]`)
+  so a subsequent round doesn't persist stale values back.
+
+**Invariant enforced:** `consensus_service._stats["total_rounds"]` is never
+loaded from DB while a wipe is still pending. If you add new BotConfig counter
+fields in future, add them to the wipe set AND ensure any in-memory loader
+runs AFTER the wipe block.
+
+### Pass 1 — Dashboard TradingView 4× height
+- `frontend/src/pages/Dashboard.tsx`: `TaoTradingViewChart heightClass="h-[1280px]"`
+  (doubled from Session XXVI's 640px per partner request). Still full page-width.
+
+### Pass 2 — OpenClaw "Triggered By" Rename
+- `frontend/src/pages/OpenClaw.tsx`: The lowercase `triggered by` subheader
+  text at the top of the latest-round container is now rendered as an
+  uppercase-tracked `Triggered By` label (`text-[11px] uppercase tracking-wider`).
+- The `InfoBubble` tooltip title also updated to "What does 'Triggered By' mean?"
+- The "Manual Trigger" section below Votes **was not renamed** (per partner's
+  clarification) — only the lowercase text at the top of the round container.
+
+### Pass 3 — Rolling Win Rate → PnL Summary
+- **NEW:** `frontend/src/components/RollingWinRateChart.tsx` — extracted
+  standalone component. Owns its own fetch from `/analytics/rolling-winrate`,
+  owns the window toggle (10/20/50), owns the 60s refresh interval. Reusable.
+- `frontend/src/pages/PnLSummary.tsx`: `<RollingWinRateChart />` inserted
+  directly below the Cumulative PnL area chart.
+- `frontend/src/pages/Analytics.tsx` (Network Analytics): Rolling Win Rate
+  chart removed entirely. With Drawdown already gone (Session XXVI) and
+  Rolling WR now gone too, the whole chart area was deleted from this page.
+  Removed orphaned imports (all recharts), orphaned state (winRate, equity,
+  wrWindow, activeChart, WrWindow type, EquityPoint, WinRatePoint), orphaned
+  helpers (EquityTooltip), orphaned color constants (C_GREEN, C_BLUE, C_RED,
+  C_YELLOW, C_PURPLE), orphaned fetches (/analytics/equity,
+  /analytics/rolling-winrate). Network Analytics is now subnet + strategy
+  leaderboard only.
+
+### Pass 4 — Transactions Reorder
+- `frontend/src/pages/WalletTransactions.tsx`: `<StakingPositionsPanel />` +
+  `<LivePositionsPanel />` block relocated from the bottom of the page to
+  directly below the KPI summary row, above the "Chain transfer data
+  unavailable" amber banner. Primary portfolio info now leads; chain-fetch
+  caveats follow.
+
+### Pass 5 — Manual Trades Pill Simplification
+- `frontend/src/pages/Trades.tsx`: The amber/emerald trading-mode pill in the
+  Manual Trade card header now shows minimal static labels:
+  - Paper: `Simulated USD/ TAO`
+  - Live:  `Real USD/ TAO`
+- Verbose explainer (`Paper Trading · uses Simulated USD · no real TAO moves`
+  / `LIVE — real add_stake() on Finney`) removed. Pill container retained as
+  a mode indicator with pulse dot.
+- No hover, no tooltip — static only, per partner spec.
+
+### Expected Post-Deploy State
+
+On Railway cold-start of this commit:
+
+1. `FORCE_PAPER_MODE=1` env var still set → wipe block runs.
+2. `FOSSIL_CLEANUP_THRESHOLD` is now 20:40 UTC — every strategy row has
+   `stats_reset_at` from 12:00 UTC, which is < threshold → **wipe re-runs**.
+3. Strategy rows zeroed (12 × {cycles, wins, losses, total_trades, win_rate,
+   total_pnl, avg_return}).
+4. All paper trades DELETEd from trades table.
+5. BotConfig singleton zeroed — INCLUDING `openclaw_total_rounds`,
+   `openclaw_approved_rounds`, `openclaw_rejected_rounds`.
+6. `consensus_service.load_from_db()` fires AFTER wipe → loads zeros into
+   `_stats` dict → next round starts at round #1.
+
+**Invariant sleep-safe:** `BotConfig.openclaw_total_rounds == sum of round
+increments since last wipe == consensus_service._stats["total_rounds"]`. No
+drift possible because no reader/writer is loading pre-wipe state into memory.
 
 ---
 

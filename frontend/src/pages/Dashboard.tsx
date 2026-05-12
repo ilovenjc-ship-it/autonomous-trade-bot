@@ -841,8 +841,10 @@ export default function Dashboard() {
 
       </div>{/* end 10-card grid */}
 
-      {/* ── TradingView Chart — full width, 2× height (Session XXVI) ───────── */}
-      <TaoTradingViewChart heightClass="h-[640px]" />
+      {/* ── TradingView Chart — full width, 4× height (Session XXVII) ───────
+          Session XXVI doubled from 320→640px. Partner requested another 2×
+          in Session XXVII, so 640→1280px. Keeps page-wide. */}
+      <TaoTradingViewChart heightClass="h-[1280px]" />
 
       {/* ── Bottom row: Top Strategies · Recent Trades · Live Indicators ─────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">

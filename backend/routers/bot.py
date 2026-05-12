@@ -198,13 +198,29 @@ async def reset_paper_stats(db: AsyncSession = Depends(get_db)):
         Trade.__table__.delete().where(Trade.tx_hash.is_(None))
     )
     # Session XXVI: also zero the BotConfig singleton so no counter is left stale
+    # Session XXVII: ALSO zero OpenClaw round counters (prior version missed
+    # these, so "Total Rounds" survived manual resets).
     await db.execute(update(BotConfig).values(
-        total_trades      = 0,
-        successful_trades = 0,
-        total_pnl         = 0.0,
-        daily_trades      = 0,
+        total_trades             = 0,
+        successful_trades        = 0,
+        total_pnl                = 0.0,
+        daily_trades             = 0,
+        openclaw_total_rounds    = 0,
+        openclaw_approved_rounds = 0,
+        openclaw_rejected_rounds = 0,
     ))
     await db.commit()
+
+    # Session XXVII: also zero consensus_service in-memory counters so a
+    # subsequent round doesn't persist the pre-reset value back to DB.
+    try:
+        from services.consensus_service import consensus_service as _cs
+        _cs._round_counter                = 0
+        _cs._stats["total_rounds"]        = 0
+        _cs._stats["approved_rounds"]     = 0
+        _cs._stats["rejected_rounds"]     = 0
+    except Exception:
+        pass
     push_event(
         "system",
         "🗑️ Paper stats reset — all strategy metrics wiped, paper trade history cleared. Honest simulation starting fresh.",

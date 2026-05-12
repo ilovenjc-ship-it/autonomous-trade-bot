@@ -56,12 +56,14 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.error(f"DB init failed: {_e} — continuing with degraded mode")
 
-    # ── Restore OpenClaw round counter from DB ───────────────────────────────
-    try:
-        from services.consensus_service import consensus_service as _cs
-        await _cs.load_from_db()
-    except Exception as _e:
-        logger.warning(f"OpenClaw round counter restore failed: {_e}")
+    # ── OpenClaw round counter restore is DEFERRED ──────────────────────────
+    # Session XXVII (2026-05-12): moved to AFTER the FORCE_PAPER_MODE wipe
+    # block. Previously loaded BEFORE the wipe, which caused a race:
+    #   1. load_from_db() pulls old round counter into consensus_service
+    #   2. wipe zeroes BotConfig.openclaw_* columns in DB
+    #   3. next consensus round _persist_to_db() writes in-memory (pre-wipe)
+    #      counter back to DB, obliterating the wipe.
+    # Loading after the wipe ensures consensus_service reads the zeroed row.
 
     # ── Seed default strategies ──────────────────────────────────────────────
     try:
@@ -137,9 +139,17 @@ async def lifespan(app: FastAPI):
             #     • trading_service.py is the only writer to BotConfig
             #   Result: 3 counters, 3 different sources of truth.
             #
-            #   This wipe adds BotConfig to the reset set. Combined with Pass 1
-            #   (deprecating BotConfig as a read source), drift is eliminated.
-            FOSSIL_CLEANUP_THRESHOLD = datetime(2026, 5, 12, 12, 0, 0, tzinfo=_tz.utc)
+            # Session XXVII (2026-05-12, late): ROUND COUNTERS ADDED.
+            #   The XXVI wipe missed the OpenClaw fields (openclaw_total_rounds,
+            #   openclaw_approved_rounds, openclaw_rejected_rounds) on BotConfig.
+            #   Combined with the load/wipe ordering race in main.py startup,
+            #   consensus_service persisted pre-wipe round counters back to DB
+            #   after every consensus round, so "Total Rounds" stayed high
+            #   (13,569 observed). Fixed here by:
+            #     (a) zeroing the openclaw_* fields in this wipe,
+            #     (b) deferring consensus_service.load_from_db() to AFTER wipe,
+            #     (c) bumping threshold so wipe re-runs once on next deploy.
+            FOSSIL_CLEANUP_THRESHOLD = datetime(2026, 5, 12, 20, 40, 0, tzinfo=_tz.utc)
 
             async with AsyncSessionLocal() as db:
                 _existing = await db.execute(_select(_Strategy).limit(1))
@@ -168,20 +178,26 @@ async def lifespan(app: FastAPI):
                     _del_result = await db.execute(
                         Trade.__table__.delete().where(Trade.tx_hash.is_(None))
                     )
-                    # Session XXVI: ALSO zero the BotConfig singleton counters.
-                    # Without this, Dashboard drifts from the trades table on
-                    # the next cycle because BotConfig was never reset.
+                    # Session XXVI: zero BotConfig singleton counters.
+                    # Session XXVII: ALSO zero OpenClaw round counters — the
+                    # prior wipe left them intact, so "Total Rounds" kept
+                    # climbing. consensus_service.load_from_db() is now called
+                    # AFTER this block (see below), so it reads zeros.
                     _bot_reset = await db.execute(update(BotConfig).values(
-                        total_trades      = 0,
-                        successful_trades = 0,
-                        total_pnl         = 0.0,
-                        daily_trades      = 0,
+                        total_trades             = 0,
+                        successful_trades        = 0,
+                        total_pnl                = 0.0,
+                        daily_trades             = 0,
+                        openclaw_total_rounds    = 0,
+                        openclaw_approved_rounds = 0,
+                        openclaw_rejected_rounds = 0,
                     ))
                     logger.warning(
-                        f"FORCE_PAPER_MODE: TRUE CLEAN SLATE (Session XXVI) — "
+                        f"FORCE_PAPER_MODE: TRUE CLEAN SLATE (Session XXVII) — "
                         f"zeroed {12} Strategy rows + deleted "
                         f"{_del_result.rowcount} paper trades + "
-                        f"reset {_bot_reset.rowcount} BotConfig singleton. "
+                        f"reset {_bot_reset.rowcount} BotConfig singleton "
+                        f"(incl. OpenClaw round counters). "
                         f"New Zero Day: {_reset_ts.isoformat()}."
                     )
                 else:
@@ -195,6 +211,17 @@ async def lifespan(app: FastAPI):
             )
         except Exception as _e:
             logger.error(f"Force paper mode startup reset failed: {_e}")
+
+    # ── Restore OpenClaw round counter from DB (DEFERRED) ────────────────────
+    # Runs AFTER the FORCE_PAPER_MODE wipe so that when a wipe happens, the
+    # consensus_service loads zeroed counters into memory instead of the
+    # pre-wipe values (which would otherwise be persisted back and undo the
+    # wipe on the next round). Session XXVII fix.
+    try:
+        from services.consensus_service import consensus_service as _cs
+        await _cs.load_from_db()
+    except Exception as _e:
+        logger.warning(f"OpenClaw round counter restore failed: {_e}")
 
     # ── Schedule all heavy services as background task ───────────────────────
     # Fires AFTER yield — guarantees /health responds before any I/O starts.

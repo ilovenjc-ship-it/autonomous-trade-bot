@@ -1,9 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
-  AreaChart, Area, LineChart, Line, BarChart, Bar, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine,
-} from 'recharts'
-import {
   TrendingUp, TrendingDown, Activity, BarChart2,
   Award, RefreshCw, ChevronUp, ChevronDown, Clock,
   ArrowUp, ArrowDown, Minus,
@@ -12,6 +8,10 @@ import clsx from 'clsx'
 import api from '@/api/client'
 import SubnetHeatMap from '@/components/SubnetHeatMap'
 import { useBotStore } from '@/store/botStore'
+
+// Session XXVII: Recharts imports removed — Rolling Win Rate chart moved to
+// PnL Summary. Network Analytics now serves as subnet + strategy metrics
+// only, no on-page chart rendering (hence no recharts dependency).
 
 // ── Top Subnets (relocated from Agent Fleet) ──────────────────────────────────
 interface Subnet {
@@ -73,13 +73,6 @@ function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
   )
 }
 
-// ── colours ───────────────────────────────────────────────────────────────────
-const C_GREEN  = '#00ff88'
-const C_BLUE   = '#3b9eff'
-const C_RED    = '#ff4757'
-const C_YELLOW = '#ffd700'
-const C_PURPLE = '#a78bfa'
-
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Summary {
   total_trades: number
@@ -105,8 +98,7 @@ interface StrategyStat {
   worst_trade: number
 }
 
-interface EquityPoint  { time: string; pnl: number; cumulative: number; strategy: string }
-interface WinRatePoint  { time: string; win_rate: number; n: number }
+// Session XXVII: EquityPoint + WinRatePoint types removed (charts relocated).
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 function fmt(n: number, dec = 4) {
@@ -146,24 +138,11 @@ function WinRateBadge({ rate }: { rate: number }) {
   )
 }
 
-// ── custom tooltip ─────────────────────────────────────────────────────────────
-function EquityTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-xs font-mono">
-      <p className="text-slate-300 mb-1">{label}</p>
-      <p className="text-accent-green">Cumulative: {fmt(payload[0]?.value, 4)} TAO</p>
-      <p className="text-blue-400">Trade PnL: {fmt(payload[1]?.value ?? 0, 6)}</p>
-    </div>
-  )
-}
-
-
+// Session XXVII: EquityTooltip + WrWindow removed with chart relocations.
 
 // ── sort types ────────────────────────────────────────────────────────────────
 type SortKey    = 'total_pnl' | 'win_rate' | 'total_trades' | 'best_trade' | 'worst_trade'
 type TimeRange  = '1h' | '6h' | '24h' | '7d' | 'all'
-type WrWindow   = 10 | 20 | 50
 
 const TIME_RANGE_HOURS: Record<TimeRange, number> = {
   '1h': 1, '6h': 6, '24h': 24, '7d': 168, 'all': 0,
@@ -173,21 +152,20 @@ const TIME_RANGE_HOURS: Record<TimeRange, number> = {
 export default function Analytics() {
   const [summary,    setSummary]    = useState<Summary | null>(null)
   const [strategies, setStrategies] = useState<StrategyStat[]>([])
-  const [equity,     setEquity]     = useState<EquityPoint[]>([])
-  const [winRate,    setWinRate]    = useState<WinRatePoint[]>([])
   const [loading,    setLoading]    = useState(true)
   const [fetchErrors, setFetchErrors] = useState<string[]>([])
   const [sortKey,    setSortKey]    = useState<SortKey>('total_pnl')
   const [sortAsc,    setSortAsc]    = useState(false)
-  // Session XXVI: Drawdown relocated to Dashboard. Only 'winrate' remains here.
-  const [activeChart] = useState<'winrate'>('winrate')
   const [timeRange,  setTimeRange]  = useState<TimeRange>('all')
-  const [wrWindow,   setWrWindow]   = useState<WrWindow>(20)
   const [subnets,    setSubnets]    = useState<Subnet[]>([])
 
   const setAnalyticsStats = useBotStore(s => s.setAnalyticsStats)
 
-  const load = useCallback(async (range: TimeRange = timeRange, window: WrWindow = wrWindow) => {
+  // Session XXVII: dropped /analytics/equity and /analytics/rolling-winrate
+  // fetches from this page — charts moved to Dashboard (Drawdown, XXVI) and
+  // PnL Summary (Rolling Win Rate, XXVII). Network Analytics now only needs
+  // summary + strategy leaderboard data.
+  const load = useCallback(async (range: TimeRange = timeRange) => {
     setLoading(true)
     setFetchErrors([])
     const h = TIME_RANGE_HOURS[range]
@@ -196,8 +174,6 @@ export default function Analytics() {
     const results = await Promise.allSettled([
       api.get(`/analytics/summary${hoursParam}`),
       api.get('/analytics/strategies'),
-      api.get(`/analytics/equity${hoursParam}`),
-      api.get(`/analytics/rolling-winrate?window=${window}${h > 0 ? `&hours=${h}` : ''}`),
     ])
 
     const errors: string[] = []
@@ -208,15 +184,9 @@ export default function Analytics() {
     if (results[1].status === 'fulfilled') setStrategies(results[1].value.data)
     else errors.push('Strategies')
 
-    if (results[2].status === 'fulfilled') setEquity(results[2].value.data)
-    else errors.push('Equity curve')
-
-    if (results[3].status === 'fulfilled') setWinRate(results[3].value.data)
-    else errors.push('Rolling win rate')
-
     if (errors.length) setFetchErrors(errors)
     setLoading(false)
-  }, [timeRange, wrWindow])
+  }, [timeRange])
 
   useEffect(() => { load() }, [load])
 
@@ -235,13 +205,8 @@ export default function Analytics() {
 
   const handleTimeRange = useCallback((r: TimeRange) => {
     setTimeRange(r)
-    load(r, wrWindow)
-  }, [load, wrWindow])
-
-  function handleWrWindow(w: WrWindow) {
-    setWrWindow(w)
-    load(timeRange, w)
-  }
+    load(r)
+  }, [load])
 
   // Push stats + time-range control into shared store so Layout top bar can display them
   useEffect(() => {
@@ -271,11 +236,6 @@ export default function Analytics() {
       ? <ChevronUp   size={10} className="text-accent-blue" />
       : <ChevronDown size={10} className="text-accent-blue" />
   }
-
-  // thin equity data for rendering (show every Nth point if > 200 points)
-  const stride = Math.max(1, Math.floor(equity.length / 200))
-  const equityThin = equity.filter((_, i) => i % stride === 0)
-  const wrThin     = winRate.filter((_, i) => i % stride === 0)
 
   // ── loading ────────────────────────────────────────────────────────────────
   if (loading) return (
@@ -321,63 +281,12 @@ export default function Analytics() {
         </div>
       </div>
 
-      {/* ── Chart area ─────────────────────────────────────────────────────── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-        {/* Session XXVI: Drawdown relocated to Dashboard. Only Rolling Win Rate remains. */}
-        <div className="flex items-center justify-between mb-5">
-          <div className="flex items-center gap-2">
-            <Activity size={14} className="text-accent-blue" />
-            <span className="text-sm font-semibold text-white">Rolling Win Rate</span>
-          </div>
-          {/* Win rate window toggle */}
-          <div className="flex items-center gap-1 bg-dark-700 border border-dark-600 rounded-lg p-0.5">
-            <span className="text-[15px] text-slate-500 font-mono px-1.5">window</span>
-            {([10, 20, 50] as WrWindow[]).map(w => (
-              <button key={w}
-                onClick={() => handleWrWindow(w)}
-                className={clsx(
-                  'px-2.5 py-1 rounded text-[13px] font-mono font-bold transition-colors',
-                  wrWindow === w
-                    ? 'bg-purple-500/20 text-purple-400'
-                    : 'text-slate-400 hover:text-slate-200'
-                )}>
-                {w}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        
-
-        {/* ── Rolling win rate ─────────────────────────────────────────────── */}
-        {activeChart === 'winrate' && (
-          <div>
-            <p className="text-xs text-slate-300 font-mono mb-3 uppercase tracking-widest">
-              Rolling {wrWindow}-trade win rate
-            </p>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={wrThin} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#243450" />
-                <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis domain={[0, 100]} tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}%`} />
-                <ReferenceLine y={55} stroke={C_GREEN}  strokeDasharray="4 4" label={{ value: 'Gate 55%', fill: C_GREEN, fontSize: 10, position: 'insideTopRight' }} />
-                <ReferenceLine y={50} stroke={C_YELLOW} strokeDasharray="4 4" label={{ value: 'Break-even', fill: C_YELLOW, fontSize: 10, position: 'insideBottomRight' }} />
-                <Tooltip
-                  contentStyle={{ background: '#152030', border: '1px solid #243450', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
-                  formatter={(v: any) => [`${v}%`, 'Win Rate']}
-                />
-                <Line dataKey="win_rate" stroke={C_PURPLE} strokeWidth={2} dot={false} name="Win Rate" />
-              </LineChart>
-            </ResponsiveContainer>
-            {/* Legend */}
-            <div className="flex gap-4 mt-2 justify-end text-xs font-mono">
-              <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-accent-green inline-block" /> Gate (55%)</span>
-              <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-yellow-400 inline-block" /> Break-even (50%)</span>
-              <span className="flex items-center gap-1"><span className="w-4 h-0.5 bg-purple-400 inline-block" /> Win Rate</span>
-            </div>
-          </div>
-        )}
-      </div>
+      {/* ── Chart area ─────────────────────────────────────────────────────────
+          Session XXVI: Drawdown relocated to Dashboard.
+          Session XXVII: Rolling Win Rate relocated to PnL Summary (below
+          Cumulative PnL) per partner request. Chart area removed entirely
+          from Network Analytics — this page now focuses on subnet + strategy
+          metrics only. ─────────────────────────────────────────────────── */}
 
       {/* ── Strategy table legend ────────────────────────────────────────────── */}
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 bg-dark-800/70 border border-dark-700/60 rounded-xl text-[12px] font-mono">

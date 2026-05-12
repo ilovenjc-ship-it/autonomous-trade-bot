@@ -299,7 +299,10 @@ export default function Trades() {
             <Zap size={14} className={isLive ? 'text-emerald-400' : 'text-slate-500'} />
             Manual Trade
           </h2>
-          {/* Trading mode pill — lives here, in the Manual Trade header */}
+          {/* Trading mode pill — lives here, in the Manual Trade header.
+              Session XXVII: verbose explainer replaced with minimal static
+              labels per partner request. Paper shows "Simulated USD/ TAO",
+              Live shows "Real USD/ TAO" — no hover, no tooltip, clean. */}
           <div className={clsx(
             'inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[13px] font-mono font-semibold',
             isLive
@@ -308,9 +311,7 @@ export default function Trades() {
           )}>
             <span className={clsx('w-1.5 h-1.5 rounded-full flex-shrink-0',
               isLive ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400')} />
-            {isLive
-              ? 'LIVE — real add_stake() on Finney'
-              : 'Paper Trading · uses Simulated USD · no real TAO moves'}
+            {isLive ? 'Real USD/ TAO' : 'Simulated USD/ TAO'}
           </div>
         </div>
 

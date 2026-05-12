@@ -750,16 +750,18 @@ export default function OpenClaw() {
               Session XXVI: Manual Trigger moved to BELOW Votes. */}
           <div className="flex items-center gap-3">
 
-            {/* Center — triggered by · price */}
+            {/* Center — Triggered By · price
+                Session XXVII: "triggered by" (lowercase) renamed to
+                "Triggered By" (title case) per partner request. */}
             <div className="flex-1 flex items-center gap-2 font-mono text-xs text-slate-300">
               <span className="flex items-center gap-1.5">
-                triggered by
+                <span className="uppercase tracking-wider text-[11px] text-slate-400 font-semibold">Triggered By</span>
                 <InfoBubble
                   side="right"
                   maxWidth={280}
                   content={
                     <div className="space-y-1.5">
-                      <p className="text-white font-bold">What does "triggered by" mean?</p>
+                      <p className="text-white font-bold">What does "Triggered By" mean?</p>
                       <p>Shows <span className="text-indigo-300">what initiated this consensus round</span>:</p>
                       <p><span className="text-emerald-400 font-bold">cycle_engine</span> — the autonomous 60-second trade cycle fired a strategy signal strong enough to call a vote.</p>
                       <p><span className="text-sky-400 font-bold">manual_ui</span> — you pressed the Trigger BUY/SELL button below.</p>

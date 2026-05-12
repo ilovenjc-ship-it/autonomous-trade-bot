@@ -13,6 +13,7 @@ import { TrendingUp, Activity, Trophy, ArrowUp, ArrowDown, Target, Edit3, BarCha
 import clsx from 'clsx'
 import api from '@/api/client'
 import toast from 'react-hot-toast'
+import RollingWinRateChart from '@/components/RollingWinRateChart'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -574,6 +575,10 @@ export default function PnLSummary() {
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* ── Rolling Win Rate — Session XXVII: relocated from Network Analytics,
+              placed directly below Cumulative PnL per partner request ───── */}
+      <RollingWinRateChart hours={0} height={260} />
 
       </div>{/* end scrollable */}
     </div>

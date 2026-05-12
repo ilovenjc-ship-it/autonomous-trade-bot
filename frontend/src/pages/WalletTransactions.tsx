@@ -470,6 +470,15 @@ export default function WalletTransactions() {
         />
       </div>
 
+      {/* ── Staking + Live Positions (Session XXVII: relocated here from
+              bottom of page, above the Chain-Transfer-unavailable banner,
+              per partner request — keeps primary portfolio data front and
+              center before any chain-fetch caveats) ─────────────────────── */}
+      <div className="px-6 pb-3 space-y-4">
+        <StakingPositionsPanel />
+        <LivePositionsPanel />
+      </div>
+
       {/* Chain error banner */}
       {data?.chain_error && (
         <div className="mx-6 mb-3 px-4 py-3 bg-amber-500/10 border border-amber-500/30
@@ -822,11 +831,8 @@ export default function WalletTransactions() {
         )}
       </div>
 
-      {/* ── Staking + Live Positions (relocated from PnL Summary, Session XXVI) ── */}
-      <div className="px-6 pb-6 space-y-4">
-        <StakingPositionsPanel />
-        <LivePositionsPanel />
-      </div>
+      {/* Session XXVII: Staking + Live Positions panels relocated upward
+          (see comment near line 473). No duplicate render here. */}
 
       {/* Add Funding Modal */}
       {showModal && (
