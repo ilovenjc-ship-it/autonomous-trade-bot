@@ -128,51 +128,77 @@ async def manual_trade(payload: ManualTradeRequest):
 
 @router.get("/stats")
 async def trade_stats(db: AsyncSession = Depends(get_db)):
-    total = (await db.execute(select(func.count()).select_from(Trade))).scalar()
-    executed = (
-        await db.execute(
-            select(func.count()).select_from(Trade).where(Trade.status == "executed")
-        )
-    ).scalar()
-    failed = (
-        await db.execute(
-            select(func.count()).select_from(Trade).where(Trade.status == "failed")
-        )
-    ).scalar()
-    buys = (
-        await db.execute(
-            select(func.count()).select_from(Trade).where(Trade.trade_type == "buy")
-        )
-    ).scalar()
-    sells = (
-        await db.execute(
-            select(func.count()).select_from(Trade).where(Trade.trade_type == "sell")
-        )
-    ).scalar()
-    total_volume = (
-        await db.execute(
-            select(func.sum(Trade.usd_value)).select_from(Trade).where(
-                Trade.status == "executed"
-            )
-        )
-    ).scalar()
-    total_pnl = (
-        await db.execute(
-            select(func.sum(Trade.pnl)).select_from(Trade).where(
-                Trade.status == "executed"
-            )
-        )
-    ).scalar()
+    """
+    Single source of truth for Dashboard + Manual Trades stats.
+
+    Session XXVI fixes:
+      • `win_rate` is now an ACTUAL win rate (wins / executed where pnl > 0).
+        Previously returned executed / total (which was execution success rate,
+        always ~100% for paper). Labeled incorrectly as "Win Rate" on UI.
+      • `total_pnl` is split into `total_pnl_tau` and `total_pnl_usd`.
+        `Trade.pnl` is stored in τ units (see cycle_service:951 —
+        `pnl = net_return * amount` where amount is stake in τ). Previously
+        the τ value was returned as "total_pnl_usd" — a 300x unit error.
+      • Counts are now COUNT(*) against the trades table (not BotConfig
+        singleton). Matches what /api/pnl/summary reports.
+    """
+    from services.price_service import price_service as _ps
+    from models.strategy import Strategy as _Strategy
+    TAO_USD_FALLBACK = 259.31
+    tao_price = float(_ps.current_price or TAO_USD_FALLBACK)
+
+    # Session XXVI: honor the same stats_reset_at cutoff as /api/analytics/summary.
+    # Prevents drift between Dashboard and Manual Trades after /reset-paper-stats
+    # zeroes counters without purging the trades table.
+    reset_at = (await db.execute(
+        select(func.min(_Strategy.stats_reset_at))
+    )).scalar_one_or_none()
+
+    def _scoped():
+        q = select(func.count()).select_from(Trade)
+        if reset_at is not None:
+            q = q.where(Trade.executed_at >= reset_at)
+        return q
+
+    def _scoped_sum(col):
+        q = select(func.sum(col)).select_from(Trade).where(Trade.status == "executed")
+        if reset_at is not None:
+            q = q.where(Trade.executed_at >= reset_at)
+        return q
+
+    def _scoped_count_where(*extra):
+        q = select(func.count()).select_from(Trade)
+        for c in extra:
+            q = q.where(c)
+        if reset_at is not None:
+            q = q.where(Trade.executed_at >= reset_at)
+        return q
+
+    total    = (await db.execute(_scoped())).scalar() or 0
+    executed = (await db.execute(_scoped_count_where(Trade.status == "executed"))).scalar() or 0
+    failed   = (await db.execute(_scoped_count_where(Trade.status == "failed"))).scalar() or 0
+    buys     = (await db.execute(_scoped_count_where(Trade.trade_type == "buy"))).scalar() or 0
+    sells    = (await db.execute(_scoped_count_where(Trade.trade_type == "sell"))).scalar() or 0
+    wins     = (await db.execute(_scoped_count_where(Trade.status == "executed", Trade.pnl > 0))).scalar() or 0
+    losses   = (await db.execute(_scoped_count_where(Trade.status == "executed", Trade.pnl <= 0))).scalar() or 0
+
+    total_volume_usd = (await db.execute(_scoped_sum(Trade.usd_value))).scalar()
+    total_pnl_tau    = float((await db.execute(_scoped_sum(Trade.pnl))).scalar() or 0.0)
 
     return {
-        "total_trades": total,
-        "executed_trades": executed,
-        "failed_trades": failed,
-        "buy_trades": buys,
-        "sell_trades": sells,
-        "total_volume_usd": float(total_volume or 0),
-        "total_pnl_usd": float(total_pnl or 0),
-        "win_rate": round(executed / total * 100, 1) if total else 0,
+        "total_trades":      total,
+        "executed_trades":   executed,
+        "failed_trades":     failed,
+        "buy_trades":        buys,
+        "sell_trades":       sells,
+        "wins":              wins,
+        "losses":            losses,
+        "total_volume_usd":  round(float(total_volume_usd or 0), 4),
+        "total_pnl_tau":     round(total_pnl_tau, 6),
+        "total_pnl_usd":     round(total_pnl_tau * tao_price, 4),
+        "win_rate":          round(wins / executed * 100, 1) if executed else 0.0,
+        "exec_success_rate": round(executed / total * 100, 1) if total else 0.0,
+        "tao_price_usd":     round(tao_price, 4),
     }
 
 

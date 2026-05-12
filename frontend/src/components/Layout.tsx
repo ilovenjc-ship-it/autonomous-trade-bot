@@ -2,8 +2,8 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import {
   LayoutDashboard, ArrowLeftRight, TrendingUp,
-  Settings, Wallet, Activity, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
-  Mic, Send, ChevronDown, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw,
+  Wallet, Activity, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
+  Mic, Send, ChevronDown, ChevronRight, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw,
   Landmark,
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
@@ -15,15 +15,16 @@ import NotificationBell from '@/components/NotificationBell'
 import TickerTape from '@/components/TickerTape'
 
 // ── Page title map ─────────────────────────────────────────────────────────────
+// Session XXVI: Trades → Manual Trades, Analytics → Network Analytics, Settings removed.
 const PAGE_TITLES: Record<string, string> = {
   '/':                     'Dashboard',
   '/ii-agent':             'II Agent',
   '/openclaw':             'OpenClaw BFT',
   '/fleet':                'Agent Fleet',
   '/alerts':               'Alerts',
-  '/trades':               'Trades',
+  '/trades':               'Manual Trades',
   '/trade-log':            'Trade Log',
-  '/analytics':            'Analytics',
+  '/analytics':            'Network Analytics',
   '/pnl':                  'P&L Summary',
   '/market':               'Market Data',
   '/strategies':           'Strategies',
@@ -31,12 +32,14 @@ const PAGE_TITLES: Record<string, string> = {
   '/risk':                 'Risk Config',
   '/wallet':               'Wallet',
   '/wallet-transactions':  'Transactions',
-  '/settings':             'Settings',
   '/override':             'Human Override',
 }
 
 // ── Sidebar structure ──────────────────────────────────────────────────────
-// Grouped for visual scannability. Order & grouping set Session XXV per Commander.
+// Session XXVI: Collapsible groups (all collapsed by default on first load),
+// state persisted in localStorage. New grouping:
+//   OVERVIEW / INTELLIGENCE / EXECUTION / PERFORMANCE / SUBNETS / ACTIVITIES
+//   / ADMIN / ACTION. Settings removed entirely. OpenClaw moved to EXECUTION.
 type NavItem = { to: string; icon: any; label: string; badge?: boolean; danger?: boolean }
 type NavGroup = { heading: string; items: NavItem[] }
 
@@ -50,32 +53,32 @@ const navGroups: NavGroup[] = [
   {
     heading: 'INTELLIGENCE',
     items: [
-      { to: '/ii-agent',  icon: Brain, label: 'II Agent'     },
-      { to: '/openclaw',  icon: Vote,  label: 'OpenClaw BFT' },
+      { to: '/ii-agent',  icon: Brain, label: 'II Agent' },
     ],
   },
   {
     heading: 'EXECUTION',
     items: [
-      { to: '/fleet',      icon: Bot,        label: 'Agent Fleet' },
-      { to: '/strategies', icon: TrendingUp, label: 'Strategies'  },
+      { to: '/openclaw',   icon: Vote,       label: 'OpenClaw BFT' },
+      { to: '/fleet',      icon: Bot,        label: 'Agent Fleet'  },
+      { to: '/strategies', icon: TrendingUp, label: 'Strategies'   },
     ],
   },
   {
     heading: 'PERFORMANCE',
     items: [
-      { to: '/analytics', icon: BarChart2,   label: 'Analytics'   },
       { to: '/pnl',       icon: DollarSign,  label: 'P&L Summary' },
     ],
   },
   {
-    heading: 'MARKET',
+    heading: 'SUBNETS',
     items: [
-      { to: '/market',    icon: Globe, label: 'Market Data' },
+      { to: '/analytics', icon: BarChart2, label: 'Network Analytics' },
+      { to: '/market',    icon: Globe,     label: 'Market Data'       },
     ],
   },
   {
-    heading: 'EVENTS',
+    heading: 'ACTIVITIES',
     items: [
       { to: '/alerts',    icon: Bell,     label: 'Alerts',      badge: true },
       { to: '/activity',  icon: Activity, label: 'Activity Log' },
@@ -88,17 +91,33 @@ const navGroups: NavGroup[] = [
       { to: '/risk',                icon: Shield,   label: 'Risk Config'  },
       { to: '/wallet',              icon: Wallet,   label: 'Wallet'       },
       { to: '/wallet-transactions', icon: Landmark, label: 'Transactions' },
-      { to: '/settings',            icon: Settings, label: 'Settings'     },
     ],
   },
   {
     heading: 'ACTION',
     items: [
-      { to: '/trades',    icon: ArrowLeftRight, label: 'Trades'                        },
+      { to: '/trades',    icon: ArrowLeftRight, label: 'Manual Trades'                 },
       { to: '/override',  icon: ShieldOff,      label: 'Human Override', danger: true  },
     ],
   },
 ]
+
+// Session XXVI: localStorage key for collapsed-group state
+const SIDEBAR_GROUPS_KEY = 'taobot:sidebar:expanded-groups:v1'
+
+function loadExpandedGroups(pathname: string): Set<string> {
+  // Always expand the group containing the current route, no matter what's stored.
+  // Everything else: read from localStorage, default to empty (all collapsed).
+  const active = navGroups.find(g => g.items.some(i => i.to === pathname))?.heading
+  try {
+    const raw = localStorage.getItem(SIDEBAR_GROUPS_KEY)
+    const set = new Set<string>(raw ? JSON.parse(raw) : [])
+    if (active) set.add(active)
+    return set
+  } catch {
+    return new Set<string>(active ? [active] : [])
+  }
+}
 
 export default function Layout() {
   const status       = useBotStore((s) => s.status)
@@ -118,6 +137,26 @@ export default function Layout() {
   const { pathname }    = useLocation()
   const pageTitle = PAGE_TITLES[pathname]
     ?? (pathname.startsWith('/strategy/') ? 'Strategy Detail' : 'Dashboard')
+
+  // ── Session XXVI: collapsible sidebar groups ─────────────────────────────
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => loadExpandedGroups(pathname))
+  // Re-expand the active route's group when pathname changes (without collapsing others)
+  useEffect(() => {
+    const active = navGroups.find(g => g.items.some(i => i.to === pathname))?.heading
+    if (!active) return
+    setExpandedGroups(prev => {
+      if (prev.has(active)) return prev
+      const next = new Set(prev); next.add(active); return next
+    })
+  }, [pathname])
+  const toggleGroup = useCallback((heading: string) => {
+    setExpandedGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(heading)) next.delete(heading); else next.add(heading)
+      try { localStorage.setItem(SIDEBAR_GROUPS_KEY, JSON.stringify([...next])) } catch {}
+      return next
+    })
+  }, [])
 
   // ── Global status poller — keeps data alive on every page ─────────
   useEffect(() => {
@@ -232,44 +271,69 @@ export default function Layout() {
           </p>
         </div>
 
-        {/* Nav — grouped with heading dividers */}
+        {/* Nav — collapsible groups (Session XXVI)
+            - All groups collapsed on first load (localStorage: empty set).
+            - Current route's group is auto-expanded on navigation.
+            - Click group heading to toggle.
+            - Preference persists across sessions. */}
         <nav className="flex-1 px-3 py-3 overflow-y-auto">
-          {navGroups.map((group, gi) => (
-            <div key={group.heading} className={gi === 0 ? '' : 'mt-3'}>
-              <p className="px-3 pb-1 text-[9px] font-semibold tracking-[0.18em] text-slate-600 uppercase">
-                {group.heading}
-              </p>
-              <div className="space-y-0.5">
-                {group.items.map(({ to, icon: Icon, label, badge, danger }) => (
-                  <NavLink
-                    key={to}
-                    to={to}
-                    end={to === '/'}
-                    className={({ isActive }) =>
-                      clsx(
-                        'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
-                        isActive
-                          ? danger
-                            ? 'bg-red-500/15 text-red-400 font-medium border border-red-500/20'
-                            : 'bg-accent-blue/15 text-accent-blue font-medium'
-                          : danger
-                            ? 'text-red-400/70 hover:text-red-400 hover:bg-red-500/10'
-                            : 'text-slate-300 hover:text-white hover:bg-dark-700'
-                      )
-                    }
-                  >
-                    <Icon size={16} />
-                    <span className="flex-1">{label}</span>
-                    {badge && criticalUnreadCount > 0 && (
-                      <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[13px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
-                        {criticalUnreadCount > 99 ? '99+' : criticalUnreadCount}
-                      </span>
-                    )}
-                  </NavLink>
-                ))}
+          {navGroups.map((group, gi) => {
+            const isExpanded = expandedGroups.has(group.heading)
+            // Does any item in this group have unread-alert badge activity?
+            const groupHasBadge = group.items.some(i => i.badge) && criticalUnreadCount > 0
+            return (
+              <div key={group.heading} className={gi === 0 ? '' : 'mt-2'}>
+                <button
+                  onClick={() => toggleGroup(group.heading)}
+                  className="w-full flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-dark-700/40 transition-colors group"
+                  aria-expanded={isExpanded}
+                >
+                  {isExpanded
+                    ? <ChevronDown  size={11} className="text-slate-500 group-hover:text-slate-300 transition-colors" />
+                    : <ChevronRight size={11} className="text-slate-500 group-hover:text-slate-300 transition-colors" />
+                  }
+                  <span className="text-[10px] font-semibold tracking-[0.18em] text-slate-500 group-hover:text-slate-300 uppercase flex-1 text-left">
+                    {group.heading}
+                  </span>
+                  {/* collapsed-group badge hint — show a dot when something in the hidden group needs attention */}
+                  {!isExpanded && groupHasBadge && (
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" />
+                  )}
+                </button>
+                {isExpanded && (
+                  <div className="space-y-0.5 mt-0.5">
+                    {group.items.map(({ to, icon: Icon, label, badge, danger }) => (
+                      <NavLink
+                        key={to}
+                        to={to}
+                        end={to === '/'}
+                        className={({ isActive }) =>
+                          clsx(
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            isActive
+                              ? danger
+                                ? 'bg-red-500/15 text-red-400 font-medium border border-red-500/20'
+                                : 'bg-accent-blue/15 text-accent-blue font-medium'
+                              : danger
+                                ? 'text-red-400/70 hover:text-red-400 hover:bg-red-500/10'
+                                : 'text-slate-300 hover:text-white hover:bg-dark-700'
+                          )
+                        }
+                      >
+                        <Icon size={16} />
+                        <span className="flex-1">{label}</span>
+                        {badge && criticalUnreadCount > 0 && (
+                          <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[13px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
+                            {criticalUnreadCount > 99 ? '99+' : criticalUnreadCount}
+                          </span>
+                        )}
+                      </NavLink>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            )
+          })}
         </nav>
 
         {/* II Agent Orb — compact so Human Override is fully visible */}
@@ -540,13 +604,7 @@ export default function Layout() {
                   </span>
                 </>
               )}
-              {/* Settings subtitle */}
-              {pathname === '/settings' && (
-                <>
-                  <span className="text-slate-600 select-none">·</span>
-                  <span className="text-xs font-mono text-slate-400 leading-none">Bot behaviour, trade sizing, network identity</span>
-                </>
-              )}
+              {/* Settings page deleted (Session XXVI) — subtitle no longer rendered */}
               {/* Risk Config subtitle */}
               {pathname === '/risk' && (
                 <>
@@ -609,7 +667,7 @@ export default function Layout() {
                   || liveCount === 0
                 return isPaper ? (
                   <span className="px-2.5 py-1 rounded-md bg-yellow-500/15 border border-yellow-500/40 text-sm font-bold font-mono text-yellow-400 leading-none tracking-wide">
-                    ⚠ Paper Trading — Simulated USD
+                    ⚠ Paper Trading
                   </span>
                 ) : (
                   <span className="px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-sm font-bold font-mono text-emerald-400 leading-none tracking-wide">
@@ -784,8 +842,8 @@ export default function Layout() {
               )} />
             )}
             {botBusy
-              ? (isRunning ? 'STOPPING…' : 'STARTING…')
-              : isRunning ? 'BOT RUNNING' : 'BOT STOPPED'}
+              ? (isRunning ? 'Stopping…' : 'Starting…')
+              : isRunning ? 'Run Bot' : 'Bot Stopped'}
           </div>
 
           {/* Stop / Start Bot — Command Dashboard sizing */}

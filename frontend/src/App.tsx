@@ -5,7 +5,7 @@ import Dashboard from './pages/Dashboard'
 import Trades from './pages/Trades'
 import Strategies from './pages/Strategies'
 import WalletPage from './pages/Wallet'
-import Settings from './pages/Settings'
+
 
 import AgentFleet from './pages/AgentFleet'
 import RiskConfig from './pages/RiskConfig'
@@ -62,7 +62,7 @@ export default function App() {
           <Route path="/strategies"      element={<Strategies />}     />
           <Route path="/wallet"              element={<WalletPage />}          />
           <Route path="/wallet-transactions" element={<WalletTransactions />}  />
-          <Route path="/settings"            element={<Settings />}            />
+          {/* Settings route removed — content absorbed into Human Override + Trades + Wallet (Session XXVI) */}
         </Route>
       </Routes>
     </BrowserRouter>

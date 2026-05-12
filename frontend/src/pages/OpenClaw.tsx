@@ -735,34 +735,7 @@ export default function OpenClaw() {
         </div>
       </div>
 
-      {/* ── Promotion Gate (relocated to top, per Session XXV spec) ── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
-        <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
-          <Shield size={13} className="text-yellow-400" /> Promotion Gate
-          <span className="ml-1 text-[11px] text-slate-500 font-mono normal-case font-normal">
-            — criteria a strategy must clear before any real trade fires
-          </span>
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-400">
-          {[
-            { n: '① Cycles ≥ 30',    desc: 'Must complete ≥ 30 honest evaluation cycles' },
-            { n: '② Win Rate ≥ 55%', desc: 'Must sustain >55% WR under honest physics' },
-            { n: '③ Win Margin ≥ 5', desc: 'Wins must exceed losses by ≥ 5' },
-            { n: '④ PnL > 0.01 τ',   desc: 'Cumulative PnL must exceed noise threshold' },
-          ].map(({ n, desc }) => (
-            <div key={n} className="space-y-0.5">
-              <p className="text-white font-mono text-[14px]">{n}</p>
-              <p className="leading-relaxed text-[14px]">{desc}</p>
-            </div>
-          ))}
-        </div>
-        <p className="text-[13px] text-slate-500 mt-3">
-          Gate pass → <span className="text-orange-400">⏳ PENDING</span> →
-          Operator approves → <span className="text-accent-green">● LIVE</span>.
-          No strategy goes LIVE without human confirmation.
-        </p>
-      </div>
-
+      {/* Promotion Gate relocated to just above Consensus History per Session XXVI */}
 
       {/* ── Council + Latest Round — 2-column: round detail full width (council on II Agent) ── */}
       <div className="grid grid-cols-1 gap-4 items-start">
@@ -773,47 +746,12 @@ export default function OpenClaw() {
           'bg-dark-800 border rounded-2xl p-5 space-y-5 transition-all duration-500',
           flashRound ? 'border-indigo-500/60 shadow-lg shadow-indigo-500/10' : 'border-dark-600',
         )}>
-          {/* Round header — 3-column: [triggers left] [triggered-by center] [result right] */}
+          {/* Round header — 2-column: [triggered-by center] [result right]
+              Session XXVI: Manual Trigger moved to BELOW Votes. */}
           <div className="flex items-center gap-3">
 
-            {/* Left — Manual trigger controls */}
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 uppercase tracking-widest">
-                Manual trigger:
-                <InfoBubble
-                  side="right"
-                  maxWidth={300}
-                  content={
-                    <div className="space-y-2">
-                      <p className="text-white font-bold">What do Trigger BUY / SELL actually do?</p>
-                      <p>They fire a <span className="text-purple-300 font-bold">test consensus round</span> — no real trade is placed automatically.</p>
-                      <p>They ask all 12 bots: <span className="text-slate-200 italic">"If the proposed direction is BUY (or SELL), how do you each vote?"</span> Each bot runs its own indicators and returns a vote.</p>
-                      <p><span className="text-emerald-400 font-bold">BUY</span> = you're proposing to stake TAO onto a subnet (go long). <span className="text-red-400 font-bold">SELL</span> = you're proposing to unstake / exit the position.</p>
-                      <p className="text-slate-400 text-[11px] border-t border-slate-700/50 pt-1">If 7+ bots agree → APPROVED. If not → REJECTED. In production, the cycle engine triggers these automatically when a strategy fires a signal.</p>
-                    </div>
-                  }
-                />
-              </span>
-              <button
-                onClick={() => handleTrigger('BUY')}
-                disabled={triggering}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
-              >
-                <TrendingUp size={12} />
-                {triggering ? 'Voting…' : 'Trigger BUY'}
-              </button>
-              <button
-                onClick={() => handleTrigger('SELL')}
-                disabled={triggering}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50"
-              >
-                <TrendingDown size={12} />
-                {triggering ? 'Voting…' : 'Trigger SELL'}
-              </button>
-            </div>
-
             {/* Center — triggered by · price */}
-            <div className="flex-1 flex items-center justify-center gap-2 font-mono text-xs text-slate-300">
+            <div className="flex-1 flex items-center gap-2 font-mono text-xs text-slate-300">
               <span className="flex items-center gap-1.5">
                 triggered by
                 <InfoBubble
@@ -824,7 +762,7 @@ export default function OpenClaw() {
                       <p className="text-white font-bold">What does "triggered by" mean?</p>
                       <p>Shows <span className="text-indigo-300">what initiated this consensus round</span>:</p>
                       <p><span className="text-emerald-400 font-bold">cycle_engine</span> — the autonomous 60-second trade cycle fired a strategy signal strong enough to call a vote.</p>
-                      <p><span className="text-sky-400 font-bold">manual_ui</span> — you pressed the Trigger BUY/SELL button above.</p>
+                      <p><span className="text-sky-400 font-bold">manual_ui</span> — you pressed the Trigger BUY/SELL button below.</p>
                       <p><span className="text-purple-400 font-bold">strategy_name</span> — a specific bot's signal escalated directly to a vote.</p>
                     </div>
                   }
@@ -886,6 +824,42 @@ export default function OpenClaw() {
               ))}
             </div>
           </div>
+
+          {/* Manual Trigger — Session XXVI: relocated to BELOW the Votes section */}
+          <div className="pt-4 mt-2 border-t border-dark-700 flex items-center gap-2 flex-wrap">
+            <span className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 uppercase tracking-widest">
+              Manual trigger:
+              <InfoBubble
+                side="right"
+                maxWidth={300}
+                content={
+                  <div className="space-y-2">
+                    <p className="text-white font-bold">What do Trigger BUY / SELL actually do?</p>
+                    <p>They fire a <span className="text-purple-300 font-bold">test consensus round</span> — no real trade is placed automatically.</p>
+                    <p>They ask all 12 bots: <span className="text-slate-200 italic">"If the proposed direction is BUY (or SELL), how do you each vote?"</span> Each bot runs its own indicators and returns a vote.</p>
+                    <p><span className="text-emerald-400 font-bold">BUY</span> = you're proposing to stake TAO onto a subnet (go long). <span className="text-red-400 font-bold">SELL</span> = you're proposing to unstake / exit the position.</p>
+                    <p className="text-slate-400 text-[11px] border-t border-slate-700/50 pt-1">If 7+ bots agree → APPROVED. If not → REJECTED. In production, the cycle engine triggers these automatically when a strategy fires a signal.</p>
+                  </div>
+                }
+              />
+            </span>
+            <button
+              onClick={() => handleTrigger('BUY')}
+              disabled={triggering}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
+            >
+              <TrendingUp size={12} />
+              {triggering ? 'Voting…' : 'Trigger BUY'}
+            </button>
+            <button
+              onClick={() => handleTrigger('SELL')}
+              disabled={triggering}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50"
+            >
+              <TrendingDown size={12} />
+              {triggering ? 'Voting…' : 'Trigger SELL'}
+            </button>
+          </div>
         </div>
       ) : (
           <div className="bg-dark-800 border border-dark-600 rounded-2xl p-10 text-center">
@@ -900,6 +874,34 @@ export default function OpenClaw() {
       {/* Vote Breakdown + Approval Trend charts removed per Session XXV spec —
           vote counts remain visible on the Latest Round panel; approval trend
           is captured by the Approval Rate stat card + Consensus History table. */}
+
+      {/* ── Promotion Gate (Session XXVI: relocated to just above Consensus History) ── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-xl p-4">
+        <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
+          <Shield size={13} className="text-yellow-400" /> Promotion Gate
+          <span className="ml-1 text-[11px] text-slate-500 font-mono normal-case font-normal">
+            — criteria a strategy must clear before any real trade fires
+          </span>
+        </h2>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs text-slate-400">
+          {[
+            { n: '① Cycles ≥ 30',    desc: 'Must complete ≥ 30 honest evaluation cycles' },
+            { n: '② Win Rate ≥ 55%', desc: 'Must sustain >55% WR under honest physics' },
+            { n: '③ Win Margin ≥ 5', desc: 'Wins must exceed losses by ≥ 5' },
+            { n: '④ PnL > 0.01 τ',   desc: 'Cumulative PnL must exceed noise threshold' },
+          ].map(({ n, desc }) => (
+            <div key={n} className="space-y-0.5">
+              <p className="text-white font-mono text-[14px]">{n}</p>
+              <p className="leading-relaxed text-[14px]">{desc}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-[13px] text-slate-500 mt-3">
+          Gate pass → <span className="text-orange-400">⏳ PENDING</span> →
+          Operator approves → <span className="text-accent-green">● LIVE</span>.
+          No strategy goes LIVE without human confirmation.
+        </p>
+      </div>
 
       {/* ── History Table (paginated per Session XXV spec) ── */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden">

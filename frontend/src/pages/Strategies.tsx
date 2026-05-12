@@ -660,39 +660,8 @@ export default function Strategies() {
         </div>
       )}
 
-      {/* (Strategy Mode Override relocated to Settings page, per Session XXV spec) */}
-
-      {/* ── Strategy PnL Distribution (relocated from Analytics, per Session XXV spec) ── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-        <h2 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
-          <BarChart2 size={13} className="text-accent-green" />
-          Strategy PnL Distribution
-          <span className="ml-auto text-[13px] text-slate-500 font-mono">sorted by total PnL (τ)</span>
-        </h2>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={[...strategies].sort((a, b) => b.total_pnl - a.total_pnl)}
-            margin={{ top: 5, right: 10, left: 10, bottom: 40 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#243450" vertical={false} />
-            <XAxis dataKey="display_name" tick={{ fill: "#64748b", fontSize: 9 }}
-              tickLine={false} axisLine={false} angle={-30} textAnchor="end" interval={0} height={50} />
-            <YAxis tick={{ fill: "#64748b", fontSize: 10 }} tickLine={false} axisLine={false}
-              tickFormatter={(v: number) => v.toFixed(3)} />
-            <ReferenceLine y={0} stroke="#334155" />
-            <Tooltip contentStyle={{ background: "#152030", border: "1px solid #243450", borderRadius: 8, fontSize: 12, fontFamily: "monospace" }}
-              formatter={(v: any) => [(v as number).toFixed(4) + "τ", "Total PnL"]} />
-            <Bar dataKey="total_pnl" radius={[4, 4, 0, 0]}>
-              {[...strategies].sort((a, b) => b.total_pnl - a.total_pnl).map(s => (
-                <Cell key={s.name} fill={s.total_pnl >= 0 ? "#10b981" : "#f87171"} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-        <div className="flex gap-4 mt-2 justify-end text-xs font-mono text-slate-300">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-accent-green inline-block" /> Positive</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
-        </div>
-      </div>
-
+      {/* Strategy Mode Override relocated to Human Override (Session XXVI) */}
+      {/* Strategy PnL Distribution relocated to P&L Summary (Session XXVI) */}
 
       </div>{/* end scrollable */}
     </div>

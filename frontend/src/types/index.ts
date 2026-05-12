@@ -63,9 +63,16 @@ export interface TradeStats {
   failed_trades: number
   buy_trades: number
   sell_trades: number
+  wins: number
+  losses: number
   total_volume_usd: number
+  total_pnl_tau: number
   total_pnl_usd: number
+  /** Real win rate: wins / executed where pnl > 0. */
   win_rate: number
+  /** Execution success rate: executed / total. Was incorrectly labeled "win_rate" pre-Session XXVI. */
+  exec_success_rate: number
+  tao_price_usd: number
 }
 
 export interface PriceData {

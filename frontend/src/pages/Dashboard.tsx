@@ -7,6 +7,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import api from '@/api/client'
+import DrawdownChart from '@/components/DrawdownChart'
 
 // ── intelligence types ────────────────────────────────────────────────────────
 interface AgentStatus { current_regime: string; regime_color: string; analysis_count: number; total_pnl: number }
@@ -77,14 +78,16 @@ function fmt(n: number, d = 4) {
 
 
 // ── TradingView TAO Chart ─────────────────────────────────────────────────────
-function TaoTradingViewChart() {
+// Session XXVI: accepts heightClass prop so Dashboard can render at 2× height
+// (full-width, tall) while other callers keep the default.
+function TaoTradingViewChart({ heightClass = 'h-[320px]' }: { heightClass?: string } = {}) {
   const src = "https://s.tradingview.com/widgetembed/?frameElementId=tv_tao" +
     "&symbol=BINANCE%3ATAOUSDT&interval=60&hidesidetoolbar=0&symboledit=0" +
     "&saveimage=0&toolbarbg=152030&studies=%5B%5D&theme=dark&style=1&timezone=Etc%2FUTC" +
     "&studies_overrides=%7B%7D&overrides=%7B%7D&enabled_features=%5B%5D" +
     "&disabled_features=%5B%5D&locale=en&utm_source=localhost&utm_medium=widget"
   return (
-    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-2 flex flex-col">
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h2 className="text-sm font-semibold text-white flex items-center gap-2">
           <TrendingUp size={14} className="text-accent-green" />
@@ -99,14 +102,14 @@ function TaoTradingViewChart() {
           Open Full ↗
         </a>
       </div>
-      <div className="flex-1 rounded-lg overflow-hidden" style={{ minHeight: 260 }}>
+      <div className={clsx('flex-1 rounded-lg overflow-hidden', heightClass)}>
         <iframe
           id="tv_tao"
           src={src}
           title="TAO/USDT TradingView Chart"
           width="100%"
           height="100%"
-          style={{ border: 'none', minHeight: 260, display: 'block' }}
+          style={{ border: 'none', display: 'block' }}
           allowFullScreen
         />
       </div>
@@ -601,8 +604,11 @@ export default function Dashboard() {
   // ── Static card-grid computed values ───────────────────────────────────────
   const _up24h         = (change24h ?? 0) >= 0
   const _approvalRate  = consensusStats?.approval_rate_pct ?? 0
-  // Paper Day counter — counts from Zero Day (Session XXV, 2026-05-11 fossil wipe)
-  const ZERO_DAY_UTC   = new Date('2026-05-11T10:00:00Z').getTime()
+  // Paper Day counter — counts from Zero Day.
+  // Session XXVI (2026-05-12): True Clean Slate wipe re-established the baseline.
+  // Previous wipe (Session XXV, 2026-05-11) missed the BotConfig singleton and
+  // drifted immediately. Today's wipe is the honest start.
+  const ZERO_DAY_UTC   = new Date('2026-05-12T12:00:00Z').getTime()
   const paperDay       = Math.max(1, Math.floor((Date.now() - ZERO_DAY_UTC) / 86_400_000) + 1)
   const totalPnl       = summary?.total_pnl ?? 0
   const winRate        = summary?.win_rate ?? 0
@@ -640,113 +646,13 @@ export default function Dashboard() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          OPERATOR STATIC CARDS — 10 cards in 2 rows of 5 (Session XXV spec)
-          Row 1 — Market:  TAO/USD · 24h Change · Total PnL · Win Rate · Total Trades
-          Row 2 — System:  Approval Rate · II Agent · Daily Cap · Alerts · Paper Day
+          OPERATOR STATIC CARDS — Session XXVI order:
+          Row 1:  II Agent · Approval Rate · Paper Day · Total Trades · Alerts
+          Row 2:  TAO/USD · 24h Change · Win Rate · Total PnL · Daily Cap
           ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
 
-        {/* 1 — TAO / USD price */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            _up24h ? 'bg-emerald-500/10' : 'bg-red-500/10'
-          )}>
-            {_up24h ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-red-400" />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">TAO / USD</p>
-            <p className="text-base font-black font-mono text-white mt-0.5">
-              {price ? `$${price.toFixed(2)}` : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">spot</p>
-          </div>
-        </div>
-
-        {/* 2 — 24h Change */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            _up24h ? 'bg-emerald-500/10' : 'bg-red-500/10'
-          )}>
-            {_up24h ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-red-400" />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">24h Change</p>
-            <p className={clsx('text-base font-black font-mono mt-0.5', _up24h ? 'text-emerald-400' : 'text-red-400')}>
-              {change24h != null ? `${_up24h ? '+' : ''}${change24h.toFixed(2)}%` : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">TAO spot</p>
-          </div>
-        </div>
-
-        {/* 3 — Total PnL */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
-          )}>
-            <DollarSign size={14} className={totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total PnL</p>
-            <p className={clsx('text-base font-black font-mono mt-0.5',
-              totalPnl > 0 ? 'text-emerald-400' : totalPnl < 0 ? 'text-red-400' : 'text-slate-300'
-            )}>
-              {summary ? `${fmt(totalPnl, 4)} τ` : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">fleet cumulative</p>
-          </div>
-        </div>
-
-        {/* 4 — Win Rate */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            winRate >= 55 ? 'bg-emerald-500/10' : winRate >= 40 ? 'bg-amber-500/10' : 'bg-red-500/10'
-          )}>
-            <Target size={14} className={winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Win Rate</p>
-            <p className={clsx('text-base font-black font-mono mt-0.5',
-              winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'
-            )}>
-              {summary ? `${winRate.toFixed(1)}%` : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-              {summary ? `${summary.wins}W · ${summary.losses}L` : 'gate: 55%'}
-            </p>
-          </div>
-        </div>
-
-        {/* 5 — Total Trades */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
-            <Hash size={14} className="text-slate-300" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
-            <p className="text-base font-black font-mono text-white mt-0.5">
-              {summary ? totalTrades.toLocaleString() : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
-          </div>
-        </div>
-
-        {/* 6 — Approval Rate (BFT) */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-            <Vote size={14} className="text-purple-400" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Approval Rate</p>
-            <p className={clsx('text-base font-black font-mono mt-0.5',
-              _approvalRate >= 45 && _approvalRate <= 65 ? 'text-emerald-400' : 'text-amber-400'
-            )}>
-              {consensusStats ? `${_approvalRate.toFixed(1)}%` : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">BFT · 7/12 threshold</p>
-          </div>
-        </div>
-
-        {/* 7 — II Agent regime */}
+        {/* 1 — II Agent regime */}
         <button onClick={() => navigate('/ii-agent')}
           className="bg-dark-800 border border-dark-600 hover:border-indigo-500/40 rounded-xl px-4 py-3.5 flex items-start gap-3 text-left transition-all group">
           <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center flex-shrink-0">
@@ -764,29 +670,57 @@ export default function Dashboard() {
           <ChevronRight size={11} className="text-slate-600 group-hover:text-indigo-400 transition-colors mt-1 flex-shrink-0" />
         </button>
 
-        {/* 8 — Daily Cap */}
+        {/* 2 — Approval Rate (BFT) */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-            <Gauge size={14} className="text-amber-400" />
+          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+            <Vote size={14} className="text-purple-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Daily Cap</p>
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Approval Rate</p>
             <p className={clsx('text-base font-black font-mono mt-0.5',
-              (dailyCap?.pct_used ?? 0) >= 90 ? 'text-red-400' :
-              (dailyCap?.pct_used ?? 0) >= 60 ? 'text-amber-400' : 'text-emerald-400'
+              _approvalRate >= 45 && _approvalRate <= 65 ? 'text-emerald-400' : 'text-amber-400'
             )}>
-              {dailyCap ? `${dailyCap.pct_used.toFixed(0)}%` : '—'}
+              {consensusStats ? `${_approvalRate.toFixed(1)}%` : '—'}
             </p>
-            <div className="mt-1 h-1 bg-dark-600 rounded-full overflow-hidden">
-              <div className={clsx('h-full rounded-full transition-all',
-                (dailyCap?.pct_used ?? 0) >= 90 ? 'bg-red-500' :
-                (dailyCap?.pct_used ?? 0) >= 60 ? 'bg-amber-400' : 'bg-emerald-500'
-              )} style={{ width: `${Math.min(100, dailyCap?.pct_used ?? 0)}%` }} />
-            </div>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">BFT · 7/12 threshold</p>
           </div>
         </div>
 
-        {/* 9 — Alerts */}
+        {/* 3 — Paper Day */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            paperDay >= 7 ? 'bg-emerald-500/10' : 'bg-amber-500/10'
+          )}>
+            <CalendarDays size={14} className={paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Paper Day</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'
+            )}>
+              Day {paperDay}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+              {paperDay >= 7 ? 'WR gate active' : `${7 - paperDay}d to gate`}
+            </p>
+          </div>
+        </div>
+
+        {/* 4 — Total Trades */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
+            <Hash size={14} className="text-slate-300" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
+            <p className="text-base font-black font-mono text-white mt-0.5">
+              {summary ? totalTrades.toLocaleString() : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
+          </div>
+        </div>
+
+        {/* 5 — Alerts */}
         <button onClick={() => navigate('/alerts')}
           className={clsx(
             'rounded-xl px-4 py-3.5 flex items-start gap-3 text-left transition-all group border',
@@ -813,33 +747,102 @@ export default function Dashboard() {
           <ChevronRight size={11} className="text-slate-600 group-hover:text-white transition-colors mt-1 flex-shrink-0" />
         </button>
 
-        {/* 10 — Paper Day */}
+        {/* 6 — TAO / USD price */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
           <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            paperDay >= 7 ? 'bg-emerald-500/10' : 'bg-amber-500/10'
+            _up24h ? 'bg-emerald-500/10' : 'bg-red-500/10'
           )}>
-            <CalendarDays size={14} className={paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'} />
+            {_up24h ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-red-400" />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Paper Day</p>
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">TAO / USD</p>
+            <p className="text-base font-black font-mono text-white mt-0.5">
+              {price ? `$${price.toFixed(2)}` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">spot</p>
+          </div>
+        </div>
+
+        {/* 7 — 24h Change */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            _up24h ? 'bg-emerald-500/10' : 'bg-red-500/10'
+          )}>
+            {_up24h ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-red-400" />}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">24h Change</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5', _up24h ? 'text-emerald-400' : 'text-red-400')}>
+              {change24h != null ? `${_up24h ? '+' : ''}${change24h.toFixed(2)}%` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">TAO spot</p>
+          </div>
+        </div>
+
+        {/* 8 — Win Rate */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            winRate >= 55 ? 'bg-emerald-500/10' : winRate >= 40 ? 'bg-amber-500/10' : 'bg-red-500/10'
+          )}>
+            <Target size={14} className={winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Win Rate</p>
             <p className={clsx('text-base font-black font-mono mt-0.5',
-              paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'
+              winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'
             )}>
-              Day {paperDay}
+              {summary ? `${winRate.toFixed(1)}%` : '—'}
             </p>
             <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-              {paperDay >= 7 ? 'WR gate active' : `${7 - paperDay}d to gate`}
+              {summary ? `${summary.wins}W · ${summary.losses}L` : 'gate: 55%'}
             </p>
+          </div>
+        </div>
+
+        {/* 9 — Total PnL */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
+          )}>
+            <DollarSign size={14} className={totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total PnL</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              totalPnl > 0 ? 'text-emerald-400' : totalPnl < 0 ? 'text-red-400' : 'text-slate-300'
+            )}>
+              {summary ? `${fmt(totalPnl, 4)} τ` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">fleet cumulative</p>
+          </div>
+        </div>
+
+        {/* 10 — Daily Cap */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
+            <Gauge size={14} className="text-amber-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Daily Cap</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              (dailyCap?.pct_used ?? 0) >= 90 ? 'text-red-400' :
+              (dailyCap?.pct_used ?? 0) >= 60 ? 'text-amber-400' : 'text-emerald-400'
+            )}>
+              {dailyCap ? `${dailyCap.pct_used.toFixed(0)}%` : '—'}
+            </p>
+            <div className="mt-1 h-1 bg-dark-600 rounded-full overflow-hidden">
+              <div className={clsx('h-full rounded-full transition-all',
+                (dailyCap?.pct_used ?? 0) >= 90 ? 'bg-red-500' :
+                (dailyCap?.pct_used ?? 0) >= 60 ? 'bg-amber-400' : 'bg-emerald-500'
+              )} style={{ width: `${Math.min(100, dailyCap?.pct_used ?? 0)}%` }} />
+            </div>
           </div>
         </div>
 
       </div>{/* end 10-card grid */}
 
-      {/* ── TradingView Chart + Sentiment Gauge (side-by-side, near top) ───── */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-        <TaoTradingViewChart />
-        <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
-      </div>
+      {/* ── TradingView Chart — full width, 2× height (Session XXVI) ───────── */}
+      <TaoTradingViewChart heightClass="h-[640px]" />
 
       {/* ── Bottom row: Top Strategies · Recent Trades · Live Indicators ─────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
@@ -909,6 +912,12 @@ export default function Dashboard() {
           </div>
         </div>
 
+      </div>
+
+      {/* ── Bottom row: Market Sentiment + Drawdown from Peak (Session XXVI) ── */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
+        <DrawdownChart />
       </div>
 
     </div>

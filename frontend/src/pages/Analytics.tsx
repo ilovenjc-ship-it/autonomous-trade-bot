@@ -106,7 +106,6 @@ interface StrategyStat {
 }
 
 interface EquityPoint  { time: string; pnl: number; cumulative: number; strategy: string }
-interface DrawdownPoint { time: string; pnl: number; drawdown: number; equity: number }
 interface WinRatePoint  { time: string; win_rate: number; n: number }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
@@ -159,16 +158,7 @@ function EquityTooltip({ active, payload, label }: any) {
   )
 }
 
-function DrawdownTooltip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
-  return (
-    <div className="bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-xs font-mono">
-      <p className="text-slate-300 mb-1">{label}</p>
-      <p className="text-accent-green">Equity: {fmt(payload[0]?.value, 4)}</p>
-      <p className="text-red-400">Drawdown: {fmt(payload[1]?.value ?? 0, 4)}</p>
-    </div>
-  )
-}
+
 
 // ── sort types ────────────────────────────────────────────────────────────────
 type SortKey    = 'total_pnl' | 'win_rate' | 'total_trades' | 'best_trade' | 'worst_trade'
@@ -184,13 +174,13 @@ export default function Analytics() {
   const [summary,    setSummary]    = useState<Summary | null>(null)
   const [strategies, setStrategies] = useState<StrategyStat[]>([])
   const [equity,     setEquity]     = useState<EquityPoint[]>([])
-  const [drawdown,   setDrawdown]   = useState<DrawdownPoint[]>([])
   const [winRate,    setWinRate]    = useState<WinRatePoint[]>([])
   const [loading,    setLoading]    = useState(true)
   const [fetchErrors, setFetchErrors] = useState<string[]>([])
   const [sortKey,    setSortKey]    = useState<SortKey>('total_pnl')
   const [sortAsc,    setSortAsc]    = useState(false)
-  const [activeChart, setActiveChart] = useState<'drawdown' | 'winrate'>('drawdown')
+  // Session XXVI: Drawdown relocated to Dashboard. Only 'winrate' remains here.
+  const [activeChart] = useState<'winrate'>('winrate')
   const [timeRange,  setTimeRange]  = useState<TimeRange>('all')
   const [wrWindow,   setWrWindow]   = useState<WrWindow>(20)
   const [subnets,    setSubnets]    = useState<Subnet[]>([])
@@ -207,7 +197,6 @@ export default function Analytics() {
       api.get(`/analytics/summary${hoursParam}`),
       api.get('/analytics/strategies'),
       api.get(`/analytics/equity${hoursParam}`),
-      api.get(`/analytics/drawdown${hoursParam}`),
       api.get(`/analytics/rolling-winrate?window=${window}${h > 0 ? `&hours=${h}` : ''}`),
     ])
 
@@ -222,10 +211,7 @@ export default function Analytics() {
     if (results[2].status === 'fulfilled') setEquity(results[2].value.data)
     else errors.push('Equity curve')
 
-    if (results[3].status === 'fulfilled') setDrawdown(results[3].value.data)
-    else errors.push('Drawdown')
-
-    if (results[4].status === 'fulfilled') setWinRate(results[4].value.data)
+    if (results[3].status === 'fulfilled') setWinRate(results[3].value.data)
     else errors.push('Rolling win rate')
 
     if (errors.length) setFetchErrors(errors)
@@ -289,7 +275,6 @@ export default function Analytics() {
   // thin equity data for rendering (show every Nth point if > 200 points)
   const stride = Math.max(1, Math.floor(equity.length / 200))
   const equityThin = equity.filter((_, i) => i % stride === 0)
-  const ddThin     = drawdown.filter((_, i) => i % Math.max(1, Math.floor(drawdown.length / 100)) === 0)
   const wrThin     = winRate.filter((_, i) => i % stride === 0)
 
   // ── loading ────────────────────────────────────────────────────────────────
@@ -301,9 +286,6 @@ export default function Analytics() {
       </div>
     </div>
   )
-
-  // ── min drawdown for Y axis ────────────────────────────────────────────────
-  const minDD = Math.min(0, ...drawdown.map(d => d.drawdown)) * 1.1 || -0.01
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -341,79 +323,31 @@ export default function Analytics() {
 
       {/* ── Chart area ─────────────────────────────────────────────────────── */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-        {/* Tab selector + win rate window toggle */}
+        {/* Session XXVI: Drawdown relocated to Dashboard. Only Rolling Win Rate remains. */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            {[
-              /* Equity Curve / Cumulative PnL relocated to P&L Summary (Session XXV) */
-              { key: 'drawdown', icon: TrendingDown,  label: 'Drawdown' },
-              { key: 'winrate',  icon: Activity,      label: 'Rolling Win Rate' },
-            ].map(({ key, icon: Icon, label }) => (
-              <button
-                key={key}
-                onClick={() => setActiveChart(key as any)}
+            <Activity size={14} className="text-accent-blue" />
+            <span className="text-sm font-semibold text-white">Rolling Win Rate</span>
+          </div>
+          {/* Win rate window toggle */}
+          <div className="flex items-center gap-1 bg-dark-700 border border-dark-600 rounded-lg p-0.5">
+            <span className="text-[15px] text-slate-500 font-mono px-1.5">window</span>
+            {([10, 20, 50] as WrWindow[]).map(w => (
+              <button key={w}
+                onClick={() => handleWrWindow(w)}
                 className={clsx(
-                  'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-mono transition-colors',
-                  activeChart === key
-                    ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/40'
-                    : 'text-slate-300 hover:text-white border border-transparent'
-                )}
-              >
-                <Icon size={12} /> {label}
+                  'px-2.5 py-1 rounded text-[13px] font-mono font-bold transition-colors',
+                  wrWindow === w
+                    ? 'bg-purple-500/20 text-purple-400'
+                    : 'text-slate-400 hover:text-slate-200'
+                )}>
+                {w}
               </button>
             ))}
           </div>
-          {/* Win rate window toggle — only relevant on winrate tab */}
-          {activeChart === 'winrate' && (
-            <div className="flex items-center gap-1 bg-dark-700 border border-dark-600 rounded-lg p-0.5">
-              <span className="text-[15px] text-slate-500 font-mono px-1.5">window</span>
-              {([10, 20, 50] as WrWindow[]).map(w => (
-                <button key={w}
-                  onClick={() => handleWrWindow(w)}
-                  className={clsx(
-                    'px-2.5 py-1 rounded text-[13px] font-mono font-bold transition-colors',
-                    wrWindow === w
-                      ? 'bg-purple-500/20 text-purple-400'
-                      : 'text-slate-400 hover:text-slate-200'
-                  )}>
-                  {w}
-                </button>
-              ))}
-            </div>
-          )}
         </div>
 
-        {/* Equity Curve / Cumulative PnL — relocated to P&L Summary page (Session XXV) */}
-
-        {/* ── Drawdown ─────────────────────────────────────────────────────── */}
-        {activeChart === 'drawdown' && (
-          <div>
-            <p className="text-xs text-slate-300 font-mono mb-3 uppercase tracking-widest">
-              Drawdown from peak — hourly buckets
-            </p>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={ddThin} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                <defs>
-                  <linearGradient id="eqGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor={C_GREEN} stopOpacity={0.3} />
-                    <stop offset="95%" stopColor={C_GREEN} stopOpacity={0.02} />
-                  </linearGradient>
-                  <linearGradient id="ddGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor={C_RED} stopOpacity={0.4} />
-                    <stop offset="95%" stopColor={C_RED} stopOpacity={0.05} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#243450" />
-                <XAxis dataKey="time" tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
-                <YAxis tick={{ fill: '#64748b', fontSize: 10 }} tickLine={false} axisLine={false} tickFormatter={v => v.toFixed(3)} />
-                <ReferenceLine y={0} stroke="#334155" strokeDasharray="4 4" />
-                <Tooltip content={<DrawdownTooltip />} />
-                <Area dataKey="equity"   stroke={C_GREEN} strokeWidth={2} fill="url(#eqGrad)" dot={false} name="Equity" />
-                <Area dataKey="drawdown" stroke={C_RED}   strokeWidth={1.5} fill="url(#ddGrad)" dot={false} name="Drawdown" />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
-        )}
+        
 
         {/* ── Rolling win rate ─────────────────────────────────────────────── */}
         {activeChart === 'winrate' && (

@@ -1,8 +1,8 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-11 (Session XXV — UI/UX overhaul + forensic data integrity + Day 7 WR gate)
-**Status:** PAPER TRAINING ACTIVE — Day 7 of 7+ min baseline (WR gate day). All 12 strategies PAPER_ONLY on Railway. Fossil trade rows wiped (Option A). UI restructured across 11 pages. Bot online. All commits on `origin/main` through `f82c301b`.
-**Maintained by:** II Agent + Owner
+**Last updated:** 2026-05-12 (Session XXVI — True Clean Slate + Forensic fixes + Final UI polish)
+**Status:** PAPER TRAINING ACTIVE — Day 1 of 7 (NEW Zero Day = 2026-05-12 12:00 UTC). All 12 strategies PAPER_ONLY. True Clean Slate wipe: BotConfig singleton + Strategy rollups + trades table all zeroed. UI polished across Dashboard + 6 other pages. Settings page deleted, menu collapsed. All commits on `origin/main`.
+**Maintained by:** II Agent + Partner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
 ---
@@ -12,6 +12,153 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXVI SUMMARY (May 12, 2026) — True Clean Slate + Forensic Fixes + Menu Rework
+
+### Overview
+Session XXV's fossil wipe had a blind spot: it zeroed the `Strategy` rollup table
+and purged the `trades` table, but **did not touch `BotConfig` singleton counters**.
+The Dashboard showed ~7,500 trades immediately after the May 11 wipe because:
+
+- `BotConfig.total_trades` was never reset (no wipe path touched it)
+- `cycle_service.py` writes Trade rows + increments `Strategy.total_trades` but
+  never touches `BotConfig.total_trades` — only `trading_service.py` does
+- Net result: three counters (BotConfig singleton, Strategy rollups, trades table
+  COUNT(*)) diverging on every cycle
+
+This session closes that gap, plus executes the remaining UI/UX polish list and
+removes the Settings page entirely.
+
+### Six-Pass Batch Plan (single deploy)
+
+**Pass 0 — True Clean Slate**
+- `backend/main.py` FORCE_PAPER_MODE startup: now also `UPDATE bot_config SET
+  total_trades=0, successful_trades=0, total_pnl=0.0, daily_trades=0` as part of
+  the wipe. Combined with the Strategy zero + `DELETE FROM trades WHERE tx_hash
+  IS NULL`, all three counters reset atomically.
+- `FOSSIL_CLEANUP_THRESHOLD` bumped to `2026-05-12 12:00 UTC` → forces one-time
+  wipe on next deploy. After wipe, `stats_reset_at` is stamped > threshold so
+  subsequent restarts skip.
+- `backend/routers/bot.py /reset-paper-stats`: also zeroes BotConfig now, and
+  stamps a fresh `stats_reset_at` so scoped queries honor the new cutoff.
+- **NEW Zero Day = 2026-05-12 12:00 UTC**. WR gate evaluation window opens 2026-05-19.
+
+**Pass 1 — Data Source Unification** *(closes the drift permanently)*
+- `backend/routers/trades.py /stats`:
+  - `win_rate` now returns actual `wins / executed * 100` (previously returned
+    `executed / total * 100` which is execution success rate, labeled as win rate)
+  - Split `total_pnl` into `total_pnl_tau` and `total_pnl_usd` (previously
+    returned τ value in a field labeled `_usd`, a 300× unit error)
+  - Added `wins`, `losses`, `exec_success_rate`, `tao_price_usd` fields
+  - Honors the same `Strategy.stats_reset_at` cutoff as `/api/analytics/summary`
+    — Dashboard and Manual Trades pages now read coherent numbers from filtered
+    queries against the same `trades` table
+- `frontend/src/types/index.ts` TradeStats interface updated accordingly
+- `frontend/src/pages/Trades.tsx` (now Manual Trades): Win Rate card shows
+  W·L breakdown, P&L card shows `τ` primary + `$` secondary
+
+**Pass 2 — Dashboard Rework**
+- Header label: removed "— Simulated USD" from the paper mode pill. Now just
+  "⚠ Paper Trading" → "● Live Trading" (ground-truth switch based on fleet state)
+- Status pill: `BOT RUNNING` → `Run Bot`; `BOT STOPPED` → `Bot Stopped`;
+  `STARTING…` / `STOPPING…` title-cased
+- 10-card grid **reordered** to Commander's spec:
+  - Row 1: II Agent · Approval Rate · Paper Day · Total Trades · Alerts
+  - Row 2: TAO/USD · 24h Change · Win Rate · Total PnL · Daily Cap
+- TradingView chart: **full page width, 2× height** (heightClass prop = `h-[640px]`)
+  — Sentiment Gauge vacates the top row
+- **New bottom row** (2-col): Market Sentiment │ Drawdown from Peak
+  — Drawdown relocated from Analytics (new `components/DrawdownChart.tsx`
+  reusable component; self-fetches `/analytics/drawdown` and polls 60s)
+- `ZERO_DAY_UTC` constant bumped to 2026-05-12 12:00 UTC
+
+**Pass 3 — Page Relocations**
+- **Analytics → Dashboard**: Drawdown from Peak (component extraction). Analytics
+  page now hosts only the Rolling Win Rate chart (tab selector removed).
+- **OpenClaw**: Manual Trigger buttons moved from top of Latest Round card to
+  **below** the Votes/Council cards. Promotion Gate section moved from top of
+  page to **just above** Consensus History.
+- **Strategies → P&L Summary**: Strategy PnL Distribution bar chart.
+- **P&L Summary → Transactions (WalletTransactions.tsx)**: Live Positions +
+  Staking Positions extracted into self-contained components
+  `LivePositionsPanel.tsx` and `StakingPositionsPanel.tsx` (−503 lines net from
+  PnL Summary). Each component self-fetches its data and polls (Live: 15s,
+  Staking: 30s).
+- **Settings → Trades**: Trade Execution section extracted to new
+  `components/TradeExecutionSettings.tsx` and placed at the bottom of the Trades
+  (now Manual Trades) page. Self-contained with its own save bar.
+- **Settings → Human Override**: Strategy Mode Override added at the bottom of
+  the Human Override page.
+
+**Pass 4 — Page Removal + Renames**
+- `frontend/src/pages/Settings.tsx` **deleted entirely**
+- Route `/settings` removed from `App.tsx`
+- Page title `Trades` → `Manual Trades`
+- Page title `Analytics` → `Network Analytics`
+- Settings subtitle rendering in Layout removed (was dead code after deletion)
+
+**Pass 5 — Menu Rework + Collapsible Sidebar**
+
+New structure:
+```
+OVERVIEW        → Dashboard
+INTELLIGENCE    → II Agent
+EXECUTION       → OpenClaw BFT · Agent Fleet · Strategies     ← OpenClaw moved from INTELLIGENCE
+PERFORMANCE     → P&L Summary
+SUBNETS         → Network Analytics · Market Data              ← was MARKET; Analytics renamed
+ACTIVITIES      → Alerts · Activity Log · Trade Log            ← was EVENTS
+ADMIN           → Risk Config · Wallet · Transactions          ← Settings removed
+ACTION          → Manual Trades · Human Override               ← Trades renamed
+```
+
+**Collapsible groups** (new UX):
+- All groups start collapsed on first load (localStorage key
+  `taobot:sidebar:expanded-groups:v1`)
+- Clicking a group heading toggles it; chevron icon rotates (`ChevronRight` →
+  `ChevronDown`)
+- The group containing the current route is auto-expanded on every navigation
+  (without affecting other groups)
+- Collapsed groups show a pulsing red dot when they contain unread-alert badge
+  activity (so you can see Alerts needs attention without expanding ACTIVITIES)
+- State persists across sessions
+
+### New / Modified Components
+- NEW `frontend/src/components/DrawdownChart.tsx`
+- NEW `frontend/src/components/LivePositionsPanel.tsx`
+- NEW `frontend/src/components/StakingPositionsPanel.tsx`
+- NEW `frontend/src/components/TradeExecutionSettings.tsx`
+- DELETED `frontend/src/pages/Settings.tsx`
+
+### Files Touched (high-level)
+Backend: `main.py` (wipe path), `routers/bot.py` (reset-paper-stats), `routers/trades.py` (stats endpoint)
+Frontend: `App.tsx`, `components/Layout.tsx`, `pages/Dashboard.tsx`, `pages/Analytics.tsx`,
+`pages/OpenClaw.tsx`, `pages/Strategies.tsx`, `pages/PnLSummary.tsx`, `pages/WalletTransactions.tsx`,
+`pages/HumanOverride.tsx`, `pages/Trades.tsx`, `types/index.ts`
+
+### Quality Gate
+- TypeScript `tsc --noEmit` passed after every pass (zero-error discipline maintained)
+- No test suite exists yet — validation via direct walkthrough post-deploy
+
+### Rules Established / Reinforced This Session
+- **"Simulated USD" terminology retired from primary mode indicator** — kept only
+  in explanatory disclaimer text on IIAgent / OpenClaw / Trades pages where
+  context makes the meaning clear
+- **Single source of truth for fleet counters**: every `trades`-derived stat on
+  Dashboard and Manual Trades MUST route through `/api/analytics/summary` or
+  `/api/trades/stats`, both of which honor `Strategy.stats_reset_at`. Never read
+  `BotConfig` counters directly for display — they exist only for the cycle
+  engine's internal accounting.
+- **Partner, not CO / Owner**: STATE.md header updated.
+
+### Pending / Next Session
+- Verify Day 7 WR gate mechanics against the freshly-wiped baseline
+- Discord gateway OTF server invite (external, unchanged)
+- Monitor RSI-14 stability post-wipe — last session's walkthrough showed RSI
+  pegged at 98.8 on a −5% day, likely another flat-history artifact despite the
+  Session XXIV NaN fix. Worth investigating if it persists.
+- TAO/USD standalone chart resurrection — deferred "for now" per partner note
 
 ---
 

@@ -5,6 +5,7 @@ import { ArrowUpDown, TrendingUp, TrendingDown, DollarSign, Percent, RefreshCw,
          ChevronLeft, ChevronRight, ExternalLink, Zap, AlertTriangle,
          CheckCircle2, Copy, ShieldAlert, Activity, Shield, Timer, Shuffle } from 'lucide-react'
 import TransactionDetailModal, { type TradeRecord } from '@/components/TransactionDetailModal'
+import TradeExecutionSettings from '@/components/TradeExecutionSettings'
 /**
  * Timestamp formatter — New York / Eastern Time (US)
  * SQLite stores UTC without 'Z'; we append it so browsers parse correctly.
@@ -248,7 +249,9 @@ export default function Trades() {
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* Stats — labels clarified per Session XXV: Simulated USD in paper mode */}
+      {/* Stats — Session XXVI: honest win_rate (wins/executed) + correct τ/USD split
+          Data from /api/trades/stats, now filtered by stats_reset_at so it matches
+          /api/analytics/summary (Dashboard's source). Zero drift. */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Trades"
@@ -258,24 +261,28 @@ export default function Trades() {
         />
         <StatCard
           label="Win Rate"
-          value={`${tradeStats?.win_rate ?? 0}%`}
+          value={`${(tradeStats?.win_rate ?? 0).toFixed(1)}%`}
           icon={Percent}
           color={(tradeStats?.win_rate ?? 0) >= 55 ? 'green' : 'yellow'}
-          sub={(tradeStats?.total_trades ?? 0) === 0 ? 'No trades yet' : 'Execution success rate'}
+          sub={
+            (tradeStats?.total_trades ?? 0) === 0
+              ? 'No trades yet'
+              : `${tradeStats?.wins ?? 0}W · ${tradeStats?.losses ?? 0}L`
+          }
         />
         <StatCard
-          label={isLive ? 'Total Volume' : 'Total Volume (Simulated USD)'}
+          label={isLive ? 'Total Volume' : 'Total Volume'}
           value={`$${(tradeStats?.total_volume_usd ?? 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}`}
           icon={DollarSign}
           color="blue"
-          sub={isLive ? 'all trades' : 'Simulated USD · no real USD'}
+          sub={isLive ? 'all trades' : 'Simulated USD · paper only'}
         />
         <StatCard
-          label={isLive ? 'Total P&L' : 'Total P&L (Simulated USD)'}
-          value={`$${(tradeStats?.total_pnl_usd ?? 0).toFixed(2)}`}
-          icon={(tradeStats?.total_pnl_usd ?? 0) >= 0 ? TrendingUp : TrendingDown}
-          color={(tradeStats?.total_pnl_usd ?? 0) >= 0 ? 'green' : 'red'}
-          sub={isLive ? 'realized + unrealized' : 'Simulated USD · paper only'}
+          label={isLive ? 'Total P&L' : 'Total P&L'}
+          value={`${(tradeStats?.total_pnl_tau ?? 0) >= 0 ? '+' : ''}${(tradeStats?.total_pnl_tau ?? 0).toFixed(4)} τ`}
+          icon={(tradeStats?.total_pnl_tau ?? 0) >= 0 ? TrendingUp : TrendingDown}
+          color={(tradeStats?.total_pnl_tau ?? 0) >= 0 ? 'green' : 'red'}
+          sub={`≈ $${(tradeStats?.total_pnl_usd ?? 0).toFixed(2)} ${isLive ? 'realized' : 'simulated'}`}
         />
       </div>
 
@@ -871,6 +878,8 @@ export default function Trades() {
         </div>
       </div>
 
+      {/* ── Trade Execution Settings (Session XXVI: relocated from Settings) ── */}
+      <TradeExecutionSettings />
 
       </div>{/* end scrollable */}
 

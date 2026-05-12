@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
 import DangerZonePanel from '@/components/DangerZonePanel'
+import StrategyModeOverride from '@/components/StrategyModeOverride'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface OverrideStatus {
@@ -372,6 +373,9 @@ export default function HumanOverride() {
         <DangerZonePanel />
 
       </div>{/* end 3-box control row */}
+
+      {/* ── Strategy Mode Override (Session XXVI: relocated from Settings) ── */}
+      <StrategyModeOverride />
 
       </div>{/* end scrollable */}
     </div>

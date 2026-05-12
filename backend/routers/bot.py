@@ -179,20 +179,31 @@ async def reset_paper_stats(db: AsyncSession = Depends(get_db)):
     Also deletes all paper trade history so the trade log starts clean.
     """
     from models.trade import Trade
+    from models.bot_config import BotConfig
+    from datetime import datetime, timezone as _tz
+    _reset_ts = datetime.now(_tz.utc)
     await db.execute(update(Strategy).values(
         mode             = "PAPER_ONLY",
         cycles_completed = 0,
         win_trades       = 0,
         loss_trades      = 0,
-        total_trades     = 0,      # Bug #2 fix — was never reset in prior wipes
+        total_trades     = 0,
         win_rate         = 0.0,
         total_pnl        = 0.0,
         avg_return       = 0.0,
+        stats_reset_at   = _reset_ts,    # Session XXVI: stamp cutoff so scoped queries honor the wipe
     ))
     # Delete paper trades (no tx_hash = paper) — live trades are preserved
     await db.execute(
         Trade.__table__.delete().where(Trade.tx_hash.is_(None))
     )
+    # Session XXVI: also zero the BotConfig singleton so no counter is left stale
+    await db.execute(update(BotConfig).values(
+        total_trades      = 0,
+        successful_trades = 0,
+        total_pnl         = 0.0,
+        daily_trades      = 0,
+    ))
     await db.commit()
     push_event(
         "system",

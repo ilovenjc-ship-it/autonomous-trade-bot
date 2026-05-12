@@ -112,6 +112,7 @@ async def lifespan(app: FastAPI):
             from db.database import AsyncSessionLocal
             from models.strategy import Strategy
             from models.trade import Trade
+            from models.bot_config import BotConfig
             from services.cycle_service import set_force_paper_mode
             set_force_paper_mode(True)
             from datetime import datetime, timezone as _tz
@@ -125,8 +126,20 @@ async def lifespan(app: FastAPI):
             # table (from the pre-fossil-wipe era). Bumping this constant forces
             # a one-time re-wipe on next deploy. After the wipe, stats_reset_at
             # is stamped with a value > threshold and subsequent restarts skip.
-            # Commander's call, Session XXV: Zero Day = 2026-05-11.
-            FOSSIL_CLEANUP_THRESHOLD = datetime(2026, 5, 11, 10, 0, 0, tzinfo=_tz.utc)
+            #
+            # Session XXVI (2026-05-12): TRUE CLEAN SLATE.
+            #   Prior wipe (Session XXV, May 11) only zeroed Strategy counters
+            #   and the trades table — NOT BotConfig singleton. Dashboard was
+            #   showing drifted counts immediately after deploy because:
+            #     • BotConfig.total_trades was never reset
+            #     • cycle_service.py writes Trade rows + increments Strategy
+            #       counters but never touches BotConfig
+            #     • trading_service.py is the only writer to BotConfig
+            #   Result: 3 counters, 3 different sources of truth.
+            #
+            #   This wipe adds BotConfig to the reset set. Combined with Pass 1
+            #   (deprecating BotConfig as a read source), drift is eliminated.
+            FOSSIL_CLEANUP_THRESHOLD = datetime(2026, 5, 12, 12, 0, 0, tzinfo=_tz.utc)
 
             async with AsyncSessionLocal() as db:
                 _existing = await db.execute(_select(_Strategy).limit(1))
@@ -144,20 +157,32 @@ async def lifespan(app: FastAPI):
                         cycles_completed = 0,
                         win_trades       = 0,
                         loss_trades      = 0,
-                        total_trades     = 0,      # ← Bug #2 fix: was never reset
+                        total_trades     = 0,
                         win_rate         = 0.0,
                         total_pnl        = 0.0,
                         avg_return       = 0.0,
                         stats_reset_at   = _reset_ts,
                     ))
-                    # Bug #1 fix: purge paper trades from trades table (no tx_hash = paper)
+                    # Purge paper trades from trades table (no tx_hash = paper)
                     # Live on-chain trades are preserved (tx_hash IS NOT NULL).
                     _del_result = await db.execute(
                         Trade.__table__.delete().where(Trade.tx_hash.is_(None))
                     )
+                    # Session XXVI: ALSO zero the BotConfig singleton counters.
+                    # Without this, Dashboard drifts from the trades table on
+                    # the next cycle because BotConfig was never reset.
+                    _bot_reset = await db.execute(update(BotConfig).values(
+                        total_trades      = 0,
+                        successful_trades = 0,
+                        total_pnl         = 0.0,
+                        daily_trades      = 0,
+                    ))
                     logger.warning(
-                        f"FORCE_PAPER_MODE: FOSSIL WIPE — zeroed strategy counters + "
-                        f"deleted {_del_result.rowcount} paper trade rows. Zero Day established."
+                        f"FORCE_PAPER_MODE: TRUE CLEAN SLATE (Session XXVI) — "
+                        f"zeroed {12} Strategy rows + deleted "
+                        f"{_del_result.rowcount} paper trades + "
+                        f"reset {_bot_reset.rowcount} BotConfig singleton. "
+                        f"New Zero Day: {_reset_ts.isoformat()}."
                     )
                 else:
                     # Already clean — only enforce PAPER_ONLY mode, preserve honest stats

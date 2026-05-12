@@ -9,7 +9,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
-import { TrendingUp, TrendingDown, Activity, DollarSign, Trophy, Zap, ArrowUp, ArrowDown, Layers, RefreshCw, ShieldAlert, Target, Edit3 } from 'lucide-react'
+import { TrendingUp, Activity, Trophy, ArrowUp, ArrowDown, Target, Edit3, BarChart2 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 import toast from 'react-hot-toast'
@@ -88,80 +88,12 @@ interface PnLData {
   tao_price_usd: number
 }
 
-// ── Staking position types ────────────────────────────────────────────────────
+// Staking position + Live position types moved to
+//   components/StakingPositionsPanel.tsx + components/LivePositionsPanel.tsx
+// (Session XXVI — relocated to Transactions page)
 
-interface StakePosition {
-  hotkey:      string
-  stake:       number
-  netuid:      number
-  alpha_price: number
-  tao_value:   number
-}
-
-interface StakesData {
-  stakes:          StakePosition[]
-  total:           number
-  total_tao_value: number
-}
-
-// ── Live Positions types ──────────────────────────────────────────────────────
-
-interface LivePosition {
-  id:                  number
-  netuid:              number
-  hotkey:              string
-  strategy:            string | null
-  entry_alpha_price:   number
-  current_alpha_price: number
-  tao_staked:          number
-  current_tao_value:   number
-  pnl_pct:             number
-  pnl_tao:             number
-  sl_level:            number
-  tp_level:            number
-  sl_pct:              number
-  tp_pct:              number
-  status:              string
-  open_tx_hash:        string | null
-  realized_pnl_tao:    number | null
-  opened_at:           string | null
-  closed_at:           string | null
-}
-
-interface PositionsData {
-  positions:  LivePosition[]
-  open_count: number
-  sl_pct:     number
-  tp_pct:     number
-}
-
-const STRATEGY_DISPLAY: Record<string, string> = {
-  momentum_cascade:   'Momentum Cascade',
-  dtao_flow_momentum: 'dTAO Flow Momentum',
-  liquidity_hunter:   'Liquidity Hunter',
-  breakout_hunter:    'Breakout Hunter',
-  yield_maximizer:    'Yield Maximizer',
-  contrarian_flow:    'Contrarian Flow',
-  volatility_arb:     'Volatility Arb',
-  sentiment_surge:    'Sentiment Surge',
-  balanced_risk:      'Balanced Risk',
-  mean_reversion:     'Mean Reversion',
-  emission_momentum:  'Emission Momentum',
-  macro_correlation:  'Macro Correlation',
-}
-
-const SUBNET_NAMES: Record<number, string> = {
-  0:   'Root Network',
-  1:   'Apex',
-  3:   'MyShell',
-  8:   'Taoshi PTN',
-  9:   'Pretrain',
-  18:  'Cortex.t',
-  19:  'Vision',
-  21:  'Filetao',
-  24:  'Omega Labs',
-  64:  'Chutes',
-}
+// STRATEGY_DISPLAY + SUBNET_NAMES moved to the extracted position panels
+// (components/StakingPositionsPanel.tsx, components/LivePositionsPanel.tsx)
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -387,15 +319,7 @@ export default function PnLSummary() {
   const [loading, setLoading] = useState(true)
   const [view,    setView]    = useState<'day' | 'week'>('day')
 
-  // ── Staking Positions state ───────────────────────────────────────────────
-  const [stakes,       setStakes]       = useState<StakesData | null>(null)
-  const [stakesLoading,setStakesLoading]= useState(false)
-  const [unstaking,    setUnstaking]    = useState<Record<string, boolean>>({})
-  const [unstakingAll, setUnstakingAll] = useState(false)
-
-  // ── Live Positions state ──────────────────────────────────────────────────
-  const [positions,  setPositions]  = useState<PositionsData | null>(null)
-  const [posLoading, setPosLoading] = useState(false)
+  // (Staking Positions + Live Positions state moved to their own components — Session XXVI)
 
   // ── Recovery Tracker data ─────────────────────────────────────────────────
   const [taoPrice,  setTaoPrice]  = useState<number | null>(null)
@@ -412,64 +336,8 @@ export default function PnLSummary() {
     }
   }, [])
 
-  const fetchStakes = useCallback(async () => {
-    setStakesLoading(true)
-    try {
-      const { data: sd } = await api.get<StakesData>('/wallet/stakes')
-      setStakes(sd)
-    } catch {}
-    finally { setStakesLoading(false) }
-  }, [])
-
-  const fetchPositions = useCallback(async () => {
-    setPosLoading(true)
-    try {
-      const { data: pd } = await api.get<PositionsData>('/fleet/positions')
-      setPositions(pd)
-    } catch {}
-    finally { setPosLoading(false) }
-  }, [])
-
-  const handleUnstake = async (netuid: number, hotkey: string, subnetName: string) => {
-    const key = `${netuid}-${hotkey}`
-    setUnstaking(prev => ({ ...prev, [key]: true }))
-    try {
-      const { data: res } = await api.post<{
-        success: boolean; alpha_amount?: number; tx_hash?: string; error?: string
-      }>('/wallet/unstake-position', { netuid, hotkey })
-      if (res.success) {
-        toast.success(`✅ Unstaked ${(res.alpha_amount ?? 0).toFixed(4)} α from ${subnetName}`, { duration: 6000 })
-        setTimeout(() => fetchStakes(), 4000)
-      } else {
-        toast.error(res.error ?? `Unstake failed for ${subnetName}`)
-      }
-    } catch {
-      toast.error(`Network error unstaking ${subnetName}`)
-    } finally {
-      setUnstaking(prev => ({ ...prev, [key]: false }))
-    }
-  }
-
-  const handleUnstakeAll = async () => {
-    if (!window.confirm('Unstake ALL positions? This withdraws every staked αTAO back to liquid TAO. Cannot be undone.')) return
-    setUnstakingAll(true)
-    try {
-      const { data: res } = await api.post<{
-        success: boolean; summary?: { total: number; succeeded: number; failed: number }; error?: string
-      }>('/wallet/unstake-all')
-      if (res.success) {
-        const s = res.summary
-        toast.success(`✅ Unstake All complete — ${s?.succeeded ?? '?'} positions exited`, { duration: 8000 })
-        setTimeout(() => fetchStakes(), 5000)
-      } else {
-        toast.error(res.error ?? 'Unstake All failed')
-      }
-    } catch {
-      toast.error('Network error during Unstake All')
-    } finally {
-      setUnstakingAll(false)
-    }
-  }
+  // (fetchStakes + fetchPositions + unstake handlers relocated to
+  //  StakingPositionsPanel / LivePositionsPanel components — Session XXVI)
 
   useEffect(() => { load() }, [load])
   useEffect(() => {
@@ -494,18 +362,6 @@ export default function PnLSummary() {
     return () => clearInterval(t)
   }, [loadRecovery])
 
-  useEffect(() => { fetchStakes() }, [fetchStakes])
-  useEffect(() => {
-    const t = setInterval(fetchStakes, 30_000)
-    return () => clearInterval(t)
-  }, [fetchStakes])
-
-  useEffect(() => { fetchPositions() }, [fetchPositions])
-  useEffect(() => {
-    const t = setInterval(fetchPositions, 30_000)
-    return () => clearInterval(t)
-  }, [fetchPositions])
-
   if (loading || !data) {
     return (
       <div className="flex items-center justify-center h-full">
@@ -528,364 +384,7 @@ export default function PnLSummary() {
       {/* (Recovery Tracker relocated to below Staking Positions, per Session XXV spec) */}
       {/* (Seven small summary cards removed — redundant with Dashboard 10-card grid) */}
 
-      {/* ── Live Positions — Stop-Loss / Take-Profit Monitor (relocated from Wallet) ── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <ShieldAlert size={15} className={
-              (positions?.open_count ?? 0) > 0 ? 'text-amber-400' : 'text-slate-500'
-            } />
-            <h2 className="text-sm font-semibold text-white">Live Positions</h2>
-            <span className="text-[12px] text-slate-500 font-mono">Stop-Loss / Take-Profit Monitor</span>
-            {(positions?.open_count ?? 0) > 0 && (
-              <span className="px-1.5 py-0.5 text-[11px] font-bold font-mono rounded bg-amber-500/20 text-amber-400 border border-amber-500/30">
-                {positions?.open_count} OPEN
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {/* SL / TP badges */}
-            {positions && (
-              <div className="flex items-center gap-2 text-[11px] font-mono">
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/15 border border-red-500/20 text-red-400">
-                  <TrendingDown size={10} /> SL {positions.sl_pct.toFixed(0)}%
-                </span>
-                <span className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/20 text-emerald-400">
-                  <TrendingUp size={10} /> TP {positions.tp_pct.toFixed(0)}%
-                </span>
-              </div>
-            )}
-            <button
-              onClick={fetchPositions}
-              disabled={posLoading}
-              className="flex items-center gap-1.5 text-[13px] text-slate-400 hover:text-white font-mono transition-colors"
-            >
-              <RefreshCw size={11} className={posLoading ? 'animate-spin' : ''} />
-              {posLoading ? 'Loading…' : 'Refresh'}
-            </button>
-          </div>
-        </div>
-
-        {/* Positions list */}
-        {posLoading && !positions ? (
-          <div className="flex items-center justify-center py-6 text-slate-500 text-xs font-mono gap-2">
-            <Activity size={12} className="animate-pulse" /> Loading positions…
-          </div>
-        ) : positions?.positions && positions.positions.filter(p => p.status === 'open').length > 0 ? (
-          <div className="space-y-3">
-            {positions.positions.filter(p => p.status === 'open').map(pos => {
-              const subnetName = SUBNET_NAMES[pos.netuid] ?? `Subnet ${pos.netuid}`
-              const stratName  = STRATEGY_DISPLAY[pos.strategy ?? ''] ?? pos.strategy ?? '—'
-              const pnl        = pos.pnl_pct
-              const isUp       = pnl > 0
-              const isDown     = pnl < 0
-
-              const slGap = pos.entry_alpha_price > 0
-                ? ((pos.current_alpha_price - pos.sl_level) / (pos.entry_alpha_price - pos.sl_level)) * 100
-                : 100
-              const dangerZone = slGap < 25 && isDown
-
-              const range  = pos.tp_pct + pos.sl_pct
-              const barPos = Math.min(100, Math.max(0, ((pnl + pos.sl_pct) / range) * 100))
-
-              return (
-                <div
-                  key={pos.id}
-                  className={clsx(
-                    'rounded-xl border p-4 space-y-3 transition-all',
-                    dangerZone
-                      ? 'bg-red-500/5 border-red-500/30 shadow-[0_0_12px_rgba(239,68,68,0.08)]'
-                      : isUp
-                      ? 'bg-dark-700 border-emerald-500/20'
-                      : 'bg-dark-700 border-dark-600'
-                  )}
-                >
-                  {/* Row 1: identity + PnL */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[11px] font-bold font-mono px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-400">
-                        SN{pos.netuid}
-                      </span>
-                      <span className="text-sm font-semibold text-white">{subnetName}</span>
-                      <span className="text-[11px] text-slate-500 font-mono">{stratName}</span>
-                    </div>
-                    <div className="text-right">
-                      <p className={clsx(
-                        'text-lg font-black font-mono',
-                        isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-slate-400'
-                      )}>
-                        {pnl > 0 ? '+' : ''}{pnl.toFixed(2)}%
-                      </p>
-                      <p className={clsx(
-                        'text-[11px] font-mono',
-                        isUp ? 'text-emerald-500' : isDown ? 'text-red-500' : 'text-slate-500'
-                      )}>
-                        {pos.pnl_tao >= 0 ? '+' : ''}{pos.pnl_tao.toFixed(4)}τ
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Row 2: SL-to-TP bar */}
-                  <div className="space-y-1">
-                    <div className="relative h-2 bg-dark-600 rounded-full overflow-visible">
-                      {isDown && (
-                        <div
-                          className="absolute inset-y-0 left-0 rounded-full bg-red-500/60"
-                          style={{ width: `${barPos}%` }}
-                        />
-                      )}
-                      {isUp && (
-                        <div
-                          className="absolute inset-y-0 rounded-full bg-emerald-500/60"
-                          style={{ left: '50%', width: `${barPos - 50}%` }}
-                        />
-                      )}
-                      <div className="absolute inset-y-0 left-1/2 w-0.5 bg-slate-500" />
-                      <div
-                        className={clsx(
-                          'absolute top-1/2 -translate-y-1/2 w-2.5 h-2.5 rounded-full border-2 transition-all',
-                          dangerZone ? 'border-red-400 bg-red-500 animate-pulse' :
-                          isUp       ? 'border-emerald-400 bg-emerald-500' :
-                                       'border-amber-400 bg-amber-500'
-                        )}
-                        style={{ left: `calc(${barPos}% - 5px)` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[10px] font-mono">
-                      <span className="text-red-400">SL {pos.sl_level.toFixed(4)}τ</span>
-                      <span className="text-slate-500">entry {pos.entry_alpha_price.toFixed(4)}τ</span>
-                      <span className="text-emerald-400">TP {pos.tp_level.toFixed(4)}τ</span>
-                    </div>
-                  </div>
-
-                  {/* Row 3: price detail + staked */}
-                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-500">
-                    <div className="flex items-center gap-3">
-                      <span>
-                        Current: <span className={clsx('font-semibold', isUp ? 'text-emerald-400' : isDown ? 'text-red-400' : 'text-white')}>
-                          {pos.current_alpha_price > 0 ? `τ${pos.current_alpha_price.toFixed(5)}` : 'no price'}
-                        </span>
-                      </span>
-                      <span className="text-slate-600">·</span>
-                      <span>Staked: <span className="text-slate-300">{pos.tao_staked.toFixed(4)}τ</span></span>
-                    </div>
-                    {dangerZone && (
-                      <span className="flex items-center gap-1 text-red-400 font-semibold animate-pulse">
-                        <TrendingDown size={10} /> Near SL
-                      </span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-6 text-slate-500 text-xs font-mono space-y-1">
-            <ShieldAlert size={20} className="mx-auto text-slate-700 mb-2" />
-            <p>No open positions tracked</p>
-            <p className="text-slate-600">
-              Positions appear when LIVE bots execute on-chain BUY trades.
-              Stop-loss ({positions?.sl_pct ?? 8}%) and take-profit ({positions?.tp_pct ?? 25}%) 
-              monitor automatically.
-            </p>
-          </div>
-        )}
-
-        {/* Recently closed positions */}
-        {positions?.positions && positions.positions.filter(p => p.status !== 'open').length > 0 && (
-          <div className="mt-4 pt-4 border-t border-dark-600">
-            <p className="text-[12px] text-slate-500 uppercase tracking-widest font-mono mb-3">Recently Closed (7 days)</p>
-            <div className="space-y-2">
-              {positions.positions.filter(p => p.status !== 'open').map(pos => {
-                const subnetName = SUBNET_NAMES[pos.netuid] ?? `Subnet ${pos.netuid}`
-                const statusMap: Record<string, { label: string; color: string }> = {
-                  sl_hit:      { label: '🛑 Stop-Loss',   color: 'text-red-400'     },
-                  tp_hit:      { label: '🎯 Take-Profit', color: 'text-emerald-400' },
-                  closed:      { label: '✓ Closed',       color: 'text-slate-400'   },
-                  failed_exit: { label: '⚠ Failed Exit',  color: 'text-amber-400'   },
-                }
-                const s = statusMap[pos.status] ?? { label: pos.status, color: 'text-slate-400' }
-                return (
-                  <div key={pos.id} className="flex items-center justify-between px-3 py-2 bg-dark-700/50 rounded-lg text-[11px] font-mono">
-                    <div className="flex items-center gap-2">
-                      <span className="text-slate-500">SN{pos.netuid}</span>
-                      <span className="text-slate-400">{subnetName}</span>
-                      <span className={clsx('font-semibold', s.color)}>{s.label}</span>
-                    </div>
-                    <div className="text-right">
-                      {pos.realized_pnl_tao != null && (
-                        <span className={clsx('font-semibold', pos.realized_pnl_tao >= 0 ? 'text-emerald-400' : 'text-red-400')}>
-                          {pos.realized_pnl_tao >= 0 ? '+' : ''}{pos.realized_pnl_tao.toFixed(4)}τ
-                        </span>
-                      )}
-                      <span className="text-slate-600 ml-2">
-                        {pos.closed_at ? new Date(pos.closed_at).toLocaleDateString() : '—'}
-                      </span>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── Staking Positions (relocated from Wallet) ── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-2">
-            <Layers size={14} className="text-purple-400" />
-            <span className="text-sm font-semibold text-white">Staking Positions</span>
-            <span className="text-xs text-slate-500 font-mono">Live αTAO deployment</span>
-            {stakes?.stakes && stakes.stakes.length > 0 && (
-              <span className="px-1.5 py-0.5 text-[11px] font-bold font-mono rounded bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                {stakes.stakes.length} ACTIVE
-              </span>
-            )}
-          </div>
-          <div className="flex items-center gap-3">
-            {stakes && stakes.total_tao_value > 0 && (
-              <div className="flex items-center gap-1.5 text-xs font-mono">
-                <span className="text-slate-500">Total deployed:</span>
-                <span className="text-purple-400 font-bold">τ{stakes.total_tao_value.toFixed(4)}</span>
-                {data?.tao_price_usd && (
-                  <span className="text-slate-500">${(stakes.total_tao_value * data.tao_price_usd).toFixed(2)}</span>
-                )}
-              </div>
-            )}
-            <button
-              onClick={fetchStakes}
-              disabled={stakesLoading}
-              className="flex items-center gap-1.5 text-[13px] text-slate-400 hover:text-white font-mono transition-colors"
-            >
-              <RefreshCw size={11} className={stakesLoading ? 'animate-spin' : ''} />
-              {stakesLoading ? 'Loading…' : 'Refresh'}
-            </button>
-          </div>
-        </div>
-
-        {stakesLoading && !stakes ? (
-          <div className="flex items-center justify-center py-8 text-slate-500 text-xs font-mono gap-2">
-            <RefreshCw size={12} className="animate-spin" /> Querying Finney mainnet…
-          </div>
-        ) : stakes?.stakes && stakes.stakes.length > 0 ? (
-          <div className="space-y-2">
-            {stakes.stakes.map((pos) => {
-              const name   = SUBNET_NAMES[pos.netuid] ?? `Subnet ${pos.netuid}`
-              const total  = stakes.total_tao_value > 0 ? stakes.total_tao_value : 1
-              const pct    = (pos.tao_value / total) * 100
-              const usd    = data?.tao_price_usd ? pos.tao_value * data.tao_price_usd : null
-              const isRoot = pos.netuid === 0
-              const key    = `${pos.netuid}-${pos.hotkey}`
-              return (
-                <div
-                  key={key}
-                  className="bg-dark-700/80 border border-dark-600 rounded-xl p-3.5 space-y-2.5"
-                >
-                  {/* Row 1: subnet name + badge + TAO value */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={clsx(
-                        'text-[11px] font-bold font-mono px-1.5 py-0.5 rounded',
-                        isRoot ? 'bg-amber-500/20 text-amber-400' : 'bg-purple-500/20 text-purple-400'
-                      )}>
-                        SN{pos.netuid}
-                      </span>
-                      <span className="text-sm font-semibold text-white">{name}</span>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-bold font-mono text-emerald-400">τ{pos.tao_value.toFixed(4)}</p>
-                      {usd != null && <p className="text-[11px] font-mono text-slate-400">${usd.toFixed(2)}</p>}
-                    </div>
-                  </div>
-
-                  {/* Row 2: αTAO × price + bar */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-[12px] font-mono text-slate-400">
-                      <span>
-                        <span className="text-slate-300">{pos.stake.toFixed(4)}</span>
-                        <span className="text-slate-500"> αTAO</span>
-                        {!isRoot && (
-                          <>
-                            <span className="text-slate-600 mx-1">×</span>
-                            <span className="text-slate-400">τ{pos.alpha_price.toFixed(5)}</span>
-                            <span className="text-slate-600 text-[10px] ml-1">/ αTAO</span>
-                          </>
-                        )}
-                      </span>
-                      <span className="text-slate-500">{pct.toFixed(1)}% of deployed</span>
-                    </div>
-                    <div className="h-1 bg-dark-600 rounded-full overflow-hidden">
-                      <div
-                        className={clsx('h-full rounded-full transition-all duration-700', isRoot ? 'bg-amber-400' : 'bg-purple-400')}
-                        style={{ width: `${Math.min(100, pct)}%` }}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Row 3: hotkey + Unstake button */}
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-mono text-slate-600 truncate flex-1">{pos.hotkey}</p>
-                    <button
-                      onClick={() => handleUnstake(pos.netuid, pos.hotkey, name)}
-                      disabled={unstaking[key] || unstakingAll}
-                      className={clsx(
-                        'flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold font-mono transition-all flex-shrink-0 border',
-                        unstaking[key]
-                          ? 'bg-red-500/10 text-red-400 border-red-500/30 cursor-wait'
-                          : 'bg-red-500/10 text-red-400 border-red-500/25 hover:bg-red-500/20 hover:border-red-500/50 active:scale-95'
-                      )}
-                    >
-                      {unstaking[key]
-                        ? <><RefreshCw size={9} className="animate-spin" /> Unstaking…</>
-                        : <>↩ Unstake</>
-                      }
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-
-            {/* Footer: total + Unstake All */}
-            <div className="flex items-center justify-between px-3.5 py-2.5 bg-dark-700/40 border border-dark-600/50 rounded-xl mt-1">
-              <span className="text-[13px] font-mono text-slate-400">Total Deployed</span>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <span className="text-sm font-bold font-mono text-purple-400">τ{stakes.total_tao_value.toFixed(4)}</span>
-                  {data?.tao_price_usd && (
-                    <span className="text-[11px] font-mono text-slate-500 ml-2">
-                      ${(stakes.total_tao_value * data.tao_price_usd).toFixed(2)}
-                    </span>
-                  )}
-                </div>
-                <button
-                  onClick={handleUnstakeAll}
-                  disabled={unstakingAll || Object.values(unstaking).some(Boolean)}
-                  className={clsx(
-                    'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-bold font-mono transition-all border',
-                    unstakingAll
-                      ? 'bg-red-600/20 text-red-300 border-red-500/40 cursor-wait'
-                      : 'bg-red-600/15 text-red-400 border-red-500/30 hover:bg-red-600/25 hover:border-red-500/60 active:scale-95'
-                  )}
-                >
-                  {unstakingAll
-                    ? <><RefreshCw size={10} className="animate-spin" /> Unstaking All…</>
-                    : <>↩ Unstake All</>
-                  }
-                </button>
-              </div>
-            </div>
-          </div>
-        ) : (
-          <div className="text-center py-8 text-slate-500 text-xs font-mono space-y-1">
-            <Layers size={22} className="mx-auto text-slate-700 mb-2" />
-            <p>No open staking positions</p>
-            <p className="text-slate-600">Positions appear here when the bot executes BUY trades</p>
-          </div>
-        )}
-      </div>
+      {/* Live Positions + Staking Positions relocated to Transactions (Session XXVI) */}
 
       {/* ── Recovery Tracker (relocated from top, per Session XXV spec) ── */}
       <RecoveryTracker balance={walletBal} taoPrice={taoPrice} />
@@ -942,6 +441,47 @@ export default function PnLSummary() {
             </BarChart>
           </ResponsiveContainer>
         )}
+      </div>
+
+      {/* ── Strategy PnL Distribution (Session XXVI: relocated from Strategies page) ── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart2 size={14} className="text-accent-green" />
+          <span className="text-sm font-semibold text-white">Strategy PnL Distribution</span>
+          <span className="ml-auto text-[13px] text-slate-500 font-mono">sorted by total PnL (τ)</span>
+        </div>
+        {by_strategy.length === 0 ? (
+          <div className="flex items-center justify-center h-32 text-slate-600 text-sm font-mono">
+            No strategy PnL data yet
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart
+              data={[...by_strategy].sort((a, b) => b.total_pnl - a.total_pnl)}
+              margin={{ top: 5, right: 10, left: 10, bottom: 40 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#243450" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 9 }}
+                tickLine={false} axisLine={false} angle={-30} textAnchor="end" interval={0} height={50} />
+              <YAxis tick={{ fill: "#64748b", fontSize: 10 }} tickLine={false} axisLine={false}
+                tickFormatter={(v: number) => v.toFixed(3)} />
+              <ReferenceLine y={0} stroke="#334155" />
+              <Tooltip
+                contentStyle={{ background: "#152030", border: "1px solid #243450", borderRadius: 8, fontSize: 12, fontFamily: "monospace" }}
+                formatter={(v: any) => [(v as number).toFixed(4) + "τ", "Total PnL"]}
+              />
+              <Bar dataKey="total_pnl" radius={[4, 4, 0, 0]}>
+                {[...by_strategy].sort((a, b) => b.total_pnl - a.total_pnl).map(s => (
+                  <Cell key={s.strategy} fill={s.total_pnl >= 0 ? "#10b981" : "#f87171"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+        <div className="flex gap-4 mt-2 justify-end text-xs font-mono text-slate-300">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-accent-green inline-block" /> Positive</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
+        </div>
       </div>
 
       {/* ── Top / Worst Trade ── */}

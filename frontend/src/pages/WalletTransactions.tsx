@@ -18,6 +18,8 @@ import {
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
+import StakingPositionsPanel from '@/components/StakingPositionsPanel'
+import LivePositionsPanel   from '@/components/LivePositionsPanel'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -818,6 +820,12 @@ export default function WalletTransactions() {
             )}
           </div>
         )}
+      </div>
+
+      {/* ── Staking + Live Positions (relocated from PnL Summary, Session XXVI) ── */}
+      <div className="px-6 pb-6 space-y-4">
+        <StakingPositionsPanel />
+        <LivePositionsPanel />
       </div>
 
       {/* Add Funding Modal */}
