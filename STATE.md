@@ -1,6 +1,6 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-13 (Session XXVIII + chart-height patch — wipe decoupling, Dashboard chart 960px, Pass-4 navigation aids)
+**Last updated:** 2026-05-13 (Session XXVIII + chart-height patch + tz-aware wipe patch — wipe decoupling, Dashboard chart 960px, Pass-4 navigation aids, fossil cleanup tz-coercion fix)
 **Status:** PAPER TRAINING ACTIVE — Day 2 of 7 paper baseline. All 12 strategies PAPER_ONLY. XXVIII root-causes the 3-session counter regression (XXV/XXVI/XXVII fossil-wipe blocks were dead code — nested under `if FORCE_PAPER_MODE == "1"` while the env var was "0" on Railway). Wipe now decoupled into a self-triggering threshold-gated block (FOSSIL_CLEANUP_THRESHOLD = 2026-05-13 14:00 UTC) that runs regardless of FORCE_PAPER_MODE. UI: Dashboard 10-card reorder, TradingView chart wrapper bug fixed (flex-1 → inline height) at 1920px (Option B), OpenClaw Votes section moved to top of latest-round container, PnL Summary reordered (Recovery → Rolling WR → PnL Over Time → Cumulative PnL → Strategy PnL), Cumulative PnL gets empty-state placeholder, Transactions page gains sticky anchor rail + floating "Jump to Transaction History" FAB. All commits on `origin/main`.
 **Maintained by:** II Agent + Partner
 **Rule:** Update this file at the end of every session. It is the handoff.
@@ -12,6 +12,58 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXVIII POST-MORTEM (May 13, 2026 — autonomous verification pass)
+
+After partner signed off for the day, autonomous verification of the live
+deploy revealed the Pass-0 wipe DID NOT FIRE, despite the deploy succeeding
+and the right commit being live. Root cause: the threshold-check comparison
+on line 154 raised `TypeError: can't compare offset-naive and offset-aware
+datetimes` — `FOSSIL_CLEANUP_THRESHOLD` was constructed timezone-aware
+(`tzinfo=_tz.utc`), but `Strategy.stats_reset_at` was returned offset-naive
+by asyncpg/SQLAlchemy on this deploy despite the column declaration being
+`DateTime(timezone=True)`. A known driver footgun — the column type only
+controls schema, not always the Python-side value type.
+
+**Symptoms observed:**
+- `/api/bot/status` → BotConfig singleton zeroed (counters were 0 because
+  the BotConfig.update never ran either, but BotConfig had not yet been
+  written to in this deploy session, masking the failure)
+- `/api/strategies` → Strategy rollups STILL non-zero (`total_trades:2370`,
+  `cycles_completed:6301` on momentum_cascade — both pre-deploy values)
+
+**Smoking gun in deploy logs:**
+```
+2026-05-13 15:57:03 | ERROR | main | Fossil cleanup failed: can't compare
+offset-naive and offset-aware datetimes
+```
+
+**Patch (this commit):**
+- Added `_as_utc_aware()` defensive helper inside the cleanup block —
+  coerces any naive datetime to UTC-aware. Idempotent.
+- Replaced `_first.stats_reset_at < FOSSIL_CLEANUP_THRESHOLD` with
+  `_first_reset < FOSSIL_CLEANUP_THRESHOLD` where `_first_reset` is the
+  coerced version. Crash-safe.
+- Bumped `FOSSIL_CLEANUP_THRESHOLD` from `2026-05-13 14:00 UTC` to
+  `2026-05-13 17:00 UTC` to force a re-run on the next deploy (the
+  previous threshold was already past in wall-clock by the time of fix).
+
+**Discipline note added (for next agent):**
+> Anywhere a tz-aware datetime is compared to an ORM-loaded datetime,
+> coerce the ORM value with `_as_utc_aware()` (or equivalent) first.
+> The `DateTime(timezone=True)` column type is necessary but not
+> sufficient — the Python-side value can still arrive naive depending
+> on driver/connection settings.
+
+**Verification plan (next deploy):**
+1. Hit `/api/strategies` → all 12 should show `total_trades:0`,
+   `cycles_completed:0`, `total_pnl:0.0`, `win_rate:0.0`.
+2. Hit `/api/bot/status` → BotConfig singleton zeroed (already was).
+3. Pull deploy logs filter `FOSSIL` → should see the WARNING line
+   `FOSSIL CLEANUP (Session XXVIII) — wiped 12 Strategy rows...` instead
+   of the previous TypeError.
 
 ---
 

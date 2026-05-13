@@ -143,15 +143,32 @@ async def lifespan(app: FastAPI):
         # the FIRST time the wipe will actually run on Railway, because XXVIII
         # is the first session where the wipe is no longer gated by
         # FORCE_PAPER_MODE.
-        FOSSIL_CLEANUP_THRESHOLD = datetime(2026, 5, 13, 14, 0, 0, tzinfo=_tz.utc)
+        # Session XXVIII patch-2 (2026-05-13 16:30 UTC): bumped again to
+        # 17:00 UTC to force a re-run after the FIRST attempt threw on a tz
+        # mismatch (`can't compare offset-naive and offset-aware datetimes`).
+        # Despite the `DateTime(timezone=True)` column declaration, the asyncpg
+        # driver was returning Strategy.stats_reset_at as offset-naive on this
+        # deploy, and the comparison `naive < aware` raised TypeError before
+        # the wipe block was reached. Defensive coercion added below.
+        FOSSIL_CLEANUP_THRESHOLD = datetime(2026, 5, 13, 17, 0, 0, tzinfo=_tz.utc)
+
+        def _as_utc_aware(dt):
+            """Coerce a possibly-naive datetime to UTC-aware. Idempotent.
+            Needed because asyncpg/SQLAlchemy occasionally hand back naive
+            datetimes from `DateTime(timezone=True)` columns depending on
+            connection settings — a known footgun."""
+            if dt is None:
+                return None
+            return dt if dt.tzinfo is not None else dt.replace(tzinfo=_tz.utc)
 
         async with AsyncSessionLocal() as db:
             _existing = await db.execute(_select(Strategy).limit(1))
             _first = _existing.scalar_one_or_none()
+            _first_reset = _as_utc_aware(_first.stats_reset_at) if _first else None
             _needs_wipe = (
                 _first is None
-                or _first.stats_reset_at is None
-                or _first.stats_reset_at < FOSSIL_CLEANUP_THRESHOLD
+                or _first_reset is None
+                or _first_reset < FOSSIL_CLEANUP_THRESHOLD
             )
 
             if _needs_wipe:
@@ -198,7 +215,7 @@ async def lifespan(app: FastAPI):
             else:
                 logger.info(
                     f"FOSSIL CLEANUP: skipped — stats_reset_at "
-                    f"({_first.stats_reset_at.isoformat()}) is at/past "
+                    f"({_first_reset.isoformat()}) is at/past "
                     f"threshold ({FOSSIL_CLEANUP_THRESHOLD.isoformat()})"
                 )
     except Exception as _e:
