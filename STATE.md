@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-12 (Session XXVII — Counter regression fix + follow-up UI polish)
-**Status:** PAPER TRAINING ACTIVE — Day 1 of 7 (RE-wiped on Zero Day = 2026-05-12 20:40 UTC — counters truly zero now). All 12 strategies PAPER_ONLY. XXVII wipe now covers OpenClaw round counters too (prior miss). UI: TradingView 4× height, Rolling Win Rate relocated to PnL Summary, Staking/Live Positions elevated on Transactions, Manual Trades pill simplified, "triggered by" → "Triggered By". All commits on `origin/main`.
+**Last updated:** 2026-05-13 (Session XXVIII — Wipe decoupling + Dashboard chart fix + Pass-4 navigation aids)
+**Status:** PAPER TRAINING ACTIVE — Day 2 of 7 paper baseline. All 12 strategies PAPER_ONLY. XXVIII root-causes the 3-session counter regression (XXV/XXVI/XXVII fossil-wipe blocks were dead code — nested under `if FORCE_PAPER_MODE == "1"` while the env var was "0" on Railway). Wipe now decoupled into a self-triggering threshold-gated block (FOSSIL_CLEANUP_THRESHOLD = 2026-05-13 14:00 UTC) that runs regardless of FORCE_PAPER_MODE. UI: Dashboard 10-card reorder, TradingView chart wrapper bug fixed (flex-1 → inline height) at 1920px (Option B), OpenClaw Votes section moved to top of latest-round container, PnL Summary reordered (Recovery → Rolling WR → PnL Over Time → Cumulative PnL → Strategy PnL), Cumulative PnL gets empty-state placeholder, Transactions page gains sticky anchor rail + floating "Jump to Transaction History" FAB. All commits on `origin/main`.
 **Maintained by:** II Agent + Partner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -12,6 +12,205 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXVIII SUMMARY (May 13, 2026) — Wipe Decoupling + Dashboard Chart Fix + Page Navigation
+
+### Overview
+Day 2 of the paper baseline. Session opened with two findings the partner
+flagged after the XXVII deploy:
+
+1. **Trade/round counters STILL non-zero.** XXVII believed the issue was
+   either a missed wipe-set or an in-memory race (and shipped fixes for both).
+   Both fixes were correct in isolation — but the wipe block they live inside
+   has been **dead code on Railway since Session XXV**, because the entire
+   block is nested under `if os.environ.get("FORCE_PAPER_MODE", "0") == "1"`,
+   and that env var is `"0"` on the production environment. Three sessions
+   of "wipe" commits have done nothing.
+2. **Dashboard TradingView chart was rendering at iframe-default height,**
+   not the 1280px set in XXVII. Cause: the wrapper used the Tailwind class
+   `flex-1`, which collapses any explicit height when the parent isn't
+   height-constrained — silently overriding `h-[1280px]`.
+
+Plus a polish list:
+3. **Dashboard:** Reorder the 10-card grid (II Agent → Win Rate → Total PnL →
+   Total Trades → Paper Day // TAO/USD → 24h Change → Alerts → Approval Rate
+   → Daily Cap).
+4. **OpenClaw:** Move the Vote Bar + Council Votes block to the TOP of the
+   latest-round container, above the "Triggered By" header.
+5. **PnL Summary:** Reorder so Rolling Win Rate sits directly under Recovery
+   Tracker, and Cumulative PnL sits between PnL Over Time and Strategy PnL
+   Distribution.
+6. **Transactions:** Long-page navigation pain — add a sticky right-edge
+   anchor rail AND a floating "Jump to Transaction History" button (FAB).
+
+Plus housekeeping:
+7. **PAT rotation (Plan A)** — old GitHub PAT rotated before any push this
+   session. New token sealed in `~/.secrets/github_pat` (mode 600, outside
+   `/workspace`). PTY scrollback scrubbed of `ghp_*` markers.
+
+### Pass 0 — Wipe Decoupling (the actual root cause)
+
+**`backend/main.py`:**
+- Split the startup block into two **independent** sections:
+  - **(1) Idempotent fossil cleanup** — gated **only** by
+    `FOSSIL_CLEANUP_THRESHOLD` (`datetime(2026, 5, 13, 14, 0, 0, UTC)`).
+    Wipes Strategy rollups (12 rows: cycles/wins/losses/total_trades/
+    win_rate/total_pnl/avg_return), DELETEs paper trades from `trades`
+    (WHERE tx_hash IS NULL), zeroes BotConfig singleton (total_trades,
+    successful_trades, total_pnl, daily_trades, openclaw_total_rounds,
+    openclaw_approved_rounds, openclaw_rejected_rounds), stamps
+    `Strategy.stats_reset_at = now()`. Self-disabling once stamps catch up
+    to threshold. **Runs regardless of FORCE_PAPER_MODE.**
+  - **(2) FORCE_PAPER_MODE override** — UNCHANGED behaviour, but no longer
+    contains the wipe. When `FORCE_PAPER_MODE=1` it just demotes all 12
+    strategies to PAPER_ONLY. When `FORCE_PAPER_MODE=0` it does nothing.
+- `consensus_service.load_from_db()` continues to fire AFTER both blocks
+  (XXVII fix preserved) so the in-memory `_stats` dict starts from the
+  freshly-zeroed DB values, never from pre-wipe state.
+- Threshold bumped to `2026-05-13 14:00 UTC` so this commit triggers exactly
+  one wipe on next Railway cold-start, then self-disables.
+
+**Invariant:** Counter integrity no longer depends on any operator setting
+an env var. Future schema/data migrations follow the same pattern — bump
+the threshold, ship, deploy, done.
+
+### Pass 1 — Dashboard Chart Fix + 10-Card Reorder
+
+**`frontend/src/pages/Dashboard.tsx`:**
+- **Chart wrapper:** Switched from Tailwind `flex-1` + `heightClass` prop to
+  inline `style={{ height: ${heightPx}px }}`. The flex-1 class was the
+  silent override on XXVII's 1280px request. With inline style the iframe
+  now actually honours the requested pixel height.
+- **Chart height:** 1920px (Option B from partner — 6× original 320px
+  baseline, 3× XXVI's 640px, 1.5× XXVII's intended 1280px). Fits a 4K
+  monitor with comfortable scroll headroom; no monitor-overflow at standard
+  zoom.
+- **10-card grid reorder** (from partner spec):
+  - Row 1: II Agent · Win Rate · Total PnL · Total Trades · Paper Day
+  - Row 2: TAO/USD · 24h Change · Alerts · Approval Rate · Daily Cap
+- KPIs that were "Trade Status / Risk Mode / etc." reshuffled so the most
+  important traders' eye-line (WR + PnL) sits second/third on row 1, and
+  TAO/USD price leads row 2.
+
+### Pass 2 — OpenClaw Vote-First Layout
+
+**`frontend/src/pages/OpenClaw.tsx`:**
+- Moved the `<VoteBar … />` and Council Votes 12-card grid block from
+  BELOW the round header to the **TOP of the latest-round container**,
+  immediately after the container's wrapper `<div>` opens.
+- Triggered-By header + result-pill row now sits BENEATH the votes — the
+  verdict (votes) leads, the metadata (who triggered, what price, what the
+  result was) follows.
+- "Manual Trigger" section at the very bottom of the container is unchanged
+  (XXVI placement preserved).
+
+### Pass 3 — PnL Summary Reorder + Cumulative PnL Empty State
+
+**`frontend/src/pages/PnLSummary.tsx`:**
+- Vertical order is now:
+  1. Recovery Tracker (top)
+  2. Rolling Win Rate  ← moved up from page bottom
+  3. PnL Over Time (line)
+  4. Cumulative PnL (area)  ← moved up from below Strategy
+  5. Strategy PnL Distribution
+  6. Best/Worst by Strategy
+  7. By Trade Type
+- **Cumulative PnL empty-state placeholder** (partner spec): when
+  `equity_series` is empty (e.g. immediately after the Pass-0 fossil wipe),
+  the Cumulative PnL card now renders a 220px-tall centered placeholder
+  with a TrendingUp icon and the text **"No equity data yet — building"**
+  plus a subtitle "curve will plot once paper trades begin landing."
+- Previously the entire card was hidden behind a `&&` short-circuit while
+  empty — the section silently disappeared. Now visible-and-honest.
+
+### Pass 4 — Transactions Page Navigation Aids
+
+**`frontend/src/pages/WalletTransactions.tsx`:**
+
+Two coordinated affordances for the long Transactions page (both kept on
+purpose — they serve different user flows):
+
+- **`<TransactionsAnchorRail />`** — sticky right-edge nav rail, `lg+`
+  breakpoints only. Fixed-position card with three section anchors:
+  Summary (4-card KPIs), Positions (Staking + Live), History
+  (Funding · Ledger · Chain). Each entry is a `<button>` that calls
+  `scrollIntoView({ behavior: 'smooth' })` on the matching DOM id. Compact
+  styling so it doesn't dominate the page.
+- **`<JumpToHistoryFab />`** — bottom-right floating action button,
+  always-visible until tx-history enters the viewport, then auto-hides
+  via `IntersectionObserver` (`threshold: 0.05`). Cyan pill with a
+  ChevronDown icon, label "Jump to Transaction History". Matches the
+  rail's anchor target so both affordances point at the same place.
+
+Section anchor IDs added: `id="tx-summary"`, `id="tx-positions"`,
+`id="tx-history"` (with `scroll-mt-20` so the sticky top bar doesn't
+clip the section header on jump).
+
+### Pass 5 — STATE.md (this entry)
+
+Self-explanatory. No code change.
+
+### Pass 6 — Commit + Push (PAT vault path)
+
+- All changes committed to `main` as a single Session XXVIII commit.
+- Pushed via `~/.secrets/github_pat` (rotated, mode 600, outside workspace).
+- PTY scrollback scrubbed of `ghp_*` markers post-push.
+- Railway auto-deploys from `origin/main` — the threshold-gated wipe fires
+  exactly once on cold-start, then `Strategy.stats_reset_at` >= threshold
+  on every subsequent boot, so the block stays idle.
+
+### Expected Post-Deploy State
+
+On Railway cold-start of this commit:
+
+1. Fossil-cleanup block runs unconditionally (XXVIII change). Threshold is
+   `2026-05-13 14:00 UTC`. Strategy rows have `stats_reset_at` from
+   2026-05-12 ≤ threshold → **wipe runs** (the FIRST time it has actually
+   run since Session XXIV).
+2. Strategy rows zeroed (12 × {cycles, wins, losses, total_trades,
+   win_rate, total_pnl, avg_return}); `stats_reset_at` stamped to threshold
+   minute.
+3. All paper trades DELETEd from `trades` table.
+4. BotConfig singleton zeroed — including the OpenClaw round counters
+   (XXVII fix is preserved).
+5. `consensus_service.load_from_db()` fires AFTER the wipe → `_stats` dict
+   starts at zero → next consensus round = round #1.
+6. Subsequent cold-starts: `stats_reset_at >= FOSSIL_CLEANUP_THRESHOLD` →
+   block logs "FOSSIL CLEANUP: skipped" and falls through.
+
+Frontend at `profound-expression-production-75c7…`:
+- Dashboard: 10-card grid in new order, TradingView chart at honest 1920px.
+- OpenClaw: Votes-first latest round container, Triggered-By header second.
+- PnL Summary: 7 cards in the new order, Cumulative PnL with placeholder
+  while equity table is empty.
+- Transactions: anchor rail (right edge, lg+) + Jump-to-History FAB
+  (bottom-right, auto-hides on scroll-into-view).
+
+### Carry-Over From XXVII (still pending)
+- Day 7 WR gate mechanics verification (gate opens 2026-05-19).
+- RSI = 50.0 fallback on `/bot/status` — CoinGecko rate-limit reliability;
+  add cache or fallback source.
+- TAO/USD standalone chart resurrection.
+- Discord gateway OTF invite (external — partner action).
+- Auto-demotion on drawdown breach.
+- Real αTAO positions in Wallet panel from chain.
+- MANTIS API research / SN3 owner-key monitor.
+
+### Discipline Note (for next agent)
+
+The pattern that just bit us 3 sessions in a row was: **operational gating
+(env vars) was load-bearing for data integrity (wipes).** When the operator
+toggles the env var off, the data fix becomes dead code. From XXVIII forward:
+
+> Anything that mutates DB state to fix a forensic/schema/regression issue
+> MUST be gated by a self-triggering threshold (date stamp, schema version,
+> data-integrity hash) and MUST NOT be nested inside an operational
+> `if FORCE_*` block.
+
+Operational mode flags toggle behaviour. Schema/data versions trigger
+migrations. Don't conflate them.
 
 ---
 

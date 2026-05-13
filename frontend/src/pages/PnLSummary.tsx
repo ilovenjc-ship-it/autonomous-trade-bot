@@ -390,6 +390,10 @@ export default function PnLSummary() {
       {/* ── Recovery Tracker (relocated from top, per Session XXV spec) ── */}
       <RecoveryTracker balance={walletBal} taoPrice={taoPrice} />
 
+      {/* ── Rolling Win Rate — Session XXVIII: relocated from page bottom
+              to directly below Recovery Tracker per partner request ─────── */}
+      <RollingWinRateChart hours={0} height={260} />
+
       {/* (Strategy Leaderboard relocated to Agent Fleet page) */}
 
       {/* ── Daily / Weekly PnL Bar Chart ── */}
@@ -441,6 +445,52 @@ export default function PnLSummary() {
               </Bar>
             </BarChart>
           </ResponsiveContainer>
+        )}
+      </div>
+
+      {/* ── Cumulative PnL — Session XXVIII: relocated from page bottom
+              to between PnL Over Time and Strategy PnL Distribution per
+              partner request (was: relocated from Analytics in XXV).
+              Renders empty-state placeholder while equity_series is empty
+              (e.g. immediately after a fossil wipe) so the section is
+              visible-and-honest rather than silently absent. ─────────────── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <TrendingUp size={14} className={
+            ((data as any).equity_series?.slice(-1)[0]?.cumulative ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
+          } />
+          <span className="text-sm font-semibold text-white">Cumulative PnL</span>
+          <span className="ml-auto text-[13px] text-slate-500 font-mono">running total (τ) · last 500 trades</span>
+        </div>
+        {(data as any).equity_series && (data as any).equity_series.length > 0 ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={(data as any).equity_series} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="cumGr" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%"  stopColor="#10b981" stopOpacity={0.35} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+              <XAxis dataKey="ts" tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
+                tickFormatter={(v: string) => v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''} />
+              <YAxis width={72} tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
+                tickFormatter={(v: number) => `${v.toFixed(3)}τ`} />
+              <Tooltip
+                contentStyle={{ background: '#0d1117', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
+                formatter={(v: any) => [`${(v as number).toFixed(4)}τ`, 'Cumulative']}
+                labelFormatter={(v: string) => v ? new Date(v).toLocaleString() : ''}
+              />
+              <ReferenceLine y={0} stroke="#334155" strokeDasharray="4 2" />
+              <Area dataKey="cumulative" stroke="#10b981" strokeWidth={2} fill="url(#cumGr)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div className="h-[220px] flex flex-col items-center justify-center gap-2 text-slate-500">
+            <TrendingUp size={28} className="text-slate-600" />
+            <span className="text-sm font-mono">No equity data yet — building</span>
+            <span className="text-[11px] font-mono text-slate-600">curve will plot once paper trades begin landing</span>
+          </div>
         )}
       </div>
 
@@ -541,44 +591,9 @@ export default function PnLSummary() {
         </div>
       </div>
 
-      {/* ── Cumulative PnL (relocated from Analytics, per Session XXV spec) ── */}
-      {(data as any).equity_series && (data as any).equity_series.length > 0 && (
-        <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <TrendingUp size={14} className={
-              ((data as any).equity_series?.slice(-1)[0]?.cumulative ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400'
-            } />
-            <span className="text-sm font-semibold text-white">Cumulative PnL</span>
-            <span className="ml-auto text-[13px] text-slate-500 font-mono">running total (τ) · last 500 trades</span>
-          </div>
-          <ResponsiveContainer width="100%" height={220}>
-            <AreaChart data={(data as any).equity_series} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="cumGr" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%"  stopColor="#10b981" stopOpacity={0.35} />
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-              <XAxis dataKey="ts" tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
-                tickFormatter={(v: string) => v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''} />
-              <YAxis width={72} tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
-                tickFormatter={(v: number) => `${v.toFixed(3)}τ`} />
-              <Tooltip
-                contentStyle={{ background: '#0d1117', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
-                formatter={(v: any) => [`${(v as number).toFixed(4)}τ`, 'Cumulative']}
-                labelFormatter={(v: string) => v ? new Date(v).toLocaleString() : ''}
-              />
-              <ReferenceLine y={0} stroke="#334155" strokeDasharray="4 2" />
-              <Area dataKey="cumulative" stroke="#10b981" strokeWidth={2} fill="url(#cumGr)" />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      )}
-
-      {/* ── Rolling Win Rate — Session XXVII: relocated from Network Analytics,
-              placed directly below Cumulative PnL per partner request ───── */}
-      <RollingWinRateChart hours={0} height={260} />
+      {/* (Cumulative PnL relocated up — between PnL Over Time and Strategy
+           PnL Distribution. Rolling Win Rate relocated up — directly below
+           Recovery Tracker. Both per Session XXVIII partner spec.) */}
 
       </div>{/* end scrollable */}
     </div>

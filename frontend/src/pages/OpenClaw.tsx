@@ -746,8 +746,49 @@ export default function OpenClaw() {
           'bg-dark-800 border rounded-2xl p-5 space-y-5 transition-all duration-500',
           flashRound ? 'border-indigo-500/60 shadow-lg shadow-indigo-500/10' : 'border-dark-600',
         )}>
-          {/* Round header — 2-column: [triggered-by center] [result right]
-              Session XXVI: Manual Trigger moved to BELOW Votes. */}
+          {/* Vote bar — Session XXVIII: Votes section relocated to TOP of
+              the round container, above Triggered By header. Partner spec. */}
+          <VoteBar
+            buyCount={latestRound.buy_count}
+            sellCount={latestRound.sell_count}
+            holdCount={latestRound.hold_count}
+            abstainCount={latestRound.abstain_count}
+            threshold={latestRound.supermajority}
+          />
+
+          {/* 12 bot vote cards — part of the relocated Votes section */}
+          <div>
+            <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3 flex items-center gap-2">
+              Council Votes
+              <InfoBubble
+                side="right"
+                maxWidth={310}
+                content={
+                  <div className="space-y-2">
+                    <p className="text-white font-bold">What are the Council Votes?</p>
+                    <p>Each card is one of the 12 bot personalities casting its vote on the proposed trade direction — <span className="text-emerald-400 font-bold">BUY</span>, <span className="text-red-400 font-bold">SELL</span>, <span className="text-amber-400 font-bold">HOLD</span>, or <span className="text-slate-400 font-bold">ABSTAIN</span>.</p>
+                    <div className="space-y-1 border-t border-slate-700/50 pt-1.5">
+                      <p><span className="text-emerald-400 font-bold">BUY</span> — this bot's indicators say conditions favour staking TAO onto a target subnet (going long).</p>
+                      <p><span className="text-red-400 font-bold">SELL</span> — indicators say exit / unstake the position now.</p>
+                      <p><span className="text-amber-400 font-bold">HOLD</span> — no strong conviction either way; don't act yet.</p>
+                      <p><span className="text-slate-400 font-bold">ABSTAIN</span> — not enough price history or data to form a view.</p>
+                    </div>
+                    <p>The <span className="text-white font-bold">confidence bar</span> shows how certain the bot is (0–100%). The mode badge (🚀 LIVE / 📄 PAPER) shows whether that bot's own trades execute on-chain or are simulated — but all 12 vote regardless.</p>
+                    <p className="text-slate-400 text-[11px] border-t border-slate-700/50 pt-1">Need 7 of 12 in the same direction → trade executes. Anything less → round rejected.</p>
+                  </div>
+                }
+              />
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
+              {latestRound.votes.map(v => (
+                <BotVoteCard key={v.bot_name} vote={v} />
+              ))}
+            </div>
+          </div>
+
+          {/* Round header — Session XXVIII: now sits BELOW the Votes section.
+              2-column: [triggered-by center] [result right]. Manual Trigger
+              still sits at the bottom of the container (XXVI placement). */}
           <div className="flex items-center gap-3">
 
             {/* Center — Triggered By · price
@@ -786,45 +827,6 @@ export default function OpenClaw() {
               <span className="text-[13px] text-slate-400 font-mono">{timeSince(latestRound.timestamp)} · {latestRound.duration_ms}ms</span>
             </div>
 
-          </div>
-
-          {/* Vote bar */}
-          <VoteBar
-            buyCount={latestRound.buy_count}
-            sellCount={latestRound.sell_count}
-            holdCount={latestRound.hold_count}
-            abstainCount={latestRound.abstain_count}
-            threshold={latestRound.supermajority}
-          />
-
-          {/* 12 bot vote cards */}
-          <div>
-            <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3 flex items-center gap-2">
-              Council Votes
-              <InfoBubble
-                side="right"
-                maxWidth={310}
-                content={
-                  <div className="space-y-2">
-                    <p className="text-white font-bold">What are the Council Votes?</p>
-                    <p>Each card is one of the 12 bot personalities casting its vote on the proposed trade direction — <span className="text-emerald-400 font-bold">BUY</span>, <span className="text-red-400 font-bold">SELL</span>, <span className="text-amber-400 font-bold">HOLD</span>, or <span className="text-slate-400 font-bold">ABSTAIN</span>.</p>
-                    <div className="space-y-1 border-t border-slate-700/50 pt-1.5">
-                      <p><span className="text-emerald-400 font-bold">BUY</span> — this bot's indicators say conditions favour staking TAO onto a target subnet (going long).</p>
-                      <p><span className="text-red-400 font-bold">SELL</span> — indicators say exit / unstake the position now.</p>
-                      <p><span className="text-amber-400 font-bold">HOLD</span> — no strong conviction either way; don't act yet.</p>
-                      <p><span className="text-slate-400 font-bold">ABSTAIN</span> — not enough price history or data to form a view.</p>
-                    </div>
-                    <p>The <span className="text-white font-bold">confidence bar</span> shows how certain the bot is (0–100%). The mode badge (🚀 LIVE / 📄 PAPER) shows whether that bot's own trades execute on-chain or are simulated — but all 12 vote regardless.</p>
-                    <p className="text-slate-400 text-[11px] border-t border-slate-700/50 pt-1">Need 7 of 12 in the same direction → trade executes. Anything less → round rejected.</p>
-                  </div>
-                }
-              />
-            </p>
-            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
-              {latestRound.votes.map(v => (
-                <BotVoteCard key={v.bot_name} vote={v} />
-              ))}
-            </div>
           </div>
 
           {/* Manual Trigger — Session XXVI: relocated to BELOW the Votes section */}

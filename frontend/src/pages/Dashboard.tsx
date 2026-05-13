@@ -78,9 +78,16 @@ function fmt(n: number, d = 4) {
 
 
 // ── TradingView TAO Chart ─────────────────────────────────────────────────────
-// Session XXVI: accepts heightClass prop so Dashboard can render at 2× height
-// (full-width, tall) while other callers keep the default.
-function TaoTradingViewChart({ heightClass = 'h-[320px]' }: { heightClass?: string } = {}) {
+// Session XXVIII: switched height contract from Tailwind class → inline style
+// (numeric px). Reasons:
+//   1. The previous wrapper used `flex-1` which collapses any explicit height
+//      when the parent isn't height-constrained — silently overrode XXVII's
+//      `h-[1280px]` so the chart actually rendered at iframe-default height.
+//   2. Tailwind JIT can drop arbitrary-value classes from the production
+//      bundle if they're only referenced in a prop default. Inline style is
+//      bundle-safe.
+// Default 320px preserved for any other callers; Dashboard passes 3840px.
+function TaoTradingViewChart({ heightPx = 320 }: { heightPx?: number } = {}) {
   const src = "https://s.tradingview.com/widgetembed/?frameElementId=tv_tao" +
     "&symbol=BINANCE%3ATAOUSDT&interval=60&hidesidetoolbar=0&symboledit=0" +
     "&saveimage=0&toolbarbg=152030&studies=%5B%5D&theme=dark&style=1&timezone=Etc%2FUTC" +
@@ -102,7 +109,7 @@ function TaoTradingViewChart({ heightClass = 'h-[320px]' }: { heightClass?: stri
           Open Full ↗
         </a>
       </div>
-      <div className={clsx('flex-1 rounded-lg overflow-hidden', heightClass)}>
+      <div className="rounded-lg overflow-hidden" style={{ height: `${heightPx}px` }}>
         <iframe
           id="tv_tao"
           src={src}
@@ -646,9 +653,9 @@ export default function Dashboard() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          OPERATOR STATIC CARDS — Session XXVI order:
-          Row 1:  II Agent · Approval Rate · Paper Day · Total Trades · Alerts
-          Row 2:  TAO/USD · 24h Change · Win Rate · Total PnL · Daily Cap
+          OPERATOR STATIC CARDS — Session XXVIII order (Partner spec):
+          Row 1:  II Agent · Win Rate · Total PnL · Total Trades · Paper Day
+          Row 2:  TAO/USD · 24h Change · Alerts · Approval Rate · Daily Cap
           ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
 
@@ -670,23 +677,59 @@ export default function Dashboard() {
           <ChevronRight size={11} className="text-slate-600 group-hover:text-indigo-400 transition-colors mt-1 flex-shrink-0" />
         </button>
 
-        {/* 2 — Approval Rate (BFT) */}
+        {/* 2 — Win Rate */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
-            <Vote size={14} className="text-purple-400" />
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            winRate >= 55 ? 'bg-emerald-500/10' : winRate >= 40 ? 'bg-amber-500/10' : 'bg-red-500/10'
+          )}>
+            <Target size={14} className={winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Approval Rate</p>
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Win Rate</p>
             <p className={clsx('text-base font-black font-mono mt-0.5',
-              _approvalRate >= 45 && _approvalRate <= 65 ? 'text-emerald-400' : 'text-amber-400'
+              winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'
             )}>
-              {consensusStats ? `${_approvalRate.toFixed(1)}%` : '—'}
+              {summary ? `${winRate.toFixed(1)}%` : '—'}
             </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">BFT · 7/12 threshold</p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+              {summary ? `${summary.wins}W · ${summary.losses}L` : 'gate: 55%'}
+            </p>
           </div>
         </div>
 
-        {/* 3 — Paper Day */}
+        {/* 3 — Total PnL */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
+          )}>
+            <DollarSign size={14} className={totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total PnL</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              totalPnl > 0 ? 'text-emerald-400' : totalPnl < 0 ? 'text-red-400' : 'text-slate-300'
+            )}>
+              {summary ? `${fmt(totalPnl, 4)} τ` : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">fleet cumulative</p>
+          </div>
+        </div>
+
+        {/* 4 — Total Trades */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
+            <Hash size={14} className="text-slate-300" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
+            <p className="text-base font-black font-mono text-white mt-0.5">
+              {summary ? totalTrades.toLocaleString() : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
+          </div>
+        </div>
+
+        {/* 5 — Paper Day */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
           <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
             paperDay >= 7 ? 'bg-emerald-500/10' : 'bg-amber-500/10'
@@ -705,47 +748,6 @@ export default function Dashboard() {
             </p>
           </div>
         </div>
-
-        {/* 4 — Total Trades */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
-            <Hash size={14} className="text-slate-300" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
-            <p className="text-base font-black font-mono text-white mt-0.5">
-              {summary ? totalTrades.toLocaleString() : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
-          </div>
-        </div>
-
-        {/* 5 — Alerts */}
-        <button onClick={() => navigate('/alerts')}
-          className={clsx(
-            'rounded-xl px-4 py-3.5 flex items-start gap-3 text-left transition-all group border',
-            unreadAlerts > 0
-              ? 'bg-red-500/5 border-red-500/25 hover:border-red-500/50'
-              : 'bg-dark-800 border-dark-600 hover:border-slate-500'
-          )}>
-          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            unreadAlerts > 0 ? 'bg-red-500/10' : 'bg-slate-700/50'
-          )}>
-            <Bell size={14} className={unreadAlerts > 0 ? 'text-red-400' : 'text-slate-400'} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Alerts</p>
-            <p className={clsx('text-base font-black font-mono mt-0.5 truncate',
-              unreadAlerts > 0 ? 'text-red-400' : 'text-emerald-400'
-            )}>
-              {unreadAlerts > 0 ? `${unreadAlerts} unread` : 'All clear ✓'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-              {unreadAlerts > 0 ? 'click to review' : 'no new alerts'}
-            </p>
-          </div>
-          <ChevronRight size={11} className="text-slate-600 group-hover:text-white transition-colors mt-1 flex-shrink-0" />
-        </button>
 
         {/* 6 — TAO / USD price */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
@@ -779,41 +781,46 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 8 — Win Rate */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            winRate >= 55 ? 'bg-emerald-500/10' : winRate >= 40 ? 'bg-amber-500/10' : 'bg-red-500/10'
+        {/* 8 — Alerts */}
+        <button onClick={() => navigate('/alerts')}
+          className={clsx(
+            'rounded-xl px-4 py-3.5 flex items-start gap-3 text-left transition-all group border',
+            unreadAlerts > 0
+              ? 'bg-red-500/5 border-red-500/25 hover:border-red-500/50'
+              : 'bg-dark-800 border-dark-600 hover:border-slate-500'
           )}>
-            <Target size={14} className={winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'} />
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            unreadAlerts > 0 ? 'bg-red-500/10' : 'bg-slate-700/50'
+          )}>
+            <Bell size={14} className={unreadAlerts > 0 ? 'text-red-400' : 'text-slate-400'} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Win Rate</p>
-            <p className={clsx('text-base font-black font-mono mt-0.5',
-              winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Alerts</p>
+            <p className={clsx('text-base font-black font-mono mt-0.5 truncate',
+              unreadAlerts > 0 ? 'text-red-400' : 'text-emerald-400'
             )}>
-              {summary ? `${winRate.toFixed(1)}%` : '—'}
+              {unreadAlerts > 0 ? `${unreadAlerts} unread` : 'All clear ✓'}
             </p>
             <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-              {summary ? `${summary.wins}W · ${summary.losses}L` : 'gate: 55%'}
+              {unreadAlerts > 0 ? 'click to review' : 'no new alerts'}
             </p>
           </div>
-        </div>
+          <ChevronRight size={11} className="text-slate-600 group-hover:text-white transition-colors mt-1 flex-shrink-0" />
+        </button>
 
-        {/* 9 — Total PnL */}
+        {/* 9 — Approval Rate (BFT) */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
-          )}>
-            <DollarSign size={14} className={totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'} />
+          <div className="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center flex-shrink-0">
+            <Vote size={14} className="text-purple-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total PnL</p>
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Approval Rate</p>
             <p className={clsx('text-base font-black font-mono mt-0.5',
-              totalPnl > 0 ? 'text-emerald-400' : totalPnl < 0 ? 'text-red-400' : 'text-slate-300'
+              _approvalRate >= 45 && _approvalRate <= 65 ? 'text-emerald-400' : 'text-amber-400'
             )}>
-              {summary ? `${fmt(totalPnl, 4)} τ` : '—'}
+              {consensusStats ? `${_approvalRate.toFixed(1)}%` : '—'}
             </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">fleet cumulative</p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">BFT · 7/12 threshold</p>
           </div>
         </div>
 
@@ -841,10 +848,14 @@ export default function Dashboard() {
 
       </div>{/* end 10-card grid */}
 
-      {/* ── TradingView Chart — full width, 4× height (Session XXVII) ───────
-          Session XXVI doubled from 320→640px. Partner requested another 2×
-          in Session XXVII, so 640→1280px. Keeps page-wide. */}
-      <TaoTradingViewChart heightClass="h-[1280px]" />
+      {/* ── TradingView Chart — full width, 6× height (Session XXVIII) ─────
+          Session XXVI doubled 320→640px. XXVII intended 640→1280px but the
+          flex-1 wrapper collapsed the explicit height — chart rendered at
+          iframe-default height instead. XXVIII fixes the wrapper (inline
+          height style, no flex-1 collapse) and lands on partner's chosen
+          1920px (Option B, 6× original baseline) — fits a 4K monitor with
+          comfortable scroll, no monitor-overflow at standard zoom. */}
+      <TaoTradingViewChart heightPx={1920} />
 
       {/* ── Bottom row: Top Strategies · Recent Trades · Live Indicators ─────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">

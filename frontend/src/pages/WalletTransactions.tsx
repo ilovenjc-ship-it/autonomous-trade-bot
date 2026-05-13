@@ -303,6 +303,83 @@ function TypeBadge({ type, subtype }: { type: string; subtype?: string }) {
   )
 }
 
+// ── Page Navigation Aids (Session XXVIII) ─────────────────────────────────────
+// Partner request: the Transaction History (Tab content) sits at the bottom of
+// a long page and is hard to reach. Two affordances added in tandem:
+//   1) Sticky right-edge anchor rail with section names — always-visible page
+//      navigator on lg+ breakpoints. Click to smooth-scroll to a section.
+//   2) Floating "Jump to Transaction History" button (bottom-right FAB) that
+//      auto-hides once tx-history enters the viewport.
+// Section anchor IDs in the page: tx-summary, tx-positions, tx-history.
+
+function TransactionsAnchorRail() {
+  const sections: { id: string; label: string; sub: string }[] = [
+    { id: 'tx-summary',   label: 'Summary',   sub: '4-card KPIs'             },
+    { id: 'tx-positions', label: 'Positions', sub: 'Staking + Live'          },
+    { id: 'tx-history',   label: 'History',   sub: 'Funding · Ledger · Chain' },
+  ]
+  const jump = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+  return (
+    <aside
+      className="hidden lg:flex fixed right-3 top-1/2 -translate-y-1/2 z-30
+                 flex-col gap-1 bg-[#0a1220]/85 backdrop-blur-sm border border-[#1e3a5f]
+                 rounded-xl px-2 py-3 shadow-lg shadow-black/30"
+      aria-label="Page navigation"
+    >
+      <div className="text-[10px] uppercase tracking-widest text-slate-500 font-mono px-2 pb-1">
+        On this page
+      </div>
+      {sections.map(s => (
+        <button
+          key={s.id}
+          onClick={() => jump(s.id)}
+          className="group flex items-center gap-2 px-2 py-1.5 rounded-lg
+                     hover:bg-cyan-500/10 transition-colors text-left"
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-slate-600 group-hover:bg-cyan-400 transition-colors" />
+          <div className="min-w-0">
+            <div className="text-[12px] font-mono text-slate-300 group-hover:text-white">
+              {s.label}
+            </div>
+            <div className="text-[10px] font-mono text-slate-500 group-hover:text-slate-400">
+              {s.sub}
+            </div>
+          </div>
+        </button>
+      ))}
+    </aside>
+  )
+}
+
+function JumpToHistoryFab() {
+  const [hidden, setHidden] = useState(false)
+  useEffect(() => {
+    const el = document.getElementById('tx-history')
+    if (!el) return
+    const obs = new IntersectionObserver(
+      ([entry]) => setHidden(entry.isIntersecting),
+      { threshold: 0.05 }
+    )
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+  if (hidden) return null
+  return (
+    <button
+      onClick={() => document.getElementById('tx-history')?.scrollIntoView({ behavior: 'smooth' })}
+      className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-2.5
+                 bg-cyan-600 hover:bg-cyan-500 text-white rounded-full text-sm
+                 font-semibold shadow-lg shadow-cyan-900/40 transition-all"
+      aria-label="Jump to Transaction History"
+    >
+      <ChevronDown size={14} />
+      Jump to Transaction History
+    </button>
+  )
+}
+
 // ── Main Component ────────────────────────────────────────────────────────────
 
 type Tab = 'fundings' | 'ledger' | 'chain'
@@ -439,7 +516,7 @@ export default function WalletTransactions() {
       </div>
 
       {/* Summary cards */}
-      <div className="px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-3">
+      <div id="tx-summary" className="px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-3">
         <SummaryCard
           label="Total Funded"
           value={s ? fmt(s.total_funded_tao) : '…'}
@@ -474,7 +551,7 @@ export default function WalletTransactions() {
               bottom of page, above the Chain-Transfer-unavailable banner,
               per partner request — keeps primary portfolio data front and
               center before any chain-fetch caveats) ─────────────────────── */}
-      <div className="px-6 pb-3 space-y-4">
+      <div id="tx-positions" className="px-6 pb-3 space-y-4">
         <StakingPositionsPanel />
         <LivePositionsPanel />
       </div>
@@ -564,8 +641,9 @@ export default function WalletTransactions() {
         </button>
       </div>
 
-      {/* Tab content */}
-      <div className="flex-1 overflow-auto px-6 py-4">
+      {/* Tab content — Session XXVIII: tx-history anchor for the side
+          navigation rail and the floating Jump-to-History button. */}
+      <div id="tx-history" className="flex-1 overflow-auto px-6 py-4 scroll-mt-20">
 
         {/* ── Funding Events tab ──────────────────────────────────────────── */}
         {tab === 'fundings' && (
@@ -841,6 +919,11 @@ export default function WalletTransactions() {
           onSaved={load}
         />
       )}
+
+      {/* Page navigation aids (Session XXVIII) — sticky anchor rail (lg+) +
+          floating Jump-to-History FAB (auto-hides when history is on screen). */}
+      <TransactionsAnchorRail />
+      <JumpToHistoryFab />
     </div>
   )
 }

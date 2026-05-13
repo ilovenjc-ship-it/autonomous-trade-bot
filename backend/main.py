@@ -100,123 +100,138 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.error(f"Validator load failed: {_e}")
 
-    # ── FORCE_PAPER_MODE env var — reset strategies + wipe biased stats ──────
-    # When FORCE_PAPER_MODE=1 is set in Railway environment:
+    # ── FOSSIL CLEANUP — schema/data-version pattern (Session XXVIII) ────────
+    # Self-triggering wipe based on FOSSIL_CLEANUP_THRESHOLD alone. DECOUPLED
+    # from FORCE_PAPER_MODE in Session XXVIII after discovering that XXV/XXVI/
+    # XXVII wipes never actually fired on Railway: the entire wipe block was
+    # nested inside `if FORCE_PAPER_MODE == "1"`, but that env var is "0" in
+    # production (cleared in Session XVIII). Three sessions of "wipe fixes"
+    # were dead code from Railway's perspective. Smoking gun from May 12
+    # deploy log:  `OpenClaw loaded from DB — total=13651 approved=7611`.
+    #
+    # New architecture — two independent concerns, two independent blocks:
+    #
+    #   (1) FOSSIL CLEANUP (this block, unconditional):
+    #       Idempotent data-integrity wipe gated by FOSSIL_CLEANUP_THRESHOLD.
+    #       Bumping the constant in source forces a one-time re-wipe on next
+    #       deploy. No env-var dependency. Wipes Strategy stats counters,
+    #       paper trades, and BotConfig singleton. Does NOT touch Strategy.mode
+    #       — fossil cleanup is about data integrity, not operational state.
+    #
+    #   (2) FORCE_PAPER_MODE override (next block, conditional):
+    #       In-memory live-execution lock + demote-to-PAPER_ONLY in DB.
+    #       Operational mode override. Independent of fossil cleanup.
+    #
+    # This separation lets us reset fossil data without demoting LIVE
+    # strategies, AND lets us force paper mode without wiping data. The wipe
+    # also runs reliably regardless of how FORCE_PAPER_MODE is configured.
+    try:
+        from sqlalchemy import update, select as _select
+        from db.database import AsyncSessionLocal
+        from models.strategy import Strategy
+        from models.trade import Trade
+        from models.bot_config import BotConfig
+        from datetime import datetime, timezone as _tz
+        _reset_ts = datetime.now(_tz.utc)
+
+        # FOSSIL_CLEANUP_THRESHOLD — bump to force a one-time re-wipe on the
+        # next deploy. After the wipe, every Strategy.stats_reset_at is stamped
+        # with _reset_ts (now-UTC) which is > threshold, so subsequent restarts
+        # skip the wipe automatically (idempotent).
+        #
+        # Session XXVIII (2026-05-13): bumped to 2026-05-13 14:00 UTC. This is
+        # the FIRST time the wipe will actually run on Railway, because XXVIII
+        # is the first session where the wipe is no longer gated by
+        # FORCE_PAPER_MODE.
+        FOSSIL_CLEANUP_THRESHOLD = datetime(2026, 5, 13, 14, 0, 0, tzinfo=_tz.utc)
+
+        async with AsyncSessionLocal() as db:
+            _existing = await db.execute(_select(Strategy).limit(1))
+            _first = _existing.scalar_one_or_none()
+            _needs_wipe = (
+                _first is None
+                or _first.stats_reset_at is None
+                or _first.stats_reset_at < FOSSIL_CLEANUP_THRESHOLD
+            )
+
+            if _needs_wipe:
+                # Wipe Strategy stats counters (NOT mode — operational state
+                # is preserved; LIVE strategies stay LIVE through a fossil
+                # cleanup). FORCE_PAPER_MODE block below handles mode override
+                # if the operator wants that.
+                await db.execute(update(Strategy).values(
+                    cycles_completed = 0,
+                    win_trades       = 0,
+                    loss_trades      = 0,
+                    total_trades     = 0,
+                    win_rate         = 0.0,
+                    total_pnl        = 0.0,
+                    avg_return       = 0.0,
+                    stats_reset_at   = _reset_ts,
+                ))
+                # Purge paper trades from trades table (no tx_hash = paper).
+                # Live on-chain trades preserved (tx_hash IS NOT NULL guard).
+                _del_result = await db.execute(
+                    Trade.__table__.delete().where(Trade.tx_hash.is_(None))
+                )
+                # Reset BotConfig singleton — fleet-wide aggregates AND
+                # OpenClaw round counters (XXVII added these to the wipe set;
+                # XXVIII makes the wipe actually run).
+                _bot_reset = await db.execute(update(BotConfig).values(
+                    total_trades             = 0,
+                    successful_trades        = 0,
+                    total_pnl                = 0.0,
+                    daily_trades             = 0,
+                    openclaw_total_rounds    = 0,
+                    openclaw_approved_rounds = 0,
+                    openclaw_rejected_rounds = 0,
+                ))
+                await db.commit()
+                logger.warning(
+                    f"FOSSIL CLEANUP (Session XXVIII) — wiped 12 Strategy rows "
+                    f"(stats only, mode preserved), deleted "
+                    f"{_del_result.rowcount} paper trades, reset "
+                    f"{_bot_reset.rowcount} BotConfig singleton (incl. "
+                    f"OpenClaw round counters). "
+                    f"New Zero Day: {_reset_ts.isoformat()}."
+                )
+            else:
+                logger.info(
+                    f"FOSSIL CLEANUP: skipped — stats_reset_at "
+                    f"({_first.stats_reset_at.isoformat()}) is at/past "
+                    f"threshold ({FOSSIL_CLEANUP_THRESHOLD.isoformat()})"
+                )
+    except Exception as _e:
+        logger.error(f"Fossil cleanup failed: {_e}")
+
+    # ── FORCE_PAPER_MODE env var — operational mode override ─────────────────
+    # Independent of the fossil cleanup above. When FORCE_PAPER_MODE=1:
     #   1. In-memory override flag set True (blocks all live execution)
-    #   2. All strategies reset to PAPER_ONLY in DB (persistent)
-    #   3. All strategy performance stats wiped (win_rate, pnl, cycles)
-    #      — old stats were generated by the biased simulation and are
-    #        meaningless. Clean slate for the honest simulation.
+    #   2. All strategies demoted to PAPER_ONLY in DB (persistent)
+    # Stats data is NOT touched here — fossil cleanup owns data integrity.
     import os as _os2
     if _os2.environ.get("FORCE_PAPER_MODE", "0") == "1":
         try:
             from sqlalchemy import update
             from db.database import AsyncSessionLocal
             from models.strategy import Strategy
-            from models.trade import Trade
-            from models.bot_config import BotConfig
             from services.cycle_service import set_force_paper_mode
             set_force_paper_mode(True)
-            from datetime import datetime, timezone as _tz
-            from sqlalchemy import select as _select
-            from models.strategy import Strategy as _Strategy
-            _reset_ts = datetime.now(_tz.utc)
-
-            # ── FOSSIL CLEANUP THRESHOLD ──────────────────────────────────────
-            # Any strategy whose stats_reset_at is older than this timestamp is
-            # considered to be carrying legacy biased-sim data in the `trades`
-            # table (from the pre-fossil-wipe era). Bumping this constant forces
-            # a one-time re-wipe on next deploy. After the wipe, stats_reset_at
-            # is stamped with a value > threshold and subsequent restarts skip.
-            #
-            # Session XXVI (2026-05-12): TRUE CLEAN SLATE.
-            #   Prior wipe (Session XXV, May 11) only zeroed Strategy counters
-            #   and the trades table — NOT BotConfig singleton. Dashboard was
-            #   showing drifted counts immediately after deploy because:
-            #     • BotConfig.total_trades was never reset
-            #     • cycle_service.py writes Trade rows + increments Strategy
-            #       counters but never touches BotConfig
-            #     • trading_service.py is the only writer to BotConfig
-            #   Result: 3 counters, 3 different sources of truth.
-            #
-            # Session XXVII (2026-05-12, late): ROUND COUNTERS ADDED.
-            #   The XXVI wipe missed the OpenClaw fields (openclaw_total_rounds,
-            #   openclaw_approved_rounds, openclaw_rejected_rounds) on BotConfig.
-            #   Combined with the load/wipe ordering race in main.py startup,
-            #   consensus_service persisted pre-wipe round counters back to DB
-            #   after every consensus round, so "Total Rounds" stayed high
-            #   (13,569 observed). Fixed here by:
-            #     (a) zeroing the openclaw_* fields in this wipe,
-            #     (b) deferring consensus_service.load_from_db() to AFTER wipe,
-            #     (c) bumping threshold so wipe re-runs once on next deploy.
-            FOSSIL_CLEANUP_THRESHOLD = datetime(2026, 5, 12, 20, 40, 0, tzinfo=_tz.utc)
-
             async with AsyncSessionLocal() as db:
-                _existing = await db.execute(_select(_Strategy).limit(1))
-                _first = _existing.scalar_one_or_none()
-                _needs_wipe = (
-                    _first is None
-                    or _first.stats_reset_at is None
-                    or _first.stats_reset_at < FOSSIL_CLEANUP_THRESHOLD
-                )
-
-                if _needs_wipe:
-                    # Full wipe — zero ALL strategy counters AND delete paper trades
-                    await db.execute(update(Strategy).values(
-                        mode             = "PAPER_ONLY",
-                        cycles_completed = 0,
-                        win_trades       = 0,
-                        loss_trades      = 0,
-                        total_trades     = 0,
-                        win_rate         = 0.0,
-                        total_pnl        = 0.0,
-                        avg_return       = 0.0,
-                        stats_reset_at   = _reset_ts,
-                    ))
-                    # Purge paper trades from trades table (no tx_hash = paper)
-                    # Live on-chain trades are preserved (tx_hash IS NOT NULL).
-                    _del_result = await db.execute(
-                        Trade.__table__.delete().where(Trade.tx_hash.is_(None))
-                    )
-                    # Session XXVI: zero BotConfig singleton counters.
-                    # Session XXVII: ALSO zero OpenClaw round counters — the
-                    # prior wipe left them intact, so "Total Rounds" kept
-                    # climbing. consensus_service.load_from_db() is now called
-                    # AFTER this block (see below), so it reads zeros.
-                    _bot_reset = await db.execute(update(BotConfig).values(
-                        total_trades             = 0,
-                        successful_trades        = 0,
-                        total_pnl                = 0.0,
-                        daily_trades             = 0,
-                        openclaw_total_rounds    = 0,
-                        openclaw_approved_rounds = 0,
-                        openclaw_rejected_rounds = 0,
-                    ))
-                    logger.warning(
-                        f"FORCE_PAPER_MODE: TRUE CLEAN SLATE (Session XXVII) — "
-                        f"zeroed {12} Strategy rows + deleted "
-                        f"{_del_result.rowcount} paper trades + "
-                        f"reset {_bot_reset.rowcount} BotConfig singleton "
-                        f"(incl. OpenClaw round counters). "
-                        f"New Zero Day: {_reset_ts.isoformat()}."
-                    )
-                else:
-                    # Already clean — only enforce PAPER_ONLY mode, preserve honest stats
-                    await db.execute(update(Strategy).values(mode = "PAPER_ONLY"))
-                    logger.info("FORCE_PAPER_MODE: mode enforced, accumulated honest stats preserved")
+                await db.execute(update(Strategy).values(mode="PAPER_ONLY"))
                 await db.commit()
             logger.warning(
-                "FORCE_PAPER_MODE=1 — strategies reset to PAPER_ONLY, "
-                "fossil data purged, honest simulation active"
+                "FORCE_PAPER_MODE=1 — all strategies demoted to PAPER_ONLY "
+                "(operational override, no data wipe)"
             )
         except Exception as _e:
-            logger.error(f"Force paper mode startup reset failed: {_e}")
+            logger.error(f"Force paper mode override failed: {_e}")
 
     # ── Restore OpenClaw round counter from DB (DEFERRED) ────────────────────
-    # Runs AFTER the FORCE_PAPER_MODE wipe so that when a wipe happens, the
+    # Runs AFTER the fossil cleanup block so that when a wipe happens, the
     # consensus_service loads zeroed counters into memory instead of the
     # pre-wipe values (which would otherwise be persisted back and undo the
-    # wipe on the next round). Session XXVII fix.
+    # wipe on the next round). XXVII fix preserved through XXVIII decoupling.
     try:
         from services.consensus_service import consensus_service as _cs
         await _cs.load_from_db()
