@@ -83,33 +83,41 @@ function timeSince(iso: string): string {
 
 /** Compact top-of-page legend identifying every symbol on the page */
 function LegendBar() {
+  // Session XXIX — categories stacked vertically (was horizontal flex row).
+  // Each category (Votes / Result / Mode) is its own row with the items
+  // wrapping inside it. Matches partner spec: "stack them vertically for
+  // better differentiation". Also relocated from page top → inside the
+  // latest-round container, above Council Votes (see JSX usage below).
+  const rowCls = "flex flex-wrap items-center gap-x-4 gap-y-1.5 py-1.5"
+  const labelCls = "text-slate-500 uppercase tracking-widest text-[13px] w-20 shrink-0"
   return (
-    <div className="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-2.5 bg-dark-800/70 border border-dark-700 rounded-xl text-[13px] font-mono">
+    <div className="px-4 py-3 bg-dark-800/70 border border-dark-700 rounded-xl text-[13px] font-mono divide-y divide-dark-700/50">
 
-      {/* Vote types */}
-      <span className="text-slate-500 uppercase tracking-widest text-[15px]">Votes</span>
-      <span className="flex items-center gap-1 text-emerald-400"><TrendingUp  size={10} /> BUY — strategy recommends buying</span>
-      <span className="flex items-center gap-1 text-red-400">   <TrendingDown size={10} /> SELL — strategy recommends selling</span>
-      <span className="flex items-center gap-1 text-amber-400"> <Minus        size={10} /> HOLD — no clear edge, wait</span>
-      <span className="flex items-center gap-1 text-slate-400"> <HelpCircle   size={10} /> ABSTAIN — insufficient data</span>
+      {/* Row 1 — Vote types */}
+      <div className={rowCls}>
+        <span className={labelCls}>Votes</span>
+        <span className="flex items-center gap-1 text-emerald-400"><TrendingUp  size={10} /> BUY — strategy recommends buying</span>
+        <span className="flex items-center gap-1 text-red-400">   <TrendingDown size={10} /> SELL — strategy recommends selling</span>
+        <span className="flex items-center gap-1 text-amber-400"> <Minus        size={10} /> HOLD — no clear edge, wait</span>
+        <span className="flex items-center gap-1 text-slate-400"> <HelpCircle   size={10} /> ABSTAIN — insufficient data</span>
+      </div>
 
-      {/* Divider */}
-      <span className="hidden sm:block w-px h-4 bg-dark-600" />
+      {/* Row 2 — Round results */}
+      <div className={rowCls}>
+        <span className={labelCls}>Result</span>
+        <span className="flex items-center gap-1 text-emerald-400"><ShieldCheck   size={10} /> APPROVED — supermajority reached</span>
+        <span className="flex items-center gap-1 text-red-400">   <ShieldX       size={10} /> REJECTED — vote failed</span>
+        <span className="flex items-center gap-1 text-amber-400"> <AlertTriangle size={10} /> DEADLOCK — tie, no majority</span>
+      </div>
 
-      {/* Round results */}
-      <span className="text-slate-500 uppercase tracking-widest text-[15px]">Result</span>
-      <span className="flex items-center gap-1 text-emerald-400"><ShieldCheck   size={10} /> APPROVED — supermajority reached</span>
-      <span className="flex items-center gap-1 text-red-400">   <ShieldX       size={10} /> REJECTED — vote failed</span>
-      <span className="flex items-center gap-1 text-amber-400"> <AlertTriangle size={10} /> DEADLOCK — tie, no majority</span>
+      {/* Row 3 — Mode badges */}
+      <div className={rowCls}>
+        <span className={labelCls}>Mode</span>
+        <span className="text-emerald-400">🚀 LIVE — executes real on-chain trades</span>
+        <span className="text-sky-400">✅ APPROVED — gate passed, awaiting deploy</span>
+        <span className="text-slate-400">📄 Paper Trading · uses Simulated USD · no real TAO moves</span>
+      </div>
 
-      {/* Divider */}
-      <span className="hidden sm:block w-px h-4 bg-dark-600" />
-
-      {/* Mode badges */}
-      <span className="text-slate-500 uppercase tracking-widest text-[15px]">Mode</span>
-      <span className="text-emerald-400">🚀 LIVE — executes real on-chain trades</span>
-      <span className="text-sky-400">✅ APPROVED — gate passed, awaiting deploy</span>
-      <span className="text-slate-400">📄 Paper Trading · uses Simulated USD · no real TAO moves</span>
     </div>
   )
 }
@@ -665,10 +673,35 @@ export default function OpenClaw() {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* ── Symbol Legend ── */}
-      <LegendBar />
+      {/* ── How OpenClaw Works (Session XXIX: relocated to TOP of page, top-line)
+            Was below Stat Cards / BFT Explainer; now leads the page so a fresh
+            visitor sees the four-step process before any data. */}
+      <div className="bg-dark-800/60 border border-dark-700 rounded-xl p-4">
+        <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">How OpenClaw Works</p>
+        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs text-slate-300">
+          <div className="flex gap-2">
+            <span className="text-indigo-400 font-bold font-mono">01</span>
+            <span>A <span className="text-white">LIVE</span> strategy generates a trade signal (BUY or SELL)</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="text-indigo-400 font-bold font-mono">02</span>
+            <span>All <span className="text-white">12 bots</span> independently cast votes using RSI, MACD + personality</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="text-indigo-400 font-bold font-mono">03</span>
+            <span><span className="text-white">7 of 12</span> bots must agree (58.3% supermajority) for trade approval</span>
+          </div>
+          <div className="flex gap-2">
+            <span className="text-indigo-400 font-bold font-mono">04</span>
+            <span>Approved trades execute · Vetoed trades are <span className="text-red-400">blocked</span> and logged</span>
+          </div>
+        </div>
+      </div>
 
       {/* ── Stat Cards ── */}
+      {/* (Session XXIX: <LegendBar /> previously rendered here as page top-line;
+          now relocated INTO the latest-round container, above Council Votes,
+          stacked vertically — see JSX below.) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           icon={BarChart3}
@@ -712,30 +745,9 @@ export default function OpenClaw() {
       {/* ── BFT Explainer (relocated from II Agent page) ── */}
       <OpenClawBFTSection />
 
-      {/* ── How OpenClaw Works (relocated to top, per Session XXV spec) ── */}
-      <div className="bg-dark-800/60 border border-dark-700 rounded-xl p-4">
-        <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">How OpenClaw Works</p>
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs text-slate-300">
-          <div className="flex gap-2">
-            <span className="text-indigo-400 font-bold font-mono">01</span>
-            <span>A <span className="text-white">LIVE</span> strategy generates a trade signal (BUY or SELL)</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-indigo-400 font-bold font-mono">02</span>
-            <span>All <span className="text-white">12 bots</span> independently cast votes using RSI, MACD + personality</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-indigo-400 font-bold font-mono">03</span>
-            <span><span className="text-white">7 of 12</span> bots must agree (58.3% supermajority) for trade approval</span>
-          </div>
-          <div className="flex gap-2">
-            <span className="text-indigo-400 font-bold font-mono">04</span>
-            <span>Approved trades execute · Vetoed trades are <span className="text-red-400">blocked</span> and logged</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Promotion Gate relocated to just above Consensus History per Session XXVI */}
+      {/* Session XXIX: 'How OpenClaw Works' was here — now relocated to TOP of
+          the page (above Stat Cards). Promotion Gate already sits above
+          Consensus History (XXVI placement). */}
 
       {/* ── Council + Latest Round — 2-column: round detail full width (council on II Agent) ── */}
       <div className="grid grid-cols-1 gap-4 items-start">
@@ -746,8 +758,45 @@ export default function OpenClaw() {
           'bg-dark-800 border rounded-2xl p-5 space-y-5 transition-all duration-500',
           flashRound ? 'border-indigo-500/60 shadow-lg shadow-indigo-500/10' : 'border-dark-600',
         )}>
-          {/* Vote bar — Session XXVIII: Votes section relocated to TOP of
-              the round container, above Triggered By header. Partner spec. */}
+          {/* Manual Trigger — Session XXIX: relocated to TOP of round container,
+              above the colored vote bar AND above Council Votes. Partner spec. */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 uppercase tracking-widest">
+              Manual trigger:
+              <InfoBubble
+                side="right"
+                maxWidth={300}
+                content={
+                  <div className="space-y-2">
+                    <p className="text-white font-bold">What do Trigger BUY / SELL actually do?</p>
+                    <p>They fire a <span className="text-purple-300 font-bold">test consensus round</span> — no real trade is placed automatically.</p>
+                    <p>They ask all 12 bots: <span className="text-slate-200 italic">"If the proposed direction is BUY (or SELL), how do you each vote?"</span> Each bot runs its own indicators and returns a vote.</p>
+                    <p><span className="text-emerald-400 font-bold">BUY</span> = you're proposing to stake TAO onto a subnet (go long). <span className="text-red-400 font-bold">SELL</span> = you're proposing to unstake / exit the position.</p>
+                    <p className="text-slate-400 text-[11px] border-t border-slate-700/50 pt-1">If 7+ bots agree → APPROVED. If not → REJECTED. In production, the cycle engine triggers these automatically when a strategy fires a signal.</p>
+                  </div>
+                }
+              />
+            </span>
+            <button
+              onClick={() => handleTrigger('BUY')}
+              disabled={triggering}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
+            >
+              <TrendingUp size={12} />
+              {triggering ? 'Voting…' : 'Trigger BUY'}
+            </button>
+            <button
+              onClick={() => handleTrigger('SELL')}
+              disabled={triggering}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50"
+            >
+              <TrendingDown size={12} />
+              {triggering ? 'Voting…' : 'Trigger SELL'}
+            </button>
+          </div>
+
+          {/* Vote bar — colored BUY/SELL/HOLD/ABSTAIN graph (Session XXIX:
+              now second in container, sits below Manual Trigger). */}
           <VoteBar
             buyCount={latestRound.buy_count}
             sellCount={latestRound.sell_count}
@@ -756,7 +805,13 @@ export default function OpenClaw() {
             threshold={latestRound.supermajority}
           />
 
-          {/* 12 bot vote cards — part of the relocated Votes section */}
+          {/* Legend — Session XXIX: relocated from page top-line to here,
+              stacked vertically (Votes / Result / Mode rows). Sits above
+              Council Votes per partner spec, providing the colour-key
+              context the next section needs. */}
+          <LegendBar />
+
+          {/* 12 bot vote cards — Council Votes section */}
           <div>
             <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3 flex items-center gap-2">
               Council Votes
@@ -786,9 +841,9 @@ export default function OpenClaw() {
             </div>
           </div>
 
-          {/* Round header — Session XXVIII: now sits BELOW the Votes section.
-              2-column: [triggered-by center] [result right]. Manual Trigger
-              still sits at the bottom of the container (XXVI placement). */}
+          {/* Round header — Session XXIX: now at the BOTTOM of the round
+              container (Manual Trigger has moved to the top). 2-column:
+              [triggered-by center] [result right]. */}
           <div className="flex items-center gap-3">
 
             {/* Center — Triggered By · price
@@ -829,41 +884,9 @@ export default function OpenClaw() {
 
           </div>
 
-          {/* Manual Trigger — Session XXVI: relocated to BELOW the Votes section */}
-          <div className="pt-4 mt-2 border-t border-dark-700 flex items-center gap-2 flex-wrap">
-            <span className="flex items-center gap-1.5 text-[11px] font-mono text-slate-500 uppercase tracking-widest">
-              Manual trigger:
-              <InfoBubble
-                side="right"
-                maxWidth={300}
-                content={
-                  <div className="space-y-2">
-                    <p className="text-white font-bold">What do Trigger BUY / SELL actually do?</p>
-                    <p>They fire a <span className="text-purple-300 font-bold">test consensus round</span> — no real trade is placed automatically.</p>
-                    <p>They ask all 12 bots: <span className="text-slate-200 italic">"If the proposed direction is BUY (or SELL), how do you each vote?"</span> Each bot runs its own indicators and returns a vote.</p>
-                    <p><span className="text-emerald-400 font-bold">BUY</span> = you're proposing to stake TAO onto a subnet (go long). <span className="text-red-400 font-bold">SELL</span> = you're proposing to unstake / exit the position.</p>
-                    <p className="text-slate-400 text-[11px] border-t border-slate-700/50 pt-1">If 7+ bots agree → APPROVED. If not → REJECTED. In production, the cycle engine triggers these automatically when a strategy fires a signal.</p>
-                  </div>
-                }
-              />
-            </span>
-            <button
-              onClick={() => handleTrigger('BUY')}
-              disabled={triggering}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors disabled:opacity-50"
-            >
-              <TrendingUp size={12} />
-              {triggering ? 'Voting…' : 'Trigger BUY'}
-            </button>
-            <button
-              onClick={() => handleTrigger('SELL')}
-              disabled={triggering}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 border border-red-500/30 text-red-400 text-xs font-semibold hover:bg-red-500/25 transition-colors disabled:opacity-50"
-            >
-              <TrendingDown size={12} />
-              {triggering ? 'Voting…' : 'Trigger SELL'}
-            </button>
-          </div>
+          {/* (Session XXIX: Manual Trigger relocated from here to the TOP of
+              the round container — see above. The bottom of the container is
+              now the Round-header row only.) */}
         </div>
       ) : (
           <div className="bg-dark-800 border border-dark-600 rounded-2xl p-10 text-center">

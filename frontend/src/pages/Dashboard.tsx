@@ -848,17 +848,13 @@ export default function Dashboard() {
 
       </div>{/* end 10-card grid */}
 
-      {/* ── TradingView Chart — full width, 3× height (Session XXVIII patch) ──
-          Session XXVI doubled 320→640px. XXVII intended 640→1280px but the
-          flex-1 wrapper collapsed the explicit height. XXVIII fixed the
-          wrapper (inline style) and shipped at 1920px — partner walked the
-          live deploy, called it ~2× too tall ("$340 line looks about right"
-          in the live screenshot). XXVIII-patch halves to 960px (3× original
-          baseline). Bottom of chart now lands near the $340 line at typical
-          desktop zoom — visible-and-scannable without dominating the page. */}
-      <TaoTradingViewChart heightPx={960} />
-
-      {/* ── Bottom row: Top Strategies · Recent Trades · Live Indicators ─────── */}
+      {/* ── Bottom row: Top Strategies · Recent Trades · Live Indicators ───────
+          Session XXIX: TradingView chart relocated FROM here to BELOW this row
+          (chart now sits at the bottom of the Dashboard). Partner walked the
+          960px chart above the bottom row and called it impractical — the
+          chart now sits below the working-data tiles so the actionable
+          fleet/recent/indicators view is the lead, and price chart is
+          reference material at page-bottom. */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
         {/* Strategy leaderboard */}
@@ -927,6 +923,16 @@ export default function Dashboard() {
         </div>
 
       </div>
+
+      {/* ── TradingView Chart — full width (Session XXIX) ─────────────────────
+          History: XXVI 640px, XXVII intended 1280 (collapsed by flex-1 bug),
+          XXVIII fixed wrapper + shipped 1920 (too tall) → patched to 960
+          ("good feel but not practical"). XXIX: chart relocated from above
+          bottom row to BELOW it, and reduced 960→640px per partner spec
+          ("around the $295 price line, current market"). 640px is XXVI's
+          previously-validated size; with the relocation, the chart now
+          serves as page-bottom reference material rather than headline. */}
+      <TaoTradingViewChart heightPx={640} />
 
       {/* ── Bottom row: Market Sentiment + Drawdown from Peak (Session XXVI) ── */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">

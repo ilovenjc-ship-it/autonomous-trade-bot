@@ -1,7 +1,7 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-13 (Session XXVIII complete — wipe decoupling + tz-coercion fix + verified clean slate)
-**Status:** ✅ **TRUE CLEAN SLATE LANDED LIVE.** All counters verified zero on Railway at 2026-05-13 16:42 UTC after **8,552 fossil paper trades were deleted** by the threshold-gated wipe firing for the first time since Session XXIV. Fossil-cleanup is now decoupled from `FORCE_PAPER_MODE` AND tz-aware-safe (asyncpg-naive datetime footgun fixed). All 12 strategies on `/api/strategies`: `total_trades=0, cycles_completed=1, total_pnl=0.0, win_rate=0.0, mode=PAPER_ONLY` (mode preserved as designed). BotConfig singleton zeroed including OpenClaw round counters. **New Zero Day: 2026-05-13 16:39:39 UTC. Gate opens 2026-05-20 ~16:39 UTC.** Day 2 of 7-day paper baseline, true counting starts now. UI: Dashboard 10-card reorder + TradingView chart 960px (flex-1 wrapper bug fixed), OpenClaw Votes section at top of round, PnL Summary reordered with Cumulative PnL empty-state placeholder, Transactions page sticky anchor rail + Jump-to-History FAB. All 4 Session-XXVIII commits on `origin/main` (521f09ea → 742d65f4 → 4b05e74f → a1e1dc7e).
+**Last updated:** 2026-05-13 (Session XXIX — Dashboard chart relocate/640px, OpenClaw round-container reorg, Transactions browser-scroll simplification)
+**Status (Session XXVIII close):** ✅ **TRUE CLEAN SLATE LANDED LIVE.** All counters verified zero on Railway at 2026-05-13 16:42 UTC after **8,552 fossil paper trades were deleted** by the threshold-gated wipe firing for the first time since Session XXIV. Fossil-cleanup is now decoupled from `FORCE_PAPER_MODE` AND tz-aware-safe (asyncpg-naive datetime footgun fixed). All 12 strategies on `/api/strategies`: `total_trades=0, cycles_completed=1, total_pnl=0.0, win_rate=0.0, mode=PAPER_ONLY` (mode preserved as designed). BotConfig singleton zeroed including OpenClaw round counters. **New Zero Day: 2026-05-13 16:39:39 UTC. Gate opens 2026-05-20 ~16:39 UTC.** Day 2 of 7-day paper baseline, true counting starts now. UI: Dashboard 10-card reorder + TradingView chart 960px (flex-1 wrapper bug fixed), OpenClaw Votes section at top of round, PnL Summary reordered with Cumulative PnL empty-state placeholder, Transactions page sticky anchor rail + Jump-to-History FAB. All 4 Session-XXVIII commits on `origin/main` (521f09ea → 742d65f4 → 4b05e74f → a1e1dc7e).
 **Maintained by:** II Agent + Partner
 **Rule:** Update this file at the end of every session. It is the handoff.
 
@@ -12,6 +12,117 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXIX SUMMARY (May 13, 2026 — afternoon) — Walkthrough Polish: Dashboard / OpenClaw / Transactions
+
+### Overview
+Partner came back from their break, walked the post-XXVIII deploy on the
+honest-zeros clean slate, and brought a short, surgical follow-up list.
+Three pages, three asks each, no new functionality — pure layout refinement.
+
+### Pass 1 — Dashboard
+**`frontend/src/pages/Dashboard.tsx`:**
+
+- **Chart relocated** from above the bottom row to BELOW the bottom row.
+  New page-bottom order:
+  ```
+  [10 KPI cards]
+  [Top Strategies · Recent Trades · Live Indicators]    ← bottom-row tiles
+  [TradingView chart]                                   ← now sits HERE
+  [Market Sentiment · Drawdown from Peak]
+  ```
+  Rationale: working-data tiles (recent trades, live indicators, strategy
+  leaderboard) are the actionable lead; the price chart is reference
+  material at page-bottom.
+- **Chart height reduced** 960px → **640px** (XXVI's previously-validated
+  size). Sequence to date: 320 (XXV) → 640 (XXVI) → 1280-intended (XXVII,
+  collapsed by flex-1 bug) → 1920 (XXVIII first ship, too tall) → 960
+  (XXVIII patch, "good feel but not practical") → 640 (XXIX, partner's
+  "around the $295 line"). Lands much closer to current market price as
+  the visible bottom edge.
+
+### Pass 2 — OpenClaw
+**`frontend/src/pages/OpenClaw.tsx`:**
+
+- **`<LegendBar />` rebuilt — categories now stacked vertically.**
+  Was a single horizontal flex row containing all three categories
+  (Votes / Result / Mode) with dividers between. Now a vertical stack
+  of three rows, one per category, with a thin slate divider between
+  rows. Each row: 20-char label column + items wrapping to fill. Much
+  better differentiation, partner spec.
+- **`<LegendBar />` relocated** from page top-line into the latest-round
+  container, sitting above Council Votes (and below the colored vote
+  bar). The legend now provides the colour-key context exactly where
+  the 12 vote cards need it, instead of being a banner the user has to
+  remember from the top of the page.
+- **Manual Trigger relocated** from the BOTTOM of the round container
+  to the **TOP** of the round container — above the colored
+  BUY/SELL/HOLD/ABSTAIN bar AND above Council Votes. The action live
+  with the section is now lead-in instead of trail-end.
+- **"How OpenClaw Works" moved to TOP of page** (top-line). Was below
+  Stat Cards + BFT Explainer. Now leads the page — first-time visitors
+  see the four-step process before any data.
+
+**New round-container layout:**
+```
+[Round Container]
+  ├─ Manual Trigger (with Trigger BUY / Trigger SELL buttons)  ← TOP
+  ├─ VoteBar (colored BUY/SELL/HOLD/ABSTAIN graph)
+  ├─ LegendBar (vertically stacked Votes / Result / Mode)
+  ├─ Council Votes (12 vote cards grid)
+  └─ Round header (Triggered By + Result badge + timing)        ← BOTTOM
+```
+
+**New page-level layout:**
+```
+[How OpenClaw Works]            ← TOP (relocated)
+[Stat Cards: Total Rounds · Approval · Voting Bots · Last Result]
+[BFT Explainer]
+[Latest Round Container]        ← restructured per above
+[Promotion Gate]
+[Consensus History table]
+```
+
+### Pass 3 — Transactions
+**`frontend/src/pages/WalletTransactions.tsx`:**
+
+- **Removed `<TransactionsAnchorRail />`** (XXVIII sticky right-edge nav).
+- **Removed `<JumpToHistoryFab />`** (XXVIII bottom-right floating button).
+  Partner walked the deploy and reported that neither affordance fixed
+  the long-page-scroll issue — they just added visual clutter.
+- **Removed `flex-1 overflow-auto`** from the tab-content `<div>` (the
+  one wrapping the Funding / Ledger / Chain tab bodies). This was the
+  actual root cause: it created a NESTED scroll area inside the page,
+  which trapped the transaction-history rows below the viewport fold
+  with no page-level scroll feedback. The standard browser scrollbar
+  was effectively disabled for those rows.
+- **Result:** the tab content now expands fully inline. The page-level
+  browser scrollbar handles all scrolling naturally. KISS.
+
+The two component definitions (`TransactionsAnchorRail`, `JumpToHistoryFab`)
+were deleted — orphans after the JSX usages were removed. `useEffect`,
+`useState`, and `ChevronDown` imports are still used elsewhere in the
+file, so nothing else needed cleanup. Inert section anchor IDs
+(`tx-summary`, `tx-positions`, `tx-history`) retained for possible
+future deep-linking.
+
+### Discipline note (added for next agent)
+
+> When a long page has rows that "feel hard to reach," the first thing
+> to check is whether there's a nested scroll container (`overflow-auto`
+> inside the page body). Adding navigation affordances on top of a
+> nested-scroll trap doesn't fix the trap — it just adds buttons to it.
+> Strip the inner overflow first, see if the natural browser scrollbar
+> is enough. It usually is.
+
+### Verified locally
+- TypeScript: 0 errors (`npx tsc --noEmit`).
+- 3 frontend files modified, 0 backend changes, 0 schema changes.
+- All 12 strategies remain at the verified zero-state from XXVIII —
+  Day 2 of paper baseline preserved (Zero Day still 2026-05-13 16:39 UTC,
+  gate still opens 2026-05-20 ~16:39 UTC).
 
 ---
 
