@@ -65,6 +65,56 @@ offset-naive and offset-aware datetimes
    `FOSSIL CLEANUP (Session XXVIII) — wiped 12 Strategy rows...` instead
    of the previous TypeError.
 
+### ✅ POST-DEPLOY VERIFICATION RESULT (deploy `8399f384`, commit `4b05e74f`)
+
+Verified live at 2026-05-13 16:42 UTC:
+
+**Deploy log (smoking gun → solved):**
+```
+2026-05-13 16:39:39 | WARNING | main | FOSSIL CLEANUP (Session XXVIII) —
+wiped 12 Strategy rows (stats only, mode preserved), deleted 8552 paper
+trades, reset 1 BotConfig singleton (incl. OpenClaw round counters).
+New Zero Day: 2026-05-13T16:39:39.357687+00:00.
+```
+
+**`/api/strategies` snapshot (all 12 strategies):**
+```
+name                       trades   cycles          pnl   win_rate    mode
+momentum_cascade                0        1     0.000000        0.0  PAPER_ONLY
+dtao_flow_momentum              0        1     0.000000        0.0  PAPER_ONLY
+liquidity_hunter                0        1     0.000000        0.0  PAPER_ONLY
+emission_momentum               0        1     0.000000        0.0  PAPER_ONLY
+balanced_risk                   0        1     0.000000        0.0  PAPER_ONLY
+mean_reversion                  0        1     0.000000        0.0  PAPER_ONLY
+volatility_arb                  0        1     0.000000        0.0  PAPER_ONLY
+sentiment_surge                 0        1     0.000000        0.0  PAPER_ONLY
+macro_correlation               0        1     0.000000        0.0  PAPER_ONLY
+breakout_hunter                 0        1     0.000000        0.0  PAPER_ONLY
+yield_maximizer                 0        1     0.000000        0.0  PAPER_ONLY
+contrarian_flow                 0        1     0.000000        0.0  PAPER_ONLY
+```
+
+**`/api/bot/status` snapshot:**
+- `is_running: True` ✅
+- `cycle_number: 1` (fresh restart, on cycle 1 of paper baseline)
+- `total_trades: 0`, `successful_trades: 0`, `total_pnl: 0.0`,
+  `daily_trades: 0` ✅
+- `wallet_connected: True`, `simulation_mode: False`,
+  `force_paper_mode: False` ✅
+- `current_price: 293.38` (live)
+
+**Carry-over update:** `rsi_14` is now `None` (was previously falling back
+to `50.0`, which we noted as suspicious). Deploy logs show CoinGecko is
+returning HTTP 429 — rate limited. That's the underlying cause of the
+RSI fallback bug. RSI=None is more honest than RSI=50 but still a real
+indicator gap. **Next session priority** for the indicator-reliability
+work: add a CoinGecko response cache or fall back to the chain-side TAO
+price from substrate to remove the CoinGecko single-point-of-failure.
+
+**Day 2 of 7-day paper baseline. New Zero Day = 2026-05-13 16:39:39 UTC.
+Gate opens 2026-05-20 ~16:39 UTC.** (Gate-open time pushed by ~22 hours
+from the original 2026-05-19 because Zero Day moved forward today.)
+
 ---
 
 ## SESSION XXVIII SUMMARY (May 13, 2026) — Wipe Decoupling + Dashboard Chart Fix + Page Navigation
