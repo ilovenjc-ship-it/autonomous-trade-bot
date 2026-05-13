@@ -848,14 +848,15 @@ export default function Dashboard() {
 
       </div>{/* end 10-card grid */}
 
-      {/* ── TradingView Chart — full width, 6× height (Session XXVIII) ─────
+      {/* ── TradingView Chart — full width, 3× height (Session XXVIII patch) ──
           Session XXVI doubled 320→640px. XXVII intended 640→1280px but the
-          flex-1 wrapper collapsed the explicit height — chart rendered at
-          iframe-default height instead. XXVIII fixes the wrapper (inline
-          height style, no flex-1 collapse) and lands on partner's chosen
-          1920px (Option B, 6× original baseline) — fits a 4K monitor with
-          comfortable scroll, no monitor-overflow at standard zoom. */}
-      <TaoTradingViewChart heightPx={1920} />
+          flex-1 wrapper collapsed the explicit height. XXVIII fixed the
+          wrapper (inline style) and shipped at 1920px — partner walked the
+          live deploy, called it ~2× too tall ("$340 line looks about right"
+          in the live screenshot). XXVIII-patch halves to 960px (3× original
+          baseline). Bottom of chart now lands near the $340 line at typical
+          desktop zoom — visible-and-scannable without dominating the page. */}
+      <TaoTradingViewChart heightPx={960} />
 
       {/* ── Bottom row: Top Strategies · Recent Trades · Live Indicators ─────── */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">

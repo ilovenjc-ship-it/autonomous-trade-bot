@@ -1,6 +1,6 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-13 (Session XXVIII — Wipe decoupling + Dashboard chart fix + Pass-4 navigation aids)
+**Last updated:** 2026-05-13 (Session XXVIII + chart-height patch — wipe decoupling, Dashboard chart 960px, Pass-4 navigation aids)
 **Status:** PAPER TRAINING ACTIVE — Day 2 of 7 paper baseline. All 12 strategies PAPER_ONLY. XXVIII root-causes the 3-session counter regression (XXV/XXVI/XXVII fossil-wipe blocks were dead code — nested under `if FORCE_PAPER_MODE == "1"` while the env var was "0" on Railway). Wipe now decoupled into a self-triggering threshold-gated block (FOSSIL_CLEANUP_THRESHOLD = 2026-05-13 14:00 UTC) that runs regardless of FORCE_PAPER_MODE. UI: Dashboard 10-card reorder, TradingView chart wrapper bug fixed (flex-1 → inline height) at 1920px (Option B), OpenClaw Votes section moved to top of latest-round container, PnL Summary reordered (Recovery → Rolling WR → PnL Over Time → Cumulative PnL → Strategy PnL), Cumulative PnL gets empty-state placeholder, Transactions page gains sticky anchor rail + floating "Jump to Transaction History" FAB. All commits on `origin/main`.
 **Maintained by:** II Agent + Partner
 **Rule:** Update this file at the end of every session. It is the handoff.
@@ -87,6 +87,11 @@ the threshold, ship, deploy, done.
   baseline, 3× XXVI's 640px, 1.5× XXVII's intended 1280px). Fits a 4K
   monitor with comfortable scroll headroom; no monitor-overflow at standard
   zoom.
+  - **Post-deploy patch (same session):** Partner walked the live 1920px
+    chart and called it ~2× too tall ("$340 line looks about right" in
+    the screenshot — mid-chart). Halved to **960px** (3× original baseline).
+    Bottom of chart now lands near $340 at typical desktop zoom — that's
+    the new committed value.
 - **10-card grid reorder** (from partner spec):
   - Row 1: II Agent · Win Rate · Total PnL · Total Trades · Paper Day
   - Row 2: TAO/USD · 24h Change · Alerts · Approval Rate · Daily Cap
