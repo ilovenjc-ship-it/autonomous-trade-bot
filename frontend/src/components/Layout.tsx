@@ -5,6 +5,7 @@ import {
   Wallet, Activity, Bot, Shield, BarChart2, BookOpen, Globe, Vote, Brain, Bell,
   Mic, Send, ChevronDown, ChevronRight, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw,
   Landmark,
+  ChevronsDownUp, ChevronsUpDown, Bookmark, Undo2,   // Session XXX: sidebar Expand/Collapse + Save-as-Default
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -102,8 +103,12 @@ const navGroups: NavGroup[] = [
   },
 ]
 
-// Session XXVI: localStorage key for collapsed-group state
-const SIDEBAR_GROUPS_KEY = 'taobot:sidebar:expanded-groups:v1'
+// ── Sidebar persistence keys ──────────────────────────────────────────────
+// Session XXVI: ephemeral key — auto-saved on every toggle (current state).
+// Session XXX:  user-default key — only set when Operator clicks "Save as
+//               Default", and used by "Reset to My Default" to restore.
+const SIDEBAR_GROUPS_KEY  = 'taobot:sidebar:expanded-groups:v1'
+const SIDEBAR_DEFAULT_KEY = 'taobot:sidebar:user-default:v1'
 
 function loadExpandedGroups(pathname: string): Set<string> {
   // Always expand the group containing the current route, no matter what's stored.
@@ -116,6 +121,15 @@ function loadExpandedGroups(pathname: string): Set<string> {
     return set
   } catch {
     return new Set<string>(active ? [active] : [])
+  }
+}
+
+function loadUserDefault(): Set<string> | null {
+  try {
+    const raw = localStorage.getItem(SIDEBAR_DEFAULT_KEY)
+    return raw ? new Set<string>(JSON.parse(raw)) : null
+  } catch {
+    return null
   }
 }
 
@@ -157,6 +171,49 @@ export default function Layout() {
       return next
     })
   }, [])
+
+  // ── Session XXX: Sidebar toolbar — Expand All / Collapse All / Save as Default
+  // The active route's group is always re-expanded after Collapse All so the
+  // user never loses navigation context to where they currently stand.
+  const [savedDefault, setSavedDefault] = useState<Set<string> | null>(() => loadUserDefault())
+
+  const handleExpandAll = useCallback(() => {
+    const next = new Set<string>(navGroups.map(g => g.heading))
+    setExpandedGroups(next)
+    try { localStorage.setItem(SIDEBAR_GROUPS_KEY, JSON.stringify([...next])) } catch {}
+  }, [])
+
+  const handleCollapseAll = useCallback(() => {
+    const active = navGroups.find(g => g.items.some(i => i.to === pathname))?.heading
+    const next = new Set<string>(active ? [active] : [])
+    setExpandedGroups(next)
+    try { localStorage.setItem(SIDEBAR_GROUPS_KEY, JSON.stringify([...next])) } catch {}
+  }, [pathname])
+
+  const handleSaveAsDefault = useCallback(() => {
+    try {
+      const arr = [...expandedGroups]
+      localStorage.setItem(SIDEBAR_DEFAULT_KEY, JSON.stringify(arr))
+      setSavedDefault(new Set(arr))
+      toast.success(arr.length === 0 ? 'Default saved: all collapsed' : `Default saved: ${arr.length} group${arr.length===1?'':'s'} expanded`)
+    } catch {
+      toast.error('Could not save default')
+    }
+  }, [expandedGroups])
+
+  const handleResetToDefault = useCallback(() => {
+    if (!savedDefault) {
+      toast('No saved default yet — click the bookmark to save current layout', { icon: '💡' })
+      return
+    }
+    // Always include active route's group so user keeps navigation context
+    const active = navGroups.find(g => g.items.some(i => i.to === pathname))?.heading
+    const next = new Set(savedDefault)
+    if (active) next.add(active)
+    setExpandedGroups(next)
+    try { localStorage.setItem(SIDEBAR_GROUPS_KEY, JSON.stringify([...next])) } catch {}
+    toast.success('Restored to your saved default')
+  }, [savedDefault, pathname])
 
   // ── Global status poller — keeps data alive on every page ─────────
   useEffect(() => {
@@ -281,7 +338,54 @@ export default function Layout() {
             - All groups collapsed on first load (localStorage: empty set).
             - Current route's group is auto-expanded on navigation.
             - Click group heading to toggle.
-            - Preference persists across sessions. */}
+            - Preference persists across sessions.
+
+            Session XXX: Operator toolbar — Expand All / Collapse All / Save
+            current layout as personal default / Reset to saved default.
+            Pure client-side via localStorage. Active route's group is always
+            preserved through Collapse-All / Reset so context is never lost. */}
+        <div className="px-3 pt-3 pb-1 flex items-center gap-1 border-b border-dark-700/50">
+          <button
+            onClick={handleExpandAll}
+            title="Expand all groups"
+            aria-label="Expand all groups"
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider text-slate-400 hover:text-emerald-300 hover:bg-dark-700/60 transition-colors"
+          >
+            <ChevronsUpDown size={11} />
+            Expand
+          </button>
+          <button
+            onClick={handleCollapseAll}
+            title="Collapse all groups (active route stays open)"
+            aria-label="Collapse all groups"
+            className="flex-1 flex items-center justify-center gap-1 px-2 py-1.5 rounded-md text-[10px] font-mono uppercase tracking-wider text-slate-400 hover:text-amber-300 hover:bg-dark-700/60 transition-colors"
+          >
+            <ChevronsDownUp size={11} />
+            Collapse
+          </button>
+          <button
+            onClick={handleSaveAsDefault}
+            title="Use current appearance as my new default"
+            aria-label="Save current layout as default"
+            className="flex items-center justify-center px-2 py-1.5 rounded-md text-slate-400 hover:text-indigo-300 hover:bg-dark-700/60 transition-colors"
+          >
+            <Bookmark size={12} />
+          </button>
+          <button
+            onClick={handleResetToDefault}
+            title={savedDefault ? 'Reset to my saved default' : 'No saved default yet'}
+            aria-label="Reset to saved default"
+            disabled={!savedDefault}
+            className={clsx(
+              'flex items-center justify-center px-2 py-1.5 rounded-md transition-colors',
+              savedDefault
+                ? 'text-slate-400 hover:text-indigo-300 hover:bg-dark-700/60'
+                : 'text-slate-700 cursor-not-allowed'
+            )}
+          >
+            <Undo2 size={11} />
+          </button>
+        </div>
         <nav className="flex-1 px-3 py-3 overflow-y-auto">
           {navGroups.map((group, gi) => {
             const isExpanded = expandedGroups.has(group.heading)
