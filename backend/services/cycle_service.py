@@ -97,7 +97,8 @@ DEMOTE_MIN_CYCLES = 10     # was 15 — less live exposure before demotion
 DEMOTE_PNL        = 0.0    # must also have negative cumulative PnL to demote
 
 # Dedup sets — prevent same demotion alert firing every cycle
-_demoted_alerted: set = set()
+_demoted_alerted:    set = set()  # WR-based demotion dedup
+_dd_demoted_alerted: set = set()  # Drawdown-based demotion dedup (separate rail)
 
 # ── Regime-aware strategy gating ──────────────────────────────────────────────
 #
@@ -1410,10 +1411,77 @@ async def _run_one_cycle() -> None:
             elif not is_degraded and s.name in _demoted_alerted:
                 _demoted_alerted.discard(s.name)
 
+            # ── Drawdown demotion (parallel safety rail to WR demotion) ──────
+            # A strategy that's bleeding hard gets demoted regardless of WR.
+            # Catches the case where WR > 50% but a few catastrophic losses
+            # dominate. Mirrors the WR demotion ladder exactly: LIVE → APPROVED
+            # → PAPER. Threshold is configurable from Risk Config UI.
+            dd_floor      = _get_risk_value("strategy_demote_drawdown_tao", -0.15)
+            dd_min_cycles = int(_get_risk_value("strategy_demote_min_cycles", 10))
+            is_dd_breach = (
+                pnl_now     <= dd_floor and
+                cycles_done >= dd_min_cycles
+            )
+
+            if is_dd_breach and s.name not in _dd_demoted_alerted:
+                if s.mode == "LIVE":
+                    s.mode = "APPROVED_FOR_LIVE"
+                    push_event(
+                        "gate",
+                        f"⬇️ {display} DEMOTED — LIVE → APPROVED (drawdown)",
+                        strategy=s.name,
+                        detail=f"PnL={pnl_now:.4f}τ ≤ {dd_floor:.4f}τ — bleeding past safety rail",
+                    )
+                    alert_service.push_alert(
+                        type     = "GATE_DEMOTION_DRAWDOWN",
+                        level    = "WARNING",
+                        title    = f"⬇️ {display} demoted to APPROVED (drawdown)",
+                        message  = f"{display} bled to {pnl_now:.4f}τ "
+                                   f"(threshold {dd_floor:.4f}τ). "
+                                   f"Moved LIVE → APPROVED until performance recovers.",
+                        strategy = s.name,
+                        detail   = stats_str,
+                    )
+                    _dd_demoted_alerted.add(s.name)
+                    logger.warning(
+                        f"{s.name} drawdown-demoted LIVE → APPROVED_FOR_LIVE "
+                        f"(PnL={pnl_now:.4f}τ ≤ {dd_floor:.4f}τ)"
+                    )
+
+                elif s.mode in ("APPROVED_FOR_LIVE", "PENDING_LIVE_APPROVAL"):
+                    s.mode = "PAPER_ONLY"
+                    push_event(
+                        "gate",
+                        f"⬇️ {display} DEMOTED — APPROVED → PAPER (drawdown)",
+                        strategy=s.name,
+                        detail=f"PnL={pnl_now:.4f}τ ≤ {dd_floor:.4f}τ — back to proving ground",
+                    )
+                    alert_service.push_alert(
+                        type     = "GATE_DEMOTION_DRAWDOWN",
+                        level    = "WARNING",
+                        title    = f"⬇️ {display} demoted to PAPER (drawdown)",
+                        message  = f"{display} bled to {pnl_now:.4f}τ "
+                                   f"(threshold {dd_floor:.4f}τ). "
+                                   f"Moved APPROVED → PAPER. Must re-earn gate passage.",
+                        strategy = s.name,
+                        detail   = stats_str,
+                    )
+                    _dd_demoted_alerted.add(s.name)
+                    logger.warning(
+                        f"{s.name} drawdown-demoted APPROVED/PENDING → PAPER_ONLY "
+                        f"(PnL={pnl_now:.4f}τ ≤ {dd_floor:.4f}τ)"
+                    )
+
+            # If the bleed has stopped (PnL recovered above floor), allow
+            # re-demotion if it bleeds out again later.
+            elif not is_dd_breach and s.name in _dd_demoted_alerted:
+                _dd_demoted_alerted.discard(s.name)
+
             # ── PnL milestone check ──────────────────────────────────────────
             # (checked on every fleet total, done once per cycle in commit hook)
 
             # ── Drawdown guard (per-strategy, once per session) ──────────────
+            # First-warning alert at a softer threshold than the demotion floor.
             DRAWDOWN_THRESHOLD = -0.05   # τ
             if (s.total_pnl or 0) < DRAWDOWN_THRESHOLD and s.name not in _drawdown_alerted:
                 _drawdown_alerted.add(s.name)

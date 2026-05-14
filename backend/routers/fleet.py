@@ -755,6 +755,12 @@ _RISK_CONFIG_DEFAULTS = {
     "consensus_votes":                  7,   # 7/12 supermajority — OpenClaw rule, do not lower
     "consensus_threshold":    round(7 / 12, 6),   # ≈ 0.5833
     "cycle_interval_seconds":         300,   # unchanged — 5-min cycles
+    # Auto-demote a strategy when its cumulative PnL bleeds below this τ floor.
+    # Separate from `max_drawdown_pct` (wallet-level halt). Mirrors WR demotion:
+    # alert at -0.05τ first, demote at this threshold once it's clearly bleeding.
+    # Min cycles below ensures we don't demote on early noise.
+    "strategy_demote_drawdown_tao":   -0.15,
+    "strategy_demote_min_cycles":      10,
 }
 
 # Persist to a JSON file so Railway redeploys don't reset user settings.
