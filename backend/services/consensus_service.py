@@ -28,7 +28,10 @@ logger = logging.getLogger(__name__)
 # ── Constants ──────────────────────────────────────────────────────────────────
 SUPERMAJORITY   = 7          # out of 12 bots
 TOTAL_BOTS      = 12
-MAX_HISTORY     = 200        # rounds kept in memory
+# Session XXX: bumped 200 → 500 for DVR-style retention. The history rotates
+# (oldest drops off when full); `_round_counter` is monotonic and exposed as
+# `lifetime_total` so the UI doesn't appear to freeze when the buffer is full.
+MAX_HISTORY     = 500        # rounds kept in memory
 
 VOTE_BUY     = "BUY"
 VOTE_SELL    = "SELL"
@@ -462,9 +465,12 @@ class ConsensusService:
         )
         return {
             **self._stats,
-            "approval_rate_pct": approval_rate,
+            "approval_rate_pct":      approval_rate,
             "supermajority_threshold": self._supermajority,
-            "total_bots": TOTAL_BOTS,
+            "total_bots":             TOTAL_BOTS,
+            "lifetime_total":         self._round_counter,   # Session XXX
+            "buffer_max":             MAX_HISTORY,           # Session XXX
+            "in_buffer":              len(self._history),    # Session XXX
         }
 
     @property

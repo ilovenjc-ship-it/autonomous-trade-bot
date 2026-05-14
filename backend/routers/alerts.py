@@ -14,20 +14,25 @@ router = APIRouter(prefix="/api/alerts", tags=["alerts"])
 
 @router.get("")
 async def get_alerts(
-    limit:       int  = Query(default=50, ge=1, le=150),
+    limit:       int  = Query(default=50, ge=1, le=500),  # Session XXX: 150 → 500
     unread_only: bool = Query(default=False),
 ):
     alerts = alert_service.get_alerts(limit=limit, unread_only=unread_only)
     return {
-        "alerts":       alerts,
-        "total":        len(alert_service.get_alerts(limit=150)),
-        "unread_count": alert_service.get_unread_count(),
+        "alerts":         alerts,
+        "total":          len(alert_service.get_alerts(limit=500)),  # current buffer size
+        "unread_count":   alert_service.get_unread_count(),
+        "lifetime_total": alert_service.lifetime_total,   # Session XXX: monotonic counter
+        "buffer_max":     500,                            # Session XXX
     }
 
 
 @router.get("/unread-count")
 async def get_unread_count():
-    return {"unread_count": alert_service.get_unread_count()}
+    return {
+        "unread_count":   alert_service.get_unread_count(),
+        "lifetime_total": alert_service.lifetime_total,   # Session XXX
+    }
 
 
 @router.get("/stats")

@@ -1,17 +1,43 @@
 """
 Analytics router — strategy comparison, equity curve, drawdown, rolling win rate.
+
+Session XXX: every endpoint that returns time-series or per-strategy aggregates
+now honors `reset_since` (the earliest stats_reset_at across all strategies),
+so the Dashboard, Top Strategies, and PnL Summary charts all reflect the
+post-Zero-Day baseline only — never pre-wipe fossil data.
 """
 from datetime import datetime, timedelta
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, text
-from typing import List
+from typing import List, Optional
 
 from db.database import get_db
 from models.trade import Trade
 from models.strategy import Strategy
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
+
+
+# ── Reset-since helper (Session XXX) ──────────────────────────────────────────
+# The fossil-cleanup pattern stamps `Strategy.stats_reset_at` at the moment of
+# wipe. Every analytics query that aggregates trades MUST exclude rows older
+# than this cutoff, otherwise the UI shows pre-Zero-Day fossil data alongside
+# the honest post-reset numbers (the bug Partner caught on the Top Strategies
+# card on Day 2 of the paper baseline).
+
+async def _get_reset_cutoff(db: AsyncSession) -> Optional[datetime]:
+    """Earliest stats_reset_at across all strategies — the post-reset cutoff.
+    Returns None if no strategies have been reset (legacy / fresh DB)."""
+    res = await db.execute(select(func.min(Strategy.stats_reset_at)))
+    return res.scalar_one_or_none()
+
+
+def _reset_clause(reset_at: Optional[datetime], col: str = "created_at") -> str:
+    """Return ' AND <col> >= <reset>' or '' if no cutoff."""
+    if reset_at is None:
+        return ""
+    return f" AND {col} >= '{reset_at.strftime('%Y-%m-%d %H:%M:%S')}'"
 
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -36,9 +62,12 @@ STRATEGY_LABELS = {
 
 @router.get("/strategies")
 async def strategy_comparison(db: AsyncSession = Depends(get_db)):
-    """Per-strategy aggregated stats from live trade data."""
+    """Per-strategy aggregated stats from live trade data.
+    Session XXX: filtered to post-reset trades only (matches /summary)."""
+    reset_at = await _get_reset_cutoff(db)
+    reset_clause = _reset_clause(reset_at, col="created_at")
     result = await db.execute(
-        text("""
+        text(f"""
             SELECT
                 strategy,
                 COUNT(*)                                        AS total_trades,
@@ -50,7 +79,7 @@ async def strategy_comparison(db: AsyncSession = Depends(get_db)):
                 MIN(pnl)                                        AS worst_trade,
                 AVG(price_at_trade)                             AS avg_price
             FROM trades
-            WHERE strategy IS NOT NULL
+            WHERE strategy IS NOT NULL{reset_clause}
             GROUP BY strategy
             ORDER BY total_pnl DESC
         """)
@@ -81,8 +110,12 @@ async def strategy_comparison(db: AsyncSession = Depends(get_db)):
 @router.get("/equity")
 async def equity_curve(hours: int = 0, db: AsyncSession = Depends(get_db)):
     """Cumulative PnL over time — one point per trade ordered by time.
-    hours=0 means all time; hours>0 limits to last N hours."""
+    hours=0 means post-reset all-time; hours>0 limits to last N hours.
+    Session XXX: post-reset filter is now ALWAYS applied so the chart
+    never includes pre-Zero-Day fossil equity."""
+    reset_at = await _get_reset_cutoff(db)
     where = "WHERE pnl IS NOT NULL"
+    where += _reset_clause(reset_at, col="created_at")
     if hours > 0:
         cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
         where += f" AND created_at >= '{cutoff}'"
@@ -116,9 +149,11 @@ async def drawdown_series(hours: int = 0, db: AsyncSession = Depends(get_db)):
     """
     Returns hourly buckets with max drawdown depth (most negative PnL swing from
     running peak) and total PnL for each bucket.
-    hours=0 means all time; hours>0 limits to last N hours.
-    """
+    hours=0 means post-reset all-time; hours>0 limits to last N hours.
+    Session XXX: post-reset filter is now ALWAYS applied."""
+    reset_at = await _get_reset_cutoff(db)
     where = "WHERE pnl IS NOT NULL"
+    where += _reset_clause(reset_at, col="created_at")
     if hours > 0:
         cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
         where += f" AND created_at >= '{cutoff}'"
@@ -161,8 +196,11 @@ async def drawdown_series(hours: int = 0, db: AsyncSession = Depends(get_db)):
 @router.get("/rolling-winrate")
 async def rolling_winrate(window: int = 20, hours: int = 0, db: AsyncSession = Depends(get_db)):
     """Rolling win rate over the last `window` trades at each point.
-    hours=0 means all time; hours>0 limits to last N hours."""
+    hours=0 means post-reset all-time; hours>0 limits to last N hours.
+    Session XXX: post-reset filter is now ALWAYS applied."""
+    reset_at = await _get_reset_cutoff(db)
     where = "WHERE pnl IS NOT NULL"
+    where += _reset_clause(reset_at, col="created_at")
     if hours > 0:
         cutoff = (datetime.utcnow() - timedelta(hours=hours)).strftime("%Y-%m-%d %H:%M:%S")
         where += f" AND created_at >= '{cutoff}'"
@@ -211,11 +249,13 @@ async def strategy_detail(name: str, db: AsyncSession = Depends(get_db)):
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail=f"Strategy '{name}' not found")
 
-    # Equity curve for this strategy
+    # Equity curve for this strategy (Session XXX: post-reset only)
+    reset_at = await _get_reset_cutoff(db)
+    reset_clause = _reset_clause(reset_at, col="created_at")
     eq_res = await db.execute(
-        text("""
+        text(f"""
             SELECT created_at, pnl FROM trades
-            WHERE strategy = :n AND pnl IS NOT NULL
+            WHERE strategy = :n AND pnl IS NOT NULL{reset_clause}
             ORDER BY created_at ASC
         """),
         {"n": name}

@@ -3,9 +3,14 @@ Alert Service
 =============
 Centralised alert engine for the TAO trading system.
 
-All subsystems call push_alert() and the ring buffer stores the last 150 alerts.
-The frontend polls /api/alerts every few seconds; new unread alerts are surfaced
-as toast notifications and logged in the Alert Inbox page.
+All subsystems call push_alert() and the ring buffer stores the last MAX_ALERTS
+alerts. The frontend polls /api/alerts every few seconds; new unread alerts are
+surfaced as toast notifications and logged in the Alert Inbox page.
+
+Session XXX: buffer enlarged 150 → 500 (DVR-style retention) and
+`lifetime_total` is exposed on every list/count endpoint so the UI can show
+"500 in buffer · 4,392 lifetime since Zero Day" — proving the system is
+still collecting even when the buffer is full and rotating.
 
 Alert lifecycle:
   push_alert()  →  ring buffer  →  GET /api/alerts  →  frontend toast + inbox
@@ -31,7 +36,11 @@ from datetime import datetime, timezone
 from typing import List, Optional
 
 # ── Constants ─────────────────────────────────────────────────────────────────
-MAX_ALERTS = 150
+# Session XXX: bumped 150 → 500 for DVR-style retention. The buffer rotates
+# (oldest drops off when full); the monotonic `_counter` continues climbing
+# regardless and is exposed as `lifetime_total` so the UI never "looks frozen"
+# even when the buffer hits its cap.
+MAX_ALERTS = 500
 
 # Deduplication cooldowns per alert type (seconds).
 # Same (type + strategy) pair within this window is silently dropped.
@@ -251,6 +260,12 @@ class AlertService:
     def get_unread_count(self) -> int:
         return sum(1 for a in self._alerts if not a["read"])
 
+    @property
+    def lifetime_total(self) -> int:
+        """Monotonic count of alerts ever pushed (survives buffer rotation).
+        Session XXX: exposed so the UI can prove the DVR is still rolling."""
+        return self._counter
+
     def mark_read(self, alert_id: int) -> bool:
         for a in self._alerts:
             if a["id"] == alert_id:
@@ -275,10 +290,12 @@ class AlertService:
             by_level[a["level"]] = by_level.get(a["level"], 0) + 1
             by_type[a["type"]]   = by_type.get(a["type"], 0) + 1
         return {
-            "total":    total,
-            "unread":   unread,
-            "by_level": by_level,
-            "by_type":  by_type,
+            "total":          total,
+            "unread":         unread,
+            "lifetime_total": self._counter,    # Session XXX
+            "buffer_max":     MAX_ALERTS,       # Session XXX
+            "by_level":       by_level,
+            "by_type":        by_type,
         }
 
 

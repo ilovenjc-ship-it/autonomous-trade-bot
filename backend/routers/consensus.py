@@ -29,11 +29,15 @@ async def get_latest():
 
 
 @router.get("/history")
-async def get_history(limit: int = Query(default=20, ge=1, le=200)):
-    """Return last N consensus rounds (newest first)."""
+async def get_history(limit: int = Query(default=20, ge=1, le=500)):  # Session XXX: 200 → 500
+    """Return last N consensus rounds (newest first).
+    Session XXX: `lifetime_total` is the monotonic round counter (survives
+    buffer rotation); `total` is the current in-memory buffer size."""
     return {
-        "rounds": consensus_service.get_history(limit),
-        "total":  consensus_service.round_count,
+        "rounds":         consensus_service.get_history(limit),
+        "total":          len(consensus_service.get_history(500)),
+        "lifetime_total": consensus_service.round_count,
+        "buffer_max":     500,
     }
 
 
