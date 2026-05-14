@@ -468,6 +468,23 @@ class SubnetCacheService:
             logger.warning(f"alert_service unavailable for owner-change detection: {exc}")
             return
 
+        # Optional: enrich alerts with the subnet's Const 6-Filter scorecard
+        # entry. Lazy import + try/except so the cache service stays operational
+        # even if the scorecard JSON is missing.
+        try:
+            from services.subnet_scorecard_service import subnet_scorecard_service
+        except Exception:
+            subnet_scorecard_service = None  # type: ignore
+
+        def _scorecard_label(netuid: int) -> str:
+            """Returns ' (Templar 6/6)' or ' (off-scorecard)' suffix string."""
+            if subnet_scorecard_service is None:
+                return ""
+            entry = subnet_scorecard_service.get_subnet(netuid)
+            if entry is None:
+                return " [off-scorecard]"
+            return f" [{entry.get('name', '?')} {entry.get('score', '?')}/6]"
+
         for netuid, new in new_snapshot.items():
             prev = self._owners_meta.get(netuid)
             if not prev:
@@ -479,6 +496,7 @@ class SubnetCacheService:
             new_owner  = new.get("owner_ss58")
             prev_alpha = float(prev.get("owner_alpha", 0.0) or 0.0)
             new_alpha  = float(new.get("owner_alpha",  0.0) or 0.0)
+            sc_label   = _scorecard_label(netuid)
 
             # ── A. Owner-key change (governance event) ───────────────────────
             if prev_owner and new_owner and prev_owner != new_owner:
@@ -487,16 +505,18 @@ class SubnetCacheService:
                 alert_service.push_alert(
                     type="SUBNET_OWNER_CHANGE",
                     level="CRITICAL",
-                    title=f"🚨 SN{netuid} owner key rotated",
+                    title=f"🚨 SN{netuid}{sc_label} owner key rotated",
                     message=(
-                        f"Subnet {netuid} owner coldkey changed from {p_short} to {n_short}. "
+                        f"Subnet {netuid}{sc_label} owner coldkey changed from "
+                        f"{p_short} to {n_short}. "
                         f"This is an on-chain governance event — investigate before "
                         f"adjusting positions."
                     ),
                     detail=f"prev={prev_owner} new={new_owner}",
                 )
                 logger.warning(
-                    f"SN{netuid} OWNER CHANGE detected: {prev_owner} → {new_owner}"
+                    f"SN{netuid}{sc_label} OWNER CHANGE detected: "
+                    f"{prev_owner} → {new_owner}"
                 )
 
             # ── B. Conviction-unlock heuristic (owner-α drop) ────────────────
@@ -507,9 +527,9 @@ class SubnetCacheService:
                     alert_service.push_alert(
                         type="CONVICTION_UNLOCK",
                         level="WARNING",
-                        title=f"🔓 SN{netuid} owner α dropped {drop_pct:.1f}%",
+                        title=f"🔓 SN{netuid}{sc_label} owner α dropped {drop_pct:.1f}%",
                         message=(
-                            f"Owner coldkey alpha on SN{netuid} fell from "
+                            f"Owner coldkey alpha on SN{netuid}{sc_label} fell from "
                             f"{prev_alpha:.4f}τ → {new_alpha:.4f}τ "
                             f"(−{drop_tao:.4f}τ, −{drop_pct:.1f}%). "
                             f"Possible Conviction unlock or owner-side dump — "
@@ -521,7 +541,7 @@ class SubnetCacheService:
                         ),
                     )
                     logger.warning(
-                        f"SN{netuid} CONVICTION_UNLOCK heuristic: owner α "
+                        f"SN{netuid}{sc_label} CONVICTION_UNLOCK heuristic: owner α "
                         f"{prev_alpha:.4f} → {new_alpha:.4f} ({drop_pct:.1f}% drop)"
                     )
 

@@ -626,19 +626,38 @@ async def subnet_owners():
         CONVICTION_UNLOCK_DROP_PCT,
         CONVICTION_UNLOCK_MIN_TAO,
     )
+    # Enrich owner rows with Const 6-Filter Test scorecard data so the
+    # frontend can render "SN8 Vanta — 6/6" inline without a second call.
+    try:
+        from services.subnet_scorecard_service import subnet_scorecard_service
+    except Exception:
+        subnet_scorecard_service = None  # type: ignore
 
     snapshots = subnet_cache_service.get_all_owners()
-    owners_list = [
-        {
+    owners_list = []
+    for netuid, snap in sorted(snapshots.items()):
+        sc_entry = (
+            subnet_scorecard_service.get_subnet(netuid)
+            if subnet_scorecard_service is not None
+            else None
+        )
+        owners_list.append({
             "netuid":      netuid,
             "is_trading":  netuid in TRADING_NETUIDS,
             "owner_ss58":  snap.get("owner_ss58"),
             "owner_uid":   snap.get("owner_uid"),
             "owner_alpha": snap.get("owner_alpha", 0.0),
             "fetched_at":  snap.get("fetched_at"),
-        }
-        for netuid, snap in sorted(snapshots.items())
-    ]
+            # Scorecard enrichment (None if subnet not on the scorecard)
+            "subnet_name":       sc_entry.get("name") if sc_entry else None,
+            "subnet_category":   sc_entry.get("category") if sc_entry else None,
+            "scorecard_score":   sc_entry.get("score") if sc_entry else None,
+            "scorecard_max":     6 if sc_entry else None,
+            "is_signal_candidate": (
+                sc_entry.get("is_taobot_signal_candidate", False)
+                if sc_entry else False
+            ),
+        })
 
     return {
         "owners":                       owners_list,
