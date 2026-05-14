@@ -6,6 +6,7 @@ import {
   Mic, Send, ChevronDown, ChevronRight, DollarSign, ShieldOff, Clock, Play, Square, RefreshCw,
   Landmark,
   ChevronsDownUp, ChevronsUpDown, Bookmark, Undo2,   // Session XXX: sidebar Expand/Collapse + Save-as-Default
+  Sparkles,                                         // Session XXXII: Research / Quality Framework
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -34,6 +35,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/wallet':               'Wallet',
   '/wallet-transactions':  'Transactions',
   '/override':             'Human Override',
+  '/research':             'Research',
 }
 
 // ── Sidebar structure ──────────────────────────────────────────────────────
@@ -76,6 +78,8 @@ const navGroups: NavGroup[] = [
     items: [
       { to: '/analytics', icon: BarChart2, label: 'Network Analytics' },
       { to: '/market',    icon: Globe,     label: 'Market Data'       },
+      // Session XXXII: Const 6-Filter scorecard + Owner Watch + Conviction-Era heuristics
+      { to: '/research',  icon: Sparkles,  label: 'Research'          },
     ],
   },
   {

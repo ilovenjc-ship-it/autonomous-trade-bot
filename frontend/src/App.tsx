@@ -21,6 +21,7 @@ import AlertInbox from './pages/AlertInbox'
 import PnLSummary from './pages/PnLSummary'
 import HumanOverride from './pages/HumanOverride'
 import WalletTransactions from './pages/WalletTransactions'
+import Research from './pages/Research'
 
 export default function App() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
           <Route path="/trade-log"       element={<TradeLog />}       />
           <Route path="/market"                element={<MarketData />}    />
           <Route path="/market/subnet/:uid"   element={<SubnetDetail />}  />
+          <Route path="/research"             element={<Research />}      />
           <Route path="/strategy/:name"       element={<StrategyDetail />} />
           <Route path="/openclaw"        element={<OpenClaw />}       />
           <Route path="/ii-agent"        element={<IIAgent />}        />
