@@ -1789,4 +1789,242 @@ SN13,33,6,22,50)    quality)          regime, vol)   risk gating)
 
 **Tracking:** Monitor projectnobi.ai/teutonic3 for loss/perplexity progress. Check owner key resolution before touching SN3 alpha.
 
+---
+
+### 🌅 OPS TIMELINE FLAG — Conviction Era Begins on Zero Day
+**Filed May 14, 2026 (Session XXXI cross-reference)**
+
+> **Critical context for every future post-mortem:** Bittensor's **Conviction upgrade went live on mainnet 2026-05-13** — the exact same day as TaoBot's Zero Day (16:39:39 UTC). Our entire 7-day paper baseline is therefore the **first dataset of the Conviction Era**. Pre-Conviction trade history (the deleted 8,552 fossils) is no longer architecturally comparable — Conviction auto-locks 100% of subnet owner emissions (1,296 alpha/day/subnet) into a 62-day-half-life conviction score, effectively shrinking float on every subnet. Treat any cross-period comparison with scrutiny. See the three Conviction articles below.
+
+---
+
+### Conviction Upgrade Goes Live: Subnet Owners Weigh In — Filed May 14, 2026
+**Source:** TAO Daily — "Conviction Upgrade Goes Live: Ten Subnet Owners Weigh In. They're (Mostly) Locking."
+**URL:** https://taodaily.io/bittensor-subnet-owners-on-conviction-we-asked-nine-theyre-mostly-locking/
+
+**What it covers:**
+TAO Daily polled subnet owners on launch day (May 13, 2026) about the live Conviction upgrade — a mechanism that lets alpha holders lock tokens to a subnet hotkey to accumulate a "conviction score," with the highest-conviction hotkey crowned "Subnet King" and able to eventually take over ownership. Responses split into bulls / cautiously optimistic / skeptics, but every owner contacted confirmed they will lock alpha. Conviction has effectively made locking the default expected behavior for serious subnet teams; the market is expected to price unlocked positions as a red flag, forcing even skeptics to comply.
+
+**Key facts / quotes:**
+- Conviction went live on Bittensor mainnet **May 13, 2026** (same day as TaoBot Zero Day at 16:39:39 UTC).
+- **100% of subnet owner emissions (the 18% owner share) are auto-locked into Conviction on the owner hotkey** — forced, not opt-in.
+- Auto-flow generates **1,296 alpha/day per subnet** into Conviction from the owner share.
+- Conviction score builds with a **62-day half-life**; unlocking initiates a **20.8-day half-life decay** (full exit ~3 months).
+- 13 owners quoted: Tom (Bitcast SN93), John (Bitsec SN60), Jake (Investing88 SN88), Mamad (Minos SN107), Vex (SN36/70/99), Zach (Bitstarter SN91), Egill (Zeus SN18), James Ross (Synth SN50), Gareth (Vidaio SN85), Austin (Aurelius SN37), Youssef (Quasar SN24), Leo (Almanac SN41), Jose Caldera (Yanez SN54).
+- Tom (Bitcast): *"Rug resistant crypto is bullish!"* — locking large proportion across owner + revenue wallets.
+- Gareth (Vidaio) raised the key risk: *"Biggest risk we see is that low value subnets could be taken over. It may be cheaper to do this than buy a new slot."*
+- Skeptic Leo (Almanac) still locking: *"On paper it seems fine but core to Bittensor's ethos is exploitation… You plug one hole, another one could appear."*
+
+**Relevance to TaoBot:** HIGH.
+- Zero Day coincides with Conviction launch — every alpha price recorded since 16:39 UTC May 13 is post-mechanism-change. Pre-Conviction backtest comparisons may be invalid.
+- **The 21-day unlock signal is on-chain visible** (per Const, see article below) — tradeable leading indicator: any subnet showing an unlock extrinsic = bearish for that subnet's alpha 21 days out.
+- Auto-locking 1,296 alpha/day/subnet of owner emissions = **permanent supply sink** on every subnet. Modestly bullish for alpha prices over 60+ day horizon.
+- Low-value subnets vulnerable to hostile takeover → potential volatility spikes / forced rotation. Bot should de-weight smallcap subnets near takeover-cost thresholds.
+
+**💡 Ideas:**
+> Build a **"Conviction Watcher"** service: monitor on-chain unlock extrinsics per subnet via Substrate Interface; emit a bearish signal on the unlocking subnet's alpha when detected. Pairs cleanly with the existing AlertInbox (DVR buffer ready).
+> Add a **"Subnet King takeover risk score"** per subnet = (top conviction holder concentration) / (subnet alpha market cap). Auto-demote subnets crossing a configurable threshold from the bot's tradeable universe.
+> Track which of the 13 named subnets we trade and weight bullish-stance owners higher in our subnet conviction model.
+
+**Tracking:** Conviction score accumulation curves on mainnet (62-day half-life means meaningful divergence won't appear until early July 2026). Watch for the first hostile takeover attempt — community will price that event hard. Owner unlock extrinsics on any of the 13 subnets named above are immediate market signals.
+
+---
+
+### Const Sets the Record Straight on $TAO's No-Premine, Work-Based Economy — Filed May 14, 2026
+**Source:** TAO Daily — "Const Sets the Records Straight on $TAO's No-Premine, Work-Based Economy."
+**URL:** https://taodaily.io/const-sets-the-records-straight-on-taos-no-premine-work-based-economy/
+
+**What it covers:**
+A messaging/positioning piece in which TAO Daily summarizes Const's clarifications about $TAO's distribution history — pushing back against narratives that $TAO had a premine, preferential VC allocations, or that exchange balances reflect platform ownership. The thesis: all $TAO was mined; early funding came from OTC sales of personally mined founder supply (not reserved tokens); Binance's large balance is user deposits, not exchange-owned tokens. Article paraphrases Const but contains zero direct quoted material from him.
+
+**Key facts:**
+- **~600,000 $TAO sold OTC** between 2021–2023 to Firstmark, Digital Currency Group (DCG), and Polychain.
+- Reported average OTC price: **$18 per $TAO**.
+- Tokens sold OTC came from **personally mined founder supply**, not from reserved or premined allocations.
+- **Binance is the #1 TAO holder with +778K tokens** (Source: Taostats) — user deposits, not exchange-owned.
+- Distribution principles: "No Premine, No Preferential Allocation," "Work-Based Issuance," "No Free Allocations," "Competitive Dynamics," "Open and Transparent Markets."
+- Article contains **no direct quoted Const text** — all paraphrased.
+
+**Relevance to TaoBot:** LOW.
+- Pure narrative/messaging article — no tradeable mechanics, no parameter changes, no on-chain effects. Doesn't change a single bot decision tomorrow.
+- Useful only as **context for sentiment analysis** — if our Sentiment Surge strategy ever ingests TAO Daily, this is the kind of article that should be tagged as "defensive PR" rather than "alpha signal" so it doesn't generate spurious BUYs.
+- Worth retaining as evidence that Const is actively countering FUD around tokenomics — implies he sees a narrative attack vector worth defending against.
+
+**💡 Ideas:**
+> Tag this article class ("messaging/narrative defense") in any future sentiment ingestion pipeline so it gets weighted differently from mechanics or roadmap articles. Helps prevent Sentiment Surge from firing BUYs on every Const PR clarification.
+
+**Tracking:** None directly. Note Const is in active narrative-defense posture; pair with the Novelty Search article — he's communicating heavily right now around Conviction launch.
+
+---
+
+### What Const Said About Conviction in Yesterday's Novelty Search — Filed May 14, 2026
+**Source:** TAO Daily — "What Const Said About Conviction in Yesterday's Novelty Search."
+**URL:** https://taodaily.io/what-const-said-about-conviction-in-yesterdays-novelty-search/
+
+**What it covers:**
+Recap of Const's live appearance on Novelty Search (community call) explaining Conviction mechanics to skeptics ahead of mainnet rollout. Key thesis from Const: locked stake earns yield (not a penalty), conviction has a multi-month maturity period (so flash takeovers are impossible), and a 21-day on-chain visible unlock window meaningfully changes the attack surface for would-be rug-pullers. Conviction is framed as the counter-balance to recent owner-favoring upgrades — shifting governance toward long-term token holders while ensuring healthy teams can't be displaced arbitrarily. Mainnet rollout is "muted first."
+
+**Key facts / direct Const quotes:**
+- *"Locked stake earns yield."* — locking is not a penalty.
+- *"Conviction has a maturity period."* — building enough conviction to take over a subnet takes **multiple months**.
+- *"A 21-day unlock period genuinely changes the attack surface."*
+- *"Anyone planning to dump 100% of an OTC purchase within 21 days is, by definition, a bad-faith counterparty."*
+- *"The teams that have sold 100% of their supply and are still running are essentially the teams that rugged their investors."*
+- *"The upgrade goes out soon, muted first."*
+- **Unlock extrinsic is on-chain visible 21 days before any sale** — the key tradeable signal.
+- **18% subnet team supply unchanged** — Conviction does not modify emissions math, only adds locking layer.
+- Locked tokens can be transferred to employees as compensation (founders have a built-in comp tool).
+- Const said Conviction would have provided early warning in the **Covenant** incident and would have helped protect investors in **Templar**.
+- Lock duration and unlock duration are **tunable mechanism-design parameters**.
+
+**Relevance to TaoBot:** HIGH.
+- The **21-day on-chain unlock extrinsic is a deterministic leading indicator** for subnet alpha price action. **Single most actionable item across all six articles filed today.** We can build a service that watches for unlock events and pre-emptively reduces exposure to that subnet's alpha.
+- "Muted first" rollout means the Conviction parameters in effect today (Day 2) may be conservative — expect parameter adjustments over coming weeks that could create regime shifts mid-baseline.
+- Const explicitly named **Covenant** and **Templar** as past rug events — historical anchors for our risk-scoring model.
+- "Locked stake earns yield" → on a 60+ day horizon, alpha float on every subnet effectively shrinks (auto-locked owner emissions + voluntary investor locks). Modest bullish bias for alpha prices during the maturity build phase.
+
+**💡 Ideas:**
+> **Build the "Unlock Extrinsic Watcher"** (Substrate Interface poll, every block or every N blocks): emit a bearish AlertInbox event tagged `CONVICTION_UNLOCK` when any tracked subnet's owner hotkey initiates unlock. Auto-trim position size on that subnet's alpha. **Highest-EV idea from these articles.**
+> Bundle this with Carry-Over #2 (Real αTAO positions) — same Substrate Interface plumbing feeds both.
+> Add a `conviction_score` field per subnet to our `Strategy` model and pull it from chain. Use as a multiplier on existing subnet conviction scoring for dTAO and Balanced Risk strategies.
+> Add `historical_rug_match_score` per subnet (1.0 if it matches the "Covenant/Templar pattern" — 100% sold + still running). Use as a hard de-weight in subnet selection.
+
+**Tracking:** Watch for (1) Conviction parameter changes during muted rollout, (2) the first on-chain unlock extrinsic on any subnet — that's our first live test of the signal, (3) any community post-mortem on Subnet King takeover thresholds, (4) the next Novelty Search call.
+
+---
+
+### How to Use Synth LLM, the New AI Interface for Monte Carlo Trading Forecasts — Filed May 14, 2026
+**Source:** TAO Daily — "How to Use Synth LLM, the New AI Interface for Monte Carlo Trading Forecasts" (published May 12, 2026)
+**URL:** https://taodaily.io/how-to-use-synth-llm-the-new-ai-interface-for-monte-carlo-trading-forecasts/
+
+**What it covers:**
+SN50 (Synth) shipped a conversational LLM front-end on top of its Monte Carlo simulation engine. The product collapses what used to be hours of model-building, charting, and statistical scripting into a single prompt — returning forecasting charts, statistical properties (mean/variance/tail probabilities/percentiles/payoff curves), and example trade structures inline. The article is a "how-to-use" piece, not a technical integration guide.
+
+**Key facts / quotes:**
+- Subnet: **SN50** — verbatim *"SN50's Synth LLM is the response to that bottleneck."*
+- Access tier: **"Synth LLM is live for Synth Pro and Pro Unlimited users."** No public/free tier mentioned.
+- Deployed across **Polymarket, Limitless, Hyperliquid, Deribit, and more.**
+- Returns three things inline per query: a Monte-Carlo-driven forecasting chart, requested statistical properties, and example trade structures.
+- Example prompts: *"What's the probability of $BTC closing above $120K by Friday?"* / *"Show me the implied distribution on this Polymarket question."* / *"What would a delta-neutral straddle around the current $ETH price look like?"*
+- Thesis: *"the next generation of trading edge will not come from who has the model. It will come from who can access the model fastest in the moment that matters."*
+- **NOT in the article:** API endpoints, REST/WebSocket spec, auth/keys, SDK, pricing dollar amounts, code samples, exact launch date.
+
+**Relevance to TaoBot:** HIGH (with caveat — no public API surface confirmed yet).
+- Synth is the closest thing in the Bittensor ecosystem to a turnkey signal source for an autonomous TAO trading bot. If a programmatic interface exists behind the Pro Unlimited tier, this becomes a candidate input for entry/exit filters and position sizing.
+- Monte Carlo distributional outputs (P(close > X), tail-prob percentiles) could be wired in as a *consensus contributor* alongside our 14 existing strategies — e.g., gate Sentiment Surge BUYs against Synth's tail probability of TAO closing higher in N hours.
+
+**💡 Ideas:**
+> Add a `synth_llm` consensus contributor that, on each tick, prompts Synth for *"P(TAO closes above current price + 1 ATR over next 4h)"* and contributes a BUY/SELL/HOLD vote with confidence = abs(P − 0.5) × 2. Sit it alongside our 14 existing strategies in OpenClaw rounds.
+> Build a research dashboard widget that polls Synth once per session for a TAO percentile cone (10/25/50/75/90) and overlays it on the equity chart.
+> If only conversational/web UI is available initially, build a lightweight headless-browser scraper module gated behind a feature flag, so we can prototype the signal value before paying for Pro Unlimited.
+
+**Tracking:**
+- Reach out to Synth team / SN50 owner via Discord OTF gateway (already on carry-over list) to ask: (a) is there a programmatic API behind Pro / Pro Unlimited? (b) per-call rate limits and dollar cost? (c) is TAO/τ a supported asset (vs. just BTC/ETH/Polymarket markets)? (d) latency p50/p99 for a forecast request?
+- Watch SN50's GitHub / docs site for API docs drop.
+
+---
+
+### Why Alpha Tokens Need CEX Listings — Filed May 14, 2026
+**Source:** TAO Daily — "Why Alpha Tokens Need CEX Listings" (published Sep 30, 2025 — older piece, surfaced now)
+**URL:** https://taodaily.io/why-alpha-tokens-need-cex-listings/
+
+**What it covers:**
+Opinion piece (author: Ige A) arguing that alpha tokens (subnet-native dTAO assets) need to follow TAO's path onto reputable CEXes to unlock liquidity, visibility, and adoption. Lays out two parallel paths — **Path A** (native Substrate listings on Binance/Coinbase, the "gold standard") and **Path B** (audited ERC-20 wrappers redeemable 1:1 via bridge with proof-of-reserves, targeted at Bybit/OKX for speed) — and recommends subnet teams pursue both simultaneously.
+
+**Key facts / quotes:**
+- TAO listings: *"Binance and Coinbase have already onboarded native TAO."*
+- **No specific alpha tokens are named as CEX-listed** — recommendation is forward-looking.
+- Path A (native Substrate): *"1:1 on-chain finality, no bridge risk."* / *"Higher engineering and custody overhead for exchanges."*
+- Path B (wrapped ERC-20): *"Faster listings, ERC-20 custody compatibility (Fireblocks/BitGo/Coinbase Custody), easy user withdrawals."* / *"Bridge/custodian trust risks; operational complexity."*
+- dTAO sales pitch (verbatim): *"Each subnet has an AMM pool between TAO (τ) and its alpha token, governed by per-block emissions and a halving schedule. There are no opaque unlocks or hidden token allocations."*
+- Demand-side: *"Public records claim Chutes is powering 'trillions of tokens per month'"* — only quantitative number.
+
+**Relevance to TaoBot:** MEDIUM.
+- Currently we only trade TAO/USD. Bot architecture is asset-agnostic, so the moment any alpha token gets a real CEX listing with real depth, we can extend the universe — but shouldn't pre-build for tokens that don't exist on exchanges yet.
+- A near-term "watch for listing announcements" feed could be a high-quality momentum catalyst. Listing announcements historically produce 10–40% short-window moves.
+
+**💡 Ideas:**
+> Add a "CEX Listing Watch" indicator: scrape Binance/Coinbase/Bybit/OKX listing announcement RSS + Twitter accounts on a 5-min cadence; on any match for `subnet|alpha|bittensor|TAO`, fire a HIGH-priority alert into the Alerts inbox.
+> Reserve a `multi_asset` flag in BotConfig that is currently False but, when flipped, lets the strategies operate on a watchlist of alpha tokens (initially empty). Lays the rails without committing to the work until a listing actually happens.
+> Track CEX listing news as a sentiment input even when we can't trade the listed token — a Chutes/Templar listing announcement is a directional signal for TAO itself (parent asset).
+
+**Tracking:**
+- Monitor for first alpha-token CEX listing announcement (Chutes/SN64 or Templar/SN3 most likely candidates given their 6/6 scorecards). Revisit when the first happens.
+- Watch TaoStats / Bittensor governance for any BIP/SIP enabling Path B wrapped ERC-20 issuance.
+- Article is **8 months old** at filing — worth pinging TAO Daily for a follow-up "where are we now" piece.
+
+---
+
+### Putting Bittensor's Top 10 Subnets Through Const's 6-Filter Test — Filed May 14, 2026
+**Source:** TAO Daily — "Putting Bittensor's Top 10 Subnets Through Const's 6-Filter Test" (published April 3, 2026)
+**URL:** https://taodaily.io/putting-bittensors-top-10-subnets-through-consts-6-filter-test/
+
+**What it covers:**
+Editorial applying Jacob Steeves' (Const, BT co-founder) six binary filters to the current top-10 subnets by market cap. Every filter is a yes/no, and the headline finding is a "clean sweep" — all ten top subnets pass all six filters. The piece argues the market is already doing what Const's framework predicts, and these six questions are *"the fastest way to separate real from grift."*
+
+**THE SIX FILTERS (verbatim wording):**
+1. **Does it produce a digital commodity?** — *"Not a token. Not a governance vote. A commodity, something a buyer would pay for independent of the Bittensor ecosystem."* (inference calls, model weights, storage, annotated data, agents)
+2. **Are the miners actually productive?** — *"proof-of-useful-work…running GPU workloads, training models, storing files, creating SOTA agents. Or they're just gaming a reward function."*
+3. **Is it intelligent?** — *"genuine AI reasoning, adaptation, or learning. The strongest subnets must embed intelligence at their core."*
+4. **Is it hard?** — *"Easy tasks get commoditized, memorized, and gamed…that difficulty is a moat."*
+5. **Is it not a ponzi?** — *"Are rewards tied to verifiable performance, or do they flow to whoever stakes the most, markets the loudest, or arrives earliest?…value creation precede value capture."*
+6. **Is it AI-native?** — *"Could this subnet exist and thrive without AI at its foundation? If you could swap out the intelligence layer for a simple script…the subnet isn't AI-native."*
+
+**THE TEN SUBNETS & SCORECARD (all 6/6):**
+
+| # | Subnet | SN | Category |
+|---|---|---|---|
+| 1 | Chutes | SN64 | Serverless AI Compute |
+| 2 | Templar | SN3 | Decentralized LLM Pre-Training |
+| 3 | Targon | SN4 | Confidential GPU Compute |
+| 4 | Affine | SN120 | Reinforcement Learning & Coordination |
+| 5 | Lium | SN51 | Decentralized GPU Marketplace |
+| 6 | Vanta | SN8 | AI Trading Signals |
+| 7 | Ridges | SN62 | Autonomous Coding Agents |
+| 8 | Score | SN44 | Computer Vision |
+| 9 | Hippius | SN75 | Decentralized Cloud Storage |
+| 10 | IOTA | SN9 | Cooperative LLM Pre-Training |
+
+- **No subnet failed any filter.** Author commentary: *"the more interesting story is in the pattern of what succeeded…the subnet leaderboard is dominated by infrastructure and tooling (compute, training, storage, inference) with a growing application layer (trading, coding, computer vision) building on top."*
+- **SN8 Vanta callout** is the most directly TaoBot-adjacent: *"AI Trading Signals…tradable alpha signals…profit-driven buybacks, not emission farming."* This is a peer/competitor signal source.
+- **SN3 Templar callout** reinforces the SN3 owner-key monitor on our carry-over list.
+
+**Relevance to TaoBot:** HIGH.
+- Three subnets in this list are directly relevant signal candidates: **SN8 Vanta** (AI trading signals — they may have an API), **SN50 Synth** (above), **SN3 Templar** (already on owner-key monitor list).
+- The 6/6 scorecard is a quality filter we can use to weight any future external-signal integration.
+
+**💡 Ideas:**
+> Add a `subnet_quality_filter` config knob in BotConfig that defaults to 6 — any external signal source must come from a subnet that passes all six Const filters before we'll wire it into consensus.
+> Specifically investigate **SN8 Vanta's** signal API as an alternative/complement to SN50 Synth — Vanta's product is literally "tradable alpha signals" with profit-driven buybacks, exactly what we need.
+> Build an internal `subnet_scorecard.json` seeded with these 10 subnets and their 6/6 verdicts. Display in research/admin page. When new subnets enter top-10, re-score them and append.
+
+**Tracking:**
+- **SN8 Vanta** — research API access, pricing, latency. Highest-leverage external signal integration target after Synth.
+- **SN3 Templar owner-key monitor** — already on carry-over list; this article reinforces SN3 as a high-quality watch target.
+- Watch for any update to Const's filter framework. Six filters as of April 2026.
+- Re-run the 6-filter scorecard on the **current** top-10 quarterly — composition shift is itself a signal.
+
+---
+
+### CROSS-ARTICLE SYNTHESIS (May 14, 2026)
+
+**The 21-day Conviction unlock extrinsic is the highest-EV idea across all 6 articles filed today.** It is:
+- Deterministic (on-chain, not inferred)
+- Leading (21 days before sale impact)
+- Cheap to monitor (one Substrate query per subnet per block)
+- Bundles with Carry-Over #2 (Real αTAO positions) — same Substrate Interface plumbing.
+
+**External signal integration backlog (priority order):**
+1. **SN50 Synth LLM** — turnkey Monte Carlo, paid tier confirmed; need API access details.
+2. **SN8 Vanta** — direct peer/competitor in trading signals; same investigation needed.
+3. **SN123 MANTIS** — already filed; remains research-only until public API surfaces.
+
+**Subnet quality framework:**
+- Const's 6-filter test = our weighting prior for any external signal source. Default `min_filters_passed = 6`.
+- Maintain `subnet_scorecard.json` seeded with the 10 confirmed 6/6 subnets above.
+
+**Conviction Era data caveat:**
+- All TaoBot data from 2026-05-13 16:39 UTC onward = post-Conviction. Pre-Conviction fossils are not architecturally comparable.
+- Auto-locked 1,296 alpha/day/subnet from owner share = permanent supply sink; modest long-horizon bullish bias for alpha prices during the 62-day-half-life maturity build.
+
 **— TAO Trading Bot, April 16, 2025**
