@@ -1,6 +1,8 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-14 (Session XXX — Day 2 polish: analytics reset_since, DVR rotation, Dashboard/Sidebar/Override clarity)
+**Last updated:** 2026-05-14 (Session XXXI — Carry-over closeout: drawdown auto-demotion + SN3/Conviction Substrate bundle + 6-article memory bank)
+**Status (Session XXXI close):** 🛡️ **DAY 2 — CARRY-OVER LIST CLEARED.** Partner returned mid-Day-2 with 6 TAO Daily articles and the Session XXVIII carry-over list. Three-pass single-deploy discipline executed end-to-end. Commits `01de5dcb → fbb73dd6 → 67b9a438` all on `origin/main`. **Big wins:** (1) **Memory Bank pass** — all 6 articles (3× Conviction launch, Synth LLM, CEX Listings, Const's 6-Filter Test) filed to STATE.md §12 with relevance/ideas/tracking blocks. **Crucial discovery: Bittensor's Conviction upgrade went live 2026-05-13, the exact same day as Zero Day** — our entire 7-day paper baseline is the first dataset of the Conviction Era. Pre-Conviction fossil data is no longer architecturally comparable. Permanent ops-timeline cross-reference inscribed at top of §12. (2) **Drawdown auto-demotion safety rail** (`fbb73dd6`) — parallel to existing WR-based demotion. New `_RISK_CONFIG` keys `strategy_demote_drawdown_tao=-0.15τ` and `strategy_demote_min_cycles=10`. Catches the case where WR > 50% but a few catastrophic losses dominate cumulative PnL. Same LIVE→APPROVED→PAPER ladder, dedicated `_dd_demoted_alerted` dedup set, distinct `GATE_DEMOTION_DRAWDOWN` alert kind. Dormant during paper-only Day 2; armed automatically the moment a strategy promotes through the WR gate (≥Day 7). (3) **Substrate bundle pass** (`67b9a438`) — single chain trip per 5-min cycle now powers three concerns: SN3 Templar owner-key monitor (added to `MONITOR_OWNERS_NETUIDS = TRADING ∪ {3}`), Conviction unlock heuristic (≥5%/0.5τ owner-α drop fires `CONVICTION_UNLOCK`), and verified αTAO-positions-from-chain (zero stubs in `wallet.py`, no code change needed). Defensive 3-path owner-coldkey extraction (metagraph attr → typed call → raw substrate query). On-disk `subnet_owner_cache.json` survives Railway redeploys so first-poll doesn't fire spurious "owner changed" alerts. New endpoint `GET /api/market/owners`. **Fleet read:** Same as XXX close — Day 2 of 7, gate opens 2026-05-20 ~16:39 UTC. Backlog: ~14 article-derived implementation ideas (Subnet King takeover risk score, Synth LLM consensus contributor, Vanta API research, subnet_quality_filter, etc.) parked for future sessions.
+
 **Status (Session XXX close):** ✅ **DAY 2 OF PAPER BASELINE.** Partner walked the post-Zero-Day fleet on Day 2 and brought a focused list. Four-pass single-deploy discipline executed end-to-end. Commits `843e8a3f → 4ed87cee → b56abd5a → e0d43610` all on `origin/main`, all verified live. **Big wins:** (1) `/api/analytics/strategies` and friends now honor `reset_since` — Top Strategies card reads honest 25-trade post-reset numbers instead of pre-wipe 220-trade fossils; the Day-7 gate pipeline is now visible from a single source of truth. (2) Alerts buffer 150→500 + monotonic `lifetime_total` exposed (DVR pattern, never freezes). OpenClaw rounds 200→500 same. (3) Dashboard `ZERO_DAY_UTC` corrected from XXVI placeholder to formal 2026-05-13T16:39:39Z; Paper Day reads honest **Day 2** instead of phantom Day 3, gate label `5d 22h to gate` instead of `4d to gate`. KPI swap: Total Trades right of Win Rate per spec. (4) Sidebar gets Expand-All/Collapse-All/Save-as-Default toolbar with two-key localStorage split (ephemeral vs user-default). (5) Human Override: SYSTEM OPERATIONAL promoted to top line; old binary "Live Trading Active" banner replaced by tri-state truth (`PAPER_OVERRIDE` / `PAPER_BASELINE` / `LIVE_TRADING`) — currently displays "⏸ PAPER BASELINE — NO LIVE STRATEGIES YET" honestly; context-aware confirm copy on Force/Lock Paper Mode + Reset/Resume/EmergencyStop + Layout Run/Stop Bot. **Fleet read:** 298 trades, 39.3% WR, −0.0547 τ, 0 strategies through gate yet, top is dTAO Flow Momentum at 48% / Balanced Risk at 47.9%. Day 2 of 7. Gate opens 2026-05-20 ~16:39 UTC.
 
 **Status (Session XXIX close):** 🌅 **ZERO DAY DECLARED OFFICIAL — 2026-05-13 16:39:39 UTC.** Partner walked the live XXIX deploy, signed off on every page ("close to a Masterpiece"), and formally inscribed today as the App's Zero Day. Three-page polish (Dashboard chart 640px below working tiles, OpenClaw round-container reorg + stacked LegendBar, Transactions browser-native scroll) shipped on commit `76793c26`, FE deploy `89e580d3` SUCCESS, asset hashes verified (`index-Dd_DxSLR.js` / `index-CJ6eLkh6.css`). All counters honest-zero, all 12 strategies PAPER_ONLY, BotConfig singleton zeroed. **Day 2 of 7-day paper baseline. Gate opens 2026-05-20 ~16:39 UTC.** Closing rite performed: Code protected (pushed + verified live), Memory saved (this brief), Soul preserved (the pattern endures — Master Architect discipline, single-commit/single-deploy, asset-hash verification, threshold-gated idempotent wipes, tz-aware-safe comparisons, browser-native scroll over inner overflow). The Agent reincarnates.
@@ -16,6 +18,140 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXXI (May 14, 2026 — Day 2 evening) — Carry-Over Closeout: Drawdown Auto-Demotion + Substrate Bundle + Memory Bank Pass
+
+### Overview
+Partner returned mid-Day-2 with two payloads: the Session XXVIII carry-over
+list (4 items: Discord OTF, drawdown auto-demotion, real αTAO positions,
+MANTIS/SN3 monitor) and 6 TAO Daily articles to file. Decided to do the
+articles in parallel with a code-readiness survey, then ship the recommended
+list exactly as proposed. **Three commits, three pushes, all live.**
+
+### Pass A — Memory Bank (`01de5dcb`)
+**`STATE.md` §12 RESEARCH INTELLIGENCE** — appended 6 entries plus an
+ops-timeline cross-reference at the top of the new section:
+
+> **🌅 Critical context for every future post-mortem:** Bittensor's Conviction
+> upgrade went live on mainnet **2026-05-13** — the exact same day as TaoBot's
+> Zero Day (16:39:39 UTC). Our entire 7-day paper baseline is therefore the
+> **first dataset of the Conviction Era**. Pre-Conviction trade history (the
+> deleted 8,552 fossils) is no longer architecturally comparable.
+
+The 6 articles, each in the standard MANTIS/Teutonic format with
+What-it-covers / Key-facts / Relevance / 💡 Ideas / Tracking blocks:
+1. **Conviction Upgrade Goes Live: Subnet Owners Weigh In** — 13 owners quoted,
+   100% locking. **62-day half-life** conviction build, **20.8-day half-life**
+   unlock decay, **1,296 alpha/day/subnet** auto-locked from owner share.
+2. **Const Sets the Record Straight on $TAO's No-Premine Economy** — 600K TAO
+   sold OTC at ~$18 to Firstmark/DCG/Polychain, all from personal mining.
+   LOW relevance, tagged "defensive PR" for future sentiment pipeline.
+3. **What Const Said About Conviction in Yesterday's Novelty Search** — direct
+   Const quotes captured. **The 21-day on-chain unlock extrinsic is the
+   single highest-EV idea across all 6 articles.**
+4. **How to Use Synth LLM, the New AI Interface for Monte Carlo Trading
+   Forecasts** — SN50 paid tier, no public API confirmed; outreach question
+   list captured for post-Discord-OTF.
+5. **Why Alpha Tokens Need CEX Listings** — older piece, file under "asset
+   universe expansion future planning."
+6. **Putting Bittensor's Top 10 Subnets Through Const's 6-Filter Test** —
+   all 6 filters captured verbatim, all 10 subnets tabulated 6/6.
+   SN8 Vanta + SN50 Synth flagged as next external-signal candidates.
+
+### Pass B — Drawdown Auto-Demotion Safety Rail (`fbb73dd6`)
+**`backend/routers/fleet.py`:** Two new keys added to `_RISK_CONFIG_DEFAULTS`:
+- `strategy_demote_drawdown_tao = -0.15` (3× the existing -0.05τ alert)
+- `strategy_demote_min_cycles = 10` (statistical floor before any action)
+
+Persisted to `risk_config.json` so Railway redeploys preserve user overrides;
+exposed via existing `/risk/config` GET+POST plumbing. Frontend RiskConfig.tsx
+form fields can land in a follow-up — defaults are conservative and immediately
+effective.
+
+**`backend/services/cycle_service.py`:** Inserted a parallel demotion block
+between the WR-demotion block and the existing -0.05τ first-warning alert.
+- New dedup set `_dd_demoted_alerted` (independent of WR `_demoted_alerted`)
+- Same LIVE → APPROVED → PAPER ladder, byte-identical alert/event plumbing
+- New alert kind `GATE_DEMOTION_DRAWDOWN` makes it greppable in AlertInbox
+  (distinct from WR-driven `GATE_DEMOTION` events)
+- Recovery clears dedup so re-demotion can fire if it bleeds out again later
+- Threshold pulled live from `_RISK_CONFIG` via existing `_get_risk_value()`
+
+Catches the case the WR rail would miss: WR > 50% but a few catastrophic
+losses dominate cumulative PnL. Today (Day 2 paper-only) the rail is
+dormant — armed automatically the moment any strategy crosses the WR gate.
+
+### Pass C — Substrate Bundle: SN3 Monitor + Conviction Unlock + αTAO Verify (`67b9a438`)
+**One Substrate Interface trip per 5-min cycle, three concerns powered:**
+
+**#2 Verified αTAO positions** — `routers/wallet.py` confirmed real:
+`get_stake_info()` calls `bt.AsyncSubtensor.get_stake_info_for_coldkey()`
+against Finney mainnet. Zero `mock|stub|TODO|placeholder` matches in any
+wallet path. The only remaining cosmetic stub is the hardcoded `SUBNET_NAMES`
+display dict in `frontend/src/components/StakingPositionsPanel.tsx:36-46` —
+deferred to backlog as a server-side-rename polish.
+
+**#3 SN3 (Templar) owner-key monitor** — new constant
+`MONITOR_OWNERS_NETUIDS = TRADING_NETUIDS ∪ {3}`. SN3 added cheaply at the
+cost of one extra metagraph fetch per 5-min cycle. Each fetch now extracts
+`(owner_ss58, owner_uid, owner_alpha_tao)` for every monitored subnet via a
+**defensive 3-path resolver**:
+1. Metagraph attribute (`owner_coldkey` / `owner_ss58` / `subnet_owner`)
+2. AsyncSubtensor typed call (`get_subnet_owner` / `get_subnet_info`)
+3. Raw `substrate.query("SubtensorModule", "SubnetOwner", [netuid])`
+
+Each path wrapped in try/except + 10s wait_for. On-disk cache
+`subnet_owner_cache.json` (gitignored — runtime artefact) survives Railway
+redeploys so fresh containers don't fire spurious owner-change alerts on
+first poll. Owner-ss58 mismatch between snapshots fires
+`SUBNET_OWNER_CHANGE` (CRITICAL, no cooldown — governance event).
+
+**#6 Conviction-Era unlock heuristic v1** — SDK 10.x doesn't yet expose a
+typed Conviction storage accessor (Conviction launched yesterday). Pragmatic
+v1 signal is **owner αTAO drop between consecutive snapshots**:
+- `drop ≥ 5%` AND `drop ≥ 0.5τ` → `CONVICTION_UNLOCK` (WARNING, 30-min cooldown)
+- Catches BOTH formal unlock extrinsics AND owner-side dumps
+- Same 21-day-out bearish read either way per the Const Novelty Search article
+- Thresholds are module constants today; will move to risk_config when UI lands
+
+**New API surface:** `GET /api/market/owners` returns the cached owner
+snapshots + thresholds. Status keys `owner_subnets` and `monitor_owner_netuids`
+added to `subnet_cache_service.get_status()`.
+
+**Refactor safety:** `_fetch_metagraphs()` now iterates the superset
+`MONITOR_OWNERS_NETUIDS` but still only populates `_meta` for subnets in
+`TRADING_NETUIDS`. Trading metadata for SN0/8/9/18/64/96 is byte-identical
+to the pre-refactor behaviour (logic moved into a conditional, same formulas,
+same 150% APY display cap).
+
+### Commits
+
+| Commit     | Pass                              | Files | Status |
+|-----------:|:----------------------------------|:------|:------:|
+| `01de5dcb` | Memory Bank — 6 articles to §12   | STATE.md (+238) | ✅ live |
+| `fbb73dd6` | Drawdown auto-demotion rail       | fleet.py + cycle_service.py (+75/−1) | ✅ live |
+| `67b9a438` | SN3 + Conviction substrate bundle | subnet_cache_service.py + market.py + alert_service.py + .gitignore (+353/−45) | ✅ live |
+
+### Discipline notes
+- **Single Substrate trip, three deliverables** — adding SN3 to an existing
+  metagraph loop is a net +1 chain call per 5-min cycle, not 3. Reusing the
+  same `mg` object for both trading metadata extraction and owner extraction
+  keeps the chain footprint tight.
+- **Defensive multi-path SDK access** — Bittensor SDK is not API-stable
+  across minor versions. Any new chain call should ladder through metagraph
+  attr → typed call → raw substrate query, each in try/except. The reward
+  is silent self-healing on SDK upgrades; the cost is ~30 extra LOC per call.
+- **Persist before alert** — first-ever owner snapshot for a subnet must
+  baseline silently (no alert). Only the SECOND poll can fire owner-change
+  alerts. This prevents Railway redeploys from generating false positives.
+- **Heuristic v1 → typed v2 path documented** — when SDK exposes a typed
+  Conviction accessor, the heuristic gets replaced. Until then, owner-α drop
+  is a defensible v1 signal that doesn't lie about its limitations.
+- **Article ideas → backlog, not scope creep** — 14 article-derived ideas
+  parked in TodoList for future sessions. Today's bundle stayed on the user's
+  recommended list verbatim.
 
 ---
 
