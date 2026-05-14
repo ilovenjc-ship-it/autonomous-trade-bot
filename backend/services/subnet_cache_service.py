@@ -390,11 +390,22 @@ class SubnetCacheService:
         if owner_ss58 is None:
             return None, None, 0.0
 
-        # Find the owner's UID and α stake by matching coldkeys on the metagraph.
-        # mg.coldkeys is a list of ss58 strings, one per UID. Owner may have
-        # multiple UIDs (registered hotkeys) — we sum α across all of them.
+        # Find the owner's UID and α stake.
+        #
+        # Path A — metagraph coldkey scan: catches owners that are also
+        # registered miners on their own subnet. Only counts stake from
+        # registered UIDs (the legacy pre-Conviction pattern).
+        #
+        # Path B — get_stake_info_for_coldkey(owner_ss58): catches the
+        # Conviction-era reality where 100% of owner emissions auto-lock
+        # 1,296 α/day directly to the owner's coldkey, INDEPENDENT of UID
+        # registration. This is the dominant Conviction-Era signal — without
+        # it, owner_alpha returns 0 for owners that don't run their own
+        # miners (which is most of them post-Conviction).
         owner_alpha = 0.0
         owner_uid: Optional[int] = None
+
+        # Path A — metagraph UID-stake match.
         try:
             coldkeys = list(getattr(mg, "coldkeys", []) or [])
             stakes   = list(getattr(mg, "S", []) or [])
@@ -405,7 +416,41 @@ class SubnetCacheService:
                     if i < len(stakes):
                         owner_alpha += float(stakes[i])
         except Exception as exc:
-            logger.debug(f"SN{netuid} owner-alpha sum failed: {exc}")
+            logger.debug(f"SN{netuid} Path-A owner-alpha sum failed: {exc}")
+
+        # Path B — owner coldkey direct alpha lookup (Conviction-Era critical).
+        try:
+            method = getattr(sub, "get_stake_info_for_coldkey", None)
+            if callable(method):
+                stake_positions = await asyncio.wait_for(
+                    method(owner_ss58),
+                    timeout=10.0,
+                )
+                if stake_positions:
+                    items = (
+                        stake_positions if isinstance(stake_positions, list)
+                        else [stake_positions]
+                    )
+                    locked_alpha = 0.0
+                    for s in items:
+                        s_netuid = getattr(s, "netuid", None)
+                        if s_netuid is None or int(s_netuid) != int(netuid):
+                            continue
+                        s_amount = float(getattr(s, "stake", 0) or 0)
+                        locked_alpha += s_amount
+                    # Owner-coldkey alpha is the canonical Conviction signal.
+                    # Use it whenever it's non-zero — it supersedes the UID-stake
+                    # heuristic, which only catches the rare case of owners
+                    # who also run their own registered miner.
+                    if locked_alpha > 0:
+                        owner_alpha = locked_alpha
+        except asyncio.TimeoutError:
+            logger.debug(
+                f"SN{netuid} Path-B owner-alpha (coldkey={owner_ss58[:6]}…) "
+                f"timed out — falling back to Path A value {owner_alpha:.4f}τ"
+            )
+        except Exception as exc:
+            logger.debug(f"SN{netuid} Path-B owner-alpha lookup failed: {exc}")
 
         return owner_ss58, owner_uid, owner_alpha
 
