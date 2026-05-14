@@ -243,8 +243,25 @@ export default function Layout() {
   const secToNext = cycleInterval - (tick % cycleInterval)
 
   // ── Bot toggle (global — works from any page) ──────────────────────
+  // Session XXX: confirm copy is context-aware. Stopping a running bot
+  // gets a real warning (it pauses signal generation). Starting a stopped
+  // bot is innocuous in paper mode and gets a lighter prompt. The same
+  // principle Partner asked for on the Force Paper Mode button.
   const [botBusy, setBotBusy] = useState(false)
+  const isPaperMode = (status as any)?.force_paper_mode ?? true   // default-safe
   const handleToggle = useCallback(async () => {
+    if (isRunning) {
+      const ctx = isPaperMode
+        ? 'Currently in PAPER mode — no real on-chain trades will be missed, only paper-stat accumulation pauses.'
+        : '⚠ Currently in LIVE mode — stopping the bot will halt all signal generation including real on-chain execution.'
+      if (!window.confirm(`STOP BOT?\n\n${ctx}\n\nResumable any time. Click OK to stop.`)) return
+    } else {
+      // Starting is reversible and low-risk; only confirm if leaving paper safety
+      if (!isPaperMode) {
+        if (!window.confirm('START BOT — LIVE MODE\n\nForce-paper flag is OFF. Once running, the cycle engine will fire signals and any LIVE strategy will execute real on-chain trades.\n\nConfirm start?')) return
+      }
+      // Paper-mode start: no confirm needed, frictionless
+    }
     setBotBusy(true)
     try {
       const endpoint = isRunning ? '/bot/stop' : '/bot/start'
@@ -260,7 +277,7 @@ export default function Layout() {
     } finally {
       setBotBusy(false)
     }
-  }, [isRunning, fetchStatus])
+  }, [isRunning, isPaperMode, fetchStatus])
 
   // ── Orb toggle + floating chat state ─────────────────────────────
   const [orbOpen,     setOrbOpen]     = useState(false)
