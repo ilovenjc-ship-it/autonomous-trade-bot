@@ -23,6 +23,7 @@ from services import signal_ingestor
 from routers import bot, trades, price, strategies, fleet, analytics, market, consensus, agent, alerts, wallet, pnl, override
 from routers import webhooks as webhooks_router
 from routers import signal_feeds as signal_feeds_router
+from routers import research as research_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -394,6 +395,7 @@ app.include_router(pnl.router)
 app.include_router(override.router)
 app.include_router(webhooks_router.router)
 app.include_router(signal_feeds_router.router)
+app.include_router(research_router.router)
 
 
 @app.get("/")

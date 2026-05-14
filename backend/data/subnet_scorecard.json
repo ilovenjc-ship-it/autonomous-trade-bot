@@ -1,0 +1,146 @@
+{
+  "framework": {
+    "name": "Const's 6-Filter Test",
+    "author": "Jacob Steeves (Const, Bittensor co-founder)",
+    "source_article": "TAO Daily — Putting Bittensor's Top 10 Subnets Through Const's 6-Filter Test (April 3, 2026)",
+    "source_url": "https://taodaily.io/putting-bittensors-top-10-subnets-through-consts-6-filter-test/",
+    "filed_to_state_md": "2026-05-14",
+    "max_score": 6,
+    "filters": [
+      {
+        "id": "f1_commodity",
+        "name": "Does it produce a digital commodity?",
+        "summary": "Not a token. Not a governance vote. A commodity, something a buyer would pay for independent of the Bittensor ecosystem (inference calls, model weights, storage, annotated data, agents)."
+      },
+      {
+        "id": "f2_productive",
+        "name": "Are the miners actually productive?",
+        "summary": "Proof-of-useful-work — running GPU workloads, training models, storing files, creating SOTA agents. Or are they just gaming a reward function?"
+      },
+      {
+        "id": "f3_intelligent",
+        "name": "Is it intelligent?",
+        "summary": "Genuine AI reasoning, adaptation, or learning. The strongest subnets must embed intelligence at their core."
+      },
+      {
+        "id": "f4_hard",
+        "name": "Is it hard?",
+        "summary": "Easy tasks get commoditized, memorized, and gamed — that difficulty is a moat."
+      },
+      {
+        "id": "f5_not_ponzi",
+        "name": "Is it not a ponzi?",
+        "summary": "Are rewards tied to verifiable performance, or do they flow to whoever stakes the most, markets the loudest, or arrives earliest? Value creation must precede value capture."
+      },
+      {
+        "id": "f6_ai_native",
+        "name": "Is it AI-native?",
+        "summary": "Could this subnet exist and thrive without AI at its foundation? If you could swap out the intelligence layer for a simple script, the subnet isn't AI-native."
+      }
+    ]
+  },
+  "scorecard_version": "1.0",
+  "scorecard_filed": "2026-05-14",
+  "subnets": [
+    {
+      "rank": 1,
+      "netuid": 64,
+      "name": "Chutes",
+      "category": "Serverless AI Compute",
+      "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
+      "score": 6,
+      "callouts": [],
+      "is_taobot_signal_candidate": false
+    },
+    {
+      "rank": 2,
+      "netuid": 3,
+      "name": "Templar",
+      "category": "Decentralized LLM Pre-Training",
+      "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
+      "score": 6,
+      "callouts": ["SN3 owner-key monitor target", "high-quality watch (Templar)"],
+      "is_taobot_signal_candidate": true
+    },
+    {
+      "rank": 3,
+      "netuid": 4,
+      "name": "Targon",
+      "category": "Confidential GPU Compute",
+      "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
+      "score": 6,
+      "callouts": [],
+      "is_taobot_signal_candidate": false
+    },
+    {
+      "rank": 4,
+      "netuid": 120,
+      "name": "Affine",
+      "category": "Reinforcement Learning & Coordination",
+      "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
+      "score": 6,
+      "callouts": [],
+      "is_taobot_signal_candidate": false
+    },
+    {
+      "rank": 5,
+      "netuid": 51,
+      "name": "Lium",
+      "category": "Decentralized GPU Marketplace",
+      "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
+      "score": 6,
+      "callouts": [],
+      "is_taobot_signal_candidate": false
+    },
+    {
+      "rank": 6,
+      "netuid": 8,
+      "name": "Vanta",
+      "category": "AI Trading Signals",
+      "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
+      "score": 6,
+      "callouts": ["AI Trading Signals — tradable alpha signals", "profit-driven buybacks, not emission farming", "highest-leverage signal integration target after Synth"],
+      "is_taobot_signal_candidate": true
+    },
+    {
+      "rank": 7,
+      "netuid": 62,
+      "name": "Ridges",
+      "category": "Autonomous Coding Agents",
+      "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
+      "score": 6,
+      "callouts": [],
+      "is_taobot_signal_candidate": false
+    },
+    {
+      "rank": 8,
+      "netuid": 44,
+      "name": "Score",
+      "category": "Computer Vision",
+      "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
+      "score": 6,
+      "callouts": [],
+      "is_taobot_signal_candidate": false
+    },
+    {
+      "rank": 9,
+      "netuid": 75,
+      "name": "Hippius",
+      "category": "Decentralized Cloud Storage",
+      "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
+      "score": 6,
+      "callouts": [],
+      "is_taobot_signal_candidate": false
+    },
+    {
+      "rank": 10,
+      "netuid": 9,
+      "name": "IOTA",
+      "category": "Cooperative LLM Pre-Training",
+      "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
+      "score": 6,
+      "callouts": [],
+      "is_taobot_signal_candidate": false
+    }
+  ]
+}

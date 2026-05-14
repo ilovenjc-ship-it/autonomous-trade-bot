@@ -761,6 +761,12 @@ _RISK_CONFIG_DEFAULTS = {
     # Min cycles below ensures we don't demote on early noise.
     "strategy_demote_drawdown_tao":   -0.15,
     "strategy_demote_min_cycles":      10,
+    # Const 6-Filter Test quality gate — minimum filters a SOURCE subnet must
+    # pass before its external signal feed is trusted in the consensus pipeline.
+    # Default 6/6 mirrors the seeded scorecard (all 10 top-of-leaderboard
+    # subnets currently pass all 6). Lower if you want to admit a 5/6 source;
+    # set to 0 to disable the gate entirely (open-mode for dev / backtest).
+    "subnet_quality_min_filters":       6,
 }
 
 # Persist to a JSON file so Railway redeploys don't reset user settings.
