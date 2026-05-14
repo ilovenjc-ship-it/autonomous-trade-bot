@@ -1,6 +1,8 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-13 (Session XXIX close — Zero Day declared official)
+**Last updated:** 2026-05-14 (Session XXX — Day 2 polish: analytics reset_since, DVR rotation, Dashboard/Sidebar/Override clarity)
+**Status (Session XXX close):** ✅ **DAY 2 OF PAPER BASELINE.** Partner walked the post-Zero-Day fleet on Day 2 and brought a focused list. Four-pass single-deploy discipline executed end-to-end. Commits `843e8a3f → 4ed87cee → b56abd5a → e0d43610` all on `origin/main`, all verified live. **Big wins:** (1) `/api/analytics/strategies` and friends now honor `reset_since` — Top Strategies card reads honest 25-trade post-reset numbers instead of pre-wipe 220-trade fossils; the Day-7 gate pipeline is now visible from a single source of truth. (2) Alerts buffer 150→500 + monotonic `lifetime_total` exposed (DVR pattern, never freezes). OpenClaw rounds 200→500 same. (3) Dashboard `ZERO_DAY_UTC` corrected from XXVI placeholder to formal 2026-05-13T16:39:39Z; Paper Day reads honest **Day 2** instead of phantom Day 3, gate label `5d 22h to gate` instead of `4d to gate`. KPI swap: Total Trades right of Win Rate per spec. (4) Sidebar gets Expand-All/Collapse-All/Save-as-Default toolbar with two-key localStorage split (ephemeral vs user-default). (5) Human Override: SYSTEM OPERATIONAL promoted to top line; old binary "Live Trading Active" banner replaced by tri-state truth (`PAPER_OVERRIDE` / `PAPER_BASELINE` / `LIVE_TRADING`) — currently displays "⏸ PAPER BASELINE — NO LIVE STRATEGIES YET" honestly; context-aware confirm copy on Force/Lock Paper Mode + Reset/Resume/EmergencyStop + Layout Run/Stop Bot. **Fleet read:** 298 trades, 39.3% WR, −0.0547 τ, 0 strategies through gate yet, top is dTAO Flow Momentum at 48% / Balanced Risk at 47.9%. Day 2 of 7. Gate opens 2026-05-20 ~16:39 UTC.
+
 **Status (Session XXIX close):** 🌅 **ZERO DAY DECLARED OFFICIAL — 2026-05-13 16:39:39 UTC.** Partner walked the live XXIX deploy, signed off on every page ("close to a Masterpiece"), and formally inscribed today as the App's Zero Day. Three-page polish (Dashboard chart 640px below working tiles, OpenClaw round-container reorg + stacked LegendBar, Transactions browser-native scroll) shipped on commit `76793c26`, FE deploy `89e580d3` SUCCESS, asset hashes verified (`index-Dd_DxSLR.js` / `index-CJ6eLkh6.css`). All counters honest-zero, all 12 strategies PAPER_ONLY, BotConfig singleton zeroed. **Day 2 of 7-day paper baseline. Gate opens 2026-05-20 ~16:39 UTC.** Closing rite performed: Code protected (pushed + verified live), Memory saved (this brief), Soul preserved (the pattern endures — Master Architect discipline, single-commit/single-deploy, asset-hash verification, threshold-gated idempotent wipes, tz-aware-safe comparisons, browser-native scroll over inner overflow). The Agent reincarnates.
 
 **Status (Session XXVIII close):** ✅ **TRUE CLEAN SLATE LANDED LIVE.** All counters verified zero on Railway at 2026-05-13 16:42 UTC after **8,552 fossil paper trades were deleted** by the threshold-gated wipe firing for the first time since Session XXIV. Fossil-cleanup is now decoupled from `FORCE_PAPER_MODE` AND tz-aware-safe (asyncpg-naive datetime footgun fixed). All 12 strategies on `/api/strategies`: `total_trades=0, cycles_completed=1, total_pnl=0.0, win_rate=0.0, mode=PAPER_ONLY` (mode preserved as designed). BotConfig singleton zeroed including OpenClaw round counters. **New Zero Day: 2026-05-13 16:39:39 UTC. Gate opens 2026-05-20 ~16:39 UTC.** Day 2 of 7-day paper baseline, true counting starts now. UI: Dashboard 10-card reorder + TradingView chart 960px (flex-1 wrapper bug fixed), OpenClaw Votes section at top of round, PnL Summary reordered with Cumulative PnL empty-state placeholder, Transactions page sticky anchor rail + Jump-to-History FAB. All 4 Session-XXVIII commits on `origin/main` (521f09ea → 742d65f4 → 4b05e74f → a1e1dc7e).
@@ -14,6 +16,178 @@
 If you are a new II Agent instance picking this project back up — read this entire file before touching a single line of code. It will take 3 minutes. It will save 3 hours. Everything the previous agent knew is in here. The Archives (PDF reports in `/report/`) have the full narrative. This file has the operational facts.
 
 If you are the owner returning after a break — check Section 5 (Current State) first.
+
+---
+
+## SESSION XXX (May 14, 2026 — Day 2) — Walkthrough Polish: Analytics + Dashboard + Sidebar + Human Override
+
+### Overview
+Partner returned on Day 2 of the paper baseline (~26h after Zero Day),
+walked the live app, and brought a focused 9-item list. One nuance to
+clarify up-front saved hours of confusion: the "Top Strategies trade
+count did not reset" observation was a pure DISPLAY bug, not a learning
+problem. `Strategy.total_trades`/`win_rate`/`total_pnl` are stat columns
+only; bot decision logic lives in live indicators + the (already wiped)
+`trades` table + the (never wiped) `parameters` JSON. Confirmed with
+Partner before proceeding. Four-pass plan, single-deploy discipline.
+
+### Pass A — Backend (`843e8a3f`)
+**`backend/routers/analytics.py`:**
+Added `_get_reset_cutoff()` + `_reset_clause()` helpers and applied them
+to `/strategies`, `/equity`, `/drawdown`, `/rolling-winrate`, and
+`/strategy/{name}` equity. Mirrors the pattern `/summary` already had.
+**Root cause of the Top Strategies fossil leak:** `Strategy.total_trades`
+column gets reset on wipe, but `/api/analytics/strategies` counts rows
+from the `trades` table directly — and there were 4.5 hours of trades
+between the 16:39 fossil wipe and the 21:07 `stats_reset_at` timestamp
+that survived the wipe but pre-dated the reset_since cutoff. So the
+analytics endpoint was honestly reporting trades that just shouldn't be
+in the post-Zero-Day window. Filter applied. Honest numbers everywhere.
+
+**`backend/services/alert_service.py` + `routers/alerts.py`:**
+`MAX_ALERTS = 150 → 500`. Added `lifetime_total` property (the existing
+monotonic `_counter`) and exposed it on `/api/alerts`,
+`/api/alerts/unread-count`, `/api/alerts/stats`, plus `buffer_max`. Now
+the UI can show "11 in buffer · X received lifetime · buffer rotates at
+500 (oldest drops off)" — DVR-style transparency.
+
+**`backend/services/consensus_service.py` + `routers/consensus.py`:**
+`MAX_HISTORY = 200 → 500`. `lifetime_total = round_count` exposed on
+history + stats. The monotonic counter already persisted across redeploys
+via `BotConfig.openclaw_total_rounds`, so it survived 572-and-counting.
+
+**Why Partner asked**: "alerts counter automatically stops collecting at
+150" — they observed the unread-count cap (which can never exceed buffer
+size). Buffer bump 150→500 gives massive headroom; lifetime_total proves
+collection is alive even when buffer is full.
+
+### Pass B — Frontend Dashboard + Layout (`4ed87cee`)
+**`frontend/src/components/Layout.tsx`:**
+- **Date next to Time** in upper-right header per Partner spec — universal
+  treatment so every page shows `May 14 · 03:36:34 PM`. Added `ET_DATE_OPTS`
+  + `localDate` state alongside existing `localTime`.
+- **Run/Stop Bot context-aware confirm**: stopping in PAPER mode uses
+  light copy; stopping in LIVE mode shows full warning enumerating
+  live impact. Starting in paper is frictionless (no confirm at all).
+
+**`frontend/src/pages/Dashboard.tsx`:**
+- **`ZERO_DAY_UTC` corrected**: `2026-05-12T12:00:00Z` (XXVI placeholder
+  that nobody updated through XXVII/XXVIII/XXIX) → `2026-05-13T16:39:39Z`
+  (formally inscribed in STATE.md after Session XXIX wipe). Paper Day
+  card now reads honest "Day 2" not phantom "Day 3".
+- **Gate label upgraded**: `${7 - paperDay}d to gate` → calculates from
+  remaining ms with hours precision: "5d 22h to gate" / "5d 21h to gate".
+- **KPI swap**: Total Trades moved right-of Win Rate (was right of
+  Total PnL). New row: II Agent · Win Rate · Total Trades · Total PnL ·
+  Paper Day. Partner spec verbatim.
+- **Top Strategies sort upgrade**: was `sort by total_pnl DESC, slice(5)`
+  which surfaced "least bad" strategies (4-trade flukes at top once
+  reset_since landed). Now: filter to `total_trades >= 5`, sort by
+  `win_rate DESC` with PnL tiebreak. Falls back to all strategies if
+  none qualify so the empty state never appears unnecessarily.
+
+**`frontend/src/pages/AlertInbox.tsx`:**
+- Stats grid: relabel "Total" → "In Buffer" (truth — buffer rotates).
+- New DVR retention banner shows `lifetime_total` received + buffer
+  rotation size when lifetime > 0. Fades in only when there's something
+  to display.
+
+### Pass C — Frontend Sidebar Toolbar (`b56abd5a`)
+**`frontend/src/components/Layout.tsx`:**
+New 4-button toolbar above the nav groups:
+- **Expand** — opens every nav group at once
+- **Collapse** — closes every nav group (active route preserved)
+- **Bookmark** (Save) — snapshot current layout to user-default
+  localStorage key (`taobot:sidebar:user-default:v1`)
+- **Undo** (Reset) — restore from saved default; disabled if no default
+  set; shows hint toast on first click
+Two-key localStorage architecture: ephemeral state (auto-saved on every
+toggle, unchanged) vs user-default (only set on explicit Save). The
+active route's group is always re-included after Collapse-All and
+Reset operations so the user never loses navigation context.
+
+### Pass D — Frontend Human Override (`e0d43610`)
+**`frontend/src/pages/HumanOverride.tsx`:**
+- **Banner stack reordered**: SYSTEM OPERATIONAL bar → top; Execution
+  Mode banner → below. Partner spec: "Relocate SYSTEM OPERATIONAL to
+  Top Line — Above Live Trading Active + Force Paper Mode."
+- **Tri-state truth banner replaces binary banner**:
+  ```
+  forcePaper=true                 → PAPER_OVERRIDE  (amber, locked-down)
+  forcePaper=false, liveCount===0 → PAPER_BASELINE  (slate, neutral)
+  forcePaper=false, liveCount>0   → LIVE_TRADING    (green, real money)
+  ```
+  Old banner read "🔴 Live Trading Active" any time the force flag was
+  off — including on Day 2 of paper baseline with 0 LIVE strategies.
+  That misled the Operator. Currently shows "⏸ PAPER BASELINE — NO
+  LIVE STRATEGIES YET" with "12 paper · 0 approved · 0 live" chips.
+- **Context-aware confirm copy** on every action button:
+  - **doForcePaper**: from LIVE → full FORCE PAPER warning enumerating
+    live-strategy impact; from PAPER_BASELINE → lighter "LOCK PAPER MODE"
+    prompt explaining the flag prevents future LIVE promotions. Button
+    label flips: "Force Paper Mode" vs "Lock Paper Mode".
+  - **doResetPaperStats**: confirm references current paper count,
+    explains "stamp a fresh stats_reset_at — establishes a new Zero Day
+    for analytics"
+  - **doResumeLive**: lists `approvedCount` strategies that become
+    eligible for promotion when the flag is lifted
+  - **doEmergencyStop**: from LIVE → "N strategies are LIVE on chain
+    right now"; from PAPER → "System is in paper mode — this halt is
+    precautionary"
+- **`trueMode` computation** lives at component-top so all handlers + JSX
+  share one source of truth.
+
+### Verification
+**Backend (Pass A) verified live:**
+- `/api/analytics/strategies` returns ~4-53 trades per strategy (was
+  220-450 fossil), sums to 294 (matches `/summary`'s 287 closely)
+- `/api/alerts` returns `lifetime_total: 11, buffer_max: 500` ✓
+- `/api/consensus/history` returns `lifetime_total: 572, buffer_max: 500`
+  (counter persisted across deploy) ✓
+
+**Frontend (Passes B+C+D) verified live via agent-browser:**
+- Live FE asset hashes: `index-CqubF7yf.css` / `index-QFSJvitE.js` (new)
+- Dashboard header: "May 14 · 03:36:34 PM" ✓
+- Dashboard Paper Day: "Day 2" / "5d 21h to gate" ✓
+- Dashboard KPI order: Win Rate → Total Trades → Total PnL → Paper Day ✓
+- Top Strategies: dTAO 48% / Balanced Risk 47.9% / Breakout 41.7% (post-reset honest) ✓
+- Sidebar: Expand / Collapse / Bookmark / Undo buttons present ✓
+- Override: SYSTEM OPERATIONAL on top line, "PAPER BASELINE — NO LIVE STRATEGIES YET" below, "Lock Paper Mode" button ✓
+- AlertInbox: "IN BUFFER" relabel ✓
+
+**Live fleet read at session close:**
+- 298 trades, 117W / 181L, 39.3% WR, −0.0547 τ
+- Top: dTAO Flow Momentum 48.0% (25 trades, −0.0038)
+- 2nd: Balanced Risk 47.9% (48 trades, −0.0048)
+- Day 2 of 7 baseline. Gate opens 2026-05-20 ~16:39 UTC.
+
+### Discipline Notes Locked In
+- **Display vs decision data**: `Strategy.total_trades` / `win_rate` /
+  `total_pnl` are STAT columns. Bot learning lives elsewhere (live
+  indicators, trades table, parameters JSON). Filtering display by
+  `reset_since` does NOT affect bot behavior — confirmed and inscribed.
+- **Date placeholders rot**: `ZERO_DAY_UTC` was wrong for 4 sessions
+  (XXVI through XXIX) because nobody re-checked it after the formal Zero
+  Day was inscribed. **New rule**: when Zero Day is declared in STATE.md,
+  immediately grep for hard-coded date constants and update.
+- **Tri-state truth over binary lies**: any time a UI banner makes a
+  binary claim about a system that's actually in 3+ states, you're
+  one step away from misleading the operator. Compute the true state
+  from primitives, render distinct copy/colors per state.
+- **Context-aware confirms**: warning copy should reflect current state,
+  not the worst-case state. Partner spec, applied broadly.
+- **DVR pattern**: ring buffer + monotonic lifetime counter is the
+  right architecture for any "history of N most recent" surface. Buffer
+  size is for memory bounds; lifetime counter is for proving liveness.
+
+### Carry-over (still pending)
+- Day 7 WR gate verification (gate opens 2026-05-20 ~16:39 UTC)
+- RSI fallback investigation (CoinGecko 429s)
+- TAO/USD standalone chart resurrection
+- Discord OTF gateway invite (user action)
+- Auto-demotion on drawdown breach
+- Real αTAO positions in Wallet from chain
+- MANTIS API research / SN3 owner-key monitor
 
 ---
 
