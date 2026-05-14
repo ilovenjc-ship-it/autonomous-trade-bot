@@ -599,7 +599,19 @@ export default function Dashboard() {
   const ind = botStatus?.indicators ?? {}
   const price = botStatus?.current_price
   const change24h = botStatus?.price_change_24h
-  const top5 = [...strategies].sort((a, b) => b.total_pnl - a.total_pnl).slice(0, 5)
+  // Top Strategies leaderboard — Session XXX:
+  // (1) Backend now honors reset_since so counts are post-Zero-Day honest.
+  // (2) Sort priority: WR DESC (the gate-relevant metric), then PnL DESC tie-break.
+  // (3) Require min 5 trades so 1-2 trade flukes don't headline. Fallback to
+  //     all strategies if none qualify (so the empty state doesn't appear
+  //     during the very-first hours of a fresh paper baseline).
+  const _MIN_LB_TRADES = 5
+  const _qualified     = strategies.filter(s => (s.total_trades ?? 0) >= _MIN_LB_TRADES)
+  const _pool          = _qualified.length > 0 ? _qualified : strategies
+  const top5 = [..._pool].sort((a, b) => {
+    const wr = (b.win_rate ?? 0) - (a.win_rate ?? 0)
+    return wr !== 0 ? wr : (b.total_pnl ?? 0) - (a.total_pnl ?? 0)
+  }).slice(0, 5)
   const isRunning = botStatus?.is_running ?? false
   const cycleN = botStatus?.cycle_number ?? 0
   const interval = botStatus?.cycle_interval ?? 60
@@ -611,12 +623,24 @@ export default function Dashboard() {
   // ── Static card-grid computed values ───────────────────────────────────────
   const _up24h         = (change24h ?? 0) >= 0
   const _approvalRate  = consensusStats?.approval_rate_pct ?? 0
-  // Paper Day counter — counts from Zero Day.
-  // Session XXVI (2026-05-12): True Clean Slate wipe re-established the baseline.
-  // Previous wipe (Session XXV, 2026-05-11) missed the BotConfig singleton and
-  // drifted immediately. Today's wipe is the honest start.
-  const ZERO_DAY_UTC   = new Date('2026-05-12T12:00:00Z').getTime()
-  const paperDay       = Math.max(1, Math.floor((Date.now() - ZERO_DAY_UTC) / 86_400_000) + 1)
+  // Paper Day counter — counts from official Zero Day.
+  // Session XXX: corrected from 2026-05-12T12:00:00Z (XXVI placeholder) to the
+  // formally-inscribed Zero Day from STATE.md — 2026-05-13T16:39:39 UTC, the
+  // moment the threshold-gated fossil wipe fired and 8,552 fossil paper trades
+  // were deleted. The 7-day gate opens at Zero Day + 7 days.
+  // paperDay starts at Day 1 within the first 24h after Zero Day.
+  const ZERO_DAY_UTC    = new Date('2026-05-13T16:39:39Z').getTime()
+  const GATE_OPEN_UTC   = ZERO_DAY_UTC + 7 * 86_400_000
+  const _msSinceZero    = Math.max(0, Date.now() - ZERO_DAY_UTC)
+  const paperDay        = Math.max(1, Math.floor(_msSinceZero / 86_400_000) + 1)
+  const _hrsToGate      = Math.max(0, (GATE_OPEN_UTC - Date.now()) / 3_600_000)
+  const _daysToGate     = Math.floor(_hrsToGate / 24)
+  const _remHrsToGate   = Math.floor(_hrsToGate - _daysToGate * 24)
+  const gateLabel       = paperDay >= 7
+    ? 'WR gate active'
+    : (_daysToGate > 0
+        ? `${_daysToGate}d ${_remHrsToGate}h to gate`
+        : `${_remHrsToGate}h to gate`)
   const totalPnl       = summary?.total_pnl ?? 0
   const winRate        = summary?.win_rate ?? 0
   const totalTrades    = summary?.total_trades ?? 0
@@ -653,8 +677,9 @@ export default function Dashboard() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          OPERATOR STATIC CARDS — Session XXVIII order (Partner spec):
-          Row 1:  II Agent · Win Rate · Total PnL · Total Trades · Paper Day
+          OPERATOR STATIC CARDS — Session XXX order (Partner spec):
+          Row 1:  II Agent · Win Rate · Total Trades · Total PnL · Paper Day
+                                       └─ swapped — "Total Trades right of Win Rate"
           Row 2:  TAO/USD · 24h Change · Alerts · Approval Rate · Daily Cap
           ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -697,7 +722,21 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 3 — Total PnL */}
+        {/* 3 — Total Trades  (Session XXX: moved right of Win Rate per Partner spec) */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
+            <Hash size={14} className="text-slate-300" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
+            <p className="text-base font-black font-mono text-white mt-0.5">
+              {summary ? totalTrades.toLocaleString() : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
+          </div>
+        </div>
+
+        {/* 4 — Total PnL  (Session XXX: swapped position with Total Trades) */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
           <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
             totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
@@ -712,20 +751,6 @@ export default function Dashboard() {
               {summary ? `${fmt(totalPnl, 4)} τ` : '—'}
             </p>
             <p className="text-[11px] font-mono text-slate-500 mt-0.5">fleet cumulative</p>
-          </div>
-        </div>
-
-        {/* 4 — Total Trades */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
-            <Hash size={14} className="text-slate-300" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
-            <p className="text-base font-black font-mono text-white mt-0.5">
-              {summary ? totalTrades.toLocaleString() : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
           </div>
         </div>
 
@@ -744,7 +769,7 @@ export default function Dashboard() {
               Day {paperDay}
             </p>
             <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-              {paperDay >= 7 ? 'WR gate active' : `${7 - paperDay}d to gate`}
+              {gateLabel}
             </p>
           </div>
         </div>

@@ -166,12 +166,18 @@ export default function Layout() {
   }, [fetchStatus])
 
   // ── Local clock + cycle tick ───────────────────────────────────────
+  // Session XXX: added Date alongside Time per Partner spec — universal
+  // header treatment so every page shows "May 14 · 02:48:38 PM" upper-right.
   const ET_OPTS: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true, timeZone: 'America/New_York' }
+  const ET_DATE_OPTS: Intl.DateTimeFormatOptions = { month: 'short', day: 'numeric', timeZone: 'America/New_York' }
   const [localTime, setLocalTime] = useState(() => new Date().toLocaleTimeString('en-US', ET_OPTS))
+  const [localDate, setLocalDate] = useState(() => new Date().toLocaleDateString('en-US', ET_DATE_OPTS))
   const [tick, setTick] = useState(0)
   useEffect(() => {
     const t = setInterval(() => {
-      setLocalTime(new Date().toLocaleTimeString('en-US', ET_OPTS))
+      const now = new Date()
+      setLocalTime(now.toLocaleTimeString('en-US', ET_OPTS))
+      setLocalDate(now.toLocaleDateString('en-US', ET_DATE_OPTS))
       setTick(n => n + 1)
     }, 1000)
     return () => clearInterval(t)
@@ -867,9 +873,11 @@ export default function Layout() {
 
           <div className="w-px h-5 bg-dark-600 flex-shrink-0" />
 
-          {/* Local time */}
+          {/* Local date + time — Session XXX: Partner spec, date next to time */}
           <div className="flex items-center gap-1.5 text-sm font-mono text-slate-400 flex-shrink-0">
             <Clock size={14} className="text-slate-500" />
+            <span className="text-slate-300">{localDate}</span>
+            <span className="text-slate-600">·</span>
             <span>{localTime}</span>
           </div>
 

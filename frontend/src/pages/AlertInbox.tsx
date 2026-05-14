@@ -27,10 +27,12 @@ interface Alert {
 }
 
 interface AlertStats {
-  total:    number
-  unread:   number
-  by_level: Record<string, number>
-  by_type:  Record<string, number>
+  total:           number
+  unread:          number
+  lifetime_total?: number   // Session XXX: monotonic, survives buffer rotation
+  buffer_max?:     number   // Session XXX: ring buffer cap
+  by_level:        Record<string, number>
+  by_type:         Record<string, number>
 }
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -221,21 +223,30 @@ export default function AlertInbox() {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* ── Stats row ── */}
+      {/* ── Stats row — Session XXX: includes Lifetime (monotonic, DVR-style) ── */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {[
-            { label: 'Total',    value: stats.total,                          accent: 'text-slate-300' },
-            { label: 'Unread',   value: stats.unread,                         accent: 'text-red-400'    },
-            { label: 'Critical', value: stats.by_level?.CRITICAL ?? 0,        accent: 'text-red-400'    },
-            { label: 'Warnings', value: (stats.by_level?.WARNING ?? 0),       accent: 'text-amber-400'  },
-          ].map(({ label, value, accent }) => (
-            <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl p-3 text-center">
-              <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
-              <p className={clsx('text-2xl font-bold font-mono mt-1', accent)}>{value}</p>
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {[
+              { label: 'In Buffer', value: stats.total,                          accent: 'text-slate-300' },
+              { label: 'Unread',    value: stats.unread,                         accent: 'text-red-400'    },
+              { label: 'Critical',  value: stats.by_level?.CRITICAL ?? 0,        accent: 'text-red-400'    },
+              { label: 'Warnings',  value: (stats.by_level?.WARNING ?? 0),       accent: 'text-amber-400'  },
+            ].map(({ label, value, accent }) => (
+              <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl p-3 text-center">
+                <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
+                <p className={clsx('text-2xl font-bold font-mono mt-1', accent)}>{value}</p>
+              </div>
+            ))}
+          </div>
+          {/* DVR retention banner — proves the system keeps collecting even when buffer fills */}
+          {(stats.lifetime_total ?? 0) > 0 && (
+            <div className="text-[12px] font-mono text-slate-500 text-center -mt-3">
+              <span className="text-slate-400">{stats.lifetime_total?.toLocaleString()}</span> alerts received lifetime
+              {stats.buffer_max ? <> · buffer rotates at <span className="text-slate-400">{stats.buffer_max}</span> (oldest drops off)</> : null}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
 
       {/* ── Filters ── */}
