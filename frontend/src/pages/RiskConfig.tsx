@@ -16,6 +16,11 @@ interface Config {
   consensus_votes: number        // integer 1–12 — source of truth for OpenClaw
   consensus_threshold: number    // kept in sync as votes/12
   cycle_interval_seconds: number
+  // Session XXXI: drawdown auto-demotion (parallel to WR demotion)
+  strategy_demote_drawdown_tao: number  // negative — strategy auto-demotes when cum PnL < this
+  strategy_demote_min_cycles: number    // min cycles before drawdown demotion can fire
+  // Session XXXII: Const 6-Filter Test gate for external signal sources
+  subnet_quality_min_filters: number    // min filters a SOURCE subnet must pass (0-6)
 }
 
 interface RiskStatus {
@@ -44,6 +49,9 @@ const DEFAULTS: Config = {
   consensus_votes:                 7,  // 7/12 supermajority — OpenClaw rule, do not lower
   consensus_threshold:           7 / 12,
   cycle_interval_seconds:        300,  // unchanged — 5-min cycles
+  strategy_demote_drawdown_tao:    -0.15, // Session XXXI: WR-independent cumulative PnL floor
+  strategy_demote_min_cycles:        10,  // Session XXXI: noise gate before drawdown demote
+  subnet_quality_min_filters:         6,  // Session XXXII: Const 6-Filter Test gate — default 6/6
 }
 
 // ── risk colour helpers ────────────────────────────────────────────────────────
@@ -425,6 +433,45 @@ export default function RiskConfig() {
             }}
             rangeLabel="60s (aggressive) — 60 min (conservative)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, cycle_interval_seconds: v })) }}
+          />
+
+          {/* ── Conviction-Era safety + quality knobs (Session XXXI / XXXII) ───── */}
+          <div className="lg:col-span-2 pt-3 border-t border-dark-600">
+            <div className="text-[11px] uppercase tracking-widest font-mono text-violet-300 mb-2">
+              ⛓ Conviction-Era Safety & Quality Gates
+            </div>
+            <div className="text-[11px] text-slate-500 mb-3 leading-relaxed">
+              These knobs gate the post-Conviction signal pipeline. Drawdown auto-demotion catches strategies whose
+              cumulative PnL bleeds below a τ floor even when their win-rate looks fine. The subnet quality gate uses
+              Const's 6-Filter Test as a provenance check on any external signal source.
+            </div>
+          </div>
+          <RiskSlider
+            label="Strategy Drawdown Floor"
+            description="When a strategy's cumulative PnL falls below this τ amount AND the min-cycles gate has passed, it auto-demotes one tier (LIVE → APPROVED → PAPER). Parallel to WR demotion — catches the case where WR > 50% but a few catastrophic losses dominate cumulative PnL. Dormant during paper-only Day 2; armed once a strategy promotes through the WR gate."
+            value={config.strategy_demote_drawdown_tao}
+            min={-1.0} max={-0.05} step={0.01} riskDir="down"
+            format={v => `${v.toFixed(2)} τ`}
+            rangeLabel="−1.0 τ (very lenient) — −0.05 τ (twitchy)"
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, strategy_demote_drawdown_tao: v })) }}
+          />
+          <RiskSlider
+            label="Drawdown-Demote Min Cycles"
+            description="Minimum cycles a strategy must complete before drawdown auto-demotion can fire. Filters out early-cycle noise (a single -0.15τ trade in cycle #2 shouldn't trigger demotion). 10 cycles ≈ 50 minutes at the default 5-min cadence."
+            value={config.strategy_demote_min_cycles}
+            min={3} max={50} step={1} riskDir="down"
+            format={v => `${v.toFixed(0)} cycles`}
+            rangeLabel="3 (twitchy) — 50 (very patient)"
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, strategy_demote_min_cycles: v })) }}
+          />
+          <RiskSlider
+            label="Subnet Quality Gate (Const 6-Filter)"
+            description="Minimum filters a SOURCE subnet must pass on Const's 6-Filter Test before its external signal feed is admitted to the consensus pipeline. Default 6/6 mirrors the seeded scorecard (Templar, Vanta, Chutes, etc. all confirmed 6/6). Lower to admit a 5/6 source; set to 0 to disable the gate entirely."
+            value={config.subnet_quality_min_filters}
+            min={0} max={6} step={1} riskDir="down"
+            format={v => v === 0 ? 'gate OFF (open mode)' : `${v.toFixed(0)} / 6`}
+            rangeLabel="0 (gate off) — 6/6 (strictest)"
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, subnet_quality_min_filters: v })) }}
           />
 
           {/* Phase indicator + graduation path — spans full width */}

@@ -65,3 +65,64 @@ async def get_signal_candidates():
     """Subnets flagged as active research targets for live signal integration."""
     candidates = subnet_scorecard_service.taobot_signal_candidates()
     return {"candidates": candidates, "count": len(candidates)}
+
+
+@router.get("/quality-gate/check/{netuid}")
+async def quality_gate_check(netuid: int):
+    """
+    Live introspection of the Const 6-Filter quality gate decision for a netuid.
+
+    Returns the operator-configured threshold, the subnet's actual score
+    (None if off-scorecard), and the gate verdict (passes/fails).
+
+    The gate threshold is sourced from _RISK_CONFIG['subnet_quality_min_filters'],
+    so this endpoint reflects the current Risk Config UI setting in real time.
+    """
+    threshold = subnet_scorecard_service.get_active_threshold()
+    entry = subnet_scorecard_service.get_subnet(netuid)
+    score = int(entry["score"]) if entry else None
+    passes = subnet_scorecard_service.passes_quality_gate(netuid)
+
+    return {
+        "netuid":         netuid,
+        "subnet_name":    entry.get("name") if entry else None,
+        "subnet_category": entry.get("category") if entry else None,
+        "score":          score,
+        "max_score":      6,
+        "threshold":      threshold,
+        "passes":         passes,
+        "on_scorecard":   entry is not None,
+        "is_signal_candidate": (
+            entry.get("is_taobot_signal_candidate", False) if entry else False
+        ),
+    }
+
+
+@router.get("/quality-gate/status")
+async def quality_gate_status():
+    """
+    Aggregate quality-gate state — useful for the Research panel KPI strip.
+
+    Returns the live threshold, count of subnets on the scorecard, count
+    that currently pass at the active threshold, and the candidate roster.
+    """
+    threshold = subnet_scorecard_service.get_active_threshold()
+    full = subnet_scorecard_service.get_full_scorecard()
+    subnets = full.get("subnets", [])
+    passing = [
+        s for s in subnets
+        if int(s.get("score", 0)) >= threshold
+    ]
+    candidates = subnet_scorecard_service.taobot_signal_candidates()
+
+    return {
+        "threshold":            threshold,
+        "max_score":            6,
+        "subnet_count":         len(subnets),
+        "passing_count":        len(passing),
+        "candidate_count":      len(candidates),
+        "passing_netuids":      sorted([int(s["netuid"]) for s in passing]),
+        "candidate_netuids":    sorted([int(c["netuid"]) for c in candidates]),
+        "scorecard_loaded_ok":  full.get("loaded_ok", False),
+        "gate_disabled":        threshold <= 0,
+    }

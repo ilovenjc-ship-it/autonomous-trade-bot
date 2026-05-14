@@ -130,6 +130,21 @@ class SubnetScorecardService:
         self._ensure_loaded()
         return self._by_netuid.get(int(netuid))
 
+    def get_active_threshold(self) -> int:
+        """
+        Returns the operator-configured minimum filters threshold.
+
+        Reads from _RISK_CONFIG['subnet_quality_min_filters'] (live-tunable
+        via the Risk Config UI). Falls back to DEFAULT_MIN_FILTERS if the
+        risk config is unreachable (test contexts, missing key, import cycle).
+        """
+        try:
+            from routers.fleet import _RISK_CONFIG
+            v = _RISK_CONFIG.get("subnet_quality_min_filters", self.DEFAULT_MIN_FILTERS)
+            return int(v)
+        except Exception:
+            return self.DEFAULT_MIN_FILTERS
+
     def passes_quality_gate(
         self,
         netuid: int,
@@ -137,10 +152,15 @@ class SubnetScorecardService:
     ) -> bool:
         """
         Returns True iff the subnet has a scorecard entry AND its `score`
-        meets the threshold (default = 6 filters passed).
+        meets the threshold.
 
-        Subnets NOT on the scorecard fail the gate by default — caller can
-        explicitly opt-in to ungated sources by setting min_filters=0.
+        - When min_filters is None (default), reads the live operator-tuned
+          threshold from _RISK_CONFIG['subnet_quality_min_filters'] so the
+          UI slider on the Risk Config page directly controls the gate.
+        - When min_filters is passed explicitly, that value is used (lets
+          callers force a one-off threshold for backtests / dry-runs).
+        - Subnets NOT on the scorecard FAIL the gate by default — caller
+          can opt-in to ungated sources by setting min_filters=0.
 
         Used by signal_ingestor and consensus_service to weight external
         signals by source-subnet quality. Open-mode (no scorecard loaded)
@@ -152,7 +172,11 @@ class SubnetScorecardService:
         if not self._loaded_ok or not self._by_netuid:
             return True
 
-        threshold = self.DEFAULT_MIN_FILTERS if min_filters is None else int(min_filters)
+        threshold = (
+            self.get_active_threshold()
+            if min_filters is None
+            else int(min_filters)
+        )
         if threshold <= 0:
             return True
 
