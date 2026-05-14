@@ -39,3 +39,8 @@ Thumbs.db
 # IDE
 .vscode/
 .idea/
+
+# Runtime caches (regenerated from chain on poll)
+backend/subnet_owner_cache.json
+backend/risk_config.json
+backend/webhook_configs.json

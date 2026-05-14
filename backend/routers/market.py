@@ -606,3 +606,45 @@ async def market_stats():
         "up_subnets":      sum(1 for s in all_s if s["trend"] == "up"),
         "down_subnets":    sum(1 for s in all_s if s["trend"] == "down"),
     }
+
+# ── Owner / Conviction monitoring ──────────────────────────────────────────────
+
+@router.get("/owners")
+async def subnet_owners():
+    """
+    Cached subnet-owner snapshots — surfaces both governance state (owner_ss58)
+    and Conviction-Era heuristics (owner_alpha) for every subnet in
+    MONITOR_OWNERS_NETUIDS. Used by the Wallet/Research UI and as the data
+    source the SUBNET_OWNER_CHANGE / CONVICTION_UNLOCK alerts compare against.
+
+    Empty `owners` array = first poll hasn't completed yet (chain may be cold).
+    """
+    from services.subnet_cache_service import (
+        subnet_cache_service,
+        MONITOR_OWNERS_NETUIDS,
+        TRADING_NETUIDS,
+        CONVICTION_UNLOCK_DROP_PCT,
+        CONVICTION_UNLOCK_MIN_TAO,
+    )
+
+    snapshots = subnet_cache_service.get_all_owners()
+    owners_list = [
+        {
+            "netuid":      netuid,
+            "is_trading":  netuid in TRADING_NETUIDS,
+            "owner_ss58":  snap.get("owner_ss58"),
+            "owner_uid":   snap.get("owner_uid"),
+            "owner_alpha": snap.get("owner_alpha", 0.0),
+            "fetched_at":  snap.get("fetched_at"),
+        }
+        for netuid, snap in sorted(snapshots.items())
+    ]
+
+    return {
+        "owners":                       owners_list,
+        "monitor_netuids":              sorted(MONITOR_OWNERS_NETUIDS),
+        "trading_netuids":              sorted(TRADING_NETUIDS),
+        "conviction_unlock_drop_pct":   CONVICTION_UNLOCK_DROP_PCT,
+        "conviction_unlock_min_tao":    CONVICTION_UNLOCK_MIN_TAO,
+        "meta_age_s":                   round(subnet_cache_service.meta_age_seconds, 1),
+    }
