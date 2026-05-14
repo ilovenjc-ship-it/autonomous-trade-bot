@@ -73,6 +73,11 @@ interface OwnerRow {
   scorecard_score: number | null
   scorecard_max: number | null
   is_signal_candidate: boolean
+  // Session XXXII: Subnet King takeover-risk enrichment
+  subnet_total_alpha: number | null
+  owner_share: number | null
+  takeover_risk_score: number | null
+  takeover_risk_band: 'FORTRESS' | 'DEFENDED' | 'CONTESTED' | 'VULNERABLE' | null
 }
 interface OwnersResp {
   owners: OwnerRow[]
@@ -104,6 +109,21 @@ function fmtAge(seconds: number): string {
 function shortSs58(addr: string | null): string {
   if (!addr) return '—'
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`
+}
+
+function bandStyle(band: string | null): string {
+  switch (band) {
+    case 'FORTRESS':
+      return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+    case 'DEFENDED':
+      return 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+    case 'CONTESTED':
+      return 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+    case 'VULNERABLE':
+      return 'bg-red-500/20 text-red-300 border-red-500/40'
+    default:
+      return 'bg-slate-700/30 text-slate-500 border-slate-600/30'
+  }
 }
 
 // ─── Page ────────────────────────────────────────────────────────────────────
@@ -172,6 +192,19 @@ export default function Research() {
   const passingGate = subnets.filter((s) => s.score >= minFilters).length
   const totalOwnerAlpha = owners?.owners.reduce((acc, o) => acc + (o.owner_alpha || 0), 0) ?? 0
 
+  // Takeover-risk band tally (FORTRESS / DEFENDED / CONTESTED / VULNERABLE)
+  const bandTally = (owners?.owners ?? []).reduce<Record<string, number>>(
+    (acc, o) => {
+      if (o.takeover_risk_band) acc[o.takeover_risk_band] = (acc[o.takeover_risk_band] ?? 0) + 1
+      return acc
+    },
+    {},
+  )
+  const vulnerableCount = bandTally['VULNERABLE'] ?? 0
+  const contestedCount  = bandTally['CONTESTED'] ?? 0
+  const defendedCount   = bandTally['DEFENDED'] ?? 0
+  const fortressCount   = bandTally['FORTRESS'] ?? 0
+
   // ── Render ──────────────────────────────────────────────────────────────
   if (loading) {
     return (
@@ -221,7 +254,7 @@ export default function Research() {
       </div>
 
       {/* ── KPI strip ──────────────────────────────────────────────────────── */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <KpiCard
           icon={<Shield size={16} className="text-emerald-400" />}
           label="Quality Gate"
@@ -250,6 +283,22 @@ export default function Research() {
           value={fmtAlpha(totalOwnerAlpha)}
           sub={`${owners?.monitor_netuids.length ?? 0} subnets monitored`}
         />
+        <KpiCard
+          icon={
+            vulnerableCount > 0 ? (
+              <AlertTriangle size={16} className="text-red-400" />
+            ) : (
+              <Shield size={16} className="text-emerald-400" />
+            )
+          }
+          label="Takeover Risk"
+          value={
+            vulnerableCount > 0
+              ? `${vulnerableCount} VULNERABLE`
+              : `${fortressCount + defendedCount} safe`
+          }
+          sub={`F${fortressCount} · D${defendedCount} · C${contestedCount} · V${vulnerableCount}`}
+        />
       </div>
 
       {/* ── Owner Watch section ───────────────────────────────────────────── */}
@@ -266,6 +315,12 @@ export default function Research() {
                 <th className="px-3 py-2 text-left">Subnet</th>
                 <th className="px-3 py-2 text-left">Score</th>
                 <th className="px-3 py-2 text-right">Owner α</th>
+                <th
+                  className="px-3 py-2 text-center"
+                  title="Subnet King takeover-risk score (0=fortress, 1=vulnerable). Computed as 1 − (owner_alpha / total_subnet_alpha)."
+                >
+                  Takeover Risk
+                </th>
                 <th className="px-3 py-2 text-left">Owner ss58</th>
                 <th className="px-3 py-2 text-left">Status</th>
                 <th className="px-3 py-2 text-right">Last fetch</th>
@@ -318,6 +373,31 @@ export default function Research() {
                   </td>
                   <td className="px-3 py-2 text-right font-mono text-slate-200">
                     {fmtAlpha(o.owner_alpha)}
+                    {o.subnet_total_alpha != null && (
+                      <div className="text-[10px] text-slate-500 font-normal">
+                        of {fmtAlpha(o.subnet_total_alpha)} total
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-3 py-2 text-center">
+                    {o.takeover_risk_band ? (
+                      <div className="flex flex-col items-center gap-0.5">
+                        <span
+                          className={clsx(
+                            'inline-block rounded border px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider',
+                            bandStyle(o.takeover_risk_band),
+                          )}
+                          title={`Owner share ${((o.owner_share ?? 0) * 100).toFixed(2)}% of total subnet alpha`}
+                        >
+                          {o.takeover_risk_band}
+                        </span>
+                        <span className="font-mono text-[10px] text-slate-500">
+                          {((o.takeover_risk_score ?? 0)).toFixed(3)}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-slate-500">—</span>
+                    )}
                   </td>
                   <td className="px-3 py-2 font-mono text-xs text-slate-400">
                     {shortSs58(o.owner_ss58)}
@@ -343,7 +423,7 @@ export default function Research() {
               {(!owners || owners.owners.length === 0) && (
                 <tr>
                   <td
-                    colSpan={7}
+                    colSpan={8}
                     className="px-3 py-6 text-center text-sm text-slate-500"
                   >
                     No owner snapshots yet — first metagraph cycle pending.

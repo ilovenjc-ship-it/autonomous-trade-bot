@@ -261,9 +261,14 @@ class SubnetCacheService:
                             timeout=self._META_PER_SUBNET_TIMEOUT,
                         )
 
+                        # ── Stake / supply metric for takeover-risk calc ───────────
+                        # We compute mg.S.sum() (total registered hotkey alpha stake)
+                        # for ALL monitored subnets, not just trading ones, so the
+                        # Subnet King takeover-risk score has a denominator for SN3.
+                        stake_tao = float(mg.S.sum()) if hasattr(mg, "S") else 0.0
+
                         # ── Trading metadata (only for subnets we actually trade) ─
                         if netuid in TRADING_NETUIDS:
-                            stake_tao = float(mg.S.sum()) if hasattr(mg, "S") else 0.0
                             miners    = int(mg.n) if hasattr(mg, "n") else 0
                             emission_pb = (
                                 float(mg.emission.sum()) if hasattr(mg, "emission") else 0.0
@@ -290,6 +295,12 @@ class SubnetCacheService:
                                 f"stake={stake_tao:,.0f}τ  miners={miners}  "
                                 f"emission={emission_pb:.6f}/block  APY≈{apy:.1f}%"
                             )
+                        else:
+                            # Non-trading monitored subnets (e.g., SN3 Templar):
+                            # we still want stake_tao for the takeover-risk
+                            # denominator but skip the APY/miners trading metadata.
+                            self._meta.setdefault(netuid, {})
+                            self._meta[netuid]["stake_tao"] = round(stake_tao, 2)
 
                         # ── Owner snapshot (for ALL monitored subnets) ────────────
                         owner_ss58, owner_uid, owner_alpha = await self._extract_owner_snapshot(
@@ -545,6 +556,58 @@ class SubnetCacheService:
                         f"{prev_alpha:.4f} → {new_alpha:.4f} ({drop_pct:.1f}% drop)"
                     )
 
+            # ── C. Subnet King takeover-risk band transition ─────────────────
+            # Fires CRITICAL when a subnet drops INTO the VULNERABLE band
+            # (incumbent owner's defensive stake is collapsing). Dedupes
+            # against the previous snapshot's band so we don't spam the
+            # alert every poll while the subnet stays VULNERABLE.
+            try:
+                # Compute new-snapshot risk using the freshly-fetched alpha
+                # plus the cached metagraph stake_tao.
+                meta = self._meta.get(netuid)
+                if meta and meta.get("stake_tao", 0) > 0 and new_alpha >= 0:
+                    new_share = max(0.0, min(1.0, new_alpha / float(meta["stake_tao"])))
+                    new_risk_band = self._risk_band(round(1.0 - new_share, 4))
+
+                    # Previous band: prefer cached snapshot's stored risk_band if we
+                    # ever stored it; otherwise recompute from prev_alpha.
+                    prev_band = None
+                    if prev_alpha > 0 and meta.get("stake_tao", 0) > 0:
+                        prev_share = max(
+                            0.0, min(1.0, prev_alpha / float(meta["stake_tao"]))
+                        )
+                        prev_band = self._risk_band(round(1.0 - prev_share, 4))
+
+                    if new_risk_band == "VULNERABLE" and prev_band != "VULNERABLE":
+                        alert_service.push_alert(
+                            type="SUBNET_KING_TAKEOVER_RISK",
+                            level="CRITICAL",
+                            title=(
+                                f"👑 SN{netuid}{sc_label} entered VULNERABLE band"
+                            ),
+                            message=(
+                                f"Subnet King takeover-risk score crossed into "
+                                f"VULNERABLE on SN{netuid}{sc_label} — owner α "
+                                f"{new_alpha:.2f}τ vs total {meta['stake_tao']:,.0f}τ "
+                                f"(owner share {new_share*100:.2f}%). "
+                                f"A challenger may be amassing conviction faster than "
+                                f"the incumbent. Investigate before adjusting positions."
+                            ),
+                            detail=(
+                                f"owner_share={new_share:.4f} band={new_risk_band} "
+                                f"prev_band={prev_band}"
+                            ),
+                        )
+                        logger.warning(
+                            f"SN{netuid}{sc_label} SUBNET_KING_TAKEOVER_RISK "
+                            f"transition: {prev_band} → VULNERABLE "
+                            f"(owner_share={new_share:.4f})"
+                        )
+            except Exception as exc:
+                logger.debug(
+                    f"SN{netuid} takeover-risk band check failed: {exc}"
+                )
+
     # ── Public read interface ─────────────────────────────────────────────────
 
     def get_trend(self, netuid: int) -> Optional[str]:
@@ -587,6 +650,88 @@ class SubnetCacheService:
     def get_all_owners(self) -> dict:
         """All cached owner snapshots — keyed by netuid."""
         return dict(self._owners_meta)
+
+    # ── Subnet King takeover-risk score (Conviction Era) ─────────────────────
+    #
+    # Article #1 (Conviction Upgrade Goes Live) flagged Subnet King takeover as
+    # a real vulnerability for low-conviction subnets:
+    #   *"Biggest risk we see is that low value subnets could be taken over.
+    #     It may be cheaper to do this than buy a new slot."* — Gareth (SN85 Vidaio)
+    #
+    # We compute a proxy score using two on-chain quantities we already cache:
+    #   - owner_alpha   : owner coldkey αTAO holdings on this subnet (Path B)
+    #   - stake_tao     : mg.S.sum() — total alpha across all registered hotkeys
+    #
+    # Owner Conviction Share = owner_alpha / stake_tao
+    #   (fraction of total registered hotkey alpha controlled by owner)
+    #
+    # Takeover Risk Score = 1 − Share, in [0, 1]:
+    #   0.0   = owner controls 100% of alpha (impossible but theoretically safest)
+    #   1.0   = owner controls 0% of alpha (maximally vulnerable)
+    #
+    # Categorical bands tuned for operator readability:
+    #   FORTRESS   risk < 0.50  — owner has majority; takeover virtually impossible
+    #   DEFENDED   risk < 0.80  — owner has strong defensive stake
+    #   CONTESTED  risk < 0.95  — owner exposed; cheap challenger could win
+    #   VULNERABLE risk ≥ 0.95  — minimal incumbent defense; immediate watch target
+    #
+    # Caveats (documented for operator understanding):
+    #  - mg.S.sum() includes ALL registered hotkey stake, not just conviction-locked.
+    #    The "true" denominator (conviction-eligible alpha) requires a typed
+    #    SDK accessor that doesn't exist yet. v1 proxy is conservative — overstates
+    #    risk slightly because some staked alpha won't be conviction-locked yet.
+    #  - Doesn't account for the 62-day half-life ramp. Day-1-of-Conviction snapshots
+    #    will look more vulnerable than they actually are once the auto-lock
+    #    accumulates 1,296 α/day. Re-evaluate quarterly.
+    #  - Returns None for subnets where stake_tao is 0 or owner_alpha is unknown.
+
+    @staticmethod
+    def _risk_band(score: float) -> str:
+        """Map numerical takeover-risk score to operator-readable band."""
+        if score < 0.50:
+            return "FORTRESS"
+        if score < 0.80:
+            return "DEFENDED"
+        if score < 0.95:
+            return "CONTESTED"
+        return "VULNERABLE"
+
+    def get_takeover_risk(self, netuid: int) -> Optional[dict]:
+        """
+        Subnet King takeover risk for a single subnet.
+
+        Returns dict with: owner_share, risk_score, risk_band, owner_alpha,
+        subnet_total_alpha. Or None if denominator data isn't cached yet.
+        """
+        owner_meta = self._owners_meta.get(netuid)
+        meta = self._meta.get(netuid)
+        if not owner_meta or not meta:
+            return None
+
+        owner_alpha = float(owner_meta.get("owner_alpha", 0.0) or 0.0)
+        total_alpha = float(meta.get("stake_tao", 0.0) or 0.0)
+        if total_alpha <= 0:
+            return None
+
+        owner_share = max(0.0, min(1.0, owner_alpha / total_alpha))
+        risk_score  = round(1.0 - owner_share, 4)
+        return {
+            "netuid":             netuid,
+            "owner_alpha":        round(owner_alpha, 4),
+            "subnet_total_alpha": round(total_alpha, 4),
+            "owner_share":        round(owner_share, 6),
+            "risk_score":         risk_score,
+            "risk_band":          self._risk_band(risk_score),
+        }
+
+    def get_all_takeover_risks(self) -> dict:
+        """Takeover risk for every monitored subnet that has the data we need."""
+        out: Dict[int, dict] = {}
+        for netuid in MONITOR_OWNERS_NETUIDS:
+            r = self.get_takeover_risk(netuid)
+            if r is not None:
+                out[netuid] = r
+        return out
 
     def get_price_history(self, netuid: int) -> list:
         """

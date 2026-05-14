@@ -641,6 +641,8 @@ async def subnet_owners():
             if subnet_scorecard_service is not None
             else None
         )
+        # Subnet King takeover risk (Conviction-Era v1 proxy)
+        risk = subnet_cache_service.get_takeover_risk(netuid)
         owners_list.append({
             "netuid":      netuid,
             "is_trading":  netuid in TRADING_NETUIDS,
@@ -657,6 +659,11 @@ async def subnet_owners():
                 sc_entry.get("is_taobot_signal_candidate", False)
                 if sc_entry else False
             ),
+            # Takeover risk enrichment (None if denominator data isn't cached yet)
+            "subnet_total_alpha": risk["subnet_total_alpha"] if risk else None,
+            "owner_share":        risk["owner_share"] if risk else None,
+            "takeover_risk_score": risk["risk_score"] if risk else None,
+            "takeover_risk_band":  risk["risk_band"] if risk else None,
         })
 
     return {
