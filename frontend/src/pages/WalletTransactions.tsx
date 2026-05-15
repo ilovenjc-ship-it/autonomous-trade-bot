@@ -13,13 +13,17 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   ArrowDownCircle, ArrowUpCircle, RefreshCw, ExternalLink, Plus,
   Copy, Trash2, DollarSign, TrendingDown, CheckCircle2, XCircle,
-  AlertTriangle, ArrowRightLeft, Landmark, ChevronDown, type LucideIcon,
+  AlertTriangle, ArrowRightLeft, Landmark, ChevronDown, Eye, EyeOff,
+  type LucideIcon,
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
 import StakingPositionsPanel from '@/components/StakingPositionsPanel'
 import LivePositionsPanel   from '@/components/LivePositionsPanel'
+// Session XXXIV: Privacy mode now follows the Operator from Wallet → Transactions
+import { PrivacyValue, maskAddr } from '@/components/PrivacyValue'
+import { usePrivacyMode } from '@/hooks/usePrivacyMode'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -124,9 +128,11 @@ function copyText(text: string) {
 
 function SummaryCard({
   label, value, sub, color = 'text-cyan-400', icon: Icon,
+  privacy = false, placeholder = '••••••',
 }: {
   label: string; value: string; sub?: string
   color?: string; icon: LucideIcon
+  privacy?: boolean; placeholder?: string
 }) {
   return (
     <div className="bg-[#0f1929] border border-[#1e3a5f] rounded-xl p-5 flex flex-col gap-2">
@@ -134,8 +140,15 @@ function SummaryCard({
         <Icon size={13} className={color} />
         {label}
       </div>
-      <div className={clsx('text-2xl font-bold font-mono', color)}>{value}</div>
-      {sub && <div className="text-xs text-slate-500">{sub}</div>}
+      <div className={clsx('text-2xl font-bold font-mono', color)}>
+        <PrivacyValue value={value} privacy={privacy} placeholder={placeholder} />
+      </div>
+      {sub && (
+        <div className="text-xs text-slate-500">
+          {/* Sub-line: blur when privacy ON since it often quotes the value too. */}
+          <PrivacyValue value={sub} privacy={privacy} placeholder="••••••" />
+        </div>
+      )}
     </div>
   )
 }
@@ -327,6 +340,8 @@ export default function WalletTransactions() {
   const [showModal,  setShowModal]  = useState(false)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [expanded,   setExpanded]   = useState<Record<string, boolean>>({})
+  // Session XXXIV: Privacy mode follows from the Wallet page via usePrivacyMode.
+  const [privacyMode, setPrivacyMode] = usePrivacyMode()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -419,20 +434,30 @@ export default function WalletTransactions() {
           {s?.coldkey_address && (
             <div className="flex items-center gap-2 mt-2">
               <span className="text-[11px] font-mono text-slate-500 bg-[#0a1220] px-2 py-1 rounded-lg border border-[#1e3a5f]">
-                {s.coldkey_address.slice(0, 12)}…{s.coldkey_address.slice(-8)}
+                {/* Session XXXIV: respect privacy mode for the coldkey address. */}
+                <PrivacyValue
+                  value={`${s.coldkey_address.slice(0, 12)}…${s.coldkey_address.slice(-8)}`}
+                  privacy={privacyMode}
+                  placeholder={maskAddr(s.coldkey_address)}
+                />
               </span>
               <button
                 onClick={() => copyText(s.coldkey_address)}
-                className="text-slate-500 hover:text-cyan-400 transition-colors"
-                title="Copy address"
+                disabled={privacyMode}
+                className="text-slate-500 hover:text-cyan-400 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                title={privacyMode ? 'Disable privacy first' : 'Copy address'}
               >
                 <Copy size={12} />
               </button>
               {s.taostats_url && (
                 <a
                   href={s.taostats_url} target="_blank" rel="noopener noreferrer"
-                  className="text-slate-500 hover:text-cyan-400 transition-colors"
-                  title="View on Taostats"
+                  className={clsx(
+                    'text-slate-500 hover:text-cyan-400 transition-colors',
+                    privacyMode && 'pointer-events-none opacity-30',
+                  )}
+                  title={privacyMode ? 'Disable privacy first' : 'View on Taostats'}
+                  aria-disabled={privacyMode}
                 >
                   <ExternalLink size={12} />
                 </a>
@@ -440,18 +465,34 @@ export default function WalletTransactions() {
             </div>
           )}
         </div>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 bg-[#0f1929] border border-[#1e3a5f]
-                     rounded-lg text-slate-300 hover:text-white text-sm transition-colors"
-        >
-          <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
-          {loading ? 'Loading…' : 'Refresh'}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Session XXXIV: Privacy Mode toggle — same control style as the Wallet page */}
+          <button
+            onClick={() => setPrivacyMode(v => !v)}
+            className={clsx(
+              'flex items-center gap-2 px-3 py-2 rounded-lg border text-xs font-mono font-semibold transition-all',
+              privacyMode
+                ? 'bg-indigo-500/15 border-indigo-500/40 text-indigo-300 hover:bg-indigo-500/25'
+                : 'bg-[#0f1929] border-[#1e3a5f] text-slate-400 hover:text-white',
+            )}
+            title={privacyMode ? 'Privacy ON — values blurred' : 'Privacy OFF — values visible'}
+          >
+            {privacyMode ? <EyeOff size={12} /> : <Eye size={12} />}
+            {privacyMode ? 'Privacy ON' : 'Privacy OFF'}
+          </button>
+          <button
+            onClick={load}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2 bg-[#0f1929] border border-[#1e3a5f]
+                       rounded-lg text-slate-300 hover:text-white text-sm transition-colors"
+          >
+            <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
+            {loading ? 'Loading…' : 'Refresh'}
+          </button>
+        </div>
       </div>
 
-      {/* Summary cards */}
+      {/* Summary cards — Session XXXIV: all 4 amount cards now respect privacy mode */}
       <div id="tx-summary" className="px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-3">
         <SummaryCard
           label="Total Funded"
@@ -459,6 +500,8 @@ export default function WalletTransactions() {
           sub={`${s?.funding_count ?? 0} recorded deposit${(s?.funding_count ?? 0) !== 1 ? 's' : ''}`}
           color="text-emerald-400"
           icon={ArrowDownCircle}
+          privacy={privacyMode}
+          placeholder="τ ████"
         />
         <SummaryCard
           label="Current Balance"
@@ -466,6 +509,8 @@ export default function WalletTransactions() {
           sub={s ? `+ τ${s.staked_tao.toFixed(4)} staked` : '…'}
           color="text-cyan-400"
           icon={DollarSign}
+          privacy={privacyMode}
+          placeholder="τ ████"
         />
         <SummaryCard
           label="Total Value"
@@ -473,6 +518,8 @@ export default function WalletTransactions() {
           sub="Liquid + staked"
           color="text-blue-400"
           icon={ArrowRightLeft}
+          privacy={privacyMode}
+          placeholder="τ ████"
         />
         <SummaryCard
           label="Net P&L"
@@ -480,6 +527,8 @@ export default function WalletTransactions() {
           sub={s ? `${s.net_pnl_pct >= 0 ? '+' : ''}${s.net_pnl_pct.toFixed(1)}% vs funded` : '…'}
           color={pnlPositive ? 'text-emerald-400' : 'text-red-400'}
           icon={pnlPositive ? CheckCircle2 : TrendingDown}
+          privacy={privacyMode}
+          placeholder="±τ ████"
         />
       </div>
 
@@ -620,7 +669,7 @@ export default function WalletTransactions() {
                           {fmtDate(f.timestamp)}
                         </td>
                         <td className="px-4 py-3 text-right font-mono font-bold text-emerald-400 text-sm">
-                          {fmt(f.amount_tao)}
+                          <PrivacyValue value={fmt(f.amount_tao)} privacy={privacyMode} placeholder="τ ████" />
                         </td>
                         <td className="px-4 py-3 text-slate-400 text-xs max-w-[200px] truncate">
                           {f.note || <span className="text-slate-600 italic">no note</span>}
@@ -685,7 +734,7 @@ export default function WalletTransactions() {
                         TOTAL ({data.fundings.length} deposits)
                       </td>
                       <td className="px-4 py-3 text-right font-mono font-bold text-emerald-400">
-                        {fmt(s?.total_funded_tao)}
+                        <PrivacyValue value={fmt(s?.total_funded_tao)} privacy={privacyMode} placeholder="τ ████" />
                       </td>
                       <td colSpan={4} />
                     </tr>
@@ -724,6 +773,7 @@ export default function WalletTransactions() {
                       row={row}
                       expanded={!!expanded[row.id]}
                       onToggle={() => toggleExpand(row.id)}
+                      privacy={privacyMode}
                     />
                   ))}
               </div>
@@ -804,10 +854,17 @@ export default function WalletTransactions() {
                           {fmtDate(t.timestamp)}
                         </td>
                         <td className="px-4 py-3 text-right font-mono font-bold text-emerald-400">
-                          {fmt(t.amount_tao)}
+                          <PrivacyValue value={fmt(t.amount_tao)} privacy={privacyMode} placeholder="τ ████" />
                         </td>
                         <td className="px-4 py-3 font-mono text-[10px] text-slate-400 max-w-[180px] truncate">
-                          {t.from_address || '—'}
+                          {/* Session XXXIV: Privacy mode masks the source address. */}
+                          {t.from_address ? (
+                            <PrivacyValue
+                              value={t.from_address}
+                              privacy={privacyMode}
+                              placeholder={maskAddr(t.from_address)}
+                            />
+                          ) : '—'}
                         </td>
                         <td className="px-4 py-3 font-mono text-xs text-slate-500">
                           {t.block_number?.toLocaleString() || '—'}
@@ -869,9 +926,10 @@ export default function WalletTransactions() {
 // ── Ledger Row (expandable) ───────────────────────────────────────────────────
 
 function LedgerRow({
-  row, expanded, onToggle,
+  row, expanded, onToggle, privacy = false,
 }: {
   row: LedgerRow; expanded: boolean; onToggle: () => void
+  privacy?: boolean
 }) {
   const tr = row as TradeEntry
   const isFunding = row.type === 'FUNDING' || row.type === 'TRANSFER_IN'
@@ -901,12 +959,16 @@ function LedgerRow({
         {/* Type badge */}
         <TypeBadge type={row.type} subtype={(row as TradeEntry).subtype} />
 
-        {/* Amount */}
+        {/* Amount — Session XXXIV: privacy-aware */}
         <span className={clsx(
           'font-mono font-bold text-sm',
           isFunding ? 'text-emerald-400' : 'text-white'
         )}>
-          {isFunding ? '+' : tr.type === 'STAKE' ? '-' : '+'}{fmt(row.amount_tao)}
+          <PrivacyValue
+            value={`${isFunding ? '+' : tr.type === 'STAKE' ? '-' : '+'}${fmt(row.amount_tao)}`}
+            privacy={privacy}
+            placeholder="±τ ████"
+          />
         </span>
 
         {/* Strategy / note preview */}

@@ -13,12 +13,8 @@ import clsx from 'clsx'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
 import NetworkIdentityPanel from '@/components/NetworkIdentityPanel'
-
-/** Masks an SS58 address: first 6 chars + bullets + last 4 chars */
-function maskAddr(addr: string): string {
-  if (!addr || addr.length < 12) return '••••••••••••••••••'
-  return `${addr.slice(0, 6)}${'•'.repeat(20)}${addr.slice(-4)}`
-}
+import { PrivacyValue as SharedPrivacyValue, maskAddr } from '@/components/PrivacyValue'
+import { usePrivacyMode } from '@/hooks/usePrivacyMode'
 
 interface ChainInfo {
   address:        string
@@ -70,18 +66,10 @@ function AddrBox({ label, addr, show }: { label: string; addr: string; show: boo
   )
 }
 
-// ── Privacy-aware value display ──────────────────────────────────────────────
-function PrivacyValue({
-  value, privacy, className = '', placeholder = '••••••',
-}: { value: string; privacy: boolean; className?: string; placeholder?: string }) {
-  return (
-    <span className={clsx('transition-all duration-200 select-none', className,
-      privacy && 'blur-sm pointer-events-none'
-    )}>
-      {privacy ? placeholder : value}
-    </span>
-  )
-}
+// Session XXXIV: PrivacyValue moved to components/PrivacyValue.tsx so the
+// WalletTransactions page can share the same renderer.  Re-export under the
+// original local name to keep the rest of this file untouched.
+const PrivacyValue = SharedPrivacyValue
 
 // ── Hot Wallet — Send panel ───────────────────────────────────────────────────
 type SendStep = 'form' | 'confirm' | 'done'
@@ -379,8 +367,11 @@ export default function WalletPage() {
   const [querying,   setQuerying]   = useState(false)
   const [taoPrice,   setTaoPrice]   = useState<number | null>(null)
 
-  // Privacy mode — master toggle blurs all sensitive values
-  const [privacyMode, setPrivacyMode] = useState(true)   // on by default
+  // Privacy mode — master toggle blurs all sensitive values.
+  // Session XXXIV: backed by `usePrivacyMode` (localStorage + cross-component
+  // sync) so the choice persists across navigation and follows the Operator
+  // to WalletTransactions.  Default OFF — Operator opts INTO privacy.
+  const [privacyMode, setPrivacyMode] = usePrivacyMode()
 
   // Hot wallet tab
   const [hotTab, setHotTab] = useState<HotWalletTab>('overview')
