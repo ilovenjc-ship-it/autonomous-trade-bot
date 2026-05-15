@@ -893,7 +893,7 @@ export default function Dashboard() {
           </div>
           <div
             className="space-y-2 overflow-y-auto pr-1 dashboard-strat-scroll"
-            style={{ maxHeight: 320 }}
+            style={{ maxHeight: 460 }}
           >
             {allStrategiesSorted.map((s, i) => (
               <div key={s.name} className="flex items-center gap-3 px-3 py-2 bg-dark-700 rounded-lg">

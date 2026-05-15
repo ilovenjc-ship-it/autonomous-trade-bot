@@ -266,7 +266,23 @@ def _live_subnet(uid: int, tao_price: float) -> dict:
     # ── Try real metagraph data (trading subnets only) ────────────────────
     meta = subnet_cache_service.get_meta(uid)
 
-    if meta and meta["stake_tao"] > 0:
+    # Session XXXIV bug fix: monitor-only subnets (e.g. SN3 Templar in
+    # MONITOR_OWNERS_NETUIDS but not TRADING_NETUIDS) populate ONLY
+    # `stake_tao` in the meta dict — emission/miners/apy are absent.
+    # Previously this raised KeyError mid-list, returning HTTP 500 from
+    # /api/market/subnets and crashing both Subnet Analytics + Subnet
+    # Data pages.  Now: only treat the meta record as "live" if it has
+    # the full trading-metric set; otherwise fall through to the seeded
+    # simulated values (and overlay the real stake_tao if present).
+    has_full_meta = bool(
+        meta
+        and meta.get("stake_tao", 0) > 0
+        and "emission" in meta
+        and "apy"      in meta
+        and "miners"   in meta
+    )
+
+    if has_full_meta:
         stake_tao = meta["stake_tao"]
         emission  = meta["emission"]
         apy       = meta["apy"]
@@ -280,6 +296,12 @@ def _live_subnet(uid: int, tao_price: float) -> dict:
         apy       = b["apy"]     * (1 + noise * 0.5)
         miners    = b["miners"]
         data_src  = "simulated"
+        # If we have a real on-chain stake_tao (monitor-only subnet) but
+        # no full trading meta, surface the real stake while keeping the
+        # simulated trading metrics — and tag the data source accordingly.
+        if meta and meta.get("stake_tao", 0) > 0:
+            stake_tao = meta["stake_tao"]
+            data_src  = "live_stake"
 
     # ── Trend: real alpha price movement, fallback to noise ───────────────
     real_trend = subnet_cache_service.get_trend(uid)

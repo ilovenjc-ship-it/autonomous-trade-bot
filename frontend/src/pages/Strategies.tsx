@@ -634,32 +634,31 @@ export default function Strategies() {
                 ))}
               </div>
             </div>
-          </div>
-        </div>
-      </div>
 
-      {/* ── Sort (own row, flows full width) ───────────────────────────── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-3 flex flex-wrap items-center gap-2">
-        <div className="flex items-center gap-1 ml-auto bg-dark-900 border border-dark-700 rounded-lg p-1">
-          <ArrowUpDown size={12} className="text-slate-500 ml-1" />
-          <span className="text-[11px] font-mono uppercase tracking-widest text-slate-500 pl-1 pr-1">Sort</span>
-          {SORT_BTNS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => handleSort(key)}
-              className={clsx(
-                'px-3 py-1 rounded text-xs font-mono transition-all border',
-                sortKey === key
-                  ? 'bg-dark-700 text-white border-dark-500'
-                  : 'text-slate-400 border-transparent hover:text-white',
-              )}
-            >
-              {label}
-              {sortKey === key && (
-                <span className="ml-1 text-accent-blue">{sortDir === 'desc' ? '↓' : '↑'}</span>
-              )}
-            </button>
-          ))}
+            {/* Sort (relocated into Filters card — Session XXXIV polish) */}
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1.5">Sort</p>
+              <div className="flex flex-wrap items-center gap-1 bg-dark-900 border border-dark-700 rounded-lg p-1">
+                {SORT_BTNS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => handleSort(key)}
+                    className={clsx(
+                      'px-3 py-1 rounded text-xs font-mono font-semibold transition-all',
+                      sortKey === key
+                        ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
+                        : 'text-slate-400 hover:text-white',
+                    )}
+                  >
+                    {label}
+                    {sortKey === key && (
+                      <span className="ml-1 text-accent-blue">{sortDir === 'desc' ? '↓' : '↑'}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
