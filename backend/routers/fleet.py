@@ -559,6 +559,12 @@ async def rebalance_capital(db: AsyncSession = Depends(get_db)):
 
     scores: dict[str, float] = {}
     BOOTSTRAP_SCORE = 10.0
+    # Session XXXIV: in early paper-mode the entire fleet bleeds fees, so
+    # the prior 60/40 (WR/PnL) weighting penalized the highest-WR strategy
+    # for having the largest absolute drawdown — which is exactly backwards.
+    # Only POSITIVE pnl earns the PnL bonus; negative pnl is ignored at
+    # this stage so allocation is driven by WR + win-margin.  Once any
+    # strategy goes net-positive, that contribution naturally lights up.
     for s in strategies:
         if s.name in inactive_names:
             continue
@@ -567,7 +573,8 @@ async def rebalance_capital(db: AsyncSession = Depends(get_db)):
         if (s.total_trades or 0) <= 0:
             raw = BOOTSTRAP_SCORE
         else:
-            raw = wr * 0.6 + (pnl / max_pnl * 100) * 0.4
+            pnl_bonus = (pnl / max_pnl * 100) * 0.4 if pnl > 0 else 0.0
+            raw       = wr * 0.6 + pnl_bonus
         scores[s.name] = max(0.1, min(100, raw))
 
     names       = [s.name for s in strategies]

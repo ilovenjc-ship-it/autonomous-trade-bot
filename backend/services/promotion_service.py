@@ -251,6 +251,11 @@ class PromotionService:
 
             scores: dict[str, float] = {}
             BOOTSTRAP_SCORE = 10.0     # was 50.0 — see Session XXXIV note above
+            # Only POSITIVE pnl earns the PnL bonus.  In early paper mode
+            # the entire fleet pays fees, so penalizing strategies for the
+            # largest absolute drawdown punishes high-volume / high-WR
+            # leaders backwards.  WR drives allocation until a strategy
+            # actually goes green.
             for s in strategies:
                 if s.name in inactive_names:
                     # Skip the merit calc — these strategies get the floor
@@ -261,7 +266,8 @@ class PromotionService:
                 if (s.total_trades or 0) <= 0:
                     raw = BOOTSTRAP_SCORE
                 else:
-                    raw = wr * 0.6 + (pnl / max_pnl * 100) * 0.4
+                    pnl_bonus = (pnl / max_pnl * 100) * 0.4 if pnl > 0 else 0.0
+                    raw       = wr * 0.6 + pnl_bonus
                 scores[s.name] = max(0.1, min(100.0, raw))
 
             names      = [s.name for s in strategies]
