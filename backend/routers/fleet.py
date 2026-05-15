@@ -544,26 +544,54 @@ async def rebalance_capital(db: AsyncSession = Depends(get_db)):
     TOTAL   = 100.0
 
     # Step 1 — compute raw performance scores
+    # Session XXXIV (carry-over #2): partition by is_active && is_enabled so
+    # disabled strategies park at the floor instead of swallowing the pool.
+    # 0-trade active strategies use a small bootstrap (10.0) instead of the
+    # old 50.0 sympathy score that previously gifted idle bots major capital.
     max_pnl = max((abs(s.total_pnl or 0) for s in strategies), default=0.001) or 0.001
-    scores: dict[str, float] = {}
+    active_names:   list[str] = []
+    inactive_names: list[str] = []
     for s in strategies:
+        if (s.is_active is not False) and (s.is_enabled is not False):
+            active_names.append(s.name)
+        else:
+            inactive_names.append(s.name)
+
+    scores: dict[str, float] = {}
+    BOOTSTRAP_SCORE = 10.0
+    for s in strategies:
+        if s.name in inactive_names:
+            continue
         pnl = s.total_pnl or 0
         wr  = s.win_rate  or 0
-        raw = (wr * 0.6 + (pnl / max_pnl * 100) * 0.4) if (wr > 0 or pnl != 0) else 50.0
-        scores[s.name] = max(0.1, min(100, raw))   # clamp, never zero
+        if (s.total_trades or 0) <= 0:
+            raw = BOOTSTRAP_SCORE
+        else:
+            raw = wr * 0.6 + (pnl / max_pnl * 100) * 0.4
+        scores[s.name] = max(0.1, min(100, raw))
 
     names       = [s.name for s in strategies]
     n           = len(names)
-    floor_pool  = FLOOR * n                         # 24 % reserved as floors
-    merit_pool  = TOTAL - floor_pool                 # 76 % merit-based
+    floor_pool  = FLOOR * n                         # all bots get a floor reservation
+    merit_pool  = TOTAL - floor_pool                 # rest is merit-based
 
-    total_score = sum(scores[nm] for nm in names)
     new_alloc: dict[str, float] = {}
 
-    # Step 2 — proportional merit slice
-    for nm in names:
-        merit_slice = (scores[nm] / total_score) * merit_pool
-        new_alloc[nm] = FLOOR + merit_slice
+    # Step 1b — inactive strategies park at the floor.
+    for nm in inactive_names:
+        new_alloc[nm] = FLOOR
+
+    # Step 2 — proportional merit slice for active strategies, with the
+    # inactives' merit budget redistributed (so we still allocate 100%).
+    if active_names:
+        total_active_score = sum(scores[nm] for nm in active_names) or 0.001
+        redistribute       = merit_pool + FLOOR * len(inactive_names)
+        for nm in active_names:
+            share = scores[nm] / total_active_score
+            new_alloc[nm] = FLOOR + share * redistribute
+    else:
+        for nm in active_names:
+            new_alloc[nm] = FLOOR
 
     # Step 3 — enforce CAP; bleed excess back to the uncapped pool
     for _ in range(10):                             # iterate until convergence
