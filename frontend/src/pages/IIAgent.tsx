@@ -127,6 +127,9 @@ const QUICK_PROMPTS = [
   { label: '⚠️ Vulnerable',    text: 'Show me VULNERABLE subnets' },
   { label: '✅ 6/6 subnets',   text: 'Which subnets pass 6/6 filters?' },
   { label: '🤖 Bot trading',   text: 'What subnets is the bot trading?' },
+  // Phase C — OpenClaw vote forecasting
+  { label: '🔮 Forecast BUY',  text: 'Forecast: would a BUY signal pass right now?' },
+  { label: '🔮 Forecast SELL', text: 'Forecast: would a SELL signal pass right now?' },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

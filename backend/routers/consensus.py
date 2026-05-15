@@ -88,3 +88,28 @@ async def get_bot_list():
             "rsi_sensitivity":  p["rsi_sensitivity"],
         })
     return {"bots": bots}
+
+# ─── Vote forecasting (Session XXXIV — Phase C) ──────────────────────────────
+
+@router.get("/forecast")
+async def forecast(
+    direction:    str = Query("BUY", description="BUY or SELL"),
+    triggered_by: str = Query("forecast", description="Strategy name or 'forecast'"),
+    trials:       int = Query(1000, ge=50, le=5000, description="Monte Carlo sample size"),
+):
+    """
+    Predict the outcome of a hypothetical OpenClaw round at the current
+    market state. Runs N Monte Carlo trials over the same vote engine
+    used for live consensus, returning expected vote counts, per-bot
+    lean probabilities, and the overall pass probability.
+
+    See ``consensus_service.forecast_vote`` for the full schema.
+    """
+    direction = direction.upper()
+    if direction not in (VOTE_BUY, VOTE_SELL):
+        direction = VOTE_BUY
+    return consensus_service.forecast_vote(
+        triggered_by = triggered_by,
+        direction    = direction,
+        trials       = trials,
+    )

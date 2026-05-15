@@ -16,7 +16,7 @@ Vote lifecycle:
 import random
 import logging
 from datetime import datetime, timezone
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 from dataclasses import dataclass, field, asdict
 
 from services.activity_service import push_event
@@ -447,6 +447,167 @@ class ConsensusService:
             sell_count = round_.sell_count,
             hold_count = round_.hold_count,
         )
+
+    # ── Forecasting (Session XXXIV — Phase C) ────────────────────────────────
+
+    def forecast_vote(
+        self,
+        triggered_by: str = "forecast",
+        direction:    str = VOTE_BUY,
+        trials:       int = 1000,
+    ) -> Dict[str, Any]:
+        """
+        Monte-Carlo forecast of what an OpenClaw round would yield RIGHT NOW
+        if the given strategy fired in the given direction. Runs N independent
+        trials over the same vote engine the live consensus uses, with the
+        same RSI/MACD/mode inputs and current personality table — so the
+        forecast is only as biased as the live engine.
+
+        Returns
+        -------
+        {
+          "trials":               int,
+          "direction":            "BUY"|"SELL",
+          "triggered_by":         str,
+          "supermajority":        int,
+          "expected": {
+              "buy":     float,   # E[BUY votes per round]
+              "sell":    float,
+              "hold":    float,
+              "abstain": float,
+          },
+          "approval_probability": float,   # P(approved any direction)
+          "approved_buy_prob":    float,
+          "approved_sell_prob":   float,
+          "deadlock_prob":        float,
+          "rejected_prob":        float,
+          "per_bot": [
+            {"bot_name", "display_name", "mode",
+             "buy_prob", "sell_prob", "hold_prob", "abstain_prob",
+             "lean":  "BUY"|"SELL"|"HOLD"|"ABSTAIN"},
+            ... 12 entries
+          ],
+          "market": {"rsi": float, "macd_hist": float, "price": float},
+          "freshness_warning": Optional[str],
+        }
+
+        Notes
+        -----
+        - The `random` module's PRNG is shared with the live vote engine, so
+          calling forecast_vote() advances the same stream. That's
+          intentional: forecast trials produce identical statistics to live
+          rounds. If a deterministic forecast is needed, callers should
+          seed `random` themselves.
+        - Sample size N=1000 → standard error ≈ 1.6% on each probability.
+        """
+        if direction not in (VOTE_BUY, VOTE_SELL):
+            raise ValueError(f"direction must be {VOTE_BUY} or {VOTE_SELL}")
+        trials = max(50, min(int(trials), 5000))
+
+        # Pull current market state once per call — every trial uses the
+        # same inputs (just like a real round), so variance comes from the
+        # personality dice, not from market jitter.
+        indicators = price_service.compute_indicators()
+        rsi       = indicators.get("rsi_14")
+        macd      = indicators.get("macd")
+        macd_sig  = indicators.get("macd_signal")
+        macd_hist = (macd - macd_sig) if (macd is not None and macd_sig is not None) else None
+        price = price_service.current_price or 0.0
+
+        bot_names = list(BOT_PERSONALITIES.keys())
+        per_bot_counts: Dict[str, Dict[str, int]] = {
+            b: {VOTE_BUY: 0, VOTE_SELL: 0, VOTE_HOLD: 0, VOTE_ABSTAIN: 0}
+            for b in bot_names
+        }
+        approved_buy = 0
+        approved_sell = 0
+        deadlock = 0
+        rejected = 0
+        total_buy = 0
+        total_sell = 0
+        total_hold = 0
+        total_abstain = 0
+
+        for _ in range(trials):
+            buy = sell = hold = abstain = 0
+            for bot_name in bot_names:
+                mode = self._bot_modes.get(bot_name, "PAPER_ONLY")
+                vote = _cast_vote(bot_name, direction, rsi, macd_hist, mode)
+                per_bot_counts[bot_name][vote.vote] += 1
+                if vote.vote == VOTE_BUY:
+                    buy += 1
+                elif vote.vote == VOTE_SELL:
+                    sell += 1
+                elif vote.vote == VOTE_HOLD:
+                    hold += 1
+                else:
+                    abstain += 1
+
+            total_buy += buy
+            total_sell += sell
+            total_hold += hold
+            total_abstain += abstain
+
+            if buy >= self._supermajority:
+                approved_buy += 1
+            elif sell >= self._supermajority:
+                approved_sell += 1
+            elif buy == sell and buy > 0:
+                deadlock += 1
+            else:
+                rejected += 1
+
+        per_bot: List[Dict[str, Any]] = []
+        for bot_name in bot_names:
+            c = per_bot_counts[bot_name]
+            probs = {k: v / trials for k, v in c.items()}
+            lean = max(probs.items(), key=lambda kv: kv[1])[0]
+            per_bot.append({
+                "bot_name":      bot_name,
+                "display_name":  BOT_DISPLAY_NAMES.get(bot_name, bot_name),
+                "mode":          self._bot_modes.get(bot_name, "PAPER_ONLY"),
+                "buy_prob":      round(probs[VOTE_BUY],     4),
+                "sell_prob":     round(probs[VOTE_SELL],    4),
+                "hold_prob":     round(probs[VOTE_HOLD],    4),
+                "abstain_prob":  round(probs[VOTE_ABSTAIN], 4),
+                "lean":          lean,
+            })
+
+        # Freshness warning — if the price feed hasn't updated recently,
+        # the forecast is stale. We surface this as a UI badge rather than
+        # blocking the call.
+        freshness_warning: Optional[str] = None
+        try:
+            if rsi is None and macd_hist is None:
+                freshness_warning = "Indicators warming up — forecast based on personality bias only"
+        except Exception:
+            pass
+
+        return {
+            "trials":               trials,
+            "direction":            direction,
+            "triggered_by":         triggered_by,
+            "supermajority":        self._supermajority,
+            "total_bots":           TOTAL_BOTS,
+            "expected": {
+                "buy":     round(total_buy     / trials, 2),
+                "sell":    round(total_sell    / trials, 2),
+                "hold":    round(total_hold    / trials, 2),
+                "abstain": round(total_abstain / trials, 2),
+            },
+            "approval_probability":  round((approved_buy + approved_sell) / trials, 4),
+            "approved_buy_prob":     round(approved_buy  / trials, 4),
+            "approved_sell_prob":    round(approved_sell / trials, 4),
+            "deadlock_prob":         round(deadlock / trials, 4),
+            "rejected_prob":         round(rejected / trials, 4),
+            "per_bot":               per_bot,
+            "market": {
+                "rsi":        rsi,
+                "macd_hist":  macd_hist,
+                "price":      price,
+            },
+            "freshness_warning":     freshness_warning,
+        }
 
     # ── Query helpers ──────────────────────────────────────────────────────────
 

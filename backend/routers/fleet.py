@@ -224,8 +224,56 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
             logger.warning(f"subnet_chat_service failed: {_e}")
             _subnet_response = None
 
+    # Phase C — OpenClaw vote forecasting. Detect "forecast" / "would this
+    # pass" / "if X fires now" intents and run a Monte Carlo through the
+    # consensus engine. Falls through to the legacy openclaw branch on miss.
+    _forecast_response: Optional[str] = None
+    if any(w in msg for w in ["forecast", "would this pass", "would it pass", "if .* fires", "predict", "vote prediction", "would pass"]) \
+       or ("if " in msg and any(w in msg for w in [" fires", " buys", " sells"])):
+        try:
+            from services.consensus_service import consensus_service, VOTE_BUY, VOTE_SELL
+            # Direction inference: default BUY, switch to SELL if msg mentions sell/short/dump
+            forecast_dir = VOTE_SELL if any(w in msg for w in ["sell", "short", "dump", "bear"]) else VOTE_BUY
+            f = consensus_service.forecast_vote(direction=forecast_dir, trials=1000)
+            ex = f["expected"]
+            pp = f["approval_probability"] * 100
+            verdict = (
+                "**LIKELY APPROVED** ✅" if pp >= 60
+                else "**TOSS-UP** ⚖️" if pp >= 35
+                else "**LIKELY REJECTED** ❌"
+            )
+            top_leans = sorted(f["per_bot"], key=lambda b: b[f"{forecast_dir.lower()}_prob"], reverse=True)[:5]
+            lean_lines = "\n".join(
+                f"  · **{b['display_name']}**: {b[f'{forecast_dir.lower()}_prob']*100:.0f}% {forecast_dir}"
+                for b in top_leans
+            )
+            _forecast_response = (
+                f"**OpenClaw forecast — {forecast_dir} signal · {f['trials']:,} Monte Carlo trials:**\n"
+                f"\n"
+                f"Expected vote tally: **{ex['buy']:.1f} BUY · {ex['sell']:.1f} SELL · "
+                f"{ex['hold']:.1f} HOLD · {ex['abstain']:.1f} ABSTAIN**\n"
+                f"\n"
+                f"Approval probability: **{pp:.1f}%** — {verdict}\n"
+                f"  · APPROVED_BUY:  {f['approved_buy_prob']*100:5.1f}%\n"
+                f"  · APPROVED_SELL: {f['approved_sell_prob']*100:5.1f}%\n"
+                f"  · DEADLOCK:      {f['deadlock_prob']*100:5.1f}%\n"
+                f"  · REJECTED:      {f['rejected_prob']*100:5.1f}%\n"
+                f"\n"
+                f"Threshold: {f['supermajority']}/12 supermajority · "
+                f"Market: RSI {f['market']['rsi']:.1f}, MACD-hist "
+                f"{(f['market']['macd_hist'] or 0):+.5f}\n"
+                f"\n"
+                f"Top {forecast_dir} leans this round:\n{lean_lines}"
+                + (f"\n\n_⚠ {f['freshness_warning']}_" if f.get("freshness_warning") else "")
+            )
+        except Exception as _e:
+            logger.warning(f"forecast intent handler failed: {_e}")
+            _forecast_response = None
+
     if _subnet_response:
         response = _subnet_response
+    elif _forecast_response:
+        response = _forecast_response
     elif any(w in msg for w in ["openclaw", "bft", "byzantine", "consensus", "vote", "voting", "7 of 12", "7/12", "supermajority"]):
         latest = consensus_service.get_latest()
         last_result = "—"

@@ -8,6 +8,7 @@ import {
   TrendingUp, TrendingDown, Minus, HelpCircle,
   CheckCircle2, XCircle, AlertTriangle, Clock,
   Activity, BarChart3, Users, ChevronRight,
+  RefreshCw,                                          // Session XXXIV: Forecast panel
 } from 'lucide-react'
 // Recharts imports removed Session XXV (Vote Breakdown + Approval Trend charts gone)
 import clsx from 'clsx'
@@ -139,6 +140,249 @@ function StatCard({ icon: Icon, label, value, sub, accent, tip }: {
         <p className="text-xl font-bold text-white font-mono mt-0.5">{value}</p>
         {sub && <p className="text-[14px] text-slate-300 mt-0.5">{sub}</p>}
       </div>
+    </div>
+  )
+}
+
+// ─── Forecast Panel (Session XXXIV — Phase C) ───────────────────────────────
+// Surfaces the Monte Carlo prediction of what an OpenClaw round would yield
+// right now if the operator hypothetically fired BUY/SELL. Sits next to the
+// live vote bar so the comparison is one glance away.
+
+interface ForecastResp {
+  trials:                 number
+  direction:              'BUY' | 'SELL'
+  triggered_by:           string
+  supermajority:          number
+  total_bots:             number
+  expected: { buy: number; sell: number; hold: number; abstain: number }
+  approval_probability:   number
+  approved_buy_prob:      number
+  approved_sell_prob:     number
+  deadlock_prob:          number
+  rejected_prob:          number
+  per_bot: Array<{
+    bot_name:     string
+    display_name: string
+    mode:         string
+    buy_prob:     number
+    sell_prob:    number
+    hold_prob:    number
+    abstain_prob: number
+    lean:         'BUY' | 'SELL' | 'HOLD' | 'ABSTAIN'
+  }>
+  market: { rsi: number | null; macd_hist: number | null; price: number }
+  freshness_warning: string | null
+}
+
+function ForecastBar({
+  buy, sell, hold, abstain, threshold, dotted,
+}: {
+  buy: number; sell: number; hold: number; abstain: number;
+  threshold: number; dotted?: boolean
+}) {
+  const total = 12
+  const w = (n: number) => `${(n / total) * 100}%`
+  const threshPct = (threshold / total) * 100
+  return (
+    <div className="space-y-1">
+      <div
+        className={
+          'relative h-7 rounded-lg overflow-hidden bg-dark-700 flex ring-1 ' +
+          (dotted ? 'ring-cyan-500/40' : 'ring-transparent')
+        }
+        style={dotted ? { borderStyle: 'dashed' } : undefined}
+      >
+        {buy > 0 && (
+          <div className="h-full flex items-center justify-center text-[11px] font-bold text-white"
+            style={{ width: w(buy), background: dotted ? 'rgba(16,185,129,0.45)' : '#10b981' }}>
+            {(buy / total) * 100 > 9 && `${buy.toFixed(1)}`}
+          </div>
+        )}
+        {sell > 0 && (
+          <div className="h-full flex items-center justify-center text-[11px] font-bold text-white"
+            style={{ width: w(sell), background: dotted ? 'rgba(239,68,68,0.45)' : '#ef4444' }}>
+            {(sell / total) * 100 > 9 && `${sell.toFixed(1)}`}
+          </div>
+        )}
+        {hold > 0 && (
+          <div className="h-full flex items-center justify-center text-[11px] font-bold text-white"
+            style={{ width: w(hold), background: dotted ? 'rgba(245,158,11,0.45)' : '#f59e0b' }}>
+            {(hold / total) * 100 > 9 && `${hold.toFixed(1)}`}
+          </div>
+        )}
+        {abstain > 0 && (
+          <div className="h-full flex items-center justify-center text-[11px] font-bold text-slate-200"
+            style={{ width: w(abstain), background: dotted ? 'rgba(55,65,81,0.65)' : '#374151' }}>
+            {(abstain / total) * 100 > 9 && `${abstain.toFixed(1)}`}
+          </div>
+        )}
+        <div className="absolute top-0 h-full w-0.5 border-l border-dashed border-white/50"
+             style={{ left: `${threshPct}%` }} />
+      </div>
+    </div>
+  )
+}
+
+function ForecastPanel() {
+  const [direction, setDirection] = useState<'BUY' | 'SELL'>('BUY')
+  const [data, setData]           = useState<ForecastResp | null>(null)
+  const [busy, setBusy]           = useState(false)
+  const [err, setErr]             = useState<string | null>(null)
+
+  const load = useCallback(async (silent = false) => {
+    if (!silent) setBusy(true)
+    try {
+      const { data } = await api.get<ForecastResp>('/consensus/forecast', {
+        params: { direction, trials: 1000 },
+      })
+      setData(data); setErr(null)
+    } catch (e: any) {
+      setErr(e?.message || String(e))
+    } finally {
+      setBusy(false)
+    }
+  }, [direction])
+
+  useEffect(() => {
+    load()
+    const id = setInterval(() => load(true), 30_000) // 30-s refresh
+    return () => clearInterval(id)
+  }, [load])
+
+  const pp = data ? data.approval_probability * 100 : 0
+  const verdictLabel =
+    pp >= 60 ? 'LIKELY APPROVED' : pp >= 35 ? 'TOSS-UP' : 'LIKELY REJECTED'
+  const verdictCls =
+    pp >= 60
+      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+      : pp >= 35
+        ? 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+        : 'bg-red-500/20 text-red-300 border-red-500/40'
+
+  return (
+    <div className="rounded-xl border border-cyan-500/20 bg-cyan-500/5 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-cyan-300 text-sm font-bold uppercase tracking-wide font-mono">
+            ◇ Vote Forecast
+          </span>
+          <span className="text-[11px] font-mono text-slate-500">
+            {data ? `${data.trials.toLocaleString()} Monte Carlo trials` : 'sampling…'}
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="flex rounded-md border border-slate-700 overflow-hidden">
+            {(['BUY', 'SELL'] as const).map((d) => (
+              <button
+                key={d}
+                onClick={() => setDirection(d)}
+                className={
+                  'px-2 py-1 text-[11px] font-mono uppercase tracking-wider transition-colors ' +
+                  (direction === d
+                    ? d === 'BUY'
+                      ? 'bg-emerald-500/20 text-emerald-300'
+                      : 'bg-red-500/20 text-red-300'
+                    : 'bg-slate-800/40 text-slate-400 hover:bg-slate-700/40')
+                }
+              >
+                If {d}
+              </button>
+            ))}
+          </div>
+          <button
+            onClick={() => load()}
+            disabled={busy}
+            className="flex items-center gap-1 rounded-md border border-cyan-500/30 px-2 py-1 text-[11px] font-mono text-cyan-300 hover:bg-cyan-500/10 transition-colors disabled:opacity-50"
+          >
+            <RefreshCw size={10} className={busy ? 'animate-spin' : ''} /> Resample
+          </button>
+        </div>
+      </div>
+
+      {err && (
+        <div className="rounded-md border border-red-500/30 bg-red-500/5 p-2 text-xs text-red-300 mb-2">
+          Forecast load failed: {err}
+        </div>
+      )}
+
+      {data && (
+        <>
+          <ForecastBar
+            buy={data.expected.buy}
+            sell={data.expected.sell}
+            hold={data.expected.hold}
+            abstain={data.expected.abstain}
+            threshold={data.supermajority}
+            dotted
+          />
+          <div className="mt-3 grid grid-cols-2 gap-3 md:grid-cols-4">
+            <div className="rounded-md border border-slate-700/50 bg-slate-900/40 px-2 py-1.5">
+              <div className="text-[10px] font-mono uppercase text-slate-500">Pass probability</div>
+              <div className="text-lg font-bold font-mono">{pp.toFixed(1)}%</div>
+              <span className={'inline-block mt-1 rounded border px-1.5 py-[1px] text-[9px] font-mono uppercase tracking-wider ' + verdictCls}>
+                {verdictLabel}
+              </span>
+            </div>
+            <div className="rounded-md border border-slate-700/50 bg-slate-900/40 px-2 py-1.5">
+              <div className="text-[10px] font-mono uppercase text-slate-500">Approved {direction}</div>
+              <div className="text-lg font-bold font-mono text-emerald-300">
+                {(direction === 'BUY' ? data.approved_buy_prob : data.approved_sell_prob) * 100 | 0}%
+              </div>
+              <div className="text-[10px] font-mono text-slate-600">
+                anti-{direction}: {((direction === 'BUY' ? data.approved_sell_prob : data.approved_buy_prob) * 100).toFixed(1)}%
+              </div>
+            </div>
+            <div className="rounded-md border border-slate-700/50 bg-slate-900/40 px-2 py-1.5">
+              <div className="text-[10px] font-mono uppercase text-slate-500">Deadlock</div>
+              <div className="text-lg font-bold font-mono text-amber-300">
+                {(data.deadlock_prob * 100).toFixed(1)}%
+              </div>
+            </div>
+            <div className="rounded-md border border-slate-700/50 bg-slate-900/40 px-2 py-1.5">
+              <div className="text-[10px] font-mono uppercase text-slate-500">Rejected</div>
+              <div className="text-lg font-bold font-mono text-slate-300">
+                {(data.rejected_prob * 100).toFixed(1)}%
+              </div>
+            </div>
+          </div>
+
+          {/* Per-bot leans — top 6 by forecast direction */}
+          <div className="mt-3">
+            <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mb-1.5">
+              Top {direction} leans this round
+            </div>
+            <div className="grid grid-cols-2 gap-1.5 md:grid-cols-3">
+              {data.per_bot
+                .slice()
+                .sort((a, b) => (direction === 'BUY' ? b.buy_prob - a.buy_prob : b.sell_prob - a.sell_prob))
+                .slice(0, 6)
+                .map((b) => {
+                  const p = direction === 'BUY' ? b.buy_prob : b.sell_prob
+                  return (
+                    <div key={b.bot_name} className="flex items-center justify-between rounded-md bg-slate-900/40 px-2 py-1 text-[11px] font-mono">
+                      <span className="truncate text-slate-300">{b.display_name}</span>
+                      <span className={direction === 'BUY' ? 'text-emerald-300' : 'text-red-300'}>
+                        {(p * 100).toFixed(0)}%
+                      </span>
+                    </div>
+                  )
+                })}
+            </div>
+          </div>
+
+          {data.freshness_warning && (
+            <div className="mt-3 rounded-md border border-amber-500/30 bg-amber-500/5 px-2 py-1.5 text-[11px] text-amber-300">
+              ⚠ {data.freshness_warning}
+            </div>
+          )}
+          <div className="mt-2 text-[10px] font-mono text-slate-600">
+            Market: RSI {data.market.rsi != null ? data.market.rsi.toFixed(1) : '—'} ·
+            MACD-hist {data.market.macd_hist != null ? data.market.macd_hist.toFixed(5) : '—'} ·
+            ${data.market.price.toFixed(2)}
+          </div>
+        </>
+      )}
     </div>
   )
 }
@@ -804,6 +1048,11 @@ export default function OpenClaw() {
             abstainCount={latestRound.abstain_count}
             threshold={latestRound.supermajority}
           />
+
+          {/* Forecast panel — Session XXXIV (Phase C). Sits right after the
+              live vote bar so the operator can compare actual vs predicted
+              at a glance. Updates every 30 s; user can flip BUY ↔ SELL. */}
+          <ForecastPanel />
 
           {/* Legend — Session XXIX: relocated from page top-line to here,
               stacked vertically (Votes / Result / Mode rows). Sits above
