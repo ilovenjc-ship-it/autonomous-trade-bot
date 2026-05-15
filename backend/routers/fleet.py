@@ -270,10 +270,34 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
             logger.warning(f"forecast intent handler failed: {_e}")
             _forecast_response = None
 
+    # Session XXXVII — Audit-trail narration. Detect "what changed today",
+    # "audit log", "any edits", "recent changes" intents and surface a
+    # category-grouped chronological summary from the persistent audit
+    # ring buffer.  Lazy-loaded to avoid a circular import.
+    #
+    # Dispatch ordering note: subnet & forecast handlers run FIRST so that
+    # queries like "what changed in subnet 18 today?" route to the subnet
+    # service (they own the SN-* token).  Audit only fires when no subnet
+    # token was matched AND the audit-intent regex hits.
+    _audit_response: Optional[str] = None
+    if not _subnet_response and not _forecast_response:
+        try:
+            from services.audit_chat_service import (
+                looks_like_audit_query,
+                answer as audit_answer,
+            )
+            if looks_like_audit_query(payload.message):
+                _audit_response = audit_answer(payload.message)
+        except Exception as _e:
+            logger.warning(f"audit_chat_service failed: {_e}")
+            _audit_response = None
+
     if _subnet_response:
         response = _subnet_response
     elif _forecast_response:
         response = _forecast_response
+    elif _audit_response:
+        response = _audit_response
     elif any(w in msg for w in ["openclaw", "bft", "byzantine", "consensus", "vote", "voting", "7 of 12", "7/12", "supermajority"]):
         latest = consensus_service.get_latest()
         last_result = "—"

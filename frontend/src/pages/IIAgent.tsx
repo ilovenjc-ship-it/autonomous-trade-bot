@@ -130,6 +130,10 @@ const QUICK_PROMPTS = [
   // Phase C — OpenClaw vote forecasting
   { label: '🔮 Forecast BUY',  text: 'Forecast: would a BUY signal pass right now?' },
   { label: '🔮 Forecast SELL', text: 'Forecast: would a SELL signal pass right now?' },
+  // Session XXXVII — Audit-trail narration
+  { label: '📜 What changed today?',     text: 'What changed today?' },
+  { label: '📜 Recent edits',            text: 'Show me recent edits' },
+  { label: '📜 Risk-config history',     text: 'Any risk config changes this week?' },
 ]
 
 // ── Thought-bubble phrases (Session XXXVII) ──────────────────────────────────
@@ -193,9 +197,11 @@ const THOUGHT_PHRASES: Array<{ match: RegExp; beats: string[] }> = [
       'Reading CEX listing watchlist…',
       'Composing reply…',
   ]},
-  { match: /audit|change|history|who|when/i, beats: [
-      'Reading audit trail…',
-      'Composing reply…',
+  { match: /audit|changelog|narrate|recent edit|what changed|risk.*history|history of|who started|who edited/i, beats: [
+      'Reading audit ring buffer…',
+      'Filtering by time window…',
+      'Grouping by category…',
+      'Composing narrative…',
   ]},
   // Generic fallback
   { match: /.*/i, beats: [
