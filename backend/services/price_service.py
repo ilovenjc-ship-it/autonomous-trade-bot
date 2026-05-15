@@ -76,6 +76,10 @@ class PriceService:
             await self._fetch_price()
 
     async def _fetch_price(self):
+        import time as _time
+        _t0 = _time.time()
+        _success = True
+        _err: Optional[str] = None
         try:
             async with httpx.AsyncClient(timeout=10.0) as client:
                 resp = await client.get(
@@ -109,6 +113,19 @@ class PriceService:
             logger.debug(f"TAO price updated: ${self._current_price}")
         except Exception as e:
             logger.warning(f"Price fetch failed: {e}")
+            _success = False
+            _err = str(e)[:300]
+        finally:
+            try:
+                from services.system_health_service import system_health
+                system_health.record_run(
+                    name="price_service",
+                    success=_success,
+                    error=_err,
+                    duration_ms=round((_time.time() - _t0) * 1000.0, 1),
+                )
+            except Exception:
+                pass
 
     # ------------------------------------------------------------------
     # Technical indicators

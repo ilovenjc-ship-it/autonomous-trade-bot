@@ -180,24 +180,46 @@ class SubnetCacheService:
 
         while self._running:
             await asyncio.sleep(PRICE_POLL_INTERVAL)
-            await self._fetch_prices()
+            import time as _time
+            _t0 = _time.time()
+            _success = True
+            _err: Optional[str] = None
+            try:
+                await self._fetch_prices()
 
-            ticks_since_meta += 1
-            if ticks_since_meta >= meta_every:
-                # Wrap the entire metagraph cycle in an outer timeout so a
-                # completely stalled Finney node cannot hold the loop open
-                # longer than META_TOTAL_TIMEOUT seconds.
+                ticks_since_meta += 1
+                if ticks_since_meta >= meta_every:
+                    # Wrap the entire metagraph cycle in an outer timeout so a
+                    # completely stalled Finney node cannot hold the loop open
+                    # longer than META_TOTAL_TIMEOUT seconds.
+                    try:
+                        await asyncio.wait_for(
+                            self._fetch_metagraphs(),
+                            timeout=self._META_TOTAL_TIMEOUT,
+                        )
+                    except asyncio.TimeoutError:
+                        logger.warning(
+                            f"SubnetCacheService: _fetch_metagraphs() exceeded "
+                            f"{self._META_TOTAL_TIMEOUT}s — skipping this round"
+                        )
+                        _success = False
+                        _err = f"metagraph timeout >{self._META_TOTAL_TIMEOUT}s"
+                    ticks_since_meta = 0
+            except Exception as e:
+                _success = False
+                _err = str(e)[:300]
+                logger.exception(f"SubnetCacheService loop iteration failed: {e}")
+            finally:
                 try:
-                    await asyncio.wait_for(
-                        self._fetch_metagraphs(),
-                        timeout=self._META_TOTAL_TIMEOUT,
+                    from services.system_health_service import system_health
+                    system_health.record_run(
+                        name="subnet_cache",
+                        success=_success,
+                        error=_err,
+                        duration_ms=round((_time.time() - _t0) * 1000.0, 1),
                     )
-                except asyncio.TimeoutError:
-                    logger.warning(
-                        f"SubnetCacheService: _fetch_metagraphs() exceeded "
-                        f"{self._META_TOTAL_TIMEOUT}s — skipping this round"
-                    )
-                ticks_since_meta = 0
+                except Exception:
+                    pass
 
     # ── Data fetchers ─────────────────────────────────────────────────────────
 

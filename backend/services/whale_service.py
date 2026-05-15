@@ -153,7 +153,19 @@ class WhaleService:
             async with self._lock:
                 # Double-check after lock — another caller may have refreshed.
                 if force or (time.time() - self._last_fetch_at) > REFRESH_INTERVAL or self._last_payload is None:
+                    _t0 = time.time()
                     await self._refresh(limit)
+                    # Session XXXIV — record_run for system_health observability.
+                    try:
+                        from services.system_health_service import system_health
+                        system_health.record_run(
+                            name="whale_service",
+                            success=(self._last_error is None),
+                            error=self._last_error,
+                            duration_ms=round((time.time() - _t0) * 1000.0, 1),
+                        )
+                    except Exception:
+                        pass
 
         if self._last_payload is None:
             return self._error_payload(limit, self._last_error or "no data yet")

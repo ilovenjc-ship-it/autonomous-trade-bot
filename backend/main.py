@@ -25,6 +25,7 @@ from routers import webhooks as webhooks_router
 from routers import signal_feeds as signal_feeds_router
 from routers import research as research_router
 from routers import tools as tools_router
+from routers import system as system_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -257,6 +258,24 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.warning(f"OpenClaw round counter restore failed: {_e}")
 
+    # ── Register all background services with the system_health registry ────
+    # (Session XXXIV) so the /api/system/health endpoint knows what should
+    # be running before any service has reported its first heartbeat.
+    try:
+        from services.system_health_service import system_health
+        system_health.register("price_service",  "Price Feed",
+            "CoinGecko TAO/USD spot price + indicators", stale_after_s=180)
+        system_health.register("subnet_cache",   "Subnet Cache",
+            "Alpha prices + metagraph snapshots from Finney chain", stale_after_s=180)
+        system_health.register("cycle_service",  "Cycle Engine",
+            "Strategy evaluation + trade emission loop", stale_after_s=900)
+        system_health.register("whale_service",  "Whale Tracker",
+            "TaoStats top-N TAO-holder leaderboard (lazy)", stale_after_s=1200)
+        system_health.register("cex_listing",    "CEX Listing Watch",
+            "RSS poller — Coinbase / Kraken / Crypto.com", stale_after_s=1800)
+    except Exception as _e:
+        logger.error(f"system_health pre-registration failed: {_e}")
+
     # ── Schedule all heavy services as background task ───────────────────────
     # Fires AFTER yield — guarantees /health responds before any I/O starts.
     async def _boot_services():
@@ -414,6 +433,7 @@ app.include_router(webhooks_router.router)
 app.include_router(signal_feeds_router.router)
 app.include_router(research_router.router)
 app.include_router(tools_router.router)
+app.include_router(system_router.router)
 
 
 @app.get("/")

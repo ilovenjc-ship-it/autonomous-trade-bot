@@ -8,6 +8,7 @@ import {
   ChevronsDownUp, ChevronsUpDown, Bookmark, Undo2,   // Session XXX: sidebar Expand/Collapse + Save-as-Default
   Sparkles,                                         // Session XXXII: Research / Quality Framework
   Calculator,                                       // Session XXXIII: Operator Tools (Whales + Calc)
+  Heart,                                            // Session XXXIV: System Health page
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -39,6 +40,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/research':             'Subnet Scorecard',
   '/tools':                'Whale Tracker',
   '/calculator':           'TAO Calculator',
+  '/system-health':        'System Health',
 }
 
 // ── Sidebar structure ──────────────────────────────────────────────────────
@@ -103,6 +105,7 @@ const navGroups: NavGroup[] = [
       { to: '/wallet-transactions', icon: Landmark,   label: 'Transactions'  },
       // Session XXXIV: Calculator moved here (Whale Tracker stays in SUBNETS).
       { to: '/calculator',          icon: Calculator, label: 'TAO Calculator'},
+      { to: '/system-health',       icon: Heart,      label: 'System Health' },
     ],
   },
   {

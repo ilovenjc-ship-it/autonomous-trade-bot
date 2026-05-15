@@ -1651,7 +1651,11 @@ class CycleService:
         return self._cycle_n
 
     async def _loop(self) -> None:
+        import time as _time
         while self._running:
+            _t0 = _time.time()
+            _success = True
+            _err = None
             try:
                 self._cycle_n += 1
                 logger.debug(f"Starting cycle #{self._cycle_n}")
@@ -1661,6 +1665,19 @@ class CycleService:
             except Exception as e:
                 logger.error(f"Cycle #{self._cycle_n} error: {e}", exc_info=True)
                 push_event("alert", f"Cycle #{self._cycle_n} error: {str(e)[:80]}")
+                _success = False
+                _err = str(e)[:300]
+            # Session XXXIV — record_run heartbeat for system_health.
+            try:
+                from services.system_health_service import system_health
+                system_health.record_run(
+                    name="cycle_service",
+                    success=_success,
+                    error=_err,
+                    duration_ms=round((_time.time() - _t0) * 1000.0, 1),
+                )
+            except Exception:
+                pass
             # Re-read interval from config every cycle — UI changes take effect
             # after the current cycle completes without requiring a restart.
             sleep_secs = self._current_interval()

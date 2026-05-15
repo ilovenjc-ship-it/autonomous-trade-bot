@@ -242,6 +242,9 @@ class CexListingService:
                 continue
 
     async def _refresh(self) -> None:
+        _t0 = time.time()
+        _success = True
+        _err: Optional[str] = None
         async with self._lock:
             keywords = self._build_keyword_list()
             feeds    = _resolve_feeds()
@@ -302,6 +305,23 @@ class CexListingService:
 
             self._last_fetch_at = time.time()
             self._last_error    = None
+
+            # Session XXXIV — health heartbeat. Mark "error" only when ALL
+            # feeds failed; partial outages are still a successful run.
+            ok_count = sum(1 for s in self._feed_status.values() if s.get("ok"))
+            if ok_count == 0 and self._feed_status:
+                _success = False
+                _err = "all CEX feeds failed this cycle"
+            try:
+                from services.system_health_service import system_health
+                system_health.record_run(
+                    name="cex_listing",
+                    success=_success,
+                    error=_err,
+                    duration_ms=round((time.time() - _t0) * 1000.0, 1),
+                )
+            except Exception:
+                pass
 
     # ── Match keyword construction ────────────────────────────────────────────
 
