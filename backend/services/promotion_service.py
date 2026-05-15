@@ -283,13 +283,20 @@ class PromotionService:
 
             if active_names:
                 total_active_score = sum(scores[nm] for nm in active_names) or 0.001
-                # The merit_pool plus the floors-of-inactives we'd otherwise
-                # have spent are redistributed across the active competitors
-                # so all 100% of the allocation budget actually deploys.
-                redistribute = merit_pool + ALLOC_FLOOR * len(inactive_names)
+                # Session XXXIV bug fix (Balanced Risk under-allocation):
+                # the previous formula was
+                #     redistribute = merit_pool + ALLOC_FLOOR * len(inactive_names)
+                # which double-counted inactives — every strategy already
+                # gets one floor via `floor_pool`, so adding inactive floors
+                # back to the merit slice produced a sum of TOTAL + FLOOR×K.
+                # The Step-4 normaliser then dumped the entire rounding
+                # deficit (e.g. −8%) onto the TOP-SCORED active, which
+                # crushed the highest-WR strategy by exactly that amount.
+                # Correct math: actives split `merit_pool` only.  Each
+                # strategy already has its FLOOR from `floor_pool`.
                 for nm in active_names:
                     share = scores[nm] / total_active_score
-                    new_alloc[nm] = ALLOC_FLOOR + share * redistribute
+                    new_alloc[nm] = ALLOC_FLOOR + share * merit_pool
             else:
                 # Edge case: no active strategies.  Keep everyone at floor.
                 for nm in active_names:

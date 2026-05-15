@@ -588,14 +588,28 @@ async def rebalance_capital(db: AsyncSession = Depends(get_db)):
     for nm in inactive_names:
         new_alloc[nm] = FLOOR
 
-    # Step 2 — proportional merit slice for active strategies, with the
-    # inactives' merit budget redistributed (so we still allocate 100%).
+    # Step 2 — proportional merit slice for active strategies.
+    #
+    # Session XXXIV bug fix (carry-over: Balanced Risk under-allocation):
+    # the previous formula was
+    #     redistribute = merit_pool + FLOOR * len(inactive_names)
+    # which double-counted inactives — every strategy already gets one
+    # FLOOR via floor_pool, so adding inactive floors back to the merit
+    # slice produced a sum of TOTAL + FLOOR*len(inactive).  The Step-4
+    # normaliser then dumped the entire rounding deficit (e.g. −8%) onto
+    # the TOP-SCORED active, nuking the highest-WR strategy.
+    #
+    # Correct math: actives split the merit pool only.  Inactives are
+    # already fully accounted for at FLOOR each.  Sum:
+    #   K·FLOOR (inactives) + (n−K)·FLOOR + merit_pool (actives)
+    #   = n·FLOOR + merit_pool
+    #   = floor_pool + (TOTAL − floor_pool)
+    #   = TOTAL  ✓
     if active_names:
         total_active_score = sum(scores[nm] for nm in active_names) or 0.001
-        redistribute       = merit_pool + FLOOR * len(inactive_names)
         for nm in active_names:
             share = scores[nm] / total_active_score
-            new_alloc[nm] = FLOOR + share * redistribute
+            new_alloc[nm] = FLOOR + share * merit_pool
     else:
         for nm in active_names:
             new_alloc[nm] = FLOOR
