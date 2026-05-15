@@ -114,12 +114,19 @@ interface ChatMsg {
 }
 
 const QUICK_PROMPTS = [
-  { label: '📊 PnL?',        text: 'What is the total fleet PnL right now?' },
-  { label: '🏆 Top bots',   text: 'Which are the top 3 performing strategies?' },
-  { label: '🌡️ Regime',     text: 'What is the current market regime and RSI?' },
-  { label: '⚡ Gate status', text: 'Which strategies are approved or close to promotion?' },
-  { label: '🔁 Cycles',      text: 'How many autonomous cycles have completed?' },
-  { label: '🛡️ Risk',        text: 'What are the current risk controls?' },
+  { label: '📊 PnL?',          text: 'What is the total fleet PnL right now?' },
+  { label: '🏆 Top bots',     text: 'Which are the top 3 performing strategies?' },
+  { label: '🌡️ Regime',       text: 'What is the current market regime and RSI?' },
+  { label: '⚡ Gate status',   text: 'Which strategies are approved or close to promotion?' },
+  { label: '🔁 Cycles',        text: 'How many autonomous cycles have completed?' },
+  { label: '🛡️ Risk',          text: 'What are the current risk controls?' },
+  // Carry-over #11 — All-subnets scoring chat capabilities
+  { label: '🧬 Top by score',  text: 'Top 5 subnets by score' },
+  { label: '💰 Top APY',       text: 'Top 5 subnets by APY' },
+  { label: '🛡️ Fortress',      text: 'Show me FORTRESS subnets' },
+  { label: '⚠️ Vulnerable',    text: 'Show me VULNERABLE subnets' },
+  { label: '✅ 6/6 subnets',   text: 'Which subnets pass 6/6 filters?' },
+  { label: '🤖 Bot trading',   text: 'What subnets is the bot trading?' },
 ]
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

@@ -2,11 +2,14 @@
 Fleet, Activity, and Chat routes for MissionControl.
 """
 import json
+import logging
 import math
 import os
 import random
 from datetime import datetime, timedelta
 from typing import List, Optional
+
+logger = logging.getLogger(__name__)
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, desc, update as sa_update
@@ -207,7 +210,23 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
 
     # ── Keyword routing with live data ────────────────────────────────────────
 
-    if any(w in msg for w in ["openclaw", "bft", "byzantine", "consensus", "vote", "voting", "7 of 12", "7/12", "supermajority"]):
+    # Carry-over #11 — All-subnets scoring chat. Detected first so specific
+    # subnet queries ("tell me about SN18", "compare SN3 and SN8") aren't
+    # swallowed by the broader "subnet/sn" branch below. The handler returns
+    # None when nothing matches, in which case we fall through to the legacy
+    # branches.
+    from services.subnet_chat_service import looks_like_subnet_query, answer as subnet_answer
+    _subnet_response: Optional[str] = None
+    if looks_like_subnet_query(payload.message):
+        try:
+            _subnet_response = subnet_answer(payload.message)
+        except Exception as _e:
+            logger.warning(f"subnet_chat_service failed: {_e}")
+            _subnet_response = None
+
+    if _subnet_response:
+        response = _subnet_response
+    elif any(w in msg for w in ["openclaw", "bft", "byzantine", "consensus", "vote", "voting", "7 of 12", "7/12", "supermajority"]):
         latest = consensus_service.get_latest()
         last_result = "—"
         last_votes  = "—"
@@ -352,14 +371,8 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
             "and every trade still requires OpenClaw BFT consensus (7/12 votes) to pass."
         )
 
-    elif any(w in msg for w in ["subnet", "sn", "bittensor", "emission", "alpha", "dtao", "stake"]):
-        response = (
-            f"The system monitors all Bittensor subnets via TAO.app. Current active subnets for TaoBot: "
-            f"**SN1** (Root), **SN8**, **SN9**, **SN18**, **SN64**. "
-            f"Subnet selection is based on stake depth, APY, and trend momentum. "
-            f"The Network Heat Map on Mission Control visualises all 64 subnets by stake, APY, miner count, or composite score. "
-            f"Hover any cell on the heat map for full subnet stats. Green outline = TaoBot active."
-        )
+    # Legacy hardcoded "subnet" branch removed — superseded by the
+    # subnet_chat_service routing block above (carry-over #11).
 
     else:
         # Informative fallback — pulls real live numbers
