@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import api from '@/api/client'
 import DrawdownChart from '@/components/DrawdownChart'
+import CexListingHeroStrip from '@/components/CexListingHeroStrip'
 
 // ── intelligence types ────────────────────────────────────────────────────────
 interface AgentStatus { current_regime: string; regime_color: string; analysis_count: number; total_pnl: number }
@@ -646,6 +647,14 @@ export default function Dashboard() {
 
   return (
     <div className="p-6 space-y-5">
+
+      {/* ── Hero strip — CEX Listing Watch (Phase E alert routing) ──────────── */}
+      {/* Pops fresh CEX listing detections at the very top so they catch the   */}
+      {/* operator's eye the moment they fire.  Renders nothing when no live    */}
+      {/* hits — soft-fails on a cold backend.  See CexListingHeroStrip for     */}
+      {/* behaviour: auto-rotate, pulse-on-fresh, dismissible per-guid in       */}
+      {/* localStorage.                                                         */}
+      <CexListingHeroStrip />
 
       {/* ── Cycle status bar ─────────────────────────────────────────────────── */}
       <div className={clsx(
