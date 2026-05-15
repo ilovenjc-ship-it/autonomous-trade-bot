@@ -20,11 +20,12 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   Search, RefreshCw, Sparkles, Shield, Target, Eye,
   TrendingUp, AlertTriangle, CheckCircle2, XCircle, ExternalLink, Star,
-  Globe, Lock, Activity,
+  Globe, Lock, Activity, ChevronLeft, ChevronRight,
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
+import { InfoBubble } from '@/components/Tooltip'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -136,6 +137,10 @@ export default function Research() {
   const [refreshing, setRefreshing] = useState(false)
   const [expandedRow, setExpandedRow] = useState<number | null>(null)
   const [search, setSearch] = useState('')
+  // Session XXXIV: pagination for subnet listings (Trade Logs pattern).
+  const [scPage, setScPage] = useState(1)
+  const [ownersPage, setOwnersPage] = useState(1)
+  const SUBNET_PAGE_SIZE = 5
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setLoading(true)
@@ -188,6 +193,22 @@ export default function Research() {
     )
   })
 
+  // Session XXXIV: pagination — slice visibleSubnets into pages of 5.
+  const scPageCount = Math.max(1, Math.ceil(visibleSubnets.length / SUBNET_PAGE_SIZE))
+  const scPageSafe = Math.min(scPage, scPageCount)
+  const scPageStart = (scPageSafe - 1) * SUBNET_PAGE_SIZE
+  const visibleSubnetsPaged = visibleSubnets.slice(scPageStart, scPageStart + SUBNET_PAGE_SIZE)
+
+  // Pagination for Owner Watch listing too — same page-size for consistency.
+  const ownersList = owners?.owners ?? []
+  const ownersPageCount = Math.max(1, Math.ceil(ownersList.length / SUBNET_PAGE_SIZE))
+  const ownersPageSafe = Math.min(ownersPage, ownersPageCount)
+  const ownersPageStart = (ownersPageSafe - 1) * SUBNET_PAGE_SIZE
+  const ownersListPaged = ownersList.slice(ownersPageStart, ownersPageStart + SUBNET_PAGE_SIZE)
+
+  // Reset scorecard page when search filter changes.
+  useEffect(() => { setScPage(1) }, [search])
+
   const minFilters = (risk?.subnet_quality_min_filters as number) ?? 6
   const passingGate = subnets.filter((s) => s.score >= minFilters).length
   const totalOwnerAlpha = owners?.owners.reduce((acc, o) => acc + (o.owner_alpha || 0), 0) ?? 0
@@ -217,21 +238,27 @@ export default function Research() {
     )
   }
 
+  // Session XXXIV: hover info text for the (i) icon next to the page header.
+  const headerHoverInfo = `Live owner-coldkey αTAO instrumentation from chain, cross-linked with ${
+    scorecard?.framework.name ?? "Const's 6-Filter Test"
+  }. The quality gate that admits external signal sources lives here. Conviction-era heuristics surface alpha-locked subnets where the owner's stake is unmoved long enough to signal high conviction — and where any movement is a CONVICTION_UNLOCK alert (early warning of regime change).`
+
   return (
-    <div className="space-y-6">
+    // Session XXXIV: p-6 padding adds the left-margin divider between the side
+    // menu and the page content (other pages had p-6, Research didn't).
+    <div className="p-6 space-y-6">
       {/* ── Hero strip ─────────────────────────────────────────────────────── */}
       <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-950/40 via-slate-900/60 to-slate-950 p-5 lg:flex-row lg:items-center">
         <div>
           <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-violet-300">
-            <Sparkles size={14} /> Quality Framework · Conviction Era
+            <Sparkles size={14} /> Conviction Era Framework
           </div>
-          <h2 className="mt-1 text-2xl font-bold text-white">
-            Research & Subnet Scorecard
+          <h2 className="mt-1 flex items-center gap-2 text-2xl font-bold text-white tracking-wider uppercase">
+            Conviction Unlock Alerts
+            <InfoBubble content={headerHoverInfo} side="right" maxWidth={420} />
           </h2>
-          <p className="mt-1 max-w-2xl text-sm text-slate-300">
-            Live owner-coldkey αTAO instrumentation from chain, cross-linked with{' '}
-            {scorecard?.framework.name ?? 'Const\'s 6-Filter Test'}. The
-            quality gate that admits external signal sources lives here.
+          <p className="mt-1 max-w-2xl text-sm text-slate-400">
+            Scorecard · Owner Watch · Signal Candidates
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -327,7 +354,7 @@ export default function Research() {
               </tr>
             </thead>
             <tbody>
-              {(owners?.owners ?? []).map((o) => (
+              {ownersListPaged.map((o) => (
                 <tr
                   key={o.netuid}
                   className={clsx(
@@ -433,6 +460,15 @@ export default function Research() {
             </tbody>
           </table>
         </div>
+        {/* Session XXXIV: Owner Watch pagination — Trade Logs pattern */}
+        {ownersList.length > SUBNET_PAGE_SIZE && (
+          <PageNav
+            label={`Showing ${ownersListPaged.length} of ${ownersList.length} subnets`}
+            page={ownersPageSafe}
+            pageCount={ownersPageCount}
+            onChange={setOwnersPage}
+          />
+        )}
         {owners && (
           <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
             <span>
@@ -578,7 +614,7 @@ export default function Research() {
               </tr>
             </thead>
             <tbody>
-              {visibleSubnets.map((s) => {
+              {visibleSubnetsPaged.map((s) => {
                 const isOpen = expandedRow === s.netuid
                 return (
                   <>
@@ -687,6 +723,17 @@ export default function Research() {
             </tbody>
           </table>
         </div>
+        {/* Session XXXIV: Scorecard pagination — Trade Logs pattern */}
+        {visibleSubnets.length > SUBNET_PAGE_SIZE && (
+          <PageNav
+            label={`Showing ${visibleSubnetsPaged.length} of ${visibleSubnets.length} subnets${
+              search ? ` (filtered from ${subnets.length})` : ''
+            }`}
+            page={scPageSafe}
+            pageCount={scPageCount}
+            onChange={setScPage}
+          />
+        )}
 
         <div className="mt-3 flex items-start gap-2 rounded-lg border border-slate-700/40 bg-slate-900/40 px-3 py-2 text-xs text-slate-400">
           <AlertTriangle size={14} className="mt-0.5 flex-shrink-0 text-amber-400" />
@@ -758,5 +805,60 @@ function Section({
       </div>
       {children}
     </section>
+  )
+}
+
+// ─── Pagination — Session XXXIV (Trade Logs pattern) ──────────────────────────
+function PageNav({
+  label,
+  page,
+  pageCount,
+  onChange,
+}: {
+  label: string
+  page: number
+  pageCount: number
+  onChange: (p: number) => void
+}) {
+  const start = Math.max(1, page - 2)
+  const visiblePages = Math.min(5, pageCount)
+  return (
+    <div className="mt-2 flex items-center justify-between gap-3 rounded-lg border border-slate-700/40 bg-slate-900/40 px-3 py-2">
+      <p className="text-xs font-mono text-slate-300">{label}</p>
+      <div className="flex items-center gap-2">
+        <button
+          disabled={page <= 1}
+          onClick={() => onChange(page - 1)}
+          className="p-1.5 rounded border border-slate-700/60 text-slate-300 hover:text-white hover:border-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronLeft size={14} />
+        </button>
+        {Array.from({ length: visiblePages }, (_, i) => {
+          const p = start + i
+          if (p > pageCount) return null
+          return (
+            <button
+              key={p}
+              onClick={() => onChange(p)}
+              className={clsx(
+                'px-2.5 py-1 rounded text-xs font-mono border transition-colors',
+                p === page
+                  ? 'bg-violet-500/20 text-violet-200 border-violet-500/40'
+                  : 'text-slate-300 border-slate-700/60 hover:text-white',
+              )}
+            >
+              {p}
+            </button>
+          )
+        })}
+        <button
+          disabled={page >= pageCount}
+          onClick={() => onChange(page + 1)}
+          className="p-1.5 rounded border border-slate-700/60 text-slate-300 hover:text-white hover:border-slate-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        >
+          <ChevronRight size={14} />
+        </button>
+      </div>
+    </div>
   )
 }

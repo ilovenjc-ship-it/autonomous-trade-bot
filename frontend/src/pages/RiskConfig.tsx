@@ -434,14 +434,31 @@ export default function RiskConfig() {
             rangeLabel="60s (aggressive) — 60 min (conservative)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, cycle_interval_seconds: v })) }}
           />
+          {/* Session XXXIV: Drawdown-Demote Min Cycles relocated to sit below
+              OpenClaw Consensus per Partner spec — col-2 row-2 of the upper
+              grid section.  Functionally still a Conviction-Era safety knob,
+              promoted up here for Operator visibility next to its companion
+              consensus / cycle controls. */}
+          <RiskSlider
+            label="Drawdown-Demote Min Cycles"
+            description="Minimum cycles a strategy must complete before drawdown auto-demotion can fire. Filters out early-cycle noise (a single -0.15τ trade in cycle #2 shouldn't trigger demotion). 10 cycles ≈ 50 minutes at the default 5-min cadence."
+            value={config.strategy_demote_min_cycles}
+            min={3} max={50} step={1} riskDir="down"
+            format={v => `${v.toFixed(0)} cycles`}
+            rangeLabel="3 (twitchy) — 50 (very patient)"
+            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, strategy_demote_min_cycles: v })) }}
+          />
 
-          {/* ── Conviction-Era safety + quality knobs (Session XXXI / XXXII) ───── */}
+          {/* ── Conviction-Era safety + quality knobs (Session XXXI / XXXII) ─────
+              Session XXXIV: Drawdown-Demote Min Cycles moved up next to
+              OpenClaw Consensus.  This section now hosts the drawdown floor
+              + the subnet provenance gate side-by-side. */}
           <div className="lg:col-span-2 pt-3 border-t border-dark-600">
             <div className="text-[11px] uppercase tracking-widest font-mono text-violet-300 mb-2">
               ⛓ Conviction-Era Safety & Quality Gates
             </div>
             <div className="text-[11px] text-slate-500 mb-3 leading-relaxed">
-              These knobs gate the post-Conviction signal pipeline. Drawdown auto-demotion catches strategies whose
+              These knobs gate the post-Conviction signal pipeline. The drawdown floor catches strategies whose
               cumulative PnL bleeds below a τ floor even when their win-rate looks fine. The subnet quality gate uses
               Const's 6-Filter Test as a provenance check on any external signal source.
             </div>
@@ -455,15 +472,8 @@ export default function RiskConfig() {
             rangeLabel="−1.0 τ (very lenient) — −0.05 τ (twitchy)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, strategy_demote_drawdown_tao: v })) }}
           />
-          <RiskSlider
-            label="Drawdown-Demote Min Cycles"
-            description="Minimum cycles a strategy must complete before drawdown auto-demotion can fire. Filters out early-cycle noise (a single -0.15τ trade in cycle #2 shouldn't trigger demotion). 10 cycles ≈ 50 minutes at the default 5-min cadence."
-            value={config.strategy_demote_min_cycles}
-            min={3} max={50} step={1} riskDir="down"
-            format={v => `${v.toFixed(0)} cycles`}
-            rangeLabel="3 (twitchy) — 50 (very patient)"
-            onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, strategy_demote_min_cycles: v })) }}
-          />
+          {/* Session XXXIV: Subnet Quality Gate now sits to the right of
+              Strategy Drawdown Floor — fills col-2 of the Conviction-Era grid. */}
           <RiskSlider
             label="Subnet Quality Gate (Const 6-Filter)"
             description="Minimum filters a SOURCE subnet must pass on Const's 6-Filter Test before its external signal feed is admitted to the consensus pipeline. Default 6/6 mirrors the seeded scorecard (Templar, Vanta, Chutes, etc. all confirmed 6/6). Lower to admit a 5/6 source; set to 0 to disable the gate entirely."

@@ -660,6 +660,10 @@ export default function IIAgent() {
   const [chatInput,   setChatInput]   = useState('')
   const [chatLoading, setChatLoading] = useState(false)
   const chatBottomRef = useRef<HTMLDivElement>(null)
+  // Session XXXIV: scroll the chat container directly (not the whole page) to
+  // prevent the prompt-pill row from jumping the viewport to the bottom of the
+  // panel when the Operator clicks a quick-prompt at the top of the chat.
+  const chatScrollRef = useRef<HTMLDivElement>(null)
 
   const load = useCallback(async () => {
     const [statusRes, obsRes, recsRes, cStatsRes] = await Promise.allSettled([
@@ -726,12 +730,15 @@ export default function IIAgent() {
     }
   }
 
-  // Scroll to bottom when a new message arrives — but NOT on initial page load.
-  // Without this guard, the useEffect fires once on mount (chatHistory=[]) and
-  // scrollIntoView() jumps the whole page to the chat panel at the bottom.
+  // Scroll the chat container ITSELF to bottom when a new message arrives.
+  // Session XXXIV: previously used `chatBottomRef.scrollIntoView()` which
+  // bubbles to ALL ancestors and jumped the whole page to the chat panel
+  // whenever the Operator clicked a quick-prompt at the top. Switched to
+  // direct scrollTop on the chat-history container so only that pane scrolls.
   useEffect(() => {
     if (chatHistory.length === 0) return
-    chatBottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    const el = chatScrollRef.current
+    if (el) el.scrollTop = el.scrollHeight
   }, [chatHistory, chatLoading])
 
   const regime    = status?.current_regime ?? 'UNKNOWN'
@@ -860,7 +867,7 @@ export default function IIAgent() {
         </div>
 
         {/* Message history */}
-        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ minHeight: '320px', maxHeight: '420px' }}>
+        <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ minHeight: '320px', maxHeight: '420px' }}>
           {chatHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full py-10 text-center">
               <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3">
@@ -874,7 +881,9 @@ export default function IIAgent() {
             </div>
           ) : (
             chatHistory.map((msg, i) => (
-              <div key={i} className={clsx('flex gap-3', msg.role === 'user' ? 'flex-row-reverse' : 'flex-row')}>
+              // Session XXXIV: Operator (user) on LEFT, II Agent (agent) on RIGHT
+              // — flipped from previous order per Partner spec.
+              <div key={i} className={clsx('flex gap-3', msg.role === 'agent' ? 'flex-row-reverse' : 'flex-row')}>
                 {/* Avatar */}
                 <div className={clsx(
                   'w-7 h-7 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5',
@@ -888,12 +897,12 @@ export default function IIAgent() {
                   }
                 </div>
 
-                {/* Bubble */}
+                {/* Bubble — Session XXXIV: Operator on left (rounded-tl-sm), Agent on right (rounded-tr-sm) */}
                 <div className={clsx(
                   'max-w-[78%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed font-mono',
                   msg.role === 'user'
-                    ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-100 rounded-tr-sm'
-                    : 'bg-dark-700 border border-dark-600 text-slate-200 rounded-tl-sm'
+                    ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-100 rounded-tl-sm'
+                    : 'bg-dark-700 border border-dark-600 text-slate-200 rounded-tr-sm'
                 )}>
                   {/* Format **bold** inline */}
                   {msg.content.split(/(\*\*[^*]+\*\*)/).map((part, j) =>
@@ -909,13 +918,13 @@ export default function IIAgent() {
             ))
           )}
 
-          {/* Typing indicator */}
+          {/* Typing indicator — Session XXXIV: agent now on right side */}
           {chatLoading && (
-            <div className="flex gap-3 flex-row">
+            <div className="flex gap-3 flex-row-reverse">
               <div className="w-7 h-7 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Bot size={13} className="text-purple-300" />
               </div>
-              <div className="bg-dark-700 border border-dark-600 rounded-2xl rounded-tl-sm px-4 py-3 flex items-center gap-1.5">
+              <div className="bg-dark-700 border border-dark-600 rounded-2xl rounded-tr-sm px-4 py-3 flex items-center gap-1.5">
                 <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
                 <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
                 <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />

@@ -27,17 +27,18 @@ const PAGE_TITLES: Record<string, string> = {
   '/alerts':               'Alerts',
   '/trades':               'Manual Trades',
   '/trade-log':            'Trade Log',
-  '/analytics':            'Network Analytics',
+  '/analytics':            'Subnet Analytics',
   '/pnl':                  'P&L Summary',
-  '/market':               'Market Data',
+  '/market':               'Subnet Data',
   '/strategies':           'Strategies',
   '/activity':             'Activity Log',
   '/risk':                 'Risk Config',
   '/wallet':               'Wallet',
   '/wallet-transactions':  'Transactions',
   '/override':             'Human Override',
-  '/research':             'Research',
-  '/tools':                'Tools',
+  '/research':             'Subnet Scorecard',
+  '/tools':                'Whale Tracker',
+  '/calculator':           'TAO Calculator',
 }
 
 // ── Sidebar structure ──────────────────────────────────────────────────────
@@ -78,12 +79,12 @@ const navGroups: NavGroup[] = [
   {
     heading: 'SUBNETS',
     items: [
-      { to: '/analytics', icon: BarChart2, label: 'Network Analytics' },
-      { to: '/market',    icon: Globe,     label: 'Market Data'       },
+      { to: '/analytics', icon: BarChart2, label: 'Subnet Analytics' },
+      { to: '/market',    icon: Globe,     label: 'Subnet Data'      },
       // Session XXXII: Const 6-Filter scorecard + Owner Watch + Conviction-Era heuristics
-      { to: '/research',  icon: Sparkles,  label: 'Research'          },
-      // Session XXXIII: Whale Tracker + TAO Calculator (Operator Tools)
-      { to: '/tools',     icon: Calculator, label: 'Tools'            },
+      { to: '/research',  icon: Sparkles,  label: 'Subnet Scorecard' },
+      // Session XXXIV: Whale Tracker stays under SUBNETS; Calculator moved to ADMIN.
+      { to: '/tools',     icon: Calculator, label: 'Whale Tracker'   },
     ],
   },
   {
@@ -97,9 +98,11 @@ const navGroups: NavGroup[] = [
   {
     heading: 'ADMIN',
     items: [
-      { to: '/risk',                icon: Shield,   label: 'Risk Config'  },
-      { to: '/wallet',              icon: Wallet,   label: 'Wallet'       },
-      { to: '/wallet-transactions', icon: Landmark, label: 'Transactions' },
+      { to: '/risk',                icon: Shield,     label: 'Risk Config'   },
+      { to: '/wallet',              icon: Wallet,     label: 'Wallet'        },
+      { to: '/wallet-transactions', icon: Landmark,   label: 'Transactions'  },
+      // Session XXXIV: Calculator moved here (Whale Tracker stays in SUBNETS).
+      { to: '/calculator',          icon: Calculator, label: 'TAO Calculator'},
     ],
   },
   {

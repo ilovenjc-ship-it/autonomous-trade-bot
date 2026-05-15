@@ -57,7 +57,8 @@ export default function App() {
           <Route path="/market"                element={<MarketData />}    />
           <Route path="/market/subnet/:uid"   element={<SubnetDetail />}  />
           <Route path="/research"             element={<Research />}      />
-          <Route path="/tools"                element={<Tools />}         />
+          <Route path="/tools"                element={<Tools mode="whales" />} />
+          <Route path="/calculator"           element={<Tools mode="calc" />}   />
           <Route path="/strategy/:name"       element={<StrategyDetail />} />
           <Route path="/openclaw"        element={<OpenClaw />}       />
           <Route path="/ii-agent"        element={<IIAgent />}        />

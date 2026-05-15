@@ -108,38 +108,44 @@ const QUICK_AMOUNTS = [1, 10, 50, 100, 500, 1000]
 const FIATS = ['USD', 'EUR', 'GBP', 'JPY', 'BTC'] as const
 type Fiat = typeof FIATS[number]
 
-export default function Tools() {
-  const [tab, setTab] = useState<Tab>('whales')
+// Session XXXIV: Split — /tools renders Whale Tracker only, /calculator renders TAO Calculator only.
+export default function Tools({ mode = 'whales' }: { mode?: Tab }) {
+  if (mode === 'calc') {
+    return (
+      <div className="space-y-6">
+        <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900/60 to-slate-950 p-5 lg:flex-row lg:items-center">
+          <div>
+            <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-cyan-300">
+              <Calculator size={14} /> Operator Calculator
+            </div>
+            <h2 className="mt-1 text-2xl font-bold text-white">TAO Calculator</h2>
+            <p className="mt-1 max-w-2xl text-sm text-slate-300">
+              Two-way τ ↔ fiat (USD/EUR/GBP/JPY/BTC) conversion at live or any
+              historical date back to TAO genesis. Powered by CoinGecko price feed.
+            </p>
+          </div>
+        </div>
+        <CalculatorTab />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      {/* ── Hero strip ─────────────────────────────────────────────────── */}
       <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-950/40 via-slate-900/60 to-slate-950 p-5 lg:flex-row lg:items-center">
         <div>
           <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-cyan-300">
-            <Sparkles size={14} /> Operator Tools
+            <Crown size={14} /> Operator Tools
           </div>
-          <h2 className="mt-1 text-2xl font-bold text-white">
-            Whale Tracker · TAO Calculator
-          </h2>
+          <h2 className="mt-1 text-2xl font-bold text-white">Whale Tracker</h2>
           <p className="mt-1 max-w-2xl text-sm text-slate-300">
-            Two daily-driver utilities for the operator. Whale flow gives a
-            leading lens into stake-redirection events; the calculator turns
-            any τ amount into fiat — current or any past date back to TAO
-            genesis.
+            Live top-100 TAO holder leaderboard with whale / dolphin / shrimp
+            tiers and 24-hour delta — a leading lens into stake-redirection
+            events.
           </p>
         </div>
-        <div className="flex rounded-xl border border-slate-700/60 bg-slate-900/80 p-1">
-          <TabButton active={tab === 'whales'} onClick={() => setTab('whales')}>
-            <Crown size={14} /> Whales
-          </TabButton>
-          <TabButton active={tab === 'calc'} onClick={() => setTab('calc')}>
-            <Calculator size={14} /> Calculator
-          </TabButton>
-        </div>
       </div>
-
-      {tab === 'whales' ? <WhaleTrackerTab /> : <CalculatorTab />}
+      <WhaleTrackerTab />
     </div>
   )
 }

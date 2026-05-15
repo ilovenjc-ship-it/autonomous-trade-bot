@@ -605,13 +605,12 @@ export default function Dashboard() {
   // (3) Require min 5 trades so 1-2 trade flukes don't headline. Fallback to
   //     all strategies if none qualify (so the empty state doesn't appear
   //     during the very-first hours of a fresh paper baseline).
-  const _MIN_LB_TRADES = 5
-  const _qualified     = strategies.filter(s => (s.total_trades ?? 0) >= _MIN_LB_TRADES)
-  const _pool          = _qualified.length > 0 ? _qualified : strategies
-  const top5 = [..._pool].sort((a, b) => {
+  // Session XXXIV: show ALL strategies in the leaderboard with internal scroll
+  // (independent of page scroll). Sort by WR desc, PnL desc tie-break.
+  const allStrategiesSorted = [...strategies].sort((a, b) => {
     const wr = (b.win_rate ?? 0) - (a.win_rate ?? 0)
     return wr !== 0 ? wr : (b.total_pnl ?? 0) - (a.total_pnl ?? 0)
-  }).slice(0, 5)
+  })
   const isRunning = botStatus?.is_running ?? false
   const cycleN = botStatus?.cycle_number ?? 0
   const interval = botStatus?.cycle_interval ?? 60
@@ -677,9 +676,9 @@ export default function Dashboard() {
       </div>
 
       {/* ══════════════════════════════════════════════════════════════════════
-          OPERATOR STATIC CARDS — Session XXX order (Partner spec):
-          Row 1:  II Agent · Win Rate · Total Trades · Total PnL · Paper Day
-                                       └─ swapped — "Total Trades right of Win Rate"
+          OPERATOR STATIC CARDS — Session XXXIV order (Partner spec):
+          Row 1:  II Agent · Win Rate · Total PnL · Total Trades · Paper Day
+                                       └─ Total PnL now sits right of Win Rate
           Row 2:  TAO/USD · 24h Change · Alerts · Approval Rate · Daily Cap
           ══════════════════════════════════════════════════════════════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
@@ -722,21 +721,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 3 — Total Trades  (Session XXX: moved right of Win Rate per Partner spec) */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
-            <Hash size={14} className="text-slate-300" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
-            <p className="text-base font-black font-mono text-white mt-0.5">
-              {summary ? totalTrades.toLocaleString() : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
-          </div>
-        </div>
-
-        {/* 4 — Total PnL  (Session XXX: swapped position with Total Trades) */}
+        {/* 3 — Total PnL  (Session XXXIV: relocated right of Win Rate per Partner spec) */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
           <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
             totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
@@ -751,6 +736,20 @@ export default function Dashboard() {
               {summary ? `${fmt(totalPnl, 4)} τ` : '—'}
             </p>
             <p className="text-[11px] font-mono text-slate-500 mt-0.5">fleet cumulative</p>
+          </div>
+        </div>
+
+        {/* 4 — Total Trades  (Session XXXIV: swapped position with Total PnL) */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
+            <Hash size={14} className="text-slate-300" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
+            <p className="text-base font-black font-mono text-white mt-0.5">
+              {summary ? totalTrades.toLocaleString() : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
           </div>
         </div>
 
@@ -882,32 +881,40 @@ export default function Dashboard() {
           reference material at page-bottom. */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
-        {/* Strategy leaderboard */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-1">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
-            <Award size={14} className="text-yellow-400" /> Top Strategies
-          </h2>
-          <div className="space-y-2">
-            {top5.map((s, i) => (
+        {/* Strategy leaderboard — Session XXXIV: ALL strategies w/ internal scroll */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-1 flex flex-col">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+              <Award size={14} className="text-yellow-400" /> Top Strategies
+            </h2>
+            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">
+              {allStrategiesSorted.length} total · scroll
+            </span>
+          </div>
+          <div
+            className="space-y-2 overflow-y-auto pr-1 dashboard-strat-scroll"
+            style={{ maxHeight: 320 }}
+          >
+            {allStrategiesSorted.map((s, i) => (
               <div key={s.name} className="flex items-center gap-3 px-3 py-2 bg-dark-700 rounded-lg">
-                <span className="text-slate-300 font-mono text-xs w-4">{i + 1}</span>
+                <span className="text-slate-300 font-mono text-xs w-5 flex-shrink-0">{i + 1}</span>
                 <div className="flex-1 min-w-0">
                   <p className="text-xs text-white font-medium truncate">{s.label}</p>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className="text-[13px] font-mono text-slate-300">{s.total_trades} trades</span>
                     <span className={clsx('text-[13px] font-mono',
-                      s.win_rate >= 55 ? 'text-accent-green' : 'text-yellow-400'
+                      s.win_rate >= 55 ? 'text-accent-green' : s.win_rate >= 40 ? 'text-amber-400' : 'text-red-400'
                     )}>{(s.win_rate ?? 0).toFixed(1)}% WR</span>
                   </div>
                 </div>
-                <span className={clsx('font-mono text-sm font-bold',
-                  s.total_pnl >= 0 ? 'text-accent-green' : 'text-red-400'
+                <span className={clsx('font-mono text-sm font-bold flex-shrink-0',
+                  s.total_pnl > 0 ? 'text-accent-green' : s.total_pnl < 0 ? 'text-red-400' : 'text-slate-400'
                 )}>
                   {fmt(s.total_pnl, 4)}
                 </span>
               </div>
             ))}
-            {top5.length === 0 && (
+            {allStrategiesSorted.length === 0 && (
               <p className="text-slate-300 text-xs font-mono text-center py-4">No strategy data yet</p>
             )}
           </div>

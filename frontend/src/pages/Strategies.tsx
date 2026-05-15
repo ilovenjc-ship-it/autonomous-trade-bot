@@ -558,74 +558,88 @@ export default function Strategies() {
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* ── Allocation Tier Key ─────────────────────────────────────────────── */}
-      <div className="card p-4">
-        <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
-          <BarChart2 size={13} className="text-accent-blue" /> Allocation Tier Key
-        </h2>
-        <div className="flex flex-wrap gap-x-6 gap-y-2">
-          {(Object.entries(TIERS) as [Tier, TierMeta][]).map(([, t]) => (
-            <div key={t.label} className="flex items-center gap-2 text-xs min-w-[220px]">
-              <span className={clsx('px-1.5 py-0.5 rounded border text-[13px] font-mono font-bold whitespace-nowrap', t.badgeClass)}>
-                {t.emoji} {t.label}
-              </span>
-              <span className="text-slate-400">WR ≥ {t.minWr}%</span>
-              <span className={clsx('font-mono font-bold ml-auto', t.allocClass)}>
-                {t.multiplier === 'SUSP' ? 'Suspended' : t.multiplier + ' capital'}
-              </span>
-            </div>
-          ))}
+      {/* ── Top controls — Session XXXIV: Allocation Tier Key + Filters now sit
+            side-by-side as two short vertical-stack columns at the top of the
+            page (was: two long horizontal rows).  Sort stays in its own row
+            below so it can flow full-width on narrow viewports. ───────────── */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+
+        {/* ── Allocation Tier Key (stacked) ─────────────────────────────── */}
+        <div className="card p-4">
+          <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
+            <BarChart2 size={13} className="text-accent-blue" /> Allocation Tier Key
+          </h2>
+          <div className="flex flex-col gap-2">
+            {(Object.entries(TIERS) as [Tier, TierMeta][]).map(([, t]) => (
+              <div key={t.label} className="flex items-center gap-2 text-xs">
+                <span className={clsx('px-1.5 py-0.5 rounded border text-[13px] font-mono font-bold whitespace-nowrap', t.badgeClass)}>
+                  {t.emoji} {t.label}
+                </span>
+                <span className="text-slate-400">WR ≥ {t.minWr}%</span>
+                <span className={clsx('font-mono font-bold ml-auto', t.allocClass)}>
+                  {t.multiplier === 'SUSP' ? 'Suspended' : t.multiplier + ' capital'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[13px] text-slate-500 mt-3">
+            Capital from suspended strategies flows up to elite performers automatically.
+          </p>
         </div>
-        <p className="text-[13px] text-slate-500 mt-3">
-          Capital from suspended strategies flows up to elite performers automatically.
-        </p>
+
+        {/* ── Filters (stacked) ─────────────────────────────────────────── */}
+        <div className="card p-4">
+          <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2 uppercase tracking-widest">
+            <ArrowUpDown size={13} className="text-accent-blue" /> Filters
+          </h2>
+          <div className="flex flex-col gap-3">
+            {/* mode filter */}
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1.5">Mode</p>
+              <div className="flex flex-wrap items-center gap-1 bg-dark-900 border border-dark-700 rounded-lg p-1">
+                {MODE_FILTERS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setModeFilter(key)}
+                    className={clsx(
+                      'px-3 py-1 rounded text-xs font-mono font-semibold transition-all',
+                      modeFilter === key
+                        ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
+                        : 'text-slate-400 hover:text-white',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* tier filter */}
+            <div>
+              <p className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1.5">Tier</p>
+              <div className="flex flex-wrap items-center gap-1 bg-dark-900 border border-dark-700 rounded-lg p-1">
+                {TIER_FILTERS.map(({ key, label }) => (
+                  <button
+                    key={key}
+                    onClick={() => setTierFilter(key)}
+                    className={clsx(
+                      'px-3 py-1 rounded text-xs font-mono font-semibold transition-all',
+                      tierFilter === key
+                        ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
+                        : 'text-slate-400 hover:text-white',
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* (FleetSummary small-cards + Capital Allocation Tiers removed — Session XXV spec) */}
-
-      {/* ── Filter & Sort controls (wrapped in a single container, per Session XXV spec) ── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-xl p-3 flex flex-wrap items-center gap-3">
-
-        {/* Section label */}
-        <span className="text-[11px] font-mono uppercase tracking-widest text-slate-500 pl-1 pr-1">Filters</span>
-
-        {/* mode filter */}
-        <div className="flex items-center gap-1 bg-dark-900 border border-dark-700 rounded-lg p-1">
-          {MODE_FILTERS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setModeFilter(key)}
-              className={clsx(
-                'px-3 py-1 rounded text-xs font-mono font-semibold transition-all',
-                modeFilter === key
-                  ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
-                  : 'text-slate-400 hover:text-white',
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* tier filter */}
-        <div className="flex items-center gap-1 bg-dark-900 border border-dark-700 rounded-lg p-1">
-          {TIER_FILTERS.map(({ key, label }) => (
-            <button
-              key={key}
-              onClick={() => setTierFilter(key)}
-              className={clsx(
-                'px-3 py-1 rounded text-xs font-mono font-semibold transition-all',
-                tierFilter === key
-                  ? 'bg-accent-blue/20 text-accent-blue border border-accent-blue/30'
-                  : 'text-slate-400 hover:text-white',
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        {/* sort — Tier, Win%↓, PnL, Trades, Cycles */}
+      {/* ── Sort (own row, flows full width) ───────────────────────────── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-xl p-3 flex flex-wrap items-center gap-2">
         <div className="flex items-center gap-1 ml-auto bg-dark-900 border border-dark-700 rounded-lg p-1">
           <ArrowUpDown size={12} className="text-slate-500 ml-1" />
           <span className="text-[11px] font-mono uppercase tracking-widest text-slate-500 pl-1 pr-1">Sort</span>

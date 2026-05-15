@@ -188,9 +188,19 @@ export default function AgentFleet() {
     setLoading(true)
     try {
       const data = await api.get('/fleet/bots').then(r => r.data)
-      setBots(data.bots || [])
+      const list: Bot[] = data.bots || []
+      setBots(list)
       setSummary(data.summary || null)
       setLastUpdated(new Date().toLocaleTimeString())
+      // Session XXXIV: preselect the first strategy on initial load so the
+      // Operator immediately sees the Spider Graph on the right side of the
+      // page. Subsequent fetches keep the existing selection (or fall back
+      // to the first row if the prior selection vanished).
+      setSelected(prev => {
+        if (!list.length) return null
+        if (prev && list.some(b => b.name === prev.name)) return prev
+        return list[0]
+      })
     } catch (e) {
       console.error('Fleet bots fetch failed:', e)
     } finally {
