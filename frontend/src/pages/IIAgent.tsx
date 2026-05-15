@@ -132,6 +132,98 @@ const QUICK_PROMPTS = [
   { label: '🔮 Forecast SELL', text: 'Forecast: would a SELL signal pass right now?' },
 ]
 
+// ── Thought-bubble phrases (Session XXXVII) ──────────────────────────────────
+// While the agent "thinks", we surface a contextual status string that swaps
+// every ~700ms.  Each phrase set is a small narrative arc (3–4 beats) that
+// matches the user's query domain.  We also enforce a minimum dwell time on
+// the typing indicator so even fast keyword-routed responses feel deliberate.
+//
+// THOUGHT_PHRASES is a routing table:  each entry is { match, beats }.
+//   match   — keyword regex tested against the user's lowercased message
+//   beats   — array of italic status lines to cycle through
+// First-match wins; the GENERIC arc is the fallback.
+
+const THOUGHT_PHRASES: Array<{ match: RegExp; beats: string[] }> = [
+  { match: /forecast|simulate|monte|trial|would.*(pass|win)/i, beats: [
+      'Spinning up Monte-Carlo trials…',
+      'Polling personality directional bias…',
+      'Tallying simulated votes…',
+      'Composing forecast…',
+  ]},
+  { match: /owner|team|hold|whale|conviction|fortress|vulnerable|defend/i, beats: [
+      'Reading Conviction-Era owner snapshot…',
+      'Cross-checking shield positions…',
+      'Composing reply…',
+  ]},
+  { match: /pnl|profit|loss|earn|equity|return/i, beats: [
+      'Reading fleet ledger…',
+      'Aggregating live trade rows…',
+      'Composing reply…',
+  ]},
+  { match: /regime|rsi|macd|trend|market|price/i, beats: [
+      'Sampling latest TAO candle…',
+      'Reading regime classifier…',
+      'Composing reply…',
+  ]},
+  { match: /strategy|strategies|hot|struggling|gate|promot|demot/i, beats: [
+      'Pulling fleet health map…',
+      'Re-scoring strategies…',
+      'Composing reply…',
+  ]},
+  { match: /risk|drawdown|circuit|cap|limit|control/i, beats: [
+      'Reading risk config…',
+      'Checking active circuit breakers…',
+      'Composing reply…',
+  ]},
+  { match: /cycle|analysis|run|recommend|directive/i, beats: [
+      'Reading autonomous cycle log…',
+      'Composing reply…',
+  ]},
+  { match: /subnet|sn\d+|score|apy|top/i, beats: [
+      'Reading 128-subnet scoring matrix…',
+      'Filtering against gate criteria…',
+      'Composing reply…',
+  ]},
+  { match: /trade|trades|trading|bot/i, beats: [
+      'Reading recent trades…',
+      'Cross-checking bot allocations…',
+      'Composing reply…',
+  ]},
+  { match: /alert|listing|cex|coinbase|kraken/i, beats: [
+      'Reading CEX listing watchlist…',
+      'Composing reply…',
+  ]},
+  { match: /audit|change|history|who|when/i, beats: [
+      'Reading audit trail…',
+      'Composing reply…',
+  ]},
+  // Generic fallback
+  { match: /.*/i, beats: [
+      'Reading live state…',
+      'Cross-checking sources…',
+      'Composing reply…',
+  ]},
+]
+
+function pickThoughtBeats(message: string): string[] {
+  const lower = message.toLowerCase()
+  for (const entry of THOUGHT_PHRASES) {
+    if (entry.match.test(lower)) return entry.beats
+  }
+  return THOUGHT_PHRASES[THOUGHT_PHRASES.length - 1].beats
+}
+
+// Minimum dwell time (ms) for the typing bubble — scales with query length so
+// "what is the regime?" feels different from a 30-word multi-clause query.
+function minDwellMs(message: string): number {
+  const baseMs = 1400
+  const perWordMs = 90
+  const wordCount = message.trim().split(/\s+/).length
+  const total = baseMs + Math.min(wordCount, 14) * perWordMs
+  // Add a small jitter so successive replies don't feel mechanical.
+  return total + Math.floor(Math.random() * 250)
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function timeSince(iso: string | null): string {
@@ -669,6 +761,9 @@ export default function IIAgent() {
   const [chatHistory, setChatHistory] = useState<ChatMsg[]>([])
   const [chatInput,   setChatInput]   = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+  // Session XXXVII — thought-bubble UX
+  const [thoughtBeats, setThoughtBeats] = useState<string[]>([])
+  const [thoughtIdx,   setThoughtIdx]   = useState(0)
   const chatBottomRef = useRef<HTMLDivElement>(null)
   // Session XXXIV: scroll the chat container directly (not the whole page) to
   // prevent the prompt-pill row from jumping the viewport to the bottom of the
@@ -720,25 +815,52 @@ export default function IIAgent() {
     setChatInput('')
     const userEntry: ChatMsg = { role: 'user', content: msg, timestamp: new Date().toISOString() }
     setChatHistory(prev => [...prev, userEntry])
+
+    // Session XXXVII — pick contextual thought beats and start the typing bubble.
+    // We race the network round-trip against a minimum dwell time so the bubble
+    // is on screen long enough to read at least one beat (≥1.4s, scales with
+    // query length).  The Promise.all([...]) pattern below guarantees both the
+    // fetch AND the dwell-timer resolve before we drop the typing bubble.
+    const beats = pickThoughtBeats(msg)
+    setThoughtBeats(beats)
+    setThoughtIdx(0)
     setChatLoading(true)
+
+    const dwell = new Promise<void>(resolve => setTimeout(resolve, minDwellMs(msg)))
+    const network = (async () => {
+      try {
+        const { data } = await api.post('/fleet/chat', { message: msg })
+        return { ok: true as const, content: data.response as string }
+      } catch {
+        return { ok: false as const, content: '⚠️ Unable to reach the agent right now. Backend may be restarting.' }
+      }
+    })()
+
     try {
-      const { data } = await api.post('/fleet/chat', { message: msg })
+      const [, result] = await Promise.all([dwell, network])
       const agentEntry: ChatMsg = {
         role: 'agent',
-        content: data.response,
+        content: result.content,
         timestamp: new Date().toISOString(),
       }
       setChatHistory(prev => [...prev, agentEntry])
-    } catch {
-      setChatHistory(prev => [...prev, {
-        role: 'agent',
-        content: '⚠️ Unable to reach the agent right now. Backend may be restarting.',
-        timestamp: new Date().toISOString(),
-      }])
     } finally {
       setChatLoading(false)
+      setThoughtBeats([])
+      setThoughtIdx(0)
     }
   }
+
+  // Cycle through thought beats every ~700ms while the bubble is visible.
+  // We hold on the LAST beat (don't loop) so the operator doesn't see the
+  // first beat reappear — preserves the impression of progressive thinking.
+  useEffect(() => {
+    if (!chatLoading || thoughtBeats.length === 0) return
+    const id = setInterval(() => {
+      setThoughtIdx(i => Math.min(i + 1, thoughtBeats.length - 1))
+    }, 700)
+    return () => clearInterval(id)
+  }, [chatLoading, thoughtBeats])
 
   // Scroll the chat container ITSELF to bottom when a new message arrives.
   // Session XXXIV: previously used `chatBottomRef.scrollIntoView()` which
@@ -928,16 +1050,28 @@ export default function IIAgent() {
             ))
           )}
 
-          {/* Typing indicator — Session XXXIV: agent now on right side */}
+          {/* Typing indicator — Session XXXIV: agent now on right side
+              Session XXXVII: now shows a cycling thought-bubble label so the
+              operator can see WHAT the agent is "doing" while it composes. */}
           {chatLoading && (
             <div className="flex gap-3 flex-row-reverse">
               <div className="w-7 h-7 rounded-xl bg-purple-600/30 border border-purple-500/40 flex items-center justify-center flex-shrink-0 mt-0.5">
                 <Bot size={13} className="text-purple-300" />
               </div>
-              <div className="bg-dark-700 border border-dark-600 rounded-2xl rounded-tr-sm px-4 py-3 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+              <div className="bg-dark-700 border border-dark-600 rounded-2xl rounded-tr-sm px-4 py-3 flex items-center gap-2.5 max-w-[78%]">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                </span>
+                {thoughtBeats.length > 0 && (
+                  <span
+                    key={thoughtIdx /* re-mounts to retrigger fade */}
+                    className="text-[12px] font-mono italic text-slate-400 animate-thought-fade"
+                  >
+                    {thoughtBeats[thoughtIdx]}
+                  </span>
+                )}
               </div>
             </div>
           )}
