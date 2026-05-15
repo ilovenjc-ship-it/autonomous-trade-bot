@@ -289,10 +289,11 @@ class PromotionService:
                 for nm in active_names:
                     new_alloc[nm] = ALLOC_FLOOR
 
-            # CAP enforcement with bleed redistribution
+            # CAP enforcement — only active strategies bleed/absorb;
+            # inactives stay parked at floor and aren't in `scores`.
             for _ in range(10):
-                capped   = {nm for nm, v in new_alloc.items() if v >= ALLOC_CAP}
-                uncapped = [nm for nm in names if nm not in capped]
+                capped   = {nm for nm in active_names if new_alloc[nm] >= ALLOC_CAP}
+                uncapped = [nm for nm in active_names if nm not in capped]
                 if not uncapped:
                     break
                 excess = sum(new_alloc[nm] - ALLOC_CAP for nm in capped)
@@ -300,16 +301,17 @@ class PromotionService:
                     new_alloc[nm] = ALLOC_CAP
                 if excess < 0.001:
                     break
-                uncap_score = sum(scores[nm] for nm in uncapped)
+                uncap_score = sum(scores.get(nm, 0.1) for nm in uncapped) or 0.001
                 for nm in uncapped:
-                    new_alloc[nm] += (scores[nm] / uncap_score) * excess
+                    new_alloc[nm] += (scores.get(nm, 0.1) / uncap_score) * excess
 
-            # Normalise to exactly 100%
+            # Normalise to exactly 100% — round residual goes to the top
+            # ACTIVE scorer so we don't accidentally bump an inactive bot.
             for nm in names:
                 new_alloc[nm] = round(new_alloc[nm], 1)
             diff = round(ALLOC_TOTAL - sum(new_alloc.values()), 1)
-            if diff != 0:
-                top = max(names, key=lambda nm: scores[nm])
+            if diff != 0 and active_names:
+                top = max(active_names, key=lambda nm: scores.get(nm, 0))
                 new_alloc[top] = round(new_alloc[top] + diff, 1)
 
             # Persist to DB

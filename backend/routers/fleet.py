@@ -593,10 +593,11 @@ async def rebalance_capital(db: AsyncSession = Depends(get_db)):
         for nm in active_names:
             new_alloc[nm] = FLOOR
 
-    # Step 3 — enforce CAP; bleed excess back to the uncapped pool
+    # Step 3 — enforce CAP; bleed excess back to the uncapped pool.
+    # Only ACTIVE strategies bleed/absorb — inactives stay parked at floor.
     for _ in range(10):                             # iterate until convergence
-        capped   = {nm for nm, v in new_alloc.items() if v >= CAP}
-        uncapped = [nm for nm in names if nm not in capped]
+        capped   = {nm for nm in active_names if new_alloc[nm] >= CAP}
+        uncapped = [nm for nm in active_names if nm not in capped]
         if not uncapped:
             break
         excess = sum(new_alloc[nm] - CAP for nm in capped)
@@ -604,17 +605,17 @@ async def rebalance_capital(db: AsyncSession = Depends(get_db)):
             new_alloc[nm] = CAP
         if excess < 0.001:
             break
-        uncap_score = sum(scores[nm] for nm in uncapped)
+        uncap_score = sum(scores.get(nm, 0.1) for nm in uncapped) or 0.001
         for nm in uncapped:
-            new_alloc[nm] += (scores[nm] / uncap_score) * excess
+            new_alloc[nm] += (scores.get(nm, 0.1) / uncap_score) * excess
 
     # Step 4 — round and normalise to exactly 100 %
     for nm in names:
         new_alloc[nm] = round(new_alloc[nm], 1)
     diff = round(TOTAL - sum(new_alloc.values()), 1)
-    if diff != 0:
-        # add rounding residual to the highest scorer
-        top = max(names, key=lambda nm: scores[nm])
+    if diff != 0 and active_names:
+        # add rounding residual to the highest-scoring ACTIVE strategy
+        top = max(active_names, key=lambda nm: scores.get(nm, 0))
         new_alloc[top] = round(new_alloc[top] + diff, 1)
 
     # Step 5 — update in-memory dict so /bots reflects this immediately
