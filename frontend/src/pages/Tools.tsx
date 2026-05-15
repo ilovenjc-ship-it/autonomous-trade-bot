@@ -43,10 +43,12 @@ interface WhaleRow {
   address: string
   address_short: string
   balance_tao: number
+  balance_24h_ago_tao: number | null
   share_pct: number
   tier: 'whale' | 'dolphin' | 'shrimp'
   balance_change_24h: number | null
   rank_change_24h: number | null
+  block_number: number | null
   taostats_url: string | null
 }
 
@@ -358,6 +360,7 @@ function WhaleTrackerTab() {
                 <th className="px-3 py-2 text-right">Balance (τ)</th>
                 <th className="px-3 py-2 text-right">% Supply</th>
                 <th className="px-3 py-2 text-right">USD Value</th>
+                <th className="px-3 py-2 text-right">Δ 24h (τ)</th>
                 <th className="px-3 py-2 text-center">Tier</th>
                 <th className="px-3 py-2 text-center">Open</th>
               </tr>
@@ -365,7 +368,7 @@ function WhaleTrackerTab() {
             <tbody className="divide-y divide-slate-800/60">
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-3 py-8 text-center text-slate-500">
+                  <td colSpan={8} className="px-3 py-8 text-center text-slate-500">
                     No wallets match this filter.
                   </td>
                 </tr>
@@ -399,6 +402,23 @@ function WhaleTrackerTab() {
                     </td>
                     <td className="px-3 py-2 text-right font-mono text-slate-300">
                       {px ? fmtUsd(row.balance_tao * px) : '—'}
+                    </td>
+                    <td
+                      className={clsx(
+                        'px-3 py-2 text-right font-mono text-xs',
+                        row.balance_change_24h == null
+                          ? 'text-slate-600'
+                          : row.balance_change_24h > 0
+                          ? 'text-emerald-400'
+                          : row.balance_change_24h < 0
+                          ? 'text-red-400'
+                          : 'text-slate-500',
+                      )}
+                    >
+                      {row.balance_change_24h == null
+                        ? '—'
+                        : (row.balance_change_24h > 0 ? '+' : '') +
+                          fmtNum(row.balance_change_24h, 2)}
                     </td>
                     <td className="px-3 py-2 text-center">
                       <TierBadge tier={row.tier} />

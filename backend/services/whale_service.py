@@ -105,10 +105,16 @@ class WhaleService:
     # ── Internal ───────────────────────────────────────────────────────────
 
     async def _refresh(self, limit: int) -> None:
-        url = f"{TAOSTATS_BASE}/api/account/v1"
+        # Endpoint per docs.taostats.io/reference/get-account:
+        #   /api/account/latest/v1?order=balance_total_desc&limit=N
+        # Note: ordering uses underscore_desc (not colon syntax) and the
+        # path is /latest/v1 (not /v1).
+        url = f"{TAOSTATS_BASE}/api/account/latest/v1"
         params = {
-            "order": "balance_total:desc",
-            "limit": str(min(max(limit, 1), 100)),
+            "network": "finney",
+            "order":   "balance_total_desc",
+            "page":    "1",
+            "limit":   str(min(max(limit, 1), 200)),  # max per docs is 200
         }
         headers = {
             "Accept": "application/json",
@@ -131,60 +137,63 @@ class WhaleService:
             return
 
         # ── Normalise payload ────────────────────────────────────────────────
-        rows = data.get("data") or data.get("results") or data if isinstance(data, list) else data.get("data", [])
+        # Schema per docs.taostats.io/reference/get-account:
+        #   { "pagination": {...}, "data": [
+        #       { "address": {"ss58": "5...", "hex": "0x..."},
+        #         "rank": 1,
+        #         "balance_total":          "868823010835513",   ← rao string
+        #         "balance_total_24hr_ago": null | "<rao string>",
+        #         "balance_free":           "...", "balance_staked": "...",
+        #         ...
+        #       }, ... ]
+        #   }
+        rows = data.get("data") if isinstance(data, dict) else data
         if not isinstance(rows, list):
             rows = []
 
-        # Total supply: prefer payload, else fall back to TAO cap.
+        # Total supply not present on this endpoint — fall back to 21 M cap.
         total_supply = TAO_MAX_SUPPLY
-        for key in ("total_supply", "circulating_supply"):
-            v = data.get(key) if isinstance(data, dict) else None
-            if v:
-                try:
-                    val = float(v)
-                    # TaoStats serialises supply in rao; divide if it looks like rao
-                    total_supply = val / 1e9 if val > 1e6 else val
-                    break
-                except Exception:
-                    pass
 
         leaderboard: List[Dict[str, Any]] = []
         cumulative_tao = 0.0
         for idx, raw in enumerate(rows, start=1):
-            addr = (
-                raw.get("address")
-                or raw.get("ss58_address")
-                or raw.get("ss58")
-                or raw.get("hotkey")
-                or ""
+            # Address is a nested {"ss58": "...", "hex": "..."} object
+            addr_field = raw.get("address")
+            if isinstance(addr_field, dict):
+                addr = addr_field.get("ss58") or addr_field.get("hex") or ""
+            else:
+                addr = addr_field or raw.get("ss58") or raw.get("hotkey") or ""
+
+            # balance_total is a string in rao — always divide by 1e9 for TAO
+            balance_tao_opt = _rao_string_to_tao(raw.get("balance_total"))
+            balance_24h_ago = _rao_string_to_tao(raw.get("balance_total_24hr_ago"))
+            balance_tao = balance_tao_opt or 0.0   # treat null as 0 for math
+
+            # Δ vs 24h ago, expressed in TAO (positive = accumulation, negative = sell)
+            delta_24h_tao = (
+                round(balance_tao - balance_24h_ago, 4)
+                if balance_24h_ago is not None and balance_tao_opt is not None
+                else None
             )
-            balance_raw = (
-                raw.get("balance_total")
-                or raw.get("balance_total_rao")
-                or raw.get("balance")
-                or 0
-            )
-            try:
-                bv = float(balance_raw)
-                # Convert from rao if the value looks like rao (>1e6 means tens of TAO+)
-                balance_tao = bv / 1e9 if bv > 1_000_000 else bv
-            except Exception:
-                balance_tao = 0.0
 
             share_pct = (balance_tao / total_supply * 100.0) if total_supply > 0 else 0.0
             cumulative_tao += balance_tao
 
+            # Server gives us `rank`; fall back to enumeration index.
+            rank = _safe_int(raw.get("rank"), default=idx) or idx
+
             leaderboard.append({
-                "rank":         idx,
-                "address":      addr,
-                "address_short": _short_addr(addr),
-                "balance_tao":  round(balance_tao, 4),
-                "share_pct":    round(share_pct, 4),
-                "tier":         _classify(share_pct),
-                # 24h delta if TaoStats exposes it
-                "balance_change_24h": _safe_float(raw.get("balance_total_24hr_ago"), default=None),
+                "rank":               rank,
+                "address":            addr,
+                "address_short":      _short_addr(addr),
+                "balance_tao":        round(balance_tao, 4),
+                "balance_24h_ago_tao": round(balance_24h_ago, 4) if balance_24h_ago is not None else None,
+                "share_pct":          round(share_pct, 4),
+                "tier":               _classify(share_pct),
+                "balance_change_24h": delta_24h_tao,
                 "rank_change_24h":    _safe_int(raw.get("rank_change_24hr"), default=None),
-                "taostats_url": f"https://taostats.io/account/{addr}" if addr else None,
+                "block_number":       _safe_int(raw.get("block_number"), default=None),
+                "taostats_url":       f"https://taostats.io/account/{addr}" if addr else None,
             })
 
         # KPI summary
@@ -249,6 +258,20 @@ class WhaleService:
 
 
 # ── helpers ─────────────────────────────────────────────────────────────────
+
+def _rao_string_to_tao(v: Any) -> Optional[float]:
+    """
+    Convert a TaoStats rao field (string or number, possibly null) to TAO float.
+    Returns None when the input is null/empty/unparseable. Always divides by
+    1e9 since this endpoint encodes balances in rao without exception.
+    """
+    if v is None or v == "":
+        return None
+    try:
+        return float(v) / 1e9
+    except Exception:
+        return None
+
 
 def _safe_float(v: Any, default: Optional[float] = None) -> Optional[float]:
     try:
