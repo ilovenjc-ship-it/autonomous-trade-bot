@@ -41,6 +41,43 @@ interface StakesData {
   total_tao_value: number   // total estimated TAO value
 }
 
+// ── Conviction-Era owner overlay (Session XXXIV — carry-over #7) ─────────────
+// Pulled from /api/market/owners; surfaced inline on staking positions so the
+// Operator can see takeover-risk on the subnets they're actively staked into.
+// Compact subset of the full Research-page schema — only fields we render.
+type RiskBand = 'FORTRESS' | 'DEFENDED' | 'CONTESTED' | 'VULNERABLE' | null
+interface WalletOwnerRow {
+  netuid: number
+  is_trading: boolean
+  subnet_name: string | null
+  subnet_category: string | null
+  scorecard_score: number | null
+  owner_share: number | null
+  takeover_risk_score: number | null
+  takeover_risk_band: RiskBand
+}
+interface WalletOwnersResp {
+  owners: WalletOwnerRow[]
+  monitor_netuids: number[]
+  trading_netuids: number[]
+  conviction_unlock_drop_pct: number
+  conviction_unlock_min_tao: number
+  meta_age_s: number
+}
+
+function ownerBandStyle(band: RiskBand): string {
+  switch (band) {
+    case 'FORTRESS':   return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+    case 'DEFENDED':   return 'bg-cyan-500/15 text-cyan-300 border-cyan-500/30'
+    case 'CONTESTED':  return 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+    case 'VULNERABLE': return 'bg-red-500/20 text-red-300 border-red-500/40'
+    default:           return 'bg-slate-700/30 text-slate-500 border-slate-600/30'
+  }
+}
+function ownerBandLabel(band: RiskBand): string {
+  return band ?? 'UNMON'  // un-monitored subnets fall back to a neutral pill
+}
+
 
 
 function AddrBox({ label, addr, show }: { label: string; addr: string; show: boolean }) {
@@ -359,6 +396,8 @@ export default function WalletPage() {
   const [chainInfo,  setChainInfo]  = useState<ChainInfo | null>(null)
   const [stakes,     setStakes]     = useState<StakesData | null>(null)
   const [stakesLoading, setStakesLoading] = useState(false)
+  // Session XXXIV — Conviction-Era owner overlay for staking positions.
+  const [ownersResp, setOwnersResp] = useState<WalletOwnersResp | null>(null)
   const [words,        setWords]        = useState<string[]>(Array(12).fill(''))
   const [showWords,  setShowWords]  = useState(false)
   const [showAddr,   setShowAddr]   = useState(false)
@@ -402,16 +441,29 @@ export default function WalletPage() {
     finally { setStakesLoading(false) }
   }, [])
 
+  // Session XXXIV — Conviction-Era owner snapshot. Soft-fail: a wallet that
+  // can't reach /market/owners (cold cache, dev) still renders normally; we
+  // simply skip the overlay rather than block the positions list.
+  const fetchOwners = useCallback(async () => {
+    try {
+      const { data } = await api.get<WalletOwnersResp>('/market/owners')
+      setOwnersResp(data)
+    } catch {
+      /* swallow — overlay is opportunistic */
+    }
+  }, [])
+
   useEffect(() => {
     loadStatus()
     fetchStakes()
+    fetchOwners()
     // Also grab current TAO price for USD portfolio estimate
     api.get<{ price: number }>('/price/current')
       .then(r => setTaoPrice(r.data.price ?? null))
       .catch(() => {})
-    const t = setInterval(() => { loadStatus(); fetchStakes() }, 30_000)
+    const t = setInterval(() => { loadStatus(); fetchStakes(); fetchOwners() }, 30_000)
     return () => clearInterval(t)
-  }, [loadStatus, fetchStakes])
+  }, [loadStatus, fetchStakes, fetchOwners])
 
   // Query live chain (slower — hits Finney mainnet directly)
   const queryChain = async () => {
@@ -525,6 +577,27 @@ export default function WalletPage() {
   const portfolioTotal = balance + stakedTao
   const usdValue       = taoPrice != null && balance ? balance * taoPrice : null
   const portfolioUsd   = taoPrice != null && portfolioTotal ? portfolioTotal * taoPrice : null
+
+  // ── Session XXXIV: derive Conviction overlay state per position ───────────
+  const ownerByNetuid = new Map<number, WalletOwnerRow>()
+  ;(ownersResp?.owners ?? []).forEach(o => ownerByNetuid.set(o.netuid, o))
+  const monitorSet = new Set<number>(ownersResp?.monitor_netuids ?? [])
+
+  const positionConviction = (() => {
+    const positions = stakes?.stakes ?? []
+    if (!ownersResp || positions.length === 0) {
+      return { monitored: 0, atRisk: 0, fortress: 0, total: positions.length }
+    }
+    let monitored = 0, atRisk = 0, fortress = 0
+    for (const p of positions) {
+      if (!monitorSet.has(p.netuid)) continue
+      monitored += 1
+      const band = ownerByNetuid.get(p.netuid)?.takeover_risk_band
+      if (band === 'VULNERABLE' || band === 'CONTESTED') atRisk += 1
+      if (band === 'FORTRESS') fortress += 1
+    }
+    return { monitored, atRisk, fortress, total: positions.length }
+  })()
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
@@ -1015,14 +1088,81 @@ export default function WalletPage() {
               {/* Positions */}
               {stakes?.stakes && stakes.stakes.length > 0 ? (
                 <div className="space-y-2">
-                  <p className="text-[11px] text-slate-500 font-mono uppercase tracking-wide">Staking Positions</p>
+                  <div className="flex items-center justify-between">
+                    <p className="text-[11px] text-slate-500 font-mono uppercase tracking-wide">Staking Positions</p>
+                    {ownersResp && positionConviction.monitored > 0 && (
+                      <span
+                        className="text-[10px] font-mono text-slate-500"
+                        title="Conviction-Era owner watch — only subnets in MONITOR_OWNERS_NETUIDS are graded"
+                      >
+                        <Shield size={9} className="inline mr-1 -mt-px text-slate-500" />
+                        {positionConviction.monitored}/{positionConviction.total} monitored
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Conviction summary banner — only render when at least one
+                      staked position lands in MONITOR_OWNERS_NETUIDS so we
+                      don't add chrome for irrelevant data. */}
+                  {ownersResp && positionConviction.monitored > 0 && (
+                    <div
+                      className={clsx(
+                        'rounded-lg border px-2.5 py-1.5 flex items-center justify-between text-[10px] font-mono',
+                        positionConviction.atRisk > 0
+                          ? 'bg-red-500/5 border-red-500/30 text-red-300'
+                          : positionConviction.fortress > 0
+                            ? 'bg-emerald-500/5 border-emerald-500/30 text-emerald-300'
+                            : 'bg-slate-800/40 border-slate-700/40 text-slate-400'
+                      )}
+                    >
+                      <span className="flex items-center gap-1.5">
+                        {positionConviction.atRisk > 0 ? (
+                          <AlertTriangle size={11} />
+                        ) : (
+                          <ShieldCheck size={11} />
+                        )}
+                        {positionConviction.atRisk > 0
+                          ? `${positionConviction.atRisk} position${positionConviction.atRisk > 1 ? 's' : ''} on contested/vulnerable subnets`
+                          : positionConviction.fortress > 0
+                            ? `All monitored positions on FORTRESS-grade subnets`
+                            : 'Conviction-Era watch active'}
+                      </span>
+                      <span className="text-slate-500">
+                        ≥{ownersResp.conviction_unlock_drop_pct}% drop · ≥{ownersResp.conviction_unlock_min_tao}τ → alert
+                      </span>
+                    </div>
+                  )}
+
                   {stakes.stakes.map((pos, i) => {
                     const pct = portfolioTotal > 0 ? (pos.tao_value / portfolioTotal) * 100 : 0
+                    const owner = ownerByNetuid.get(pos.netuid)
+                    const isMonitored = monitorSet.has(pos.netuid)
                     return (
                       <div key={i} className="bg-dark-700 border border-dark-600 rounded-lg p-3">
                         <div className="flex items-center justify-between mb-1.5">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 min-w-0">
                             <span className="text-xs font-mono font-bold text-white">SN{pos.netuid}</span>
+                            {/* Risk pill — only show for monitored subnets that
+                                have a populated band. Unmonitored positions
+                                stay clean (no pill). */}
+                            {isMonitored && owner?.takeover_risk_band && (
+                              <span
+                                className={clsx(
+                                  'px-1.5 py-[1px] rounded border text-[9px] font-mono uppercase tracking-wide',
+                                  ownerBandStyle(owner.takeover_risk_band)
+                                )}
+                                title={
+                                  owner.owner_share != null
+                                    ? `Owner share: ${(owner.owner_share * 100).toFixed(1)}% · Risk score: ${owner.takeover_risk_score?.toFixed(2) ?? '—'}`
+                                    : `Conviction band: ${owner.takeover_risk_band}`
+                                }
+                              >
+                                {ownerBandLabel(owner.takeover_risk_band)}
+                              </span>
+                            )}
+                            {owner?.subnet_name && (
+                              <span className="text-[10px] font-mono text-slate-400 truncate">{owner.subnet_name}</span>
+                            )}
                             <span className="text-[10px] font-mono text-slate-500 truncate max-w-[100px]">{pos.hotkey.slice(0, 10)}…</span>
                           </div>
                           <div className="text-right">
@@ -1037,7 +1177,14 @@ export default function WalletPage() {
                         <div className="h-1 bg-dark-600 rounded-full overflow-hidden">
                           <div className="h-full bg-purple-500/60 rounded-full" style={{ width: `${pct}%` }} />
                         </div>
-                        <p className="text-[10px] text-slate-600 font-mono mt-0.5">{pct.toFixed(1)}% of portfolio</p>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <p className="text-[10px] text-slate-600 font-mono">{pct.toFixed(1)}% of portfolio</p>
+                          {isMonitored && owner?.owner_share != null && (
+                            <p className="text-[10px] text-slate-600 font-mono">
+                              owner: {(owner.owner_share * 100).toFixed(1)}%
+                            </p>
+                          )}
+                        </div>
                       </div>
                     )
                   })}
