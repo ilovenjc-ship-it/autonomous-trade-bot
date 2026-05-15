@@ -89,6 +89,35 @@ interface OwnersResp {
   meta_age_s: number
 }
 
+// ─── CEX Listing Watch (carry-over #6) ────────────────────────────────────────
+interface CexFeedStatus {
+  exchange: string
+  url: string
+  ok?: boolean
+  entries?: number
+  fetched_at?: string
+  error?: string | null
+}
+interface CexHit {
+  exchange: string
+  guid: string
+  title: string
+  link: string
+  summary: string
+  published: string
+  matched_keywords: string[]
+  detected_at: string
+}
+interface CexListingsResp {
+  hits: CexHit[]
+  hit_count: number
+  feeds: CexFeedStatus[]
+  last_fetch_at: string | null
+  refresh_interval_s: number
+  cache_path: string
+  keyword_count: number
+}
+
 interface RiskConfig {
   subnet_quality_min_filters?: number
   [k: string]: unknown
@@ -133,6 +162,9 @@ export default function Research() {
   const [scorecard, setScorecard] = useState<ScorecardResp | null>(null)
   const [owners, setOwners] = useState<OwnersResp | null>(null)
   const [risk, setRisk] = useState<RiskConfig | null>(null)
+  // Carry-over #6 — CEX Listing Watch tile
+  const [cexListings, setCexListings] = useState<CexListingsResp | null>(null)
+  const [cexBusy, setCexBusy] = useState(false)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [expandedRow, setExpandedRow] = useState<number | null>(null)
@@ -146,14 +178,17 @@ export default function Research() {
     if (!silent) setLoading(true)
     else setRefreshing(true)
     try {
-      const [sc, ow, rc] = await Promise.all([
+      const [sc, ow, rc, cx] = await Promise.all([
         api.get<ScorecardResp>('/research/subnet-scorecard').then((r) => r.data),
         api.get<OwnersResp>('/market/owners').then((r) => r.data),
         api.get<RiskConfig>('/fleet/risk/config').then((r) => r.data),
+        // CEX listings — soft-fail so a feed outage never blocks the page.
+        api.get<CexListingsResp>('/market/cex-listings').then((r) => r.data).catch(() => null),
       ])
       setScorecard(sc)
       setOwners(ow)
       setRisk(rc)
+      if (cx) setCexListings(cx)
     } catch (e: any) {
       toast.error(`Research load failed: ${e?.message || e}`)
     } finally {
@@ -177,6 +212,23 @@ export default function Research() {
       toast.error(`Hot-reload failed: ${e?.message || e}`)
     }
   }, [load])
+
+  // Carry-over #6 — manual force-refresh for the CEX feed poller. Singleton
+  // lock on the backend prevents accidental dogpiling, so this is safe to
+  // wire directly to a button.
+  const handleCexRefresh = useCallback(async () => {
+    setCexBusy(true)
+    try {
+      const r = await api.get<CexListingsResp>('/market/cex-listings?force=true').then((r) => r.data)
+      setCexListings(r)
+      const okFeeds = r.feeds.filter(f => f.ok).length
+      toast.success(`CEX feeds refreshed — ${okFeeds}/${r.feeds.length} ok · ${r.hit_count} hits buffered`)
+    } catch (e: any) {
+      toast.error(`CEX refresh failed: ${e?.message || e}`)
+    } finally {
+      setCexBusy(false)
+    }
+  }, [])
 
   // ── Derived ─────────────────────────────────────────────────────────────
   const filters = scorecard?.framework.filters ?? []
@@ -480,6 +532,111 @@ export default function Research() {
               <strong className="text-slate-300">Monitor set:</strong>{' '}
               {owners.monitor_netuids.map((n) => `SN${n}`).join(' · ')}
             </span>
+          </div>
+        )}
+      </Section>
+
+      {/* ── CEX Listing Watch (carry-over #6) ─────────────────────────────── */}
+      <Section
+        icon={<Globe className="text-cyan-300" />}
+        title="CEX Listing Watch"
+        subtitle={
+          cexListings
+            ? `${cexListings.hits.length} buffered · ${cexListings.keyword_count} keywords · refresh every ${Math.round(cexListings.refresh_interval_s / 60)} min`
+            : 'RSS poller (Coinbase · Kraken · Crypto.com) — Bittensor / TAO / dTAO / subnet-brand matches'
+        }
+        right={
+          <button
+            onClick={handleCexRefresh}
+            disabled={cexBusy}
+            className={clsx(
+              'flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-mono transition-colors',
+              cexBusy
+                ? 'border-slate-700 text-slate-600 cursor-wait'
+                : 'border-cyan-500/30 text-cyan-300 hover:bg-cyan-500/10'
+            )}
+          >
+            <RefreshCw size={11} className={cexBusy ? 'animate-spin' : ''} />
+            Force refresh
+          </button>
+        }
+      >
+        {/* Feed health row */}
+        {cexListings && cexListings.feeds.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2">
+            {cexListings.feeds.map((f) => {
+              const ok = f.ok === true
+              const cold = f.ok === undefined
+              return (
+                <div
+                  key={f.exchange}
+                  className={clsx(
+                    'flex items-center gap-1.5 rounded-md border px-2 py-1 text-[11px] font-mono',
+                    ok && 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300',
+                    cold && 'border-slate-700 bg-slate-900/40 text-slate-500',
+                    !ok && !cold && 'border-red-500/30 bg-red-500/5 text-red-300'
+                  )}
+                  title={f.error ?? f.url}
+                >
+                  {ok ? <CheckCircle2 size={10} /> : !cold ? <XCircle size={10} /> : <Activity size={10} />}
+                  <span>{f.exchange}</span>
+                  {ok && f.entries != null && (
+                    <span className="text-slate-500">· {f.entries} posts</span>
+                  )}
+                  {!ok && !cold && f.error && (
+                    <span className="truncate max-w-[160px] text-red-400/70">· {f.error}</span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Hits list */}
+        {cexListings && cexListings.hits.length > 0 ? (
+          <div className="space-y-2">
+            {cexListings.hits.slice(0, 10).map((h) => (
+              <a
+                key={h.guid}
+                href={h.link || '#'}
+                target="_blank"
+                rel="noreferrer"
+                className="block rounded-lg border border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-slate-900/40 p-3 transition-colors hover:border-cyan-400/40"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-cyan-300">
+                      <span className="rounded bg-cyan-500/15 px-1.5 py-0.5">{h.exchange}</span>
+                      {h.matched_keywords.slice(0, 4).map((k) => (
+                        <span key={k} className="rounded bg-amber-500/10 px-1.5 py-0.5 text-amber-300">
+                          {k}
+                        </span>
+                      ))}
+                      {h.published && (
+                        <span className="text-slate-500">· {h.published.slice(0, 16)}</span>
+                      )}
+                    </div>
+                    <h4 className="mt-1 text-sm font-semibold text-white">{h.title}</h4>
+                    {h.summary && (
+                      <p className="mt-1 line-clamp-2 text-xs text-slate-400">{h.summary}</p>
+                    )}
+                  </div>
+                  <ExternalLink size={14} className="mt-1 flex-shrink-0 text-slate-500" />
+                </div>
+              </a>
+            ))}
+            {cexListings.hits.length > 10 && (
+              <div className="text-center text-[11px] font-mono text-slate-500">
+                +{cexListings.hits.length - 10} older matches in buffer
+              </div>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-slate-700/40 bg-slate-900/30 px-4 py-6 text-center text-sm text-slate-400">
+            <Eye size={20} className="mx-auto mb-2 text-slate-600" />
+            {cexListings == null
+              ? 'CEX feed cache cold — first poll lands within 10 minutes of boot.'
+              : 'No matching listings detected yet. Watcher fires CEX_LISTING_DETECTED alerts the moment a hit lands.'}
           </div>
         )}
       </Section>

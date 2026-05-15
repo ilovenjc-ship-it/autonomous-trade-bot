@@ -56,6 +56,7 @@ ALERT_COOLDOWN_SECONDS: dict = {
     "GATE_DEMOTION_DRAWDOWN":   0,   # always — rare, important (drawdown safety rail)
     "SUBNET_OWNER_CHANGE":      0,   # always — CRITICAL, on-chain governance event
     "CONVICTION_UNLOCK":     1800,   # 30 min — owner-stake drop heuristic (Conviction Era)
+    "CEX_LISTING_DETECTED":     0,   # always — rare, high-impact catalyst (carry-over #6)
     "SYSTEM":                  60,   # system events — 1 min
     "CONSENSUS_APPROVED":       0,   # always — trade events
     "CONSENSUS_VETOED":         0,   # always — trade events

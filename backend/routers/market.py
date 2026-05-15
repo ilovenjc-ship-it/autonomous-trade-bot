@@ -696,3 +696,43 @@ async def subnet_owners():
         "conviction_unlock_min_tao":    CONVICTION_UNLOCK_MIN_TAO,
         "meta_age_s":                   round(subnet_cache_service.meta_age_seconds, 1),
     }
+
+
+# ─── CEX Listing Watch (carry-over #6) ───────────────────────────────────────
+
+@router.get("/cex-listings")
+async def cex_listings(force: bool = Query(False, description="Force feed refresh")):
+    """
+    CEX Listing Watch — surfaces matches found in the RSS / blog feeds of
+    major centralised exchanges. A "match" is any post whose title or summary
+    contains a Bittensor / TAO / dTAO / known-subnet-brand keyword.
+
+    Returns
+    -------
+    {
+      "hits": [
+        {
+          "exchange": "Coinbase",
+          "title":    "...",
+          "link":     "https://...",
+          "summary":  "...",
+          "guid":     "...",
+          "published": "Tue, 01 Apr 2025 14:00:00 GMT",
+          "matched_keywords": ["bittensor", "$tao"],
+          "detected_at": "2025-05-15T13:42:08Z"
+        },
+        ...
+      ],
+      "hit_count": int,
+      "feeds":   [{exchange, url, ok, entries, fetched_at, error}],
+      "last_fetch_at": "...",
+      "refresh_interval_s": 600,
+      "cache_path": "...",
+      "keyword_count": int
+    }
+
+    `force=true` triggers an immediate refresh (rate-limited internally by
+    the singleton lock — safe to call as a manual refresh button).
+    """
+    from services.cex_listing_service import cex_listing_service
+    return await cex_listing_service.snapshot(force=force)

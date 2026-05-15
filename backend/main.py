@@ -279,6 +279,15 @@ async def lifespan(app: FastAPI):
         except Exception as _e:
             logger.error(f"Price feed start failed: {_e}")
 
+        # CEX Listing Watch (carry-over #6) — RSS-only MVP. Pure HTTP, no
+        # chain dependency, so it boots alongside the lightweight services.
+        try:
+            from services.cex_listing_service import cex_listing_service
+            await cex_listing_service.start()
+            logger.info("CEX listing watch started — RSS poller active")
+        except Exception as _e:
+            logger.error(f"CEX listing watch start failed: {_e}")
+
         # Services that require Finney chain access run as fire-and-forget tasks.
         # bittensor's substrate-interface blocks the event loop thread on connect;
         # running them as tasks lets Discord Gateway and other async work proceed.
@@ -321,6 +330,13 @@ async def lifespan(app: FastAPI):
 
     # ── Graceful shutdown ────────────────────────────────────────────────────
     logger.info("Shutting down services…")
+    # Stop CEX listing watch first — pure HTTP, fastest to drain.
+    try:
+        from services.cex_listing_service import cex_listing_service
+        await cex_listing_service.stop()
+    except Exception as _e:
+        logger.error(f"CEX listing watch stop failed: {_e}")
+
     for svc in [promotion_service, agent_service, cycle_service, price_service, subnet_cache_service]:
         try:
             await svc.stop()
