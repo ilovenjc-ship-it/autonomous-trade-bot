@@ -24,6 +24,7 @@ from routers import bot, trades, price, strategies, fleet, analytics, market, co
 from routers import webhooks as webhooks_router
 from routers import signal_feeds as signal_feeds_router
 from routers import research as research_router
+from routers import tools as tools_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -396,6 +397,7 @@ app.include_router(override.router)
 app.include_router(webhooks_router.router)
 app.include_router(signal_feeds_router.router)
 app.include_router(research_router.router)
+app.include_router(tools_router.router)
 
 
 @app.get("/")

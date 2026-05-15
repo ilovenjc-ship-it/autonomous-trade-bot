@@ -7,6 +7,7 @@ import {
   Landmark,
   ChevronsDownUp, ChevronsUpDown, Bookmark, Undo2,   // Session XXX: sidebar Expand/Collapse + Save-as-Default
   Sparkles,                                         // Session XXXII: Research / Quality Framework
+  Calculator,                                       // Session XXXIII: Operator Tools (Whales + Calc)
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -36,6 +37,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/wallet-transactions':  'Transactions',
   '/override':             'Human Override',
   '/research':             'Research',
+  '/tools':                'Tools',
 }
 
 // ── Sidebar structure ──────────────────────────────────────────────────────
@@ -80,6 +82,8 @@ const navGroups: NavGroup[] = [
       { to: '/market',    icon: Globe,     label: 'Market Data'       },
       // Session XXXII: Const 6-Filter scorecard + Owner Watch + Conviction-Era heuristics
       { to: '/research',  icon: Sparkles,  label: 'Research'          },
+      // Session XXXIII: Whale Tracker + TAO Calculator (Operator Tools)
+      { to: '/tools',     icon: Calculator, label: 'Tools'            },
     ],
   },
   {
