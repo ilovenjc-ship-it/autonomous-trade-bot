@@ -50,7 +50,7 @@ HTTP_TIMEOUT_S    = 12.0
 # Bittensor max supply (21 M TAO) — used when TaoStats payload omits total
 TAO_MAX_SUPPLY    = 21_000_000.0
 
-# ── Persistent cache (Session XXXIV carry-over #10) ─────────────────────────
+# ── Persistent cache (Session XXXIV carry-overs #5 + #10) ───────────────────
 # When TaoStats credits are exhausted (HTTP 429) or the upstream is otherwise
 # unreachable, we still want the Whale Tracker page to render the most recent
 # good snapshot rather than an empty error state.  We considered a Subscan
@@ -59,11 +59,43 @@ TAO_MAX_SUPPLY    = 21_000_000.0
 # the canonical Bittensor explorer, full stop.
 #
 # Solution: persist the last successful snapshot to disk and serve it with a
-# `stale=True` flag when upstream fails.  Path is configurable via
-# WHALE_CACHE_PATH so once we attach a Railway volume (carry-over #5) the
-# cache will survive redeploys without code changes.
+# `stale=True` flag when upstream fails.
+#
+# Path resolution (most-specific → least-specific):
+#   1. WHALE_CACHE_PATH        — explicit override (e.g. "/data/whale.json")
+#   2. DATA_DIR                — Railway-volume mount root (e.g. "/data");
+#                                we append "whale_cache.json" automatically
+#   3. /data/whale_cache.json  — auto-detected if /data exists & is writable
+#                                (zero-config Railway volume support)
+#   4. backend/data/whale_cache.json  — local-dev fallback, lives in the repo
+#
+# Operator setup for Railway (carry-over #5): in the backend service's
+# Settings → Volumes, attach a 1 GB volume mounted at /data.  No code
+# change is needed afterwards — the auto-detect (rule 3) will start
+# writing whale_cache.json there on the next deploy and the disk cache
+# will survive redeploys.
 DEFAULT_CACHE_PATH = "backend/data/whale_cache.json"
-CACHE_PATH         = Path(os.environ.get("WHALE_CACHE_PATH", DEFAULT_CACHE_PATH))
+
+
+def _resolve_cache_path() -> Path:
+    explicit = os.environ.get("WHALE_CACHE_PATH", "").strip()
+    if explicit:
+        return Path(explicit)
+
+    data_dir = os.environ.get("DATA_DIR", "").strip()
+    if data_dir:
+        return Path(data_dir) / "whale_cache.json"
+
+    # Auto-detect a mounted Railway volume at /data.  We check writability
+    # too (volumes mounted readonly should fall back to the in-repo path).
+    railway_volume = Path("/data")
+    if railway_volume.is_dir() and os.access(railway_volume, os.W_OK):
+        return railway_volume / "whale_cache.json"
+
+    return Path(DEFAULT_CACHE_PATH)
+
+
+CACHE_PATH = _resolve_cache_path()
 
 
 def _api_key() -> str:

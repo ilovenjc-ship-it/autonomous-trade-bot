@@ -76,6 +76,33 @@ Railway auto-redeploys. Done.
 
 ---
 
+## Step 6 — Attach a Persistent Volume (Whale Cache)
+
+> Required for the Whale Tracker to survive redeploys when TaoStats credits
+> are exhausted (HTTP 429).  Without this step the disk-cached snapshot is
+> lost on every deploy and the page renders empty until the next quota reset.
+
+1. Open the **backend service** → **Settings** → **Volumes**
+2. Click **+ New Volume**
+3. **Mount path**: `/data`
+4. **Size**: 1 GB is plenty (whale cache + future scorecard cache combined are <1 MB)
+5. Save → Railway redeploys the backend with the volume attached.
+
+**No env-var change is needed** — the backend auto-detects a writable
+`/data` directory and writes `whale_cache.json` there on the next refresh.
+You can verify the resolution by checking the backend logs for:
+
+```
+WhaleService hydrated from disk cache: 100 wallets, age=NNs
+```
+
+Optional explicit override (if you want to mount the volume somewhere
+other than `/data`): set `WHALE_CACHE_PATH` to the absolute path of the
+JSON file, or set `DATA_DIR` to the volume's mount path (the service
+will append `whale_cache.json` automatically).
+
+---
+
 ## What You Get
 
 | Thing | Before | After |

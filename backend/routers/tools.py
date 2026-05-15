@@ -65,6 +65,34 @@ async def whales_leaderboard(
     return payload
 
 
+@router.get("/whales/cache-status")
+async def whales_cache_status():
+    """
+    Diagnostic for the whale-cache disk persistence (carry-over #5 + #10).
+
+    Used to verify a Railway volume mount: after attaching a volume at
+    /data, this endpoint should report `cache_path` rooted there and
+    `exists=true` once at least one successful refresh has run.
+    """
+    from services.whale_service import CACHE_PATH
+    import os, time
+    info: Dict[str, Any] = {
+        "cache_path":   str(CACHE_PATH),
+        "exists":       CACHE_PATH.exists(),
+        "writable_dir": os.access(CACHE_PATH.parent, os.W_OK) if CACHE_PATH.parent.exists() else False,
+        "is_volume":    str(CACHE_PATH).startswith("/data/"),
+    }
+    if info["exists"]:
+        try:
+            stat = CACHE_PATH.stat()
+            info["size_bytes"] = stat.st_size
+            info["mtime"]      = int(stat.st_mtime)
+            info["age_s"]      = max(0, int(time.time() - stat.st_mtime))
+        except Exception as e:    # noqa: BLE001
+            info["stat_error"] = str(e)
+    return info
+
+
 # ════════════════════════════════════════════════════════════════════════════
 # CALCULATOR
 # ════════════════════════════════════════════════════════════════════════════
