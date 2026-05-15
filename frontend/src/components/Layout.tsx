@@ -9,6 +9,7 @@ import {
   Sparkles,                                         // Session XXXII: Research / Quality Framework
   Calculator,                                       // Session XXXIII: Operator Tools (Whales + Calc)
   Heart,                                            // Session XXXIV: System Health page
+  ScrollText,                                       // Session XXXIV: Audit Trail page
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -41,6 +42,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/tools':                'Whale Tracker',
   '/calculator':           'TAO Calculator',
   '/system-health':        'System Health',
+  '/audit':                'Audit Trail',
 }
 
 // ── Sidebar structure ──────────────────────────────────────────────────────
@@ -106,6 +108,7 @@ const navGroups: NavGroup[] = [
       // Session XXXIV: Calculator moved here (Whale Tracker stays in SUBNETS).
       { to: '/calculator',          icon: Calculator, label: 'TAO Calculator'},
       { to: '/system-health',       icon: Heart,      label: 'System Health' },
+      { to: '/audit',               icon: ScrollText, label: 'Audit Trail'   },
     ],
   },
   {

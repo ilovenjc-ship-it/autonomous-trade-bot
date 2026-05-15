@@ -146,6 +146,32 @@ class AlertService:
         except Exception:
             pass   # never let webhook errors affect the alert pipeline
 
+        # ── Audit log (Session XXXIV — Phase B) ────────────────────────────
+        # Only the high-stakes alert types are mirrored to the audit trail —
+        # routine STRATEGY_HOT / DRAWDOWN events stay in the alert ring-buffer
+        # to avoid drowning the audit log in noise.
+        AUDIT_MIRROR_TYPES = {
+            "SUBNET_OWNER_CHANGE",
+            "CEX_LISTING_DETECTED",
+            "CONVICTION_UNLOCK",
+            "GATE_PROMOTION",
+            "GATE_DEMOTION",
+            "GATE_DEMOTION_DRAWDOWN",
+        }
+        if type in AUDIT_MIRROR_TYPES:
+            try:
+                from services.audit_service import audit_service
+                audit_service.record(
+                    action=f"alert:{type.lower()}",
+                    actor=f"service:{strategy or 'system'}",
+                    category="alert",
+                    before=None,
+                    after={"level": level, "title": title, "message": message[:300]},
+                    metadata={"alert_id": alert["id"], "strategy": strategy, "detail": detail[:200] if detail else ""},
+                )
+            except Exception:
+                pass
+
         return alert
 
     # ── Convenience helpers (called by subsystems) ─────────────────────────────

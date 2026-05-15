@@ -124,6 +124,15 @@ async def start_bot():
             # Already running (auto-started on boot) — treat as success
             return {"success": True, "message": "Bot is already running"}
         await cycle_service.start(interval_seconds=60)
+        # Audit log — Phase B
+        try:
+            from services.audit_service import audit_service
+            audit_service.record(
+                action="bot_start", actor="operator", category="lifecycle",
+                before={"running": False}, after={"running": True, "interval_s": 60},
+            )
+        except Exception:
+            pass
         return {"success": True, "message": "Autonomous cycle engine started"}
     except Exception as exc:
         import traceback
@@ -137,6 +146,15 @@ async def stop_bot():
         if not cycle_service.is_running:
             return {"success": True, "message": "Bot is already stopped"}
         await cycle_service.stop()
+        # Audit log — Phase B
+        try:
+            from services.audit_service import audit_service
+            audit_service.record(
+                action="bot_stop", actor="operator", category="lifecycle",
+                before={"running": True}, after={"running": False},
+            )
+        except Exception:
+            pass
         return {"success": True, "message": "Cycle engine stopped"}
     except Exception as exc:
         import traceback
@@ -152,6 +170,13 @@ async def force_paper_mode_on(db: AsyncSession = Depends(get_db)):
     - Resets every strategy in DB back to PAPER_ONLY (persistent across restarts)
     - Does NOT stop the cycle engine — paper simulation continues accumulating stats
     """
+    # Snapshot the live/approved strategies BEFORE the wipe so the audit
+    # log captures what was actually demoted (not just "all to PAPER").
+    _live_before = (await db.execute(
+        select(Strategy.name, Strategy.mode).where(Strategy.mode != "PAPER_ONLY")
+    )).all()
+    _affected = [{"name": r[0], "previous_mode": r[1]} for r in _live_before]
+
     set_force_paper_mode(True)
     # Reset all strategies to PAPER_ONLY in DB — persistent across Railway restarts
     await db.execute(update(Strategy).values(mode="PAPER_ONLY"))
@@ -161,6 +186,19 @@ async def force_paper_mode_on(db: AsyncSession = Depends(get_db)):
         "🛑 PAPER MODE OVERRIDE ACTIVATED — all live execution halted, strategies reset to PAPER_ONLY",
         detail="Manual override via Human Override panel. Resume via /api/bot/resume-live.",
     )
+    # Audit log — Phase B (this is the highest-stakes mutation in the system)
+    try:
+        from services.audit_service import audit_service
+        audit_service.record(
+            action="force_paper_override",
+            actor="operator",
+            category="lifecycle",
+            before={"force_paper_mode": False, "non_paper_strategies": _affected},
+            after={"force_paper_mode": True,  "all_strategies_mode": "PAPER_ONLY"},
+            metadata={"affected_count": len(_affected)},
+        )
+    except Exception:
+        pass
     return {
         "success": True,
         "force_paper_mode": True,
@@ -246,6 +284,15 @@ async def resume_live_mode_on():
         "✅ Paper override lifted — gate system resumed. Strategies must re-earn LIVE promotion.",
         detail="Live execution re-enabled. No strategies are in LIVE mode until they pass gate thresholds.",
     )
+    # Audit log — Phase B
+    try:
+        from services.audit_service import audit_service
+        audit_service.record(
+            action="resume_live", actor="operator", category="lifecycle",
+            before={"force_paper_mode": True}, after={"force_paper_mode": False},
+        )
+    except Exception:
+        pass
     return {
         "success": True,
         "force_paper_mode": False,

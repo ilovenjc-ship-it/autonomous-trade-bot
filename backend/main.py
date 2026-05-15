@@ -26,6 +26,7 @@ from routers import signal_feeds as signal_feeds_router
 from routers import research as research_router
 from routers import tools as tools_router
 from routers import system as system_router
+from routers import audit as audit_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -273,6 +274,10 @@ async def lifespan(app: FastAPI):
             "TaoStats top-N TAO-holder leaderboard (lazy)", stale_after_s=1200)
         system_health.register("cex_listing",    "CEX Listing Watch",
             "RSS poller — Coinbase / Kraken / Crypto.com", stale_after_s=1800)
+        # Phase B — audit_service has no loop; it heartbeats on every record().
+        # Set a long stale window so a quiet day doesn't flag it as stale.
+        system_health.register("audit_service",  "Audit Trail",
+            "Append-only audit log of operator + system mutations", stale_after_s=86400)
     except Exception as _e:
         logger.error(f"system_health pre-registration failed: {_e}")
 
@@ -434,6 +439,7 @@ app.include_router(signal_feeds_router.router)
 app.include_router(research_router.router)
 app.include_router(tools_router.router)
 app.include_router(system_router.router)
+app.include_router(audit_router.router)
 
 
 @app.get("/")

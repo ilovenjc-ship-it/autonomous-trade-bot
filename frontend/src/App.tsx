@@ -24,6 +24,7 @@ import WalletTransactions from './pages/WalletTransactions'
 import Research from './pages/Research'
 import Tools from './pages/Tools'
 import SystemHealth from './pages/SystemHealth'
+import AuditTrail from './pages/AuditTrail'
 
 export default function App() {
   return (
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/tools"                element={<Tools mode="whales" />} />
           <Route path="/calculator"           element={<Tools mode="calc" />}   />
           <Route path="/system-health"        element={<SystemHealth />} />
+          <Route path="/audit"                element={<AuditTrail />} />
           <Route path="/strategy/:name"       element={<StrategyDetail />} />
           <Route path="/openclaw"        element={<OpenClaw />}       />
           <Route path="/ii-agent"        element={<IIAgent />}        />

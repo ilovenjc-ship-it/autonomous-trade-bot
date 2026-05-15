@@ -941,6 +941,14 @@ async def get_risk_status(db: AsyncSession = Depends(get_db)):
 
 @router.post("/risk/config")
 async def update_risk_config(payload: dict):
+    # Snapshot the keys we're about to mutate so the audit log can render
+    # a precise before/after diff (Session XXXIV — Phase B).
+    _audit_keys = [k for k in payload.keys() if k in _RISK_CONFIG] + [
+        # Always snapshot consensus pair since one mutates the other.
+        "consensus_votes", "consensus_threshold",
+    ]
+    _audit_before = {k: _RISK_CONFIG.get(k) for k in _audit_keys if k in _RISK_CONFIG}
+
     # Only accept keys we know about.
     for k, v in payload.items():
         if k in _RISK_CONFIG:
@@ -967,6 +975,25 @@ async def update_risk_config(payload: dict):
     _save_risk_config(_RISK_CONFIG)
 
     _push_event("system", "Risk configuration updated", detail=str(payload)[:80])
+
+    # Audit log — diff only the keys that actually changed value.
+    try:
+        from services.audit_service import audit_service
+        _audit_after = {k: _RISK_CONFIG.get(k) for k in _audit_keys if k in _RISK_CONFIG}
+        _changed_before = {k: v for k, v in _audit_before.items() if _audit_after.get(k) != v}
+        _changed_after  = {k: v for k, v in _audit_after.items()  if _audit_before.get(k) != v}
+        if _changed_after or _changed_before:
+            audit_service.record(
+                action="risk_config_update",
+                actor="operator",
+                category="config",
+                before=_changed_before,
+                after=_changed_after,
+                metadata={"raw_payload_keys": list(payload.keys())},
+            )
+    except Exception:
+        pass
+
     return {"success": True, "config": _RISK_CONFIG}
 
 
