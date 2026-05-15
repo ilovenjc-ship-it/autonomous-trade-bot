@@ -31,9 +31,11 @@ Data path
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import os
 import time
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -47,6 +49,21 @@ REFRESH_INTERVAL  = 90      # seconds — TaoStats free tier is rate-limited
 HTTP_TIMEOUT_S    = 12.0
 # Bittensor max supply (21 M TAO) — used when TaoStats payload omits total
 TAO_MAX_SUPPLY    = 21_000_000.0
+
+# ── Persistent cache (Session XXXIV carry-over #10) ─────────────────────────
+# When TaoStats credits are exhausted (HTTP 429) or the upstream is otherwise
+# unreachable, we still want the Whale Tracker page to render the most recent
+# good snapshot rather than an empty error state.  We considered a Subscan
+# fallback first, but Subscan does not actually run a Bittensor explorer
+# instance (bittensor.api.subscan.io 404s on every endpoint).  TaoStats is
+# the canonical Bittensor explorer, full stop.
+#
+# Solution: persist the last successful snapshot to disk and serve it with a
+# `stale=True` flag when upstream fails.  Path is configurable via
+# WHALE_CACHE_PATH so once we attach a Railway volume (carry-over #5) the
+# cache will survive redeploys without code changes.
+DEFAULT_CACHE_PATH = "backend/data/whale_cache.json"
+CACHE_PATH         = Path(os.environ.get("WHALE_CACHE_PATH", DEFAULT_CACHE_PATH))
 
 
 def _api_key() -> str:
@@ -82,12 +99,20 @@ class WhaleService:
         self._last_payload: Optional[Dict[str, Any]] = None
         self._last_fetch_at: float = 0.0
         self._last_error:  Optional[str] = None
+        # Hydrate from disk so a fresh process after redeploy starts with the
+        # most recent good snapshot rather than an empty leaderboard.
+        self._hydrate_from_disk()
 
     # ── Public ─────────────────────────────────────────────────────────────
 
     async def snapshot(self, limit: int = DEFAULT_LIMIT, force: bool = False) -> Dict[str, Any]:
         """Return a cached payload; refresh if stale or requested."""
         if not _api_key():
+            # Even without a key we may still have a disk cache from a prior
+            # deployment that DID have a key — surface it as stale so the
+            # Operator sees real data instead of a setup screen.
+            if self._last_payload is not None:
+                return self._stale_payload("api_key_missing")
             return self._unconfigured_payload(limit)
 
         now = time.time()
@@ -100,6 +125,11 @@ class WhaleService:
 
         if self._last_payload is None:
             return self._error_payload(limit, self._last_error or "no data yet")
+        # If the most recent refresh attempt failed but we still have data
+        # from a previous successful fetch, mark the payload stale so the UI
+        # can render a "data-frozen" badge.
+        if self._last_error:
+            return self._stale_payload(self._last_error)
         return self._last_payload
 
     # ── Internal ───────────────────────────────────────────────────────────
@@ -225,9 +255,66 @@ class WhaleService:
         }
         self._last_fetch_at = time.time()
         self._last_error    = None
+        # Persist the fresh snapshot to disk so we can survive restarts and
+        # credit-out windows without rendering an empty leaderboard.
+        self._persist_to_disk()
         logger.info(f"WhaleService refreshed: {len(leaderboard)} wallets, {round(share_total,2)}% supply tracked")
 
+    # ── Disk persistence (Session XXXIV) ───────────────────────────────────
+
+    def _hydrate_from_disk(self) -> None:
+        """Load the last persisted snapshot at process start.  Best-effort."""
+        try:
+            if not CACHE_PATH.exists():
+                return
+            raw = CACHE_PATH.read_text()
+            if not raw.strip():
+                return
+            blob = json.loads(raw)
+            payload = blob.get("payload")
+            saved_at = float(blob.get("saved_at", 0.0))
+            if isinstance(payload, dict) and payload.get("leaderboard"):
+                self._last_payload  = payload
+                self._last_fetch_at = saved_at
+                age_s = max(0, int(time.time() - saved_at))
+                logger.info(
+                    f"WhaleService hydrated from disk cache: "
+                    f"{len(payload['leaderboard'])} wallets, age={age_s}s"
+                )
+        except Exception as e:    # noqa: BLE001 — never fail startup over cache
+            logger.warning(f"WhaleService disk hydrate failed (non-fatal): {e}")
+
+    def _persist_to_disk(self) -> None:
+        """Write the current snapshot to disk.  Best-effort."""
+        if self._last_payload is None:
+            return
+        try:
+            CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+            blob = {
+                "saved_at": time.time(),
+                "schema_version": 1,
+                "payload": self._last_payload,
+            }
+            tmp = CACHE_PATH.with_suffix(CACHE_PATH.suffix + ".tmp")
+            tmp.write_text(json.dumps(blob, separators=(",", ":")))
+            tmp.replace(CACHE_PATH)   # atomic on POSIX
+        except Exception as e:        # noqa: BLE001
+            logger.warning(f"WhaleService disk persist failed (non-fatal): {e}")
+
     # ── Fallbacks ──────────────────────────────────────────────────────────
+
+    def _stale_payload(self, reason: str) -> Dict[str, Any]:
+        """
+        Return the most recent good snapshot but tagged stale + reason.
+        Used when the upstream refresh failed (credits out, network) yet we
+        still have a cached payload from an earlier successful fetch.
+        """
+        base = dict(self._last_payload or {})
+        base["stale"]        = True
+        base["stale_reason"] = reason
+        base["stale_age_s"]  = max(0, int(time.time() - self._last_fetch_at))
+        # Keep the leaderboard / KPI intact — only the metadata changes.
+        return base
 
     def _unconfigured_payload(self, limit: int) -> Dict[str, Any]:
         return {

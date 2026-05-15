@@ -54,6 +54,13 @@ interface WhaleRow {
 
 interface WhalesResp {
   configured: boolean
+  // Session XXXIV: when upstream TaoStats refresh fails (credits out, etc.)
+  // but we still have a prior good snapshot on disk, the backend serves that
+  // snapshot with `stale=true` + `stale_reason` + `stale_age_s` instead of
+  // rendering an empty leaderboard.
+  stale?: boolean
+  stale_reason?: string
+  stale_age_s?: number
   fetched_at: number
   count: number
   total_supply: number
@@ -255,7 +262,11 @@ function WhaleTrackerTab() {
     )
   }
 
-  if (data?.error) {
+  // Session XXXIV: only show the hard-error block when there's NO leaderboard
+  // to render.  If we have stale-cached data, show the leaderboard with a
+  // stale-banner at the top instead of bouncing the Operator to an error page.
+  const hasLeaderboard = (data?.leaderboard?.length ?? 0) > 0
+  if (data?.error && !hasLeaderboard) {
     return (
       <div className="rounded-2xl border border-red-500/30 bg-red-950/20 p-6 text-sm text-red-200">
         <AlertTriangle size={18} className="mr-2 inline text-red-400" />
@@ -277,6 +288,33 @@ function WhaleTrackerTab() {
 
   return (
     <div className="space-y-5">
+      {/* ── Stale-cache banner — Session XXXIV ──────────────────────────── */}
+      {data?.stale && (
+        <div className="flex items-start gap-3 rounded-2xl border border-amber-500/30 bg-amber-950/20 px-4 py-3 text-sm text-amber-200">
+          <AlertTriangle size={16} className="mt-0.5 flex-shrink-0 text-amber-400" />
+          <div className="flex-1">
+            <div className="font-semibold text-amber-100">
+              Stale snapshot — upstream refresh blocked
+            </div>
+            <div className="mt-0.5 text-xs text-amber-200/80">
+              Showing the last good snapshot from{' '}
+              <strong>{fmtAge(data.stale_age_s ?? 0)} ago</strong>.{' '}
+              {data.stale_reason?.includes('429') || data.stale_reason?.includes('credits')
+                ? 'TaoStats API credits are exhausted — top up at dash.taostats.io to resume live refresh.'
+                : data.stale_reason?.includes('api_key_missing')
+                ? 'TAOSTATS_API_KEY not set in this environment.'
+                : `Reason: ${data.stale_reason ?? 'upstream unreachable'}`}
+            </div>
+          </div>
+          <button
+            onClick={() => load(true)}
+            className="flex-shrink-0 rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-1.5 text-xs font-medium text-amber-100 hover:bg-amber-500/20"
+          >
+            <RefreshCw size={12} className="mr-1 inline" /> Retry now
+          </button>
+        </div>
+      )}
+
       {/* ── KPI strip ───────────────────────────────────────────────────── */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <KpiCard
