@@ -214,18 +214,54 @@ class PromotionService:
         await self._run_rebalance()
 
     async def _run_rebalance(self) -> None:
-        """Execute the score-weighted capital rebalance algorithm and persist to DB."""
+        """Execute the score-weighted capital rebalance algorithm and persist to DB.
+
+        Session XXXIV (carry-over #2 — Reweight allocation toward
+        Balanced Risk + dTAO Flow Momentum): the prior algorithm gave a
+        synthetic 50.0 fallback score to any strategy with 0 trades and 0
+        PnL.  In paper mode that meant the two disabled strategies (Mean
+        Reversion + Contrarian Flow, both 0 trades) were each landing
+        24.3% of the allocation pool — capital was sitting on the bench
+        instead of flowing to the proven WR leaders.  Two fixes here:
+          1. Disabled strategies (is_active=False or is_enabled=False) now
+             receive ALLOC_FLOOR only — they don't compete in the merit
+             pool.  When they're re-enabled they'll re-enter at floor and
+             earn merit on real trades.
+          2. Active strategies with 0 trades get a small bootstrap score
+             (10.0) instead of 50.0 — enough to climb back if they start
+             firing, but not enough to swallow the merit pool while idle.
+        """
         try:
             async with AsyncSessionLocal() as db:
                 result = await db.execute(select(Strategy))
                 strategies = result.scalars().all()
 
             max_pnl = max((abs(s.total_pnl or 0) for s in strategies), default=0.001) or 0.001
-            scores: dict[str, float] = {}
+
+            # Partition: active competitors get scored vs. one another;
+            # disabled strategies are routed to the floor.
+            active_names:   list[str] = []
+            inactive_names: list[str] = []
             for s in strategies:
+                is_on = (s.is_active is not False) and (s.is_enabled is not False)
+                if is_on:
+                    active_names.append(s.name)
+                else:
+                    inactive_names.append(s.name)
+
+            scores: dict[str, float] = {}
+            BOOTSTRAP_SCORE = 10.0     # was 50.0 — see Session XXXIV note above
+            for s in strategies:
+                if s.name in inactive_names:
+                    # Skip the merit calc — these strategies get the floor
+                    # in the post-loop assembly below.
+                    continue
                 pnl = s.total_pnl or 0
                 wr  = s.win_rate  or 0
-                raw = (wr * 0.6 + (pnl / max_pnl * 100) * 0.4) if (wr > 0 or pnl != 0) else 50.0
+                if (s.total_trades or 0) <= 0:
+                    raw = BOOTSTRAP_SCORE
+                else:
+                    raw = wr * 0.6 + (pnl / max_pnl * 100) * 0.4
                 scores[s.name] = max(0.1, min(100.0, raw))
 
             names      = [s.name for s in strategies]
@@ -233,11 +269,25 @@ class PromotionService:
             floor_pool = ALLOC_FLOOR * n
             merit_pool = ALLOC_TOTAL - floor_pool
 
-            total_score = sum(scores[nm] for nm in names)
             new_alloc: dict[str, float] = {}
 
-            for nm in names:
-                new_alloc[nm] = ALLOC_FLOOR + (scores[nm] / total_score) * merit_pool
+            # Inactive strategies get the floor only — they're parked.
+            for nm in inactive_names:
+                new_alloc[nm] = ALLOC_FLOOR
+
+            if active_names:
+                total_active_score = sum(scores[nm] for nm in active_names) or 0.001
+                # The merit_pool plus the floors-of-inactives we'd otherwise
+                # have spent are redistributed across the active competitors
+                # so all 100% of the allocation budget actually deploys.
+                redistribute = merit_pool + ALLOC_FLOOR * len(inactive_names)
+                for nm in active_names:
+                    share = scores[nm] / total_active_score
+                    new_alloc[nm] = ALLOC_FLOOR + share * redistribute
+            else:
+                # Edge case: no active strategies.  Keep everyone at floor.
+                for nm in active_names:
+                    new_alloc[nm] = ALLOC_FLOOR
 
             # CAP enforcement with bleed redistribution
             for _ in range(10):

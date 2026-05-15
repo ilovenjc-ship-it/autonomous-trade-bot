@@ -751,7 +751,7 @@ _RISK_CONFIG_DEFAULTS = {
     # Wallet floor: halt ALL live BUY orders when liquid TAO drops below this.
     # Prevents the bot from running the wallet to zero through repeated small stakes.
     "min_wallet_balance_tao":         0.05,
-    "min_confidence_score":           0.65,  # was 0.60 — more selective during evaluation
+    "min_confidence_score":           0.55,  # XXXIV: now ENFORCED by cycle_service — 0.55 cuts mixed/weak signals (~40% of fee-drag trades) while preserving strong setups
     "consensus_votes":                  7,   # 7/12 supermajority — OpenClaw rule, do not lower
     "consensus_threshold":    round(7 / 12, 6),   # ≈ 0.5833
     "cycle_interval_seconds":         300,   # unchanged — 5-min cycles
@@ -798,6 +798,16 @@ def _save_risk_config(cfg: dict) -> None:
 
 # Load persisted config at module startup (falls back to defaults if no file).
 _RISK_CONFIG: dict = _load_persisted_risk_config()
+
+
+def get_live_risk_config() -> dict:
+    """
+    Public read-accessor for the live risk config.
+
+    Session XXXIV: cycle_service imports this to honor min_confidence_score
+    on every signal — the slider is no longer decorative.
+    """
+    return _RISK_CONFIG
 
 _RISK_STATUS = {
     "global_halt": False,

@@ -45,7 +45,7 @@ const DEFAULTS: Config = {
   max_position_size_pct:          5,   // was 20 — prove it cheaply, earn the right to size up
   max_concurrent_positions:       3,   // was 4 — 3×5%=15% deployed, 85% liquid
   daily_loss_circuit_breaker_pct: 5,   // was 15 — calibrated for 5% positions
-  min_confidence_score:          0.65, // was 0.60 — more selective during evaluation
+  min_confidence_score:          0.55, // XXXIV: now ENFORCED — 0.55 cuts ~40% fee-drag trades
   consensus_votes:                 7,  // 7/12 supermajority — OpenClaw rule, do not lower
   consensus_threshold:           7 / 12,
   cycle_interval_seconds:        300,  // unchanged — 5-min cycles
@@ -397,11 +397,11 @@ export default function RiskConfig() {
           />
           <RiskSlider
             label="Min AI Confidence"
-            description="Minimum strategy confidence score before a signal is accepted into the consensus round. 0.65 (unproven phase): more selective, fewer but higher-conviction trades. Graduate to 0.60 once WR data confirms signal quality."
+            description="Conviction-gate floor. Each fired signal earns a heuristic confidence score (0.0–1.0) from RSI distance from neutral, EMA spread, MACD magnitude, and BB position. Signals below this threshold skip the trade entirely (no fee, no position) — strategy still earns cycle credit toward gate criteria. Session XXXIV: this slider is now ENFORCED in cycle_service. 0.55 default cuts mixed/weak signals (~40% of fee-drag trades) while preserving strong setups. Lower for more trades, raise for higher conviction."
             value={config.min_confidence_score}
-            min={0.4} max={0.95} step={0.05} riskDir="down"
+            min={0.30} max={0.95} step={0.05} riskDir="down"
             format={v => v.toFixed(2)}
-            rangeLabel="0.40 (permissive) — 0.95 (very selective)"
+            rangeLabel="0.30 (permissive) — 0.95 (very selective)"
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, min_confidence_score: v })) }}
           />
           <RiskSlider

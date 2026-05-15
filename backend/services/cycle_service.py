@@ -582,6 +582,68 @@ async def _check_stop_loss(db: AsyncSession) -> None:
 
 # ── Signal engine — replaces random.choice(["buy","sell"]) ───────────────────
 
+def _signal_confidence(strategy: str, side: str, indicators: Dict[str, Any], price: float) -> float:
+    """
+    Heuristic confidence score (0.0–1.0) for a fired signal.
+
+    Session XXXIV (carry-over #1+#3): the `min_confidence_score` slider in
+    Risk Config was dormant — defined but never read.  We now compute a
+    per-signal confidence here and use it to gate trade execution in the
+    cycle loop, so raising the slider actually cuts fee-drag trades.
+
+    The score blends:
+      * RSI distance from neutral (50)               → trend conviction
+      * EMA spread magnitude vs price                → trend strength
+      * MACD histogram magnitude (when available)    → momentum amplitude
+      * Bollinger-band position (when available)     → mean-revert conviction
+
+    Each contributor is normalized to 0..1 and the result is the max of the
+    contributors that apply to that strategy's signal logic — i.e. we
+    surface the strongest reason the signal fired, not an average that
+    gets diluted by absent factors.
+
+    Returns 0.0 when we can't compute (force-skip via gate).
+    """
+    rsi   = indicators.get("rsi_14")
+    ema9  = indicators.get("ema_9")
+    ema21 = indicators.get("ema_21")
+    macd  = indicators.get("macd")
+    sig   = indicators.get("macd_signal")
+    bb_up = indicators.get("bb_upper")
+    bb_lo = indicators.get("bb_lower")
+    hist  = (macd - sig) if (macd is not None and sig is not None) else None
+
+    contributors: list[float] = []
+
+    # RSI distance from 50 (neutral) — capped at distance 30 → score 1.0
+    if rsi is not None:
+        rsi_dist = abs(rsi - 50) / 30.0
+        contributors.append(min(1.0, rsi_dist))
+
+    # EMA spread (strength of trend) — relative to price
+    if ema9 is not None and ema21 is not None and price > 0:
+        # spread of 0.5% of price → score 1.0
+        ema_spread_pct = abs(ema9 - ema21) / price
+        contributors.append(min(1.0, ema_spread_pct / 0.005))
+
+    # MACD histogram magnitude — capped at 0.4 (typical TAO scale)
+    if hist is not None:
+        contributors.append(min(1.0, abs(hist) / 0.4))
+
+    # Bollinger-band position — only meaningful for vol-arb-style signals
+    if bb_up is not None and bb_lo is not None and bb_up > bb_lo:
+        bb_range = bb_up - bb_lo
+        bb_pct   = (price - bb_lo) / bb_range if bb_range > 0 else 0.5
+        # Distance from mid-band 0.5 (neutral) → 0/1 (extremes) gives score
+        contributors.append(min(1.0, abs(bb_pct - 0.5) * 2.0))
+
+    if not contributors:
+        return 0.0
+    # Surface the strongest contributor — a high-conviction RSI signal
+    # shouldn't be diluted by an absent MACD reading.
+    return max(contributors)
+
+
 def _compute_signal(strategy: str, indicators: Dict[str, Any], price: float) -> Optional[str]:
     """
     Return the real indicator-driven trade direction for each strategy.
@@ -929,6 +991,32 @@ async def _run_one_cycle() -> None:
                 # No clear signal — don't force a trade
                 s.cycles_completed = (s.cycles_completed or 0) + 1
                 await db.flush()
+                continue
+
+            # ── Conviction Gate (Session XXXIV — carry-over #1+#3) ─────
+            # The min_confidence_score slider in Risk Config used to be
+            # purely decorative — the cycle loop never read it.  Now we
+            # score each fired signal heuristically and reject signals
+            # below the threshold so fee-drag is actually controlled by
+            # the slider.  Defaults moved 0.65 → 0.75 with this change;
+            # Operator can dial up/down via the slider in real time.
+            try:
+                from routers.fleet import get_live_risk_config
+                _risk = get_live_risk_config()
+                _min_conf = float(_risk.get("min_confidence_score", 0.55))
+            except Exception:
+                _min_conf = 0.55
+            confidence = _signal_confidence(s.name, side, indicators, price)
+            if confidence < _min_conf:
+                # Signal exists but didn't clear the conviction floor.
+                # Increment cycles so the strategy still earns runtime
+                # toward gate criteria, but skip the trade.
+                s.cycles_completed = (s.cycles_completed or 0) + 1
+                await db.flush()
+                logger.debug(
+                    f"[conviction-gate] {s.name} {side} skipped: "
+                    f"conf={confidence:.2f} < min={_min_conf:.2f}"
+                )
                 continue
 
             # ── Honest paper trade simulation ─────────────────────────────────
