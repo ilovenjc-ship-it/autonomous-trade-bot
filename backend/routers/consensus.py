@@ -113,3 +113,47 @@ async def forecast(
         direction    = direction,
         trials       = trials,
     )
+
+
+# ─── Forecast accuracy (Session XXXVII — Phase F: model-drift gauge) ─────────
+
+@router.get("/forecast-accuracy")
+async def forecast_accuracy(
+    window:        int = Query(50, ge=5, le=500, description="Rolling window size"),
+    recent_limit:  int = Query(20, ge=5, le=100, description="Sparkline history length"),
+):
+    """
+    Calibration metrics for the OpenClaw vote forecaster.
+
+    Every consensus round records (forecast_prob, actual_approved).  This
+    endpoint surfaces aggregate calibration across the last `window`
+    rounds, plus the last `recent_limit` raw samples for a sparkline.
+
+    Returns
+    -------
+    {
+      "summary": {
+        "samples":         int,      # in-window count
+        "lifetime_total":  int,      # all-time records (incl. rotated)
+        "window":          int,
+        "brier_score":     float|None,    # mean((f - a)^2) — lower better
+        "mean_abs_error":  float|None,    # mean(|f - a|)
+        "calibration_pct": float|None,    # (1 - MAE) * 100, friendly score
+        "band":            "calibrated"|"drifting"|"uncalibrated"|"cold",
+        "by_direction":    {BUY:{...}, SELL:{...}},
+        "approved_rate":   float|None,
+        "as_of":           str,
+      },
+      "recent": [   # newest-first
+        {round_id, timestamp, direction, forecast, actual, abs_error, sq_error, market},
+        ...
+      ]
+    }
+
+    The "cold" band is returned when no rounds have completed yet.
+    """
+    from services.forecast_accuracy_service import forecast_accuracy_service
+    return {
+        "summary": forecast_accuracy_service.summary(window=window),
+        "recent":  forecast_accuracy_service.recent(n=recent_limit),
+    }

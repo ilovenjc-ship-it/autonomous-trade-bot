@@ -278,6 +278,11 @@ async def lifespan(app: FastAPI):
         # Set a long stale window so a quiet day doesn't flag it as stale.
         system_health.register("audit_service",  "Audit Trail",
             "Append-only audit log of operator + system mutations", stale_after_s=86400)
+        # Phase F — forecast_accuracy_service heartbeats on every consensus
+        # round (~5 min cadence in steady state).  Stale after 30 min so a
+        # paused cycle engine surfaces visibly on the health page.
+        system_health.register("forecast_accuracy_service", "Forecast Accuracy",
+            "Forecast vs actual calibration tracker for OpenClaw", stale_after_s=1800)
     except Exception as _e:
         logger.error(f"system_health pre-registration failed: {_e}")
 

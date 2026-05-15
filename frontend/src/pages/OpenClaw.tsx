@@ -14,6 +14,7 @@ import {
 import clsx from 'clsx'
 import api from '@/api/client'
 import { InfoBubble } from '@/components/Tooltip'
+import ForecastAccuracyGauge from '@/components/ForecastAccuracyGauge'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -1053,6 +1054,14 @@ export default function OpenClaw() {
               live vote bar so the operator can compare actual vs predicted
               at a glance. Updates every 30 s; user can flip BUY ↔ SELL. */}
           <ForecastPanel />
+
+          {/* Forecast accuracy gauge — Session XXXVII (Phase F). Closes
+              the loop on Phase C: every consensus round records (forecast,
+              actual) and we surface the rolling Brier Skill Score as a
+              0-100% calibration gauge.  Sparkline shows per-round error
+              for the last 20 rounds.  Renders a friendly cold-start state
+              until the first round completes. */}
+          <ForecastAccuracyGauge />
 
           {/* Legend — Session XXIX: relocated from page top-line to here,
               stacked vertically (Votes / Result / Mode rows). Sits above

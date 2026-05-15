@@ -343,6 +343,20 @@ class ConsensusService:
             timestamp      = now,
         )
 
+        # ── Pre-vote forecast (Phase F: model-drift indicator) ──
+        # Run a cheap 200-trial Monte Carlo BEFORE the actual round so we can
+        # compare forecast P(approval) vs actual outcome.  ~30-50ms overhead
+        # per round which is fine for the 5-min cadence.  Soft-fail: any
+        # error here MUST NOT block the live consensus path.
+        forecast_pass_pct: Optional[float] = None
+        try:
+            _fc = self._forecast_pass_pct(direction, trials=200,
+                                          rsi=rsi, macd_hist=macd_hist)
+            forecast_pass_pct = _fc
+        except Exception as _e:
+            logger.warning(f"pre-vote forecast failed (round #{round_id}): {_e}")
+            forecast_pass_pct = None
+
         # ── Collect votes ──
         for bot_name in BOT_PERSONALITIES:
             mode = self._bot_modes.get(bot_name, "PAPER_ONLY")
@@ -431,6 +445,21 @@ class ConsensusService:
             f"HOLD={round_.hold_count} ABSTAIN={round_.abstain_count}"
         )
 
+        # Phase F — record forecast-vs-actual for the model-drift gauge.
+        # Soft-fail: never raise into the consensus path on a recorder bug.
+        if forecast_pass_pct is not None:
+            try:
+                from services.forecast_accuracy_service import forecast_accuracy_service
+                forecast_accuracy_service.record(
+                    round_id        = round_id,
+                    direction       = direction,
+                    forecast_prob   = forecast_pass_pct,
+                    actual_approved = round_.approved,
+                    market          = {"rsi": rsi, "macd_hist": macd_hist, "price": price},
+                )
+            except Exception as _e:
+                logger.warning(f"forecast_accuracy.record post-vote failed: {_e}")
+
         # Persist counters to DB so all-time totals survive redeployments
         import asyncio as _asyncio
         try:
@@ -449,6 +478,44 @@ class ConsensusService:
         )
 
     # ── Forecasting (Session XXXIV — Phase C) ────────────────────────────────
+
+    def _forecast_pass_pct(
+        self,
+        direction: str,
+        trials:    int = 200,
+        rsi:       Optional[float] = None,
+        macd_hist: Optional[float] = None,
+    ) -> float:
+        """Cheap forecast helper used by run_consensus() to feed the
+        forecast-accuracy tracker.  Returns a single number:
+        P(this round approves in the given direction).
+
+        This is a STRIPPED-DOWN forecast — no per-bot stats, no expected
+        tally, no freshness warnings.  Just count how many of N trials
+        approve in the requested direction.
+
+        Reuses the live _cast_vote() so the forecast is by construction
+        unbiased relative to the round it precedes.
+        """
+        if direction not in (VOTE_BUY, VOTE_SELL):
+            return 0.0
+        trials = max(50, min(int(trials), 1000))
+        target_approved = 0
+        bot_names = list(BOT_PERSONALITIES.keys())
+        for _ in range(trials):
+            buy = sell = 0
+            for bot_name in bot_names:
+                mode = self._bot_modes.get(bot_name, "PAPER_ONLY")
+                v = _cast_vote(bot_name, direction, rsi, macd_hist, mode)
+                if v.vote == VOTE_BUY:
+                    buy += 1
+                elif v.vote == VOTE_SELL:
+                    sell += 1
+            if direction == VOTE_BUY and buy >= self._supermajority:
+                target_approved += 1
+            elif direction == VOTE_SELL and sell >= self._supermajority:
+                target_approved += 1
+        return target_approved / trials
 
     def forecast_vote(
         self,
