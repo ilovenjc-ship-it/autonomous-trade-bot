@@ -221,13 +221,20 @@ function pickThoughtBeats(message: string): string[] {
 
 // Minimum dwell time (ms) for the typing bubble — scales with query length so
 // "what is the regime?" feels different from a 30-word multi-clause query.
+//
+// Session XXXV: Mav asked for the thinking pause to be noticeably longer
+// ("5 or 6 seconds — sounds crazy but the delay makes the II Agent feel real").
+// Tuned the floor up to 5,000 ms with up to ~+1,000 ms scaling on long queries,
+// plus ~+500 ms jitter. End-to-end window: roughly 5.0–6.5 s for short prompts,
+// 5.5–6.5 s for verbose ones. Beats cycle every ~900 ms (was 700) so the
+// operator always reads at least 5–6 distinct phrases before the response lands.
 function minDwellMs(message: string): number {
-  const baseMs = 1400
-  const perWordMs = 90
+  const baseMs = 5000
+  const perWordMs = 70
   const wordCount = message.trim().split(/\s+/).length
   const total = baseMs + Math.min(wordCount, 14) * perWordMs
   // Add a small jitter so successive replies don't feel mechanical.
-  return total + Math.floor(Math.random() * 250)
+  return total + Math.floor(Math.random() * 500)
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -857,14 +864,16 @@ export default function IIAgent() {
     }
   }
 
-  // Cycle through thought beats every ~700ms while the bubble is visible.
-  // We hold on the LAST beat (don't loop) so the operator doesn't see the
-  // first beat reappear — preserves the impression of progressive thinking.
+  // Cycle through thought beats every ~900 ms while the bubble is visible.
+  // Session XXXV: bumped from 700 ms to 900 ms to match the longer 5–6 s
+  // dwell — pacing now lets the operator actually read each phrase before it
+  // moves on. We still hold on the LAST beat (don't loop) so the first beat
+  // never re-appears mid-reply.
   useEffect(() => {
     if (!chatLoading || thoughtBeats.length === 0) return
     const id = setInterval(() => {
       setThoughtIdx(i => Math.min(i + 1, thoughtBeats.length - 1))
-    }, 700)
+    }, 900)
     return () => clearInterval(id)
   }, [chatLoading, thoughtBeats])
 
@@ -911,9 +920,19 @@ export default function IIAgent() {
           rsi={lastReport?.rsi ?? null}
         />
 
-        {/* Stat cards — 2 cols */}
+        {/* Stat cards — 2 cols
+            Session XXXV: Fleet PnL relocated to the LEFTMOST position in this
+            grid so it sits directly to the right of the Market Regime card,
+            per Mav's spec. Order is now [Fleet PnL → Analyses Run → Hot
+            Strategies → Recommendations]. */}
         <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
           {[
+            {
+              icon: CheckCircle2, label: 'Fleet PnL',
+              value: `${(status?.total_pnl ?? 0) >= 0 ? '+' : ''}${(status?.total_pnl ?? 0).toFixed(4)}τ`,
+              sub: 'cumulative', accent: (status?.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400',
+              tip: 'Cumulative profit/loss across ALL strategy bots, measured in TAO. Includes paper trades only until a bot earns LIVE promotion. Negative is expected early in paper training.',
+            },
             {
               icon: BarChart3, label: 'Analyses Run',
               value: status?.analysis_count ?? 0,
@@ -925,12 +944,6 @@ export default function IIAgent() {
               value: hotCount,
               sub: `${strugglingCount} struggling`, accent: 'text-emerald-400',
               tip: '🔥 HOT = bot is outperforming with a winning streak. 🔴 STRUGGLING = bot has consecutive losses or a win rate below threshold. Neither is permanent — conditions change every cycle.',
-            },
-            {
-              icon: CheckCircle2, label: 'Fleet PnL',
-              value: `${(status?.total_pnl ?? 0) >= 0 ? '+' : ''}${(status?.total_pnl ?? 0).toFixed(4)}τ`,
-              sub: 'cumulative', accent: (status?.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400',
-              tip: 'Cumulative profit/loss across ALL strategy bots, measured in TAO. Includes paper trades only until a bot earns LIVE promotion. Negative is expected early in paper training.',
             },
             {
               icon: Lightbulb, label: 'Recommendations',
@@ -952,24 +965,28 @@ export default function IIAgent() {
         </div>
       </div>
 
-      {/* ── Chat Panel ── */}
-      <div className="rounded-2xl border border-indigo-500/25 overflow-hidden flex flex-col"
+      {/* ── Chat Panel ──
+          Session XXXV: dominant section colour flipped from indigo → emerald
+          per Mav's spec ("Green w/ Red Indicator"). The red indicator is the
+          HAL-eye dot in the upper-right of the chat orb — a nod to the
+          original red orb concept and to Hal Finney (Finney mainnet). */}
+      <div className="rounded-2xl border border-emerald-500/25 overflow-hidden flex flex-col"
            style={{ background: 'linear-gradient(180deg, #0d1525 0%, #0a1020 100%)' }}>
 
         {/* Chat header — larger, more prominent orb-style */}
-        <div className="flex items-center gap-4 px-5 py-4 border-b border-indigo-500/20"
-             style={{ background: 'linear-gradient(90deg, rgba(99,102,241,0.12) 0%, rgba(139,92,246,0.06) 60%, transparent 100%)' }}>
+        <div className="flex items-center gap-4 px-5 py-4 border-b border-emerald-500/20"
+             style={{ background: 'linear-gradient(90deg, rgba(16,185,129,0.12) 0%, rgba(45,212,191,0.06) 60%, transparent 100%)' }}>
 
-          {/* Chat orb */}
+          {/* Chat orb — emerald body, RED HAL-eye indicator dot */}
           <div className="relative flex-shrink-0">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center
-                            shadow-lg shadow-indigo-500/20"
-                 style={{ boxShadow: '0 0 20px rgba(99,102,241,0.25), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
-              <MessageSquare size={22} className="text-indigo-400" />
+            <div className="w-11 h-11 rounded-2xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center
+                            shadow-lg shadow-emerald-500/20"
+                 style={{ boxShadow: '0 0 20px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
+              <MessageSquare size={22} className="text-emerald-400" />
             </div>
-            {/* Online pulse dot */}
-            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 border-2 border-[#0d1525] flex items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-300 animate-ping absolute" />
+            {/* HAL-eye indicator — red dot nod to the original orb concept and Hal Finney */}
+            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-[#0d1525] flex items-center justify-center">
+              <span className="w-1.5 h-1.5 rounded-full bg-red-300 animate-ping absolute" />
             </span>
           </div>
 
@@ -985,7 +1002,7 @@ export default function IIAgent() {
           </div>
 
           <span className="ml-auto text-[12px] font-mono text-slate-500 flex items-center gap-1.5">
-            <Sparkles size={12} className="text-indigo-400" />
+            <Sparkles size={12} className="text-emerald-400" />
             keyword-matched · real-time indicators
           </span>
         </div>
@@ -997,7 +1014,7 @@ export default function IIAgent() {
               key={qp.label}
               onClick={() => sendChat(qp.text)}
               disabled={chatLoading}
-              className="text-[14px] font-mono px-3 py-1 rounded-full border border-indigo-500/30 bg-indigo-500/10 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-400/50 hover:text-indigo-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="text-[14px] font-mono px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20 hover:border-emerald-400/50 hover:text-emerald-200 transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               {qp.label}
             </button>
@@ -1008,8 +1025,8 @@ export default function IIAgent() {
         <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ minHeight: '320px', maxHeight: '420px' }}>
           {chatHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full py-10 text-center">
-              <div className="w-14 h-14 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center mb-3">
-                <Brain size={26} className="text-indigo-400" />
+              <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mb-3">
+                <Brain size={26} className="text-emerald-400" />
               </div>
               <p className="text-sm font-semibold text-slate-200 mb-1">Ask me anything about the fleet</p>
               <p className="text-xs text-slate-400 font-mono max-w-xs leading-relaxed">
@@ -1066,9 +1083,9 @@ export default function IIAgent() {
               </div>
               <div className="bg-dark-700 border border-dark-600 rounded-2xl rounded-tr-sm px-4 py-3 flex items-center gap-2.5 max-w-[78%]">
                 <span className="flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                  <span className="w-1.5 h-1.5 bg-indigo-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                  <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
                 </span>
                 {thoughtBeats.length > 0 && (
                   <span
@@ -1099,7 +1116,7 @@ export default function IIAgent() {
               disabled={chatLoading}
               className={clsx(
                 'flex-1 bg-dark-700 border border-dark-600 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-200',
-                'placeholder-slate-500 focus:outline-none focus:border-indigo-500/60 focus:ring-1 focus:ring-indigo-500/30',
+                'placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 focus:ring-1 focus:ring-emerald-500/30',
                 'transition-all duration-200 disabled:opacity-50',
               )}
             />
@@ -1109,7 +1126,7 @@ export default function IIAgent() {
               className={clsx(
                 'flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200',
                 chatInput.trim() && !chatLoading
-                  ? 'bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-500/20'
+                  ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-lg shadow-emerald-500/20'
                   : 'bg-dark-700 text-slate-500 border border-dark-600 cursor-not-allowed'
               )}
             >
@@ -1146,9 +1163,9 @@ export default function IIAgent() {
         <div className="lg:col-span-2 bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden flex flex-col">
           <div className="px-4 py-3 border-b border-dark-700 flex items-center gap-2">
             <div className="relative">
-              <Brain size={14} className="text-indigo-400" />
+              <Brain size={14} className="text-emerald-400" />
               {analyzing && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 bg-indigo-500 rounded-full animate-ping" />
+                <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full animate-ping" />
               )}
             </div>
             <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Agent Observation Log</span>

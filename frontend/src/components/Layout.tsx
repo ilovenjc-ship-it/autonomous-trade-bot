@@ -768,11 +768,15 @@ export default function Layout() {
                   <span className="text-xs font-mono text-slate-400 leading-none">Full command authority · manual trades · emergency stop</span>
                 </>
               )}
-              {/* II Agent inline subtitle */}
+              {/* II Agent inline subtitle — Session XXXV: indigo → emerald with
+                  small red HAL-eye dot, matching the section colour swap. */}
               {pathname === '/ii-agent' && (
                 <>
                   <span className="text-slate-600 select-none">·</span>
-                  <span className="text-xs font-mono text-indigo-400/80 leading-none">Master Orchestrator · Regime · Fleet · Consensus</span>
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" title="HAL-eye indicator — homage to the original orb concept and Hal Finney" />
+                    <span className="text-xs font-mono text-emerald-400/80 leading-none">Master Orchestrator · Regime · Fleet · Consensus</span>
+                  </span>
                 </>
               )}
               {/* Analytics inline stats */}
@@ -830,7 +834,7 @@ export default function Layout() {
           {/* Push everything else to the right */}
           <div className="flex-1" />
 
-          {/* II Agent — Run Analysis button */}
+          {/* II Agent — Run Analysis button (Session XXXV: emerald section colour) */}
           {pathname === '/ii-agent' && iiAgentStats && (
             <button
               onClick={iiAgentStats.handleAnalyze}
@@ -838,8 +842,8 @@ export default function Layout() {
               className={clsx(
                 'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all flex-shrink-0 mr-1',
                 iiAgentStats.analyzing
-                  ? 'bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 cursor-wait'
-                  : 'bg-indigo-600/80 text-white hover:bg-indigo-500 border border-indigo-500/50'
+                  ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 cursor-wait'
+                  : 'bg-emerald-600/80 text-white hover:bg-emerald-500 border border-emerald-500/50'
               )}
             >
               {iiAgentStats.analyzing
