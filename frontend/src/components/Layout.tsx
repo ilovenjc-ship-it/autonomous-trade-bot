@@ -10,6 +10,7 @@ import {
   Calculator,                                       // Session XXXIII: Operator Tools (Whales + Calc)
   Heart,                                            // Session XXXIV: System Health page
   ScrollText,                                       // Session XXXIV: Audit Trail page
+  Trash2,                                           // Session XXXV: Reset chat history button
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
 import { useAlerts } from '@/hooks/useAlerts'
@@ -344,6 +345,22 @@ export default function Layout() {
     }
   }, [chatLoading])
 
+  // Session XXXV: clear chat history. Mav: 'no way to delete/clear chat
+  // messages — give it a Reset Option.' DELETE /api/fleet/chat/history wipes
+  // the in-memory ring buffer and we mirror locally so the panel updates
+  // immediately. Confirm prompt prevents an accidental nuke.
+  const clearChatHistory = useCallback(async () => {
+    if (chatHistory.length === 0) return
+    if (!window.confirm('Reset chat with II Agent?\n\nClears all past conversation. This cannot be undone.')) return
+    try {
+      await api.delete('/fleet/chat/history')
+      setChatHistory([])
+      toast.success('Chat reset')
+    } catch {
+      toast.error('Reset failed — check connection')
+    }
+  }, [chatHistory.length])
+
   const startVoice = useCallback(() => {
     if (listening) { recognitionRef.current?.stop(); return }
     const SR = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition
@@ -487,25 +504,52 @@ export default function Layout() {
           })}
         </nav>
 
-        {/* II Agent Orb — compact so Manual Override is fully visible */}
-        <div className="px-4 py-2 border-t border-dark-600 flex flex-col items-center gap-1.5 relative">
+        {/* ── II Agent Orb — Session XXXV: HAL-eye edition ──────────────────
+            Mav's Phase 9 spec: revert to HAL-red (homage to 2001: A Space
+            Odyssey + Hal Finney mainnet), make significantly larger and
+            more prominent ('barely noticeable as is'), slower mystic
+            breathing pulse, brighter glow when pressed, invitational /
+            luring presence. Outer container padding bumped so the orb
+            commands the bottom-left of the sidebar without crowding the
+            Finney Mainnet footer. */}
+        <div className="px-3 py-3 border-t border-dark-600 flex flex-col items-center gap-2 relative">
 
-          {/* ── Floating chat panel — fixed, right of sidebar ── */}
+          {/* ── Floating chat panel — HAL-red theme ── */}
           {orbOpen && (
-            <div className="fixed bottom-6 left-[232px] w-[440px] z-50
-              bg-[#0d1526] border border-emerald-500/25 rounded-xl shadow-[0_0_40px_rgba(52,211,153,0.15)]
+            <div className="fixed bottom-6 left-[232px] w-[460px] z-50
+              bg-[#0d1526] border border-red-500/30 rounded-xl shadow-[0_0_50px_rgba(220,38,38,0.20)]
               flex flex-col overflow-hidden"
-              style={{ height: 520 }}>
+              style={{ height: 540 }}>
 
-              {/* Panel header */}
-              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/60 flex-shrink-0">
+              {/* Panel header — HAL-red accent + reset button */}
+              <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/60 flex-shrink-0"
+                   style={{ background: 'linear-gradient(90deg, rgba(220,38,38,0.10) 0%, rgba(127,29,29,0.05) 60%, transparent 100%)' }}>
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 shadow-[0_0_6px_#34d399] animate-pulse" />
-                  <span className="text-[13px] font-bold tracking-widest text-emerald-400 uppercase">II Agent</span>
+                  <div className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_6px_#f87171] animate-pulse" />
+                  <span className="text-[13px] font-bold tracking-widest text-red-400 uppercase">II Agent</span>
+                  <span className="text-[10px] font-mono text-slate-500 ml-1">orchestrator</span>
                 </div>
-                <button onClick={() => setOrbOpen(false)} className="text-slate-500 hover:text-slate-300 transition-colors">
-                  <ChevronDown size={14} />
-                </button>
+                <div className="flex items-center gap-1">
+                  {/* Reset chat button */}
+                  <button
+                    onClick={clearChatHistory}
+                    title="Reset chat history"
+                    aria-label="Reset chat history"
+                    disabled={chatHistory.length === 0}
+                    className="p-1 rounded text-slate-500 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                  >
+                    <Trash2 size={13} />
+                  </button>
+                  {/* Close panel */}
+                  <button
+                    onClick={() => setOrbOpen(false)}
+                    title="Close panel"
+                    aria-label="Close chat panel"
+                    className="p-1 rounded text-slate-500 hover:text-slate-300 hover:bg-slate-800/60 transition-colors"
+                  >
+                    <ChevronDown size={14} />
+                  </button>
+                </div>
               </div>
 
               {/* Messages */}
@@ -524,7 +568,7 @@ export default function Layout() {
                         : 'bg-slate-800/80 text-slate-200 rounded-bl-sm border border-slate-700/40'
                     )}>
                       {m.role === 'agent' && (
-                        <div className="text-[8px] text-emerald-400 mb-0.5 font-bold tracking-wider">II AGENT</div>
+                        <div className="text-[8px] text-red-400 mb-0.5 font-bold tracking-wider">II AGENT</div>
                       )}
                       {m.content}
                     </div>
@@ -534,7 +578,7 @@ export default function Layout() {
                   <div className="flex justify-start">
                     <div className="bg-slate-800/80 border border-slate-700/40 px-3 py-2 rounded-lg rounded-bl-sm flex gap-1">
                       {[0, 150, 300].map(d => (
-                        <div key={d} className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
+                        <div key={d} className="w-1.5 h-1.5 rounded-full bg-red-400 animate-bounce" style={{ animationDelay: `${d}ms` }} />
                       ))}
                     </div>
                   </div>
@@ -553,7 +597,7 @@ export default function Layout() {
                   onChange={e => setChatInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && sendMessage(chatInput)}
                   placeholder="Ask II Agent…"
-                  className="flex-1 bg-slate-800/60 border border-slate-700/40 rounded-lg px-2.5 py-1.5 text-[14px] text-slate-100 placeholder-slate-500 outline-none focus:border-emerald-500/40 transition-colors"
+                  className="flex-1 bg-slate-800/60 border border-slate-700/40 rounded-lg px-2.5 py-1.5 text-[14px] text-slate-100 placeholder-slate-500 outline-none focus:border-red-500/40 transition-colors"
                 />
                 {/* Mic button — voice option */}
                 <button
@@ -562,8 +606,8 @@ export default function Layout() {
                   className={clsx(
                     'px-2 py-1.5 rounded-lg border transition-all duration-200',
                     listening
-                      ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300 animate-pulse'
-                      : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30'
+                      ? 'bg-red-500/20 border-red-400/50 text-red-300 animate-pulse'
+                      : 'bg-slate-800/60 border-slate-700/40 text-slate-400 hover:text-red-400 hover:border-red-500/30'
                   )}
                 >
                   <Mic size={12} />
@@ -571,7 +615,7 @@ export default function Layout() {
                 <button
                   onClick={() => sendMessage(chatInput)}
                   disabled={chatLoading || !chatInput.trim()}
-                  className="px-2.5 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400 hover:bg-emerald-500/20 disabled:opacity-40 transition-colors"
+                  className="px-2.5 py-1.5 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 hover:bg-red-500/20 disabled:opacity-40 transition-colors"
                 >
                   <Send size={12} />
                 </button>
@@ -579,59 +623,88 @@ export default function Layout() {
             </div>
           )}
 
-          {/* ── The orb button (compact) ── */}
+          {/* ── The HAL Orb — bigger, brighter, slower mystic breath ──
+              Container is w-20/h-20 (80×80) — substantially up from the
+              previous 56×56. The inner red eye is 48×48. Animations:
+                - idle:    `animate-hal-breathe`  (4.2s slow heartbeat glow)
+                - active:  `animate-hal-active`   (2.4s brighter pulse, the
+                           orb feels "engaged" when the chat panel is open)
+                - hover:   subtle scale-up + halo intensifies
+              Dashed outer ring rotates slowly (5.5s) — adds the omniscient
+              "watching" character Mav asked for.
+          */}
           <button
             onClick={() => setOrbOpen(o => !o)}
-            title={orbOpen ? 'Close II Agent' : 'Open II Agent chat'}
-            className="relative w-14 h-14 group focus:outline-none cursor-pointer"
+            title={orbOpen ? 'Close II Agent' : 'Talk to II Agent'}
+            aria-label={orbOpen ? 'Close II Agent chat' : 'Open II Agent chat'}
+            className="relative w-20 h-20 group focus:outline-none cursor-pointer transition-transform duration-300 hover:scale-[1.04] active:scale-[0.97]"
           >
-            {orbOpen && (
-              <span className="absolute inset-0 rounded-full border-2 border-emerald-400/50 animate-ping" />
-            )}
-            {!orbOpen && (
-              <span className="absolute inset-0 rounded-full border border-emerald-500/20 animate-ping opacity-20" />
-            )}
+            {/* Outer rotating ring — slow, dashed; speeds up subtly when active */}
+            <span
+              className={clsx(
+                'absolute inset-0 rounded-full border border-dashed border-red-500/25',
+                orbOpen ? 'animate-hal-active' : 'animate-hal-ring'
+              )}
+              style={orbOpen ? { animation: 'halRing 3s linear infinite' } : undefined}
+            />
+
+            {/* Static inner ring */}
             <span className={clsx(
-              'absolute inset-1 rounded-full border transition-all duration-500',
-              orbOpen ? 'border-emerald-500/40' : 'border-emerald-500/15'
+              'absolute inset-1.5 rounded-full border transition-all duration-700',
+              orbOpen ? 'border-red-400/55' : 'border-red-500/25 group-hover:border-red-400/45'
             )} />
-            <span className={clsx(
-              'absolute inset-0 rounded-full flex items-center justify-center transition-all duration-300',
-              'group-hover:scale-105 group-active:scale-95',
-              orbOpen && 'scale-105',
-            )}>
-              <span className={clsx(
-                'w-10 h-10 rounded-full border flex items-center justify-center transition-all duration-500',
-                orbOpen
-                  ? 'bg-gradient-to-br from-emerald-500/50 to-blue-500/30 border-emerald-400/60 shadow-[0_0_28px_rgba(52,211,153,0.55)]'
-                  : 'bg-gradient-to-br from-emerald-500/25 to-blue-500/15 border-emerald-500/35 group-hover:from-emerald-500/40 group-hover:border-emerald-400/55 group-hover:shadow-[0_0_18px_rgba(52,211,153,0.3)]',
-              )}>
-                <div className={clsx(
-                  'rounded-full transition-all duration-500',
+
+            {/* The HAL eye itself — gradient sphere with breathing/active glow */}
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span
+                className={clsx(
+                  'w-12 h-12 rounded-full flex items-center justify-center transition-all duration-700',
                   orbOpen
-                    ? 'w-4 h-4 bg-emerald-300 shadow-[0_0_20px_#34d399]'
-                    : 'w-3.5 h-3.5 bg-emerald-400 shadow-[0_0_14px_#34d399]'
+                    ? 'bg-gradient-radial from-red-200 via-red-500 to-red-900 animate-hal-active'
+                    : 'bg-gradient-radial from-red-300 via-red-600 to-red-950 animate-hal-breathe',
+                )}
+                style={{
+                  background: orbOpen
+                    ? 'radial-gradient(circle at 35% 30%, #fecaca 0%, #ef4444 35%, #7f1d1d 80%)'
+                    : 'radial-gradient(circle at 35% 30%, #fca5a5 0%, #dc2626 40%, #450a0a 90%)',
+                }}
+              >
+                {/* Inner pupil — the brighter focal point that reads as a "looking" eye */}
+                <span className={clsx(
+                  'rounded-full transition-all duration-700',
+                  orbOpen
+                    ? 'w-3.5 h-3.5 bg-red-100 shadow-[0_0_22px_#fee2e2]'
+                    : 'w-3 h-3 bg-red-200 shadow-[0_0_14px_#fecaca]'
                 )} />
               </span>
             </span>
+
+            {/* Outer glow halo — makes the orb feel like a presence in the room */}
             <span
-              className="absolute inset-0 rounded-full border border-dashed border-emerald-500/25"
-              style={{ animation: orbOpen ? 'spin 2s linear infinite' : 'spin 8s linear infinite' }}
+              aria-hidden
+              className={clsx(
+                'absolute -inset-2 rounded-full pointer-events-none transition-opacity duration-700',
+                orbOpen ? 'opacity-100' : 'opacity-60 group-hover:opacity-90',
+              )}
+              style={{
+                background: 'radial-gradient(circle, rgba(220,38,38,0.18) 0%, rgba(220,38,38,0.06) 50%, transparent 75%)',
+                filter: 'blur(8px)',
+              }}
             />
           </button>
 
-          {/* Label */}
+          {/* Label — HAL-red identity, more confident */}
           <div className="text-center group/label cursor-pointer" onClick={() => setOrbOpen(o => !o)}>
-            <div className="text-[11px] font-extrabold tracking-widest text-emerald-400 uppercase leading-none drop-shadow-[0_0_8px_rgba(52,211,153,0.6)]">
+            <div className="text-[12px] font-extrabold tracking-[0.18em] text-red-400 uppercase leading-none drop-shadow-[0_0_8px_rgba(248,113,113,0.55)]">
               II Agent
             </div>
             <div className={clsx(
-              'text-[10px] mt-0.5 font-mono transition-all duration-200',
+              'text-[10px] mt-1 font-mono transition-all duration-200 leading-none',
               orbOpen
-                ? 'text-emerald-400 animate-pulse opacity-100'
-                : 'text-slate-500 opacity-0 group-hover/label:opacity-100 group-hover/label:text-emerald-400/70'
+                ? 'text-red-400 opacity-100'
+                : 'text-slate-500 opacity-0 group-hover/label:opacity-100 group-hover/label:text-red-400/70'
             )}>
-              {listening ? '● listening…' : orbOpen ? '● active' : '▸ tap to chat'}
+              {listening ? '● listening…' : orbOpen ? '● online' : '▸ tap to chat'}
             </div>
           </div>
         </div>

@@ -31,6 +31,10 @@ export default {
         'thought-fade':  'thoughtFade 0.45s ease-out',
         // Session XXXVII — PageLoader progress bar slide
         'loader-slide': 'loaderSlide 1.2s ease-in-out infinite',
+        // Session XXXV — HAL-eye orb (slow mystic breathing + active glow)
+        'hal-breathe':   'halBreathe 4.2s ease-in-out infinite',
+        'hal-active':    'halActive 2.4s ease-in-out infinite',
+        'hal-ring':      'halRing 5.5s linear infinite',
       },
       keyframes: {
         fadeIn:      { from: { opacity: 0 }, to: { opacity: 1 } },
@@ -42,6 +46,23 @@ export default {
         loaderSlide: {
           '0%':   { transform: 'translateX(-100%)' },
           '100%': { transform: 'translateX(100%)' },
+        },
+        // Idle breathing — subtle, mysterious, slow heartbeat. Only the
+        // glow intensity changes, not the size, so the orb feels alive
+        // without being attention-stealing.
+        halBreathe: {
+          '0%, 100%': { boxShadow: '0 0 14px 2px rgba(220,38,38,0.30), 0 0 32px 6px rgba(220,38,38,0.10), inset 0 0 12px rgba(252,165,165,0.20)' },
+          '50%':      { boxShadow: '0 0 22px 4px rgba(248,113,113,0.55), 0 0 56px 14px rgba(220,38,38,0.20), inset 0 0 18px rgba(252,165,165,0.40)' },
+        },
+        // Active state (chat panel open) — faster, more intense, the orb
+        // is "engaged". Still slower than a typical animate-pulse.
+        halActive: {
+          '0%, 100%': { boxShadow: '0 0 26px 6px rgba(248,113,113,0.65), 0 0 60px 16px rgba(220,38,38,0.30), inset 0 0 22px rgba(254,202,202,0.55)' },
+          '50%':      { boxShadow: '0 0 36px 10px rgba(254,202,202,0.85), 0 0 84px 24px rgba(248,113,113,0.40), inset 0 0 28px rgba(254,242,242,0.75)' },
+        },
+        halRing: {
+          '0%':   { transform: 'rotate(0deg)' },
+          '100%': { transform: 'rotate(360deg)' },
         },
       },
     },

@@ -481,6 +481,22 @@ async def chat_history():
     return {"history": _CHAT_HISTORY[-20:]}
 
 
+@router.delete("/chat/history")
+async def chat_history_clear():
+    """
+    Session XXXV: clear chat history.
+    Mav: 'When Orb is clicked, it displays a chat window of past
+    conversations, but no way to delete/clear chat messages — give it
+    a Reset Option.'
+    Wipes the in-memory ring buffer; survives a page refresh because
+    the buffer is in-process state, but a backend restart already wiped
+    it on its own. Returns the empty list so the frontend can update.
+    """
+    _CHAT_HISTORY.clear()
+    _push_event("system", "Chat history cleared by operator")
+    return {"history": [], "cleared": True}
+
+
 # ── Fleet Bots (Agent Fleet page) ────────────────────────────────────────────
 
 # Capital allocation based on performance score
