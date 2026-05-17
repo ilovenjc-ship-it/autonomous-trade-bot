@@ -521,11 +521,56 @@ export default function Layout() {
               flex flex-col overflow-hidden"
               style={{ height: 540 }}>
 
-              {/* Panel header — HAL-red accent + reset button */}
+              {/* Panel header — HAL-red accent + reset button.
+                  Session XXXVI v9: the previous tiny red pulse dot is
+                  replaced with a MINI HAL EYE — visually identical
+                  anatomy to the main orb (black housing → red iris →
+                  amber pupil → white incandescent pinpoint), just
+                  scaled to ~16px to fit the header line. Per Mav: "copy
+                  the Eye, exactly as it is, (don't remove it) and place
+                  it in the same place as the red indicator dot." Same
+                  breathing rhythm (animate-hal-breathe) so the chat
+                  panel header feels like a window on the same living
+                  presence as the orb in the bottom-left corner. */}
               <div className="flex items-center justify-between px-3 py-2 border-b border-slate-800/60 flex-shrink-0"
                    style={{ background: 'linear-gradient(90deg, rgba(220,38,38,0.10) 0%, rgba(127,29,29,0.05) 60%, transparent 100%)' }}>
                 <div className="flex items-center gap-2">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-400 shadow-[0_0_6px_#f87171] animate-pulse" />
+                  {/* Mini HAL eye — header indicator. Scaled-down clone of
+                      the main orb's core anatomy: breathing red→black
+                      gradient sphere with an amber pupil + white pinpoint
+                      filament. Decorative outer rotating ring + static
+                      ring are omitted at this size because they read as
+                      noise rather than detail at 16px. */}
+                  <span className="relative w-4 h-4 flex-shrink-0" aria-hidden>
+                    {/* Soft outer halo so the eye feels like a presence,
+                        not a sticker. Scaled down version of the main
+                        orb's room-glow halo. */}
+                    <span
+                      className="absolute -inset-0.5 rounded-full pointer-events-none"
+                      style={{
+                        background: 'radial-gradient(circle, rgba(251,191,36,0.10) 0%, rgba(220,38,38,0.18) 30%, rgba(220,38,38,0.06) 60%, transparent 80%)',
+                        filter: 'blur(2.5px)',
+                      }}
+                    />
+                    {/* The eye sphere — same gradient + inset vignette
+                        as the main orb, ratio-preserved at 16px scale. */}
+                    <span
+                      className="absolute inset-0 rounded-full flex items-center justify-center animate-hal-breathe"
+                      style={{
+                        background: 'radial-gradient(circle at 50% 50%, #fde68a 0%, #fbbf24 2%, #f59e0b 6%, #ea580c 11%, #b91c1c 20%, #7f1d1d 33%, #450a0a 45%, #1a0303 55%, #000000 63%, #000000 100%)',
+                        boxShadow: 'inset 0 0 6px 2px rgba(0,0,0,1), inset 0 0 1.5px 0.4px rgba(251,191,36,0.25)',
+                      }}
+                    >
+                      {/* Amber pupil — w-1 (4px) at this size, matches
+                          the ~16% pupil ratio of the main orb's idle
+                          state. Burnt amber-500 + soft halo. */}
+                      <span className="rounded-full bg-amber-500 w-1 h-1 flex items-center justify-center shadow-[0_0_3px_0.7px_rgba(245,158,11,0.6),0_0_5px_1.5px_rgba(180,83,9,0.32)]">
+                        {/* White pinpoint — barely-noticeable filament
+                            at the very heart. w-px (1px) at this scale. */}
+                        <span className="rounded-full bg-white w-px h-px shadow-[0_0_2px_0.4px_rgba(255,251,235,0.88),0_0_3.5px_0.8px_rgba(254,243,199,0.55)]" />
+                      </span>
+                    </span>
+                  </span>
                   <span className="text-[13px] font-bold tracking-widest text-red-400 uppercase">II Agent</span>
                   <span className="text-[10px] font-mono text-slate-500 ml-1">orchestrator</span>
                 </div>
