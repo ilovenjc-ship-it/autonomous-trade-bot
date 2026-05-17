@@ -10,6 +10,7 @@ import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
 import type { Strategy } from '@/types'
+import CycleStatusBar from '@/components/CycleStatusBar'
 import {
   BarChart, Bar, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip,
@@ -265,13 +266,17 @@ function StrategyCard({ s, onRefresh }: { s: Strategy; onRefresh: () => void }) 
           <span className={clsx('px-2 py-0.5 rounded border text-[13px] font-mono font-semibold whitespace-nowrap', mode.badge)}>
             {mode.prefix} {mode.label}
           </span>
-          {/* detail link */}
+          {/* detail link — Session XXXV: prominent always-visible blue Open
+              pill (was a hover-only icon button). Mav: "make this memo more
+              obvious that this option/page is available, similar to the Blue
+              Open pill on the II Agent page". */}
           <button
             onClick={() => navigate(`/strategy/${s.name}`)}
-            className="p-1 rounded text-slate-500 hover:text-accent-blue transition-colors opacity-0 group-hover:opacity-100"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-blue-500/40 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400/60 hover:text-blue-200 transition-all text-[11px] font-mono font-semibold"
             title="Open strategy detail"
           >
-            <ExternalLink size={13} />
+            Open
+            <ExternalLink size={10} />
           </button>
         </div>
       </div>
@@ -558,38 +563,20 @@ export default function Strategies() {
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* ── Top controls — Session XXXIV: Allocation Tier Key + Filters now sit
-            side-by-side as two short vertical-stack columns at the top of the
-            page (was: two long horizontal rows).  Sort stays in its own row
-            below so it can flow full-width on narrow viewports. ───────────── */}
+      {/* ── Cycle Status Bar (Session XXXV: relocated FROM Dashboard) ────────
+            First line on the Strategies page per Mav's spec — same shared
+            <CycleStatusBar /> component used on the OpenClaw page. */}
+      <CycleStatusBar />
+
+      {/* ── Top controls — Session XXXV: Filters and Allocation Tier Key
+            swapped — Filters on the LEFT, Tier Key on the RIGHT (Mav's spec
+            for "uniformity"). 'Filters' header rendered in lowercase mixed
+            case, no longer all-caps. ─────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
 
-        {/* ── Allocation Tier Key (stacked) ─────────────────────────────── */}
+        {/* ── Filters (LEFT) ─────────────────────────────────────────────── */}
         <div className="card p-4">
           <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
-            <BarChart2 size={13} className="text-accent-blue" /> Allocation Tier Key
-          </h2>
-          <div className="flex flex-col gap-2">
-            {(Object.entries(TIERS) as [Tier, TierMeta][]).map(([, t]) => (
-              <div key={t.label} className="flex items-center gap-2 text-xs">
-                <span className={clsx('px-1.5 py-0.5 rounded border text-[13px] font-mono font-bold whitespace-nowrap', t.badgeClass)}>
-                  {t.emoji} {t.label}
-                </span>
-                <span className="text-slate-400">WR ≥ {t.minWr}%</span>
-                <span className={clsx('font-mono font-bold ml-auto', t.allocClass)}>
-                  {t.multiplier === 'SUSP' ? 'Suspended' : t.multiplier + ' capital'}
-                </span>
-              </div>
-            ))}
-          </div>
-          <p className="text-[13px] text-slate-500 mt-3">
-            Capital from suspended strategies flows up to elite performers automatically.
-          </p>
-        </div>
-
-        {/* ── Filters (stacked) ─────────────────────────────────────────── */}
-        <div className="card p-4">
-          <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2 uppercase tracking-widest">
             <ArrowUpDown size={13} className="text-accent-blue" /> Filters
           </h2>
           <div className="flex flex-col gap-3">
@@ -660,6 +647,77 @@ export default function Strategies() {
             </div>
           </div>
         </div>
+
+        {/* ── Allocation Tier Key (RIGHT — Session XXXV: swapped position) ─── */}
+        <div className="card p-4">
+          <h2 className="text-xs font-semibold text-white mb-3 flex items-center gap-2">
+            <BarChart2 size={13} className="text-accent-blue" /> Allocation Tier Key
+          </h2>
+          <div className="flex flex-col gap-2">
+            {(Object.entries(TIERS) as [Tier, TierMeta][]).map(([, t]) => (
+              <div key={t.label} className="flex items-center gap-2 text-xs">
+                <span className={clsx('px-1.5 py-0.5 rounded border text-[13px] font-mono font-bold whitespace-nowrap', t.badgeClass)}>
+                  {t.emoji} {t.label}
+                </span>
+                <span className="text-slate-400">WR ≥ {t.minWr}%</span>
+                <span className={clsx('font-mono font-bold ml-auto', t.allocClass)}>
+                  {t.multiplier === 'SUSP' ? 'Suspended' : t.multiplier + ' capital'}
+                </span>
+              </div>
+            ))}
+          </div>
+          <p className="text-[13px] text-slate-500 mt-3">
+            Capital from suspended strategies flows up to elite performers automatically.
+          </p>
+        </div>
+      </div>
+
+      {/* ── Strategy table legend (Session XXXV: relocated FROM Subnet Analytics)
+            Mav: place this Rank/WR/W-L legend below Filters + Tier Key.
+            Win-rate thresholds reconciled against the canonical TIERS source
+            (this file, lines 33–38) — was 4-tier on the Analytics legend
+            (Elite ≥70 / Gate-ready 55-69 / Watching 40-54 / Struggling <40);
+            now mirrors the actual 5-tier capital-allocation system that
+            drives this page's strategy cards. */}
+      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 px-4 py-2.5 bg-dark-800/70 border border-dark-700/60 rounded-xl text-[12px] font-mono">
+        <span className="text-slate-500 uppercase tracking-widest text-[10px]">Rank</span>
+        <span className="flex items-center gap-1.5 text-yellow-400">🥇 <span className="text-slate-300">#1 by selected sort</span></span>
+        <span className="flex items-center gap-1.5 text-slate-300">🥈 <span className="text-slate-400">#2</span></span>
+        <span className="flex items-center gap-1.5 text-amber-600">🥉 <span className="text-slate-400">#3</span></span>
+
+        <span className="hidden sm:block w-px h-4 bg-dark-600" />
+
+        <span className="text-slate-500 uppercase tracking-widest text-[10px]">Win Rate</span>
+        <span className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-yellow-400/20 text-yellow-300 text-[11px] font-bold">≥65%</span>
+          <span className="text-slate-400">🏆 Elite</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-accent-green/20 text-accent-green text-[11px] font-bold">55–64%</span>
+          <span className="text-slate-400">✅ Solid</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-slate-700/40 text-slate-300 text-[11px] font-bold">45–54%</span>
+          <span className="text-slate-400">⚖️ Neutral</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-yellow-600/20 text-yellow-500 text-[11px] font-bold">35–44%</span>
+          <span className="text-slate-400">⚠️ Weak</span>
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-400 text-[11px] font-bold">&lt;35%</span>
+          <span className="text-slate-400">❌ Failing</span>
+        </span>
+
+        <span className="hidden sm:block w-px h-4 bg-dark-600" />
+
+        <span className="text-slate-500 uppercase tracking-widest text-[10px]">W / L</span>
+        <span className="flex items-center gap-1">
+          <span className="text-accent-green font-bold">W</span>
+          <span className="text-slate-500">/</span>
+          <span className="text-red-400 font-bold">L</span>
+          <span className="text-slate-400 ml-1">= Wins / Losses count</span>
+        </span>
       </div>
 
       {/* ── card grid ───────────────────────────────────────────────────────── */}
