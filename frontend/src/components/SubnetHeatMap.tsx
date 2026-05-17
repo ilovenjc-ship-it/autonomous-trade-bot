@@ -73,19 +73,24 @@ function makeNorm(values: number[]) {
     p90 === p10 ? 0.5 : Math.max(0, Math.min(1, (v - p10) / (p90 - p10)))
 }
 
-/** cold (0) = deep blue → warm (0.5) = indigo/purple → hot (1) = amber-red */
+/** Session XXXV: polarity flipped per Mav's spec.
+ *  Was: cold (low) = blue → hot (high) = amber-red, which read backwards
+ *  ('red is good') in this app's context. Now: low = red (bad), mid = amber,
+ *  high = green (good). Hue ramps 0° (red) → 50° (amber) → 140° (green). */
 function heatColor(norm: number): string {
-  const hue   = Math.round(220 - norm * 220)
-  const sat   = Math.round(60  + norm * 30)
-  const light = Math.round(28  - norm * 6)
+  // 0 → 140° hue (red 0 → green 140 via amber 50 around mid-low)
+  const hue   = Math.round(norm * 140)        // 0° red → 140° green
+  const sat   = Math.round(70 + norm * 15)    // 70–85%
+  const light = Math.round(30 - norm * 8)     // 30%→22%, slightly darker as it greens
   return `hsl(${hue},${sat}%,${light}%)`
 }
 
 function heatText(norm: number): string {
-  if (norm > 0.75) return '#fca5a5'
-  if (norm > 0.5)  return '#fcd34d'
-  if (norm > 0.25) return '#a5b4fc'
-  return '#94a3b8'
+  // Bright text on dark backgrounds — pick contrast-friendly colour per band.
+  if (norm > 0.75) return '#bbf7d0'   // green band
+  if (norm > 0.5)  return '#fcd34d'   // amber band
+  if (norm > 0.25) return '#fca5a5'   // light red band
+  return '#fee2e2'                    // very low: pale red
 }
 
 export default function SubnetHeatMap() {
@@ -94,6 +99,9 @@ export default function SubnetHeatMap() {
   const [hovered,  setHovered]  = useState<SubnetRow | null>(null)
   const [hoverPos, setHoverPos] = useState({ x: 0, y: 0 })
   const [mode,     setMode]     = useState<HeatMode>('stake')
+  // Session XXXV: pagination — 64 cells per page (8×8 grid),
+  // 128 subnets across 2 pages per Mav's spec.
+  const [page,     setPage]     = useState(1)
 
   useEffect(() => {
     api.get<{ subnets: SubnetRow[] }>('/market/subnets?sort=uid&order=asc')
@@ -184,8 +192,9 @@ export default function SubnetHeatMap() {
       </div>
 
       {/* ── Mode description ─────────────────────────────────────────────────── */}
+      {/* Session XXXV: count line shows page slice instead of "64 subnets" */}
       <div className="text-[10px] text-slate-500 font-mono mb-2 flex-shrink-0 leading-none">
-        {modeCfg.desc} · 8×8 · 64 subnets
+        {modeCfg.desc} · 8×8 · subnets {(page - 1) * 64 + 1}–{Math.min(page * 64, subnets.length)} of {subnets.length}
       </div>
 
       {/* ── Heat grid ───────────────────────────────────────────────────────── */}
@@ -194,10 +203,11 @@ export default function SubnetHeatMap() {
           Loading subnet data…
         </div>
       ) : (() => {
-        // Fixed 8×8 = 64 cells for uniformity (SN1–SN64, sorted by UID)
+        // Session XXXV: 8×8 grid paginated across all 128 subnets.
+        // Page 1 = SN1..SN64 (slice 0..64), Page 2 = SN65..SN128 (slice 64..128).
         const COLS = 8, ROWS = 8, SIZE = COLS * ROWS
-        const display = subnets.slice(0, SIZE)
-        // Pad with nulls if fewer than 64 subnets loaded
+        const start   = (page - 1) * SIZE
+        const display = subnets.slice(start, start + SIZE)
         const padded: (SubnetRow | null)[] = [...display, ...Array(Math.max(0, SIZE - display.length)).fill(null)]
         return (
           <div className="flex-1 relative min-h-0">
@@ -219,10 +229,32 @@ export default function SubnetHeatMap() {
                     key={s.uid}
                     onMouseEnter={e => {
                       setHovered(s)
-                      const rect = (e.currentTarget as HTMLElement)
-                        .closest('.relative')!.getBoundingClientRect()
+                      // Session XXXV: anchor tooltip AT the hovered cell, not at
+                      // the upper-left corner. Position it adjacent to the cell
+                      // (default: right-of-cell), flipped to left-of-cell when
+                      // the right edge would overflow, and clamped vertically.
+                      const container = (e.currentTarget as HTMLElement)
+                        .closest('.relative') as HTMLElement
+                      const rect = container.getBoundingClientRect()
                       const el = (e.currentTarget as HTMLElement).getBoundingClientRect()
-                      setHoverPos({ x: el.left - rect.left, y: el.top - rect.top })
+                      const TOOLTIP_W = 200
+                      const TOOLTIP_H = 140
+                      const cellLeft = el.left - rect.left
+                      const cellTop  = el.top  - rect.top
+                      const cellW    = el.right - el.left
+                      // Default: place to the right of the cell (8px gap).
+                      let x = cellLeft + cellW + 8
+                      // If overflow on the right, flip to left of the cell.
+                      if (x + TOOLTIP_W > rect.width) {
+                        x = cellLeft - TOOLTIP_W - 8
+                        if (x < 0) x = Math.max(0, cellLeft)   // last-resort overlap top of cell
+                      }
+                      // Vertical: align tooltip top with cell top, clamp to container.
+                      let y = cellTop
+                      if (y + TOOLTIP_H > rect.height) {
+                        y = Math.max(0, rect.height - TOOLTIP_H)
+                      }
+                      setHoverPos({ x, y })
                     }}
                     onMouseLeave={() => setHovered(null)}
                     className="relative cursor-default select-none rounded flex flex-col items-center justify-center transition-transform hover:scale-105 hover:z-10"
@@ -253,11 +285,11 @@ export default function SubnetHeatMap() {
               })}
             </div>
 
-            {/* Tooltip */}
+            {/* Tooltip — Session XXXV: anchored adjacent to hovered cell */}
             {hovered && (
               <div
                 className="absolute z-20 pointer-events-none"
-                style={{ left: Math.min(hoverPos.x, 380), top: Math.max(0, hoverPos.y - 100) }}
+                style={{ left: hoverPos.x, top: hoverPos.y }}
               >
                 <div className="bg-[#0d1424] border border-slate-700/60 rounded-xl px-3 py-2.5 shadow-2xl min-w-[180px]">
                   <div className="flex items-center justify-between mb-1.5">
@@ -289,6 +321,42 @@ export default function SubnetHeatMap() {
                 </div>
               </div>
             )}
+          </div>
+        )
+      })()}
+
+      {/* ── Pagination — Session XXXV ─────────────────────────────────────── */}
+      {!loading && subnets.length > 64 && (() => {
+        const totalPages = Math.max(1, Math.ceil(subnets.length / 64))
+        return (
+          <div className="mt-2 flex items-center justify-center gap-2 flex-shrink-0 text-[11px] font-mono">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="px-2.5 py-1 rounded border border-slate-700/50 bg-slate-800/40 text-slate-300 hover:bg-slate-700/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              ◀ Prev
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+              <button
+                key={p}
+                onClick={() => setPage(p)}
+                className={`px-2.5 py-1 rounded border transition-colors ${
+                  p === page
+                    ? 'border-orange-500/50 bg-orange-500/15 text-orange-300 font-bold'
+                    : 'border-slate-700/50 bg-slate-800/40 text-slate-400 hover:bg-slate-700/60'
+                }`}
+              >
+                {p === 1 ? 'SN1–64' : `SN${(p - 1) * 64 + 1}–${Math.min(p * 64, 128)}`}
+              </button>
+            ))}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+              className="px-2.5 py-1 rounded border border-slate-700/50 bg-slate-800/40 text-slate-300 hover:bg-slate-700/60 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              Next ▶
+            </button>
           </div>
         )
       })()}

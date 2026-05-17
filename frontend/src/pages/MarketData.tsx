@@ -477,20 +477,21 @@ export default function MarketData() {
               </button>
             ))}
           </div>
+
+          {/* "Actively monitored by II Agent" — Session XXXV: relocated FROM
+              the legend bar (which has been removed) onto the same line as
+              the Search box, sitting right of the APY percentages. */}
+          <span className="flex items-center gap-1.5 ml-auto px-2.5 py-1 rounded-md bg-accent-green/8 border border-accent-green/20 text-[11px] font-mono text-accent-green">
+            <span className="w-2 h-2 rounded-full bg-accent-green animate-pulse flex-shrink-0" />
+            Actively monitored by II Agent
+          </span>
         </div>
       </div>
 
-      {/* ── Legend ─────────────────────────────────────────────────────────── */}
-      <div className="px-4 py-2 flex items-center gap-5 border-b border-dark-700/40 text-[11px] font-mono text-slate-400">
-        <span className="flex items-center gap-1.5">
-          <Star size={10} className="text-yellow-400 flex-shrink-0" />
-          <span>Top 3 subnets by rank</span>
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-accent-green animate-pulse flex-shrink-0" />
-          <span>Actively monitored by II Agent</span>
-        </span>
-      </div>
+      {/* Legend bar removed (Session XXXV) — "Top 3 subnets by rank" was deemed
+          unnecessary by Mav (the gold ⭐ star next to the rank-1/2/3 rows is
+          self-documenting). The "Actively monitored by II Agent" indicator
+          relocated up to the filter row above. */}
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto">
@@ -536,13 +537,20 @@ export default function MarketData() {
                 {/* Rank */}
                 <td className="px-4 py-2.5 text-slate-400 font-mono">{idx + 1}</td>
 
-                {/* Subnet name */}
+                {/* Subnet name — Session XXXV: rank-star + monitor-dot now
+                    live in fixed-width gutters so subnet names line up the
+                    same way regardless of whether either indicator is
+                    present (was: conditional inline, mis-aligned columns). */}
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
-                    {idx < 3 && <Star size={10} className="text-yellow-400 flex-shrink-0" />}
-                    {MONITORED_UIDS.has(s.uid) && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse flex-shrink-0" title="II Agent actively monitors this subnet" />
-                    )}
+                    <span className="flex items-center justify-center w-3 flex-shrink-0">
+                      {idx < 3 && <Star size={10} className="text-yellow-400" />}
+                    </span>
+                    <span className="flex items-center justify-center w-3 flex-shrink-0">
+                      {MONITORED_UIDS.has(s.uid) && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" title="II Agent actively monitors this subnet" />
+                      )}
+                    </span>
                     <div>
                       <p className="text-white font-medium group-hover:text-accent-blue transition-colors">{s.name}</p>
                       <p className="text-slate-400 font-mono text-[11px]">SN{s.uid}</p>

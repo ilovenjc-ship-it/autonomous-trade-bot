@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
   TrendingUp, TrendingDown, Activity, BarChart2,
   Award, RefreshCw, ChevronUp, ChevronDown, Clock,
-  ArrowUp, ArrowDown, Minus,
+  ArrowUp, ArrowDown, Minus, ExternalLink,
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
@@ -25,24 +26,41 @@ function SubnetTrendIcon({ trend }: { trend: string }) {
   if (trend === 'down') return <ArrowDown size={10} className="text-red-400" />
   return <Minus size={10} className="text-slate-500" />
 }
+// Session XXXV: Top Subnet card enlarged + clickable per Mav's spec.
+//   - card width:    160px → 200px (more room, easier to read)
+//   - name text:     12px → 14px
+//   - ticker text:   10px → 12px
+//   - stat tile body: 11px → 13px
+//   - stat tile labels: 9px → 11px
+//   - score row:     10/12px → 12/14px
+//   - whole card now navigates to /market/subnet/:uid (the SubnetDetail page —
+//     Mav's note "Strategy Detail Page" was a near-miss; subnets get the
+//     SubnetDetail page, strategies get the StrategyDetail page).
 function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
+  const navigate = useNavigate()
   const stakePct   = maxStake ? (s.stake_tao / maxStake) * 100 : 0
   const trendColor = s.trend === 'up' ? 'text-emerald-400' : s.trend === 'down' ? 'text-red-400' : 'text-slate-500'
   const scoreColor = s.score >= 90 ? '#34d399' : s.score >= 70 ? '#60a5fa' : s.score >= 50 ? '#fbbf24' : '#f87171'
   return (
-    <div className="flex-shrink-0 w-[160px] bg-dark-900 border border-dark-600 rounded-xl p-3 hover:border-dark-500 transition-colors">
-      <div className="flex items-start justify-between mb-2">
+    <button
+      type="button"
+      onClick={() => navigate(`/market/subnet/${s.uid}`)}
+      title={`Open SN${s.uid} (${s.name}) detail page`}
+      className="group flex-shrink-0 w-[200px] bg-dark-900 border border-dark-600 rounded-xl p-3.5 hover:border-accent-blue/50 hover:bg-dark-800 transition-all text-left"
+    >
+      <div className="flex items-start justify-between mb-2.5">
         <div className="min-w-0">
-          <p className="text-[12px] font-semibold text-white truncate">{s.name}</p>
-          <p className="text-[10px] text-slate-500 font-mono uppercase">{s.ticker}</p>
+          <p className="text-[14px] font-semibold text-white truncate group-hover:text-accent-blue transition-colors">{s.name}</p>
+          <p className="text-[12px] text-slate-500 font-mono uppercase">SN{s.uid} · {s.ticker}</p>
         </div>
-        <div className="flex items-center gap-0.5 flex-shrink-0 ml-1">
+        <div className="flex items-center gap-1 flex-shrink-0 ml-1">
           <SubnetTrendIcon trend={s.trend} />
-          <span className={clsx('text-[9px] font-mono font-bold', trendColor)}>{s.trend.toUpperCase()}</span>
+          <span className={clsx('text-[11px] font-mono font-bold', trendColor)}>{s.trend.toUpperCase()}</span>
+          <ExternalLink size={11} className="text-slate-600 group-hover:text-accent-blue transition-colors ml-0.5" />
         </div>
       </div>
       <div className="mb-2">
-        <div className="flex justify-between text-[10px] font-mono mb-0.5">
+        <div className="flex justify-between text-[12px] font-mono mb-0.5">
           <span className="text-slate-500">Stake</span>
           <span className="text-slate-300">{((s.stake_tao ?? 0) / 1e6).toFixed(2)}M τ</span>
         </div>
@@ -50,26 +68,26 @@ function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
           <div className="h-full bg-blue-500/60 rounded-full" style={{ width: `${stakePct}%` }} />
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-1 mb-2">
-        <div className="bg-dark-800 rounded px-1.5 py-0.5 text-center">
-          <p className="text-[9px] text-slate-500 font-mono">APY</p>
-          <p className="text-[11px] font-bold text-emerald-400 font-mono">{(s.apy ?? 0).toFixed(1)}%</p>
+      <div className="grid grid-cols-2 gap-1.5 mb-2">
+        <div className="bg-dark-800 rounded px-2 py-1 text-center">
+          <p className="text-[11px] text-slate-500 font-mono">APY</p>
+          <p className="text-[13px] font-bold text-emerald-400 font-mono">{(s.apy ?? 0).toFixed(1)}%</p>
         </div>
-        <div className="bg-dark-800 rounded px-1.5 py-0.5 text-center">
-          <p className="text-[9px] text-slate-500 font-mono">Emit</p>
-          <p className="text-[11px] font-bold text-yellow-400 font-mono">{((s.emission ?? 0) * 100).toFixed(2)}%</p>
+        <div className="bg-dark-800 rounded px-2 py-1 text-center">
+          <p className="text-[11px] text-slate-500 font-mono">Emit</p>
+          <p className="text-[13px] font-bold text-yellow-400 font-mono">{((s.emission ?? 0) * 100).toFixed(2)}%</p>
         </div>
       </div>
       <div>
-        <div className="flex justify-between text-[10px] font-mono mb-0.5">
+        <div className="flex justify-between text-[12px] font-mono mb-0.5">
           <span className="text-slate-500">Score</span>
-          <span className="font-bold" style={{ color: scoreColor }}>{(s.score ?? 0).toFixed(1)}</span>
+          <span className="font-bold text-[14px]" style={{ color: scoreColor }}>{(s.score ?? 0).toFixed(1)}</span>
         </div>
         <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
           <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.score ?? 0)}%`, background: scoreColor }} />
         </div>
       </div>
-    </div>
+    </button>
   )
 }
 
