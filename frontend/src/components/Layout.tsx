@@ -654,18 +654,20 @@ export default function Layout() {
               orbOpen ? 'border-red-400/55' : 'border-red-500/25 group-hover:border-red-400/45'
             )} />
 
-            {/* The HAL eye itself — Session XXXVI: amber hot-core upgrade.
-                Mav's spec: combine BLACK + RED + AMBER (true HAL palette,
-                referencing the 2001 lens). The previous build was pure red
-                — too monochrome. Now the gradient reads:
-                  centre  — amber-white (#fef3c7) → amber-400 (#fbbf24)
-                  mid     — amber-500 (#f59e0b) → red-500 (#ef4444)
-                  outer   — red-900 (#7f1d1d) → near-black (#1a0303)
-                That's the bright filament glow at the heart of the lens,
-                fading through orange/red into the dark housing. The pupil
-                also flips from red-200 to amber-200 with an amber halo so
-                the focal point reads as the hot incandescent point Mav
-                pointed to in the reference images. ─────────────────────── */}
+            {/* The HAL eye itself — Session XXXVI v2: anatomically-banded.
+                Mav's refined spec: read centre→edge as
+                  • white pinpoint (tiny incandescent core)
+                  • amber pupil (the warm focal ring)
+                  • red iris (the main body)
+                  • near-black housing (the lens shell)
+                Previous v1 had amber dominating the outside, which inverted
+                the anatomy. v2 compresses the amber to a tight pupil-band
+                (4-18% of the radius), expands the red iris to do most of
+                the visible work (22-58%), and pushes the dark housing all
+                the way out to the rim (60-100% blends red-950 → pure black).
+                The white pinpoint is rendered as a separate inner span so
+                it stays sharp and crystalline rather than blurring into
+                the amber band. ──────────────────────────────────────────── */}
             <span className="absolute inset-0 flex items-center justify-center">
               <span
                 className={clsx(
@@ -674,30 +676,40 @@ export default function Layout() {
                 )}
                 style={{
                   background: orbOpen
-                    // Active — brighter amber core, fully saturated red mid-band, deep black edge
-                    ? 'radial-gradient(circle at 38% 32%, #fffbeb 0%, #fcd34d 8%, #f59e0b 20%, #ef4444 42%, #991b1b 72%, #1a0303 96%)'
-                    // Idle — slightly cooler amber, slower fall-off, deeper black at the rim
-                    : 'radial-gradient(circle at 38% 32%, #fef3c7 0%, #fbbf24 9%, #f59e0b 22%, #dc2626 44%, #7f1d1d 74%, #120202 97%)',
+                    // Active — pupil glows hotter, iris is fully saturated red, housing stays jet black
+                    ? 'radial-gradient(circle at 38% 32%, #fef3c7 0%, #fcd34d 5%, #f59e0b 14%, #ea580c 22%, #ef4444 32%, #b91c1c 50%, #4c0519 70%, #1a0303 86%, #000000 100%)'
+                    // Idle — slightly cooler pupil, deeper red iris, edge falls to true black
+                    : 'radial-gradient(circle at 38% 32%, #fde68a 0%, #fbbf24 6%, #f59e0b 14%, #dc2626 26%, #991b1b 46%, #450a0a 66%, #1a0303 84%, #000000 100%)',
                   boxShadow: orbOpen
-                    ? 'inset 0 0 14px 2px rgba(0,0,0,0.55), inset 0 0 4px 1px rgba(245,158,11,0.35)'
-                    : 'inset 0 0 12px 2px rgba(0,0,0,0.65), inset 0 0 3px 1px rgba(245,158,11,0.25)',
+                    // Inner shadow rims the lens housing in deeper black so
+                    // the edge falls off into the dark like a real glass dome
+                    ? 'inset 0 0 18px 4px rgba(0,0,0,0.75), inset 0 0 5px 1px rgba(252,211,77,0.4)'
+                    : 'inset 0 0 16px 4px rgba(0,0,0,0.85), inset 0 0 4px 1px rgba(251,191,36,0.28)',
                 }}
               >
-                {/* Inner pupil — the bright incandescent focal point.
-                    Amber/cream-white instead of red-pink so it reads as a
-                    hot filament rather than just a brighter red dot. */}
+                {/* Inner pinpoint — Session XXXVI v2: a small WHITE focal
+                    dot sitting at the heart of the amber pupil. Reads as
+                    the incandescent filament glowing through the warm
+                    pupil ring. Smaller than v1 (w-2 vs w-3) so it's a true
+                    pinpoint rather than a dot, with a soft amber-tinted
+                    halo that bleeds into the surrounding gradient. */}
                 <span className={clsx(
                   'rounded-full transition-all duration-700',
                   orbOpen
-                    ? 'w-3.5 h-3.5 bg-amber-100 shadow-[0_0_24px_4px_rgba(252,211,77,0.85)]'
-                    : 'w-3 h-3 bg-amber-200 shadow-[0_0_16px_2px_rgba(251,191,36,0.7)]'
+                    // Active: slightly larger, brighter, hot amber halo
+                    ? 'w-2.5 h-2.5 bg-white shadow-[0_0_16px_3px_rgba(254,243,199,0.95),0_0_28px_8px_rgba(252,211,77,0.55)]'
+                    // Idle: tiny white pinpoint, softer amber halo
+                    : 'w-2 h-2 bg-white shadow-[0_0_10px_2px_rgba(254,249,195,0.85),0_0_20px_5px_rgba(251,191,36,0.4)]'
                 )} />
               </span>
             </span>
 
-            {/* Outer glow halo — Session XXXVI: dual-tone halo (amber inner,
-                red outer) so the orb's "presence in the room" matches the
-                new amber+red palette of the eye itself. ─────────────────── */}
+            {/* Outer glow halo — Session XXXVI v2: red-dominant (was: amber
+                inner / red outer). Now the eye itself owns the amber, and
+                the room-glow is mostly red — like the eye's red body is
+                spilling into the surrounding space. Subtle amber kiss
+                lingers at the very inner edge of the halo so the warmth
+                still reads. ────────────────────────────────────────────── */}
             <span
               aria-hidden
               className={clsx(
@@ -705,8 +717,8 @@ export default function Layout() {
                 orbOpen ? 'opacity-100' : 'opacity-65 group-hover:opacity-95',
               )}
               style={{
-                background: 'radial-gradient(circle, rgba(251,191,36,0.22) 0%, rgba(220,38,38,0.14) 35%, rgba(220,38,38,0.05) 65%, transparent 80%)',
-                filter: 'blur(9px)',
+                background: 'radial-gradient(circle, rgba(251,191,36,0.12) 0%, rgba(220,38,38,0.22) 25%, rgba(220,38,38,0.10) 55%, rgba(220,38,38,0.03) 75%, transparent 85%)',
+                filter: 'blur(10px)',
               }}
             />
           </button>
