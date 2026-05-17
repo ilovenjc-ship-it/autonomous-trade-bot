@@ -26,18 +26,18 @@ const PAGE_TITLES: Record<string, string> = {
   '/ii-agent':             'II Agent',
   '/openclaw':             'OpenClaw BFT',
   '/fleet':                'Agent Fleet',
-  '/alerts':               'Alerts',
+  '/alerts':               'Alerts Log',
   '/trades':               'Manual Trades',
   '/trade-log':            'Trade Log',
   '/analytics':            'Subnet Analytics',
   '/pnl':                  'P&L Summary',
-  '/market':               'Subnet Data',
+  '/market':               'Subnet Market Data',
   '/strategies':           'Strategies',
   '/activity':             'Activity Log',
   '/risk':                 'Risk Config',
   '/wallet':               'Wallet',
   '/wallet-transactions':  'Transactions',
-  '/override':             'Human Override',
+  '/override':             'Manual Override',
   '/research':             'Subnet Scorecard',
   '/tools':                'Whale Tracker',
   '/calculator':           'TAO Calculator',
@@ -80,23 +80,28 @@ const navGroups: NavGroup[] = [
       { to: '/pnl',       icon: DollarSign,  label: 'P&L Summary' },
     ],
   },
+  // Session XXXV: ACTIVITIES moved up — sits between PERFORMANCE and SUBNETS
+  // per Mav. Logical grouping: performance metrics → activity/alert feeds →
+  // deeper dive into subnets.
+  {
+    heading: 'ACTIVITIES',
+    items: [
+      { to: '/alerts',    icon: Bell,     label: 'Alerts Log',   badge: true },
+      { to: '/activity',  icon: Activity, label: 'Activity Log' },
+      { to: '/trade-log', icon: BookOpen, label: 'Trade Log'    },
+    ],
+  },
   {
     heading: 'SUBNETS',
     items: [
       { to: '/analytics', icon: BarChart2, label: 'Subnet Analytics' },
-      { to: '/market',    icon: Globe,     label: 'Subnet Data'      },
+      { to: '/market',    icon: Globe,     label: 'Subnet Market Data' },
       // Session XXXII: Const 6-Filter scorecard + Owner Watch + Conviction-Era heuristics
       { to: '/research',  icon: Sparkles,  label: 'Subnet Scorecard' },
       // Session XXXIV: Whale Tracker stays under SUBNETS; Calculator moved to ADMIN.
+      // Session XXXV note: Whale Tracker page slated for deletion in Phase 8 —
+      // graphic moves into a Dashboard tile. This nav item will be removed at that point.
       { to: '/tools',     icon: Calculator, label: 'Whale Tracker'   },
-    ],
-  },
-  {
-    heading: 'ACTIVITIES',
-    items: [
-      { to: '/alerts',    icon: Bell,     label: 'Alerts',      badge: true },
-      { to: '/activity',  icon: Activity, label: 'Activity Log' },
-      { to: '/trade-log', icon: BookOpen, label: 'Trade Log'    },
     ],
   },
   {
@@ -115,7 +120,7 @@ const navGroups: NavGroup[] = [
     heading: 'ACTION',
     items: [
       { to: '/trades',    icon: ArrowLeftRight, label: 'Manual Trades'                 },
-      { to: '/override',  icon: ShieldOff,      label: 'Human Override', danger: true  },
+      { to: '/override',  icon: ShieldOff,      label: 'Manual Override', danger: true  },
     ],
   },
 ]
@@ -480,7 +485,7 @@ export default function Layout() {
           })}
         </nav>
 
-        {/* II Agent Orb — compact so Human Override is fully visible */}
+        {/* II Agent Orb — compact so Manual Override is fully visible */}
         <div className="px-4 py-2 border-t border-dark-600 flex flex-col items-center gap-1.5 relative">
 
           {/* ── Floating chat panel — fixed, right of sidebar ── */}
@@ -756,7 +761,7 @@ export default function Layout() {
                   <span className="text-xs font-mono text-slate-400 leading-none">Pre-trade guardrails · position limits</span>
                 </>
               )}
-              {/* Human Override subtitle */}
+              {/* Manual Override subtitle */}
               {pathname === '/override' && (
                 <>
                   <span className="text-slate-600 select-none">·</span>

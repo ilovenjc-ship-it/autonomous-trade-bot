@@ -348,7 +348,7 @@ export default function AlertInbox() {
       <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
         <div className="px-4 py-3 border-b border-dark-700 flex items-center gap-2">
           <Bell size={13} className="text-slate-300" />
-          <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Alerts</span>
+          <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Alerts Log</span>
           <span className="ml-auto text-[13px] text-slate-300 font-mono">{filtered.length} shown</span>
         </div>
 

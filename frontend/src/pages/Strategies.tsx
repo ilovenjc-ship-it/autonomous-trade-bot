@@ -673,7 +673,7 @@ export default function Strategies() {
         </div>
       )}
 
-      {/* Strategy Mode Override relocated to Human Override (Session XXVI) */}
+      {/* Strategy Mode Override relocated to Manual Override (Session XXVI; renamed XXXV) */}
       {/* Strategy PnL Distribution relocated to P&L Summary (Session XXVI) */}
 
       </div>{/* end scrollable */}

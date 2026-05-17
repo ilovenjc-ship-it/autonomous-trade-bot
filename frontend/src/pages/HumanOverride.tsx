@@ -181,7 +181,7 @@ export default function HumanOverride() {
       const res = await api.post('/override/trade', {
         action: tradeAction,
         amount,
-        reason: tradeReason || `Human override — manual ${tradeAction}`,
+        reason: tradeReason || `Manual override — operator ${tradeAction}`,
       })
       if (res.data.success) {
         toast.success(`✅ Manual ${tradeAction.toUpperCase()} ${amount} τ @ $${res.data.price?.toFixed(2)} executed`)

@@ -95,7 +95,7 @@ export default function App() {
           <Route path="/strategies"           element={<Suspense fallback={<PageLoader />}><Strategies /></Suspense>} />
           <Route path="/wallet"               element={<Suspense fallback={<PageLoader />}><WalletPage /></Suspense>} />
           <Route path="/wallet-transactions"  element={<Suspense fallback={<PageLoader />}><WalletTransactions /></Suspense>} />
-          {/* Settings route removed — content absorbed into Human Override + Trades + Wallet (Session XXVI) */}
+          {/* Settings route removed — content absorbed into Manual Override + Trades + Wallet (Session XXVI) */}
         </Route>
       </Routes>
     </BrowserRouter>

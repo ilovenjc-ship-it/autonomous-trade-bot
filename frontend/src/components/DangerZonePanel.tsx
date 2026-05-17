@@ -1,6 +1,6 @@
 /**
  * Danger Zone — compact destructive-operations panel.
- * Relocated from Settings → Human Override (Session XXV spec).
+ * Relocated from Settings → Manual Override (Session XXV spec; renamed XXXV).
  * Smaller footprint; two-step confirm preserved for safety.
  */
 import { useState } from 'react'
