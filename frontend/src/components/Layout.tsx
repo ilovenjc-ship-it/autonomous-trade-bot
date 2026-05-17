@@ -676,10 +676,12 @@ export default function Layout() {
                 )}
                 style={{
                   background: orbOpen
-                    // Active — red iris compressed into the inner third, dominant black ring fills the outer half
-                    ? 'radial-gradient(circle at 38% 32%, #fef3c7 0%, #fcd34d 3%, #f59e0b 10%, #ea580c 16%, #dc2626 24%, #991b1b 35%, #450a0a 46%, #1a0303 55%, #000000 63%, #000000 100%)'
-                    // Idle — same compression, slightly cooler pupil, even harder transition into black at the rim
-                    : 'radial-gradient(circle at 38% 32%, #fde68a 0%, #fbbf24 4%, #f59e0b 11%, #ea580c 17%, #b91c1c 25%, #7f1d1d 36%, #450a0a 48%, #1a0303 57%, #000000 64%, #000000 100%)',
+                    // Active — gradient origin centred (50% 50%) to match the
+                    // white pinpoint span; amber pupil zone tightened so the
+                    // bright area is a small, contained focal point not a sprawl
+                    ? 'radial-gradient(circle at 50% 50%, #fef3c7 0%, #fcd34d 2%, #f59e0b 6%, #ea580c 10%, #dc2626 18%, #991b1b 32%, #450a0a 44%, #1a0303 54%, #000000 62%, #000000 100%)'
+                    // Idle — same centred origin, even tighter amber band
+                    : 'radial-gradient(circle at 50% 50%, #fde68a 0%, #fbbf24 2%, #f59e0b 6%, #ea580c 11%, #b91c1c 20%, #7f1d1d 33%, #450a0a 45%, #1a0303 55%, #000000 63%, #000000 100%)',
                   boxShadow: orbOpen
                     // Heavy inset vignette — about a third of the sphere is solid black housing
                     ? 'inset 0 0 28px 9px rgba(0,0,0,0.95), inset 0 0 6px 2px rgba(252,211,77,0.4)'
