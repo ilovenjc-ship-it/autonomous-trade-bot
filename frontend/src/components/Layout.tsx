@@ -688,20 +688,38 @@ export default function Layout() {
                     : 'inset 0 0 26px 10px rgba(0,0,0,1), inset 0 0 5px 1px rgba(251,191,36,0.25)',
                 }}
               >
-                {/* Inner pinpoint — Session XXXVI v3: SHRUNK per Mav.
-                    Now w-1.5 / w-2 (was w-2 / w-2.5) — true pinpoint scale,
-                    matching the 2001 reference where the white core is just
-                    a tiny incandescent speck inside the amber pupil. Halo
-                    intensities also pulled in so the dot doesn't optically
-                    bloom larger than its actual rendered size. */}
+                {/* Pupil — Session XXXVI v6: the inner span flips from
+                    white to AMBER per Mav. The previous build read as a
+                    white pupil with an amber halo around it; Mav's spec
+                    inverts that — the visible focal dot should BE the
+                    amber pupil, with only a barely-noticeable white
+                    pinpoint nested in its centre as the incandescent
+                    filament. So now we render two stacked spans:
+                      outer:  amber-400/300 disc — the pupil itself
+                      inner:  tiny white pinpoint — the hot filament
+                                                    that you can JUST
+                                                    catch at the centre */}
                 <span className={clsx(
-                  'rounded-full transition-all duration-700',
+                  'rounded-full transition-all duration-700 flex items-center justify-center',
                   orbOpen
-                    // Active: 8px white speck, tight cream + amber halo
-                    ? 'w-2 h-2 bg-white shadow-[0_0_10px_2px_rgba(254,243,199,0.9),0_0_18px_5px_rgba(252,211,77,0.45)]'
-                    // Idle: 6px white speck — pinpoint scale, soft amber halo
-                    : 'w-1.5 h-1.5 bg-white shadow-[0_0_7px_1.5px_rgba(254,249,195,0.8),0_0_14px_4px_rgba(251,191,36,0.32)]'
-                )} />
+                    // Active — slightly larger, hotter amber-300 pupil with broader amber halo
+                    ? 'w-2.5 h-2.5 bg-amber-300 shadow-[0_0_12px_3px_rgba(252,211,77,0.85),0_0_22px_6px_rgba(245,158,11,0.55)]'
+                    // Idle — 8px amber-400 pupil with softer amber halo
+                    : 'w-2 h-2 bg-amber-400 shadow-[0_0_9px_2px_rgba(251,191,36,0.75),0_0_16px_5px_rgba(217,119,6,0.4)]'
+                )}>
+                  {/* Barely-noticeable white pinpoint — the incandescent
+                      filament glowing through the amber pupil. Sized at
+                      w-px (1px) idle and w-0.5 (2px) active so it reads
+                      as a hint of brightness rather than a discrete dot.
+                      Soft cream-white halo lets it blend into the amber
+                      rather than contrast-pop against it. */}
+                  <span className={clsx(
+                    'rounded-full bg-white transition-all duration-700',
+                    orbOpen
+                      ? 'w-0.5 h-0.5 shadow-[0_0_4px_1px_rgba(255,255,255,0.85)]'
+                      : 'w-px h-px shadow-[0_0_3px_0.5px_rgba(255,251,235,0.7)]'
+                  )} />
+                </span>
               </span>
             </span>
 
