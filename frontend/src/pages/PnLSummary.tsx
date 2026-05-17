@@ -449,9 +449,59 @@ export default function PnLSummary() {
         )}
       </div>
 
-      {/* ── Cumulative PnL — Session XXVIII: relocated from page bottom
-              to between PnL Over Time and Strategy PnL Distribution per
-              partner request (was: relocated from Analytics in XXV).
+      {/* ── Strategy PnL Distribution — Session XXXVI: relocated UP one
+              slot to sit DIRECTLY below PnL Over Time (Mav spec). Reasoning:
+              "PnL Over Time → Strategy PnL Distribution" reads as the
+              primary fleet-shape narrative — *what's the time-curve, and
+              which bots are driving it?* — before the deeper-context
+              cumulative+drawdown pair below. (Was: relocated from
+              Strategies page in Session XXVI.) ─────────────────────────── */}
+      <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <BarChart2 size={14} className="text-accent-green" />
+          <span className="text-sm font-semibold text-white">Strategy PnL Distribution</span>
+          <span className="ml-auto text-[13px] text-slate-500 font-mono">sorted by total PnL (τ)</span>
+        </div>
+        {by_strategy.length === 0 ? (
+          <div className="flex items-center justify-center h-32 text-slate-600 text-sm font-mono">
+            No strategy PnL data yet
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart
+              data={[...by_strategy].sort((a, b) => b.total_pnl - a.total_pnl)}
+              margin={{ top: 5, right: 10, left: 10, bottom: 40 }}
+            >
+              <CartesianGrid strokeDasharray="3 3" stroke="#243450" vertical={false} />
+              <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 9 }}
+                tickLine={false} axisLine={false} angle={-30} textAnchor="end" interval={0} height={50} />
+              <YAxis tick={{ fill: "#64748b", fontSize: 10 }} tickLine={false} axisLine={false}
+                tickFormatter={(v: number) => v.toFixed(3)} />
+              <ReferenceLine y={0} stroke="#334155" />
+              <Tooltip
+                contentStyle={{ background: "#152030", border: "1px solid #243450", borderRadius: 8, fontSize: 12, fontFamily: "monospace" }}
+                formatter={(v: any) => [(v as number).toFixed(4) + "τ", "Total PnL"]}
+              />
+              <Bar dataKey="total_pnl" radius={[4, 4, 0, 0]}>
+                {[...by_strategy].sort((a, b) => b.total_pnl - a.total_pnl).map(s => (
+                  <Cell key={s.strategy} fill={s.total_pnl >= 0 ? "#10b981" : "#f87171"} />
+                ))}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+        <div className="flex gap-4 mt-2 justify-end text-xs font-mono text-slate-300">
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-accent-green inline-block" /> Positive</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
+        </div>
+      </div>
+
+      {/* ── Cumulative PnL — Session XXXVI: relocated DOWN one slot, now
+              sits between Strategy PnL Distribution and Drawdown so the
+              "PnL Over Time → Strategy PnL Distribution" pair reads as the
+              primary fleet-shape narrative, with cumulative + drawdown as
+              the deeper-context follow-up. (Was: between PnL Over Time and
+              Strategy PnL Distribution per Session XXVIII spec.)
               Renders empty-state placeholder while equity_series is empty
               (e.g. immediately after a fossil wipe) so the section is
               visible-and-honest rather than silently absent. ─────────────── */}
@@ -493,47 +543,6 @@ export default function PnLSummary() {
             <span className="text-[11px] font-mono text-slate-600">curve will plot once paper trades begin landing</span>
           </div>
         )}
-      </div>
-
-      {/* ── Strategy PnL Distribution (Session XXVI: relocated from Strategies page) ── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-2xl p-5">
-        <div className="flex items-center gap-2 mb-4">
-          <BarChart2 size={14} className="text-accent-green" />
-          <span className="text-sm font-semibold text-white">Strategy PnL Distribution</span>
-          <span className="ml-auto text-[13px] text-slate-500 font-mono">sorted by total PnL (τ)</span>
-        </div>
-        {by_strategy.length === 0 ? (
-          <div className="flex items-center justify-center h-32 text-slate-600 text-sm font-mono">
-            No strategy PnL data yet
-          </div>
-        ) : (
-          <ResponsiveContainer width="100%" height={220}>
-            <BarChart
-              data={[...by_strategy].sort((a, b) => b.total_pnl - a.total_pnl)}
-              margin={{ top: 5, right: 10, left: 10, bottom: 40 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#243450" vertical={false} />
-              <XAxis dataKey="label" tick={{ fill: "#64748b", fontSize: 9 }}
-                tickLine={false} axisLine={false} angle={-30} textAnchor="end" interval={0} height={50} />
-              <YAxis tick={{ fill: "#64748b", fontSize: 10 }} tickLine={false} axisLine={false}
-                tickFormatter={(v: number) => v.toFixed(3)} />
-              <ReferenceLine y={0} stroke="#334155" />
-              <Tooltip
-                contentStyle={{ background: "#152030", border: "1px solid #243450", borderRadius: 8, fontSize: 12, fontFamily: "monospace" }}
-                formatter={(v: any) => [(v as number).toFixed(4) + "τ", "Total PnL"]}
-              />
-              <Bar dataKey="total_pnl" radius={[4, 4, 0, 0]}>
-                {[...by_strategy].sort((a, b) => b.total_pnl - a.total_pnl).map(s => (
-                  <Cell key={s.strategy} fill={s.total_pnl >= 0 ? "#10b981" : "#f87171"} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        )}
-        <div className="flex gap-4 mt-2 justify-end text-xs font-mono text-slate-300">
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-accent-green inline-block" /> Positive</span>
-          <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
-        </div>
       </div>
 
       {/* ── Drawdown from Peak (Session XXXV: relocated FROM Dashboard) ──────
@@ -598,9 +607,10 @@ export default function PnLSummary() {
         </div>
       </div>
 
-      {/* (Cumulative PnL relocated up — between PnL Over Time and Strategy
-           PnL Distribution. Rolling Win Rate relocated up — directly below
-           Recovery Tracker. Both per Session XXVIII partner spec.) */}
+      {/* (Section order: PnL Over Time → Strategy PnL Distribution →
+           Cumulative PnL → Drawdown. Established Session XXXVI per Mav
+           spec. Rolling Win Rate sits directly below Recovery Tracker
+           per Session XXVIII.) */}
 
       </div>{/* end scrollable */}
     </div>

@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Globe, RefreshCw, TrendingUp, TrendingDown, Minus,
-  ChevronUp, ChevronDown, Search, Filter, Star,
+  ChevronUp, ChevronDown, Search, Filter,
   Lock, Unlock, X, AlertTriangle, CheckCircle2, ExternalLink,
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -488,10 +488,12 @@ export default function MarketData() {
         </div>
       </div>
 
-      {/* Legend bar removed (Session XXXV) — "Top 3 subnets by rank" was deemed
-          unnecessary by Mav (the gold ⭐ star next to the rank-1/2/3 rows is
-          self-documenting). The "Actively monitored by II Agent" indicator
-          relocated up to the filter row above. */}
+      {/* Legend bar removed (Session XXXV) — "Top 3 subnets by rank" label
+          was deemed unnecessary. Session XXXVI: the gold ⭐ stars next to
+          rank-1/2/3 rows ALSO removed per Mav — rank is already self-
+          documenting via the # column at left, the stars added visual
+          noise without earning their pixels. The "Actively monitored by
+          II Agent" indicator relocated up to the filter row above. */}
 
       {/* ── Table ──────────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-auto">
@@ -537,15 +539,12 @@ export default function MarketData() {
                 {/* Rank */}
                 <td className="px-4 py-2.5 text-slate-400 font-mono">{idx + 1}</td>
 
-                {/* Subnet name — Session XXXV: rank-star + monitor-dot now
-                    live in fixed-width gutters so subnet names line up the
-                    same way regardless of whether either indicator is
-                    present (was: conditional inline, mis-aligned columns). */}
+                {/* Subnet name — Session XXXVI: rank-star gutter REMOVED
+                    (Mav: stars deemed redundant with the # column at left).
+                    Monitor-dot retained in its fixed-width gutter so subnet
+                    names line up regardless of monitored/unmonitored state. */}
                 <td className="px-4 py-2.5">
                   <div className="flex items-center gap-2">
-                    <span className="flex items-center justify-center w-3 flex-shrink-0">
-                      {idx < 3 && <Star size={10} className="text-yellow-400" />}
-                    </span>
                     <span className="flex items-center justify-center w-3 flex-shrink-0">
                       {MONITORED_UIDS.has(s.uid) && (
                         <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" title="II Agent actively monitors this subnet" />

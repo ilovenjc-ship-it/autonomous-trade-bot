@@ -302,15 +302,18 @@ export default function Research() {
       {/* ── Hero strip — Session XXXV restructure (Mav spec):
             - "Conviction Era Framework" pre-header lifted OUT of the hero
               and now sits on its own line directly above the KPI strip
-            - "Conviction Unlock Alerts" h2 dropped uppercase + tracking-wider
-              and renders mixed-case ("Conviction Unlock Alerts") per spec
+            - h2 dropped uppercase + tracking-wider, renders mixed-case
             - "Scorecard · Owner Watch · Signal Candidates" subline removed
               (deemed unnecessary; the KPI cards below tell that story already)
+            Session XXXVI follow-up: "Conviction" prefix dropped from the
+            h2 — "Conviction Era Framework" pre-header already establishes
+            the conviction context, so the h2 now reads as the cleaner
+            "Unlock Alerts" (the conviction qualifier was redundant).
           ───────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-950/40 via-slate-900/60 to-slate-950 p-5 lg:flex-row lg:items-center">
         <div>
           <h2 className="flex items-center gap-2 text-2xl font-bold text-white">
-            Conviction Unlock Alerts
+            Unlock Alerts
             <InfoBubble content={headerHoverInfo} side="right" maxWidth={420} />
           </h2>
         </div>

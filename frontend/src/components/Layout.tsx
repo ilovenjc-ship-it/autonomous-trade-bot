@@ -654,41 +654,59 @@ export default function Layout() {
               orbOpen ? 'border-red-400/55' : 'border-red-500/25 group-hover:border-red-400/45'
             )} />
 
-            {/* The HAL eye itself — gradient sphere with breathing/active glow */}
+            {/* The HAL eye itself — Session XXXVI: amber hot-core upgrade.
+                Mav's spec: combine BLACK + RED + AMBER (true HAL palette,
+                referencing the 2001 lens). The previous build was pure red
+                — too monochrome. Now the gradient reads:
+                  centre  — amber-white (#fef3c7) → amber-400 (#fbbf24)
+                  mid     — amber-500 (#f59e0b) → red-500 (#ef4444)
+                  outer   — red-900 (#7f1d1d) → near-black (#1a0303)
+                That's the bright filament glow at the heart of the lens,
+                fading through orange/red into the dark housing. The pupil
+                also flips from red-200 to amber-200 with an amber halo so
+                the focal point reads as the hot incandescent point Mav
+                pointed to in the reference images. ─────────────────────── */}
             <span className="absolute inset-0 flex items-center justify-center">
               <span
                 className={clsx(
                   'w-12 h-12 rounded-full flex items-center justify-center transition-all duration-700',
-                  orbOpen
-                    ? 'bg-gradient-radial from-red-200 via-red-500 to-red-900 animate-hal-active'
-                    : 'bg-gradient-radial from-red-300 via-red-600 to-red-950 animate-hal-breathe',
+                  orbOpen ? 'animate-hal-active' : 'animate-hal-breathe',
                 )}
                 style={{
                   background: orbOpen
-                    ? 'radial-gradient(circle at 35% 30%, #fecaca 0%, #ef4444 35%, #7f1d1d 80%)'
-                    : 'radial-gradient(circle at 35% 30%, #fca5a5 0%, #dc2626 40%, #450a0a 90%)',
+                    // Active — brighter amber core, fully saturated red mid-band, deep black edge
+                    ? 'radial-gradient(circle at 38% 32%, #fffbeb 0%, #fcd34d 8%, #f59e0b 20%, #ef4444 42%, #991b1b 72%, #1a0303 96%)'
+                    // Idle — slightly cooler amber, slower fall-off, deeper black at the rim
+                    : 'radial-gradient(circle at 38% 32%, #fef3c7 0%, #fbbf24 9%, #f59e0b 22%, #dc2626 44%, #7f1d1d 74%, #120202 97%)',
+                  boxShadow: orbOpen
+                    ? 'inset 0 0 14px 2px rgba(0,0,0,0.55), inset 0 0 4px 1px rgba(245,158,11,0.35)'
+                    : 'inset 0 0 12px 2px rgba(0,0,0,0.65), inset 0 0 3px 1px rgba(245,158,11,0.25)',
                 }}
               >
-                {/* Inner pupil — the brighter focal point that reads as a "looking" eye */}
+                {/* Inner pupil — the bright incandescent focal point.
+                    Amber/cream-white instead of red-pink so it reads as a
+                    hot filament rather than just a brighter red dot. */}
                 <span className={clsx(
                   'rounded-full transition-all duration-700',
                   orbOpen
-                    ? 'w-3.5 h-3.5 bg-red-100 shadow-[0_0_22px_#fee2e2]'
-                    : 'w-3 h-3 bg-red-200 shadow-[0_0_14px_#fecaca]'
+                    ? 'w-3.5 h-3.5 bg-amber-100 shadow-[0_0_24px_4px_rgba(252,211,77,0.85)]'
+                    : 'w-3 h-3 bg-amber-200 shadow-[0_0_16px_2px_rgba(251,191,36,0.7)]'
                 )} />
               </span>
             </span>
 
-            {/* Outer glow halo — makes the orb feel like a presence in the room */}
+            {/* Outer glow halo — Session XXXVI: dual-tone halo (amber inner,
+                red outer) so the orb's "presence in the room" matches the
+                new amber+red palette of the eye itself. ─────────────────── */}
             <span
               aria-hidden
               className={clsx(
                 'absolute -inset-2 rounded-full pointer-events-none transition-opacity duration-700',
-                orbOpen ? 'opacity-100' : 'opacity-60 group-hover:opacity-90',
+                orbOpen ? 'opacity-100' : 'opacity-65 group-hover:opacity-95',
               )}
               style={{
-                background: 'radial-gradient(circle, rgba(220,38,38,0.18) 0%, rgba(220,38,38,0.06) 50%, transparent 75%)',
-                filter: 'blur(8px)',
+                background: 'radial-gradient(circle, rgba(251,191,36,0.22) 0%, rgba(220,38,38,0.14) 35%, rgba(220,38,38,0.05) 65%, transparent 80%)',
+                filter: 'blur(9px)',
               }}
             />
           </button>
