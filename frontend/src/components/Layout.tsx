@@ -676,14 +676,14 @@ export default function Layout() {
                 )}
                 style={{
                   background: orbOpen
-                    // Active — pupil glows hotter, iris stays deep red, black housing dominates the rim
-                    ? 'radial-gradient(circle at 38% 32%, #fef3c7 0%, #fcd34d 4%, #f59e0b 11%, #ea580c 18%, #dc2626 28%, #991b1b 42%, #450a0a 56%, #1a0303 68%, #000000 78%, #000000 100%)'
-                    // Idle — cooler pupil, deeper red iris, MORE BLACK on the outer rim per Mav reference
-                    : 'radial-gradient(circle at 38% 32%, #fde68a 0%, #fbbf24 4%, #f59e0b 11%, #c2410c 19%, #b91c1c 30%, #7f1d1d 44%, #450a0a 58%, #1a0303 70%, #000000 80%, #000000 100%)',
+                    // Active — red iris compressed into the inner third, dominant black ring fills the outer half
+                    ? 'radial-gradient(circle at 38% 32%, #fef3c7 0%, #fcd34d 3%, #f59e0b 10%, #ea580c 16%, #dc2626 24%, #991b1b 35%, #450a0a 46%, #1a0303 55%, #000000 63%, #000000 100%)'
+                    // Idle — same compression, slightly cooler pupil, even harder transition into black at the rim
+                    : 'radial-gradient(circle at 38% 32%, #fde68a 0%, #fbbf24 4%, #f59e0b 11%, #ea580c 17%, #b91c1c 25%, #7f1d1d 36%, #450a0a 48%, #1a0303 57%, #000000 64%, #000000 100%)',
                   boxShadow: orbOpen
-                    // Stronger inset black so the rim reads as solid lens-housing not just darker red
-                    ? 'inset 0 0 22px 5px rgba(0,0,0,0.85), inset 0 0 5px 1px rgba(252,211,77,0.4)'
-                    : 'inset 0 0 20px 6px rgba(0,0,0,0.95), inset 0 0 4px 1px rgba(251,191,36,0.25)',
+                    // Heavy inset vignette — about a third of the sphere is solid black housing
+                    ? 'inset 0 0 28px 9px rgba(0,0,0,0.95), inset 0 0 6px 2px rgba(252,211,77,0.4)'
+                    : 'inset 0 0 26px 10px rgba(0,0,0,1), inset 0 0 5px 1px rgba(251,191,36,0.25)',
                 }}
               >
                 {/* Inner pinpoint — Session XXXVI v3: SHRUNK per Mav.
