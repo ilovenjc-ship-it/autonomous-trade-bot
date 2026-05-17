@@ -8,6 +8,7 @@ import clsx from 'clsx'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
 import TransactionDetailModal, { type TradeRecord } from '@/components/TransactionDetailModal'
+import { InfoBubble } from '@/components/Tooltip'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Trade {
@@ -193,6 +194,10 @@ export default function TradeLog() {
       if (resultFilt)  params.result     = resultFilt
       if (stratFilter) params.strategy   = stratFilter
       if (realOnly)    params.real_only  = true
+      // Session XXXV: search query goes to the backend (was client-side only,
+      // limited to current page). Backend ILIKE-matches strategy + signal_reason
+      // + tx_hash, plus exact id match if numeric.
+      if (search.trim()) params.q = search.trim()
       const res = await api.get('/trades', { params })
       setData(res.data)
     } catch (e) {
@@ -200,7 +205,7 @@ export default function TradeLog() {
     } finally {
       setLoading(false)
     }
-  }, [page, typeFilter, resultFilt, stratFilter, realOnly])
+  }, [page, typeFilter, resultFilt, stratFilter, realOnly, search])
 
   // Fetch real trade count + archive stats once on mount for the banner
   useEffect(() => {
@@ -224,8 +229,8 @@ export default function TradeLog() {
 
   useEffect(() => { load() }, [load])
 
-  // reset page when filters change
-  useEffect(() => { setPage(1) }, [typeFilter, resultFilt, stratFilter, realOnly])
+  // reset page when filters or search change
+  useEffect(() => { setPage(1) }, [typeFilter, resultFilt, stratFilter, realOnly, search])
 
   const trades = data?.trades ?? []
   const total  = data?.total  ?? 0
@@ -237,27 +242,16 @@ export default function TradeLog() {
     return () => setTradeLogStats(null)
   }, [total, page, pages, realCount, load, setTradeLogStats])
 
-  // Client-side text search on visible page
-  const visible = search
-    ? trades.filter(t =>
-        (t.strategy ?? '').includes(search.toLowerCase()) ||
-        (t.signal_reason ?? '').toLowerCase().includes(search.toLowerCase()) ||
-        String(t.id).includes(search)
-      )
-    : trades
+  // Session XXXV: server-side search means `trades` is already filtered.
+  const visible = trades
 
   return (
     <div className="flex flex-col h-full bg-dark-900">
 
-      {/* ── Data Context (relocated from Analytics) ──────────────────────── */}
-      <div className="flex-shrink-0 mx-6 mt-4 flex items-center gap-3 px-4 py-2.5 bg-slate-800/60 border border-slate-700/40 rounded-lg text-[13px] font-mono text-slate-400">
-        <span className="text-blue-400 font-bold flex-shrink-0">ℹ DATA CONTEXT</span>
-        <span>
-          Stats include <span className="text-slate-300">full trade history</span> (paper + real on-chain).
-          Paper trades are simulation — they establish the win-rate and PnL baselines used for gate promotions.
-          Real on-chain trades are a small subset — filter by <span className="text-emerald-400">⛓ Real Only</span> below for the confirmed subset.
-        </span>
-      </div>
+      {/* ── Data Context — Session XXXV: collapsed FROM a fat banner TO a
+            small pill button left of the Search box, with the explainer
+            text behind an "(i)" InfoBubble. The pill itself sits in the
+            filter row below — see end of that flex group. */}
 
       {/* ── Filters ─────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 pt-3 pb-4 border-b border-dark-600">
@@ -312,14 +306,41 @@ export default function TradeLog() {
             {realOnly ? '⛓ Real Only' : 'Real Only'}
           </button>
 
-          {/* Search */}
-          <div className="ml-auto flex items-center gap-1.5 bg-dark-700 border border-dark-600 rounded-lg px-2.5 py-1.5">
+          {/* Data Context pill — Session XXXV: replaces the old fat banner.
+              Sits LEFT of the Search box (ml-auto pushes the pair right). */}
+          <span className="ml-auto flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-blue-500/30 bg-blue-500/10 text-blue-300 text-[11px] font-mono">
+            ℹ Data Context
+            <InfoBubble
+              side="bottom"
+              maxWidth={360}
+              content={
+                <div className="space-y-1.5">
+                  <p className="text-white font-bold text-[12px]">What you're looking at</p>
+                  <p>
+                    Stats include the <span className="text-slate-200 font-semibold">full trade history</span>
+                    {' '}(paper + real on-chain). Paper trades are simulation — they establish the win-rate
+                    and PnL baselines used for gate promotions.
+                  </p>
+                  <p>
+                    Real on-chain trades are a small subset — toggle the
+                    {' '}<span className="text-emerald-300">⛓ Real Only</span> button to see just the
+                    {' '}confirmed on-chain subset.
+                  </p>
+                </div>
+              }
+            />
+          </span>
+
+          {/* Search — Session XXXV: now searches ALL trades, not just current
+              page. Backend ILIKE-matches strategy / signal_reason / tx_hash
+              + exact id when numeric. */}
+          <div className="flex items-center gap-1.5 bg-dark-700 border border-dark-600 rounded-lg px-2.5 py-1.5">
             <Search size={11} className="text-slate-300" />
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search this page…"
-              className="bg-transparent text-xs text-slate-300 placeholder-slate-600 font-mono focus:outline-none w-36"
+              placeholder="Search all trades…"
+              className="bg-transparent text-xs text-slate-300 placeholder-slate-600 font-mono focus:outline-none w-44"
             />
           </div>
         </div>

@@ -99,8 +99,19 @@ function RadarChart({ bot }: { bot: Bot }) {
 
   const hc = bot.health === 'GREEN' ? '#34d399' : bot.health === 'YELLOW' ? '#fbbf24' : '#f87171'
 
+  // Session XXXV: make the radar responsive so it fills its container
+  // (Mav: 'elongate the graphics so it completely fills section'). Using
+  // a fixed viewBox + width/height of 100% lets the parent flex slot
+  // dictate the rendered size; preserveAspectRatio keeps the ring perfectly
+  // circular regardless of slot dimensions.
   return (
-    <svg width="270" height="265" viewBox="0 0 270 265" className="overflow-visible mx-auto block">
+    <svg
+      width="100%" height="100%"
+      viewBox="0 0 270 265"
+      preserveAspectRatio="xMidYMid meet"
+      className="overflow-visible block"
+      style={{ maxHeight: 380 }}
+    >
       <defs>
         <style>{`
           @keyframes radarBloom {
@@ -551,10 +562,13 @@ export default function AgentFleet() {
           <div className="flex h-full transition-transform duration-300 ease-in-out"
             style={{ transform: `translateX(-${slide * 100}%)` }}>
 
-            {/* ── Slide 0: Agent Profile (radar + detail) ── */}
+            {/* ── Slide 0: Agent Profile (radar + detail) ──
+                Session XXXV: switch from 'space-y-3' stack to a flex column
+                so the radar block can flex-grow and fill empty space at the
+                bottom of the panel. */}
             <div className="min-w-full h-full overflow-y-auto">
               {selected ? (
-                <div className="p-4 space-y-3">
+                <div className="p-4 flex flex-col gap-3 min-h-full">
                   {/* Name + health */}
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
@@ -575,10 +589,14 @@ export default function AgentFleet() {
                     </div>
                   )}
 
-                  {/* Radar chart — fills width */}
-                  <div className="bg-slate-900/30 rounded-lg border border-slate-800/60 pt-3 pb-1">
-                    <RadarChart bot={selected} />
-                    <p className="text-center text-[8px] text-slate-600 font-mono pb-1">
+                  {/* Radar chart — Session XXXV: now flex-grow so it
+                      stretches to fill the remaining vertical space in the
+                      right panel instead of leaving a gap below the labels. */}
+                  <div className="bg-slate-900/30 rounded-lg border border-slate-800/60 pt-3 pb-1 flex-1 flex flex-col min-h-[260px]">
+                    <div className="flex-1 flex items-center justify-center">
+                      <RadarChart bot={selected} />
+                    </div>
+                    <p className="text-center text-[8px] text-slate-600 font-mono pb-1 mt-1">
                       WIN RATE · SCORE · GATE · ALLOC · P&L
                     </p>
                   </div>

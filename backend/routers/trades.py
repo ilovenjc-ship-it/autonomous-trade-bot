@@ -27,22 +27,46 @@ async def list_trades(
     strategy: Optional[str] = None,
     result: Optional[str] = None,       # "win" | "loss"
     real_only: bool = Query(False),     # True → only on-chain confirmed trades
+    q: Optional[str] = Query(None, description="Free-text search across strategy, signal_reason, id, tx_hash"),
     db: AsyncSession = Depends(get_db),
 ):
-    q = select(Trade)
+    """
+    Session XXXV: added `q` for full-history search.
+    Mav: 'Search Box should be able to search All Trades, Not just Trades on
+    the Page'. The free-text param ILIKE-matches strategy + signal_reason +
+    tx_hash, and exact-matches numeric id when the query is numeric.
+    """
+    qry = select(Trade)
     if trade_type:
-        q = q.where(Trade.trade_type == trade_type)
+        qry = qry.where(Trade.trade_type == trade_type)
     if status:
-        q = q.where(Trade.status == status)
+        qry = qry.where(Trade.status == status)
     if strategy:
-        q = q.where(Trade.strategy == strategy)
+        qry = qry.where(Trade.strategy == strategy)
     if result == "win":
-        q = q.where(Trade.pnl > 0)
+        qry = qry.where(Trade.pnl > 0)
     elif result == "loss":
-        q = q.where(Trade.pnl <= 0)
+        qry = qry.where(Trade.pnl <= 0)
     if real_only:
-        q = q.where(Trade.tx_hash.isnot(None))
-    q = q.order_by(desc(Trade.created_at))
+        qry = qry.where(Trade.tx_hash.isnot(None))
+
+    # Session XXXV: free-text search across the WHOLE history (not just the
+    # current page). Combines case-insensitive substring on strategy /
+    # signal_reason / tx_hash with optional exact id match if numeric.
+    if q:
+        like = f"%{q.strip()}%"
+        from sqlalchemy import or_
+        clauses = [
+            Trade.strategy.ilike(like),
+            Trade.signal_reason.ilike(like),
+            Trade.tx_hash.ilike(like),
+        ]
+        if q.strip().isdigit():
+            clauses.append(Trade.id == int(q.strip()))
+        qry = qry.where(or_(*clauses))
+
+    qry = qry.order_by(desc(Trade.created_at))
+    q = qry  # alias for the rest of the function (preserves diff size)
 
     # Count
     count_q = select(func.count()).select_from(q.subquery())
