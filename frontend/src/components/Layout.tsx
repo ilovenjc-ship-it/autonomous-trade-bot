@@ -676,30 +676,29 @@ export default function Layout() {
                 )}
                 style={{
                   background: orbOpen
-                    // Active — pupil glows hotter, iris is fully saturated red, housing stays jet black
-                    ? 'radial-gradient(circle at 38% 32%, #fef3c7 0%, #fcd34d 5%, #f59e0b 14%, #ea580c 22%, #ef4444 32%, #b91c1c 50%, #4c0519 70%, #1a0303 86%, #000000 100%)'
-                    // Idle — slightly cooler pupil, deeper red iris, edge falls to true black
-                    : 'radial-gradient(circle at 38% 32%, #fde68a 0%, #fbbf24 6%, #f59e0b 14%, #dc2626 26%, #991b1b 46%, #450a0a 66%, #1a0303 84%, #000000 100%)',
+                    // Active — pupil glows hotter, iris stays deep red, black housing dominates the rim
+                    ? 'radial-gradient(circle at 38% 32%, #fef3c7 0%, #fcd34d 4%, #f59e0b 11%, #ea580c 18%, #dc2626 28%, #991b1b 42%, #450a0a 56%, #1a0303 68%, #000000 78%, #000000 100%)'
+                    // Idle — cooler pupil, deeper red iris, MORE BLACK on the outer rim per Mav reference
+                    : 'radial-gradient(circle at 38% 32%, #fde68a 0%, #fbbf24 4%, #f59e0b 11%, #c2410c 19%, #b91c1c 30%, #7f1d1d 44%, #450a0a 58%, #1a0303 70%, #000000 80%, #000000 100%)',
                   boxShadow: orbOpen
-                    // Inner shadow rims the lens housing in deeper black so
-                    // the edge falls off into the dark like a real glass dome
-                    ? 'inset 0 0 18px 4px rgba(0,0,0,0.75), inset 0 0 5px 1px rgba(252,211,77,0.4)'
-                    : 'inset 0 0 16px 4px rgba(0,0,0,0.85), inset 0 0 4px 1px rgba(251,191,36,0.28)',
+                    // Stronger inset black so the rim reads as solid lens-housing not just darker red
+                    ? 'inset 0 0 22px 5px rgba(0,0,0,0.85), inset 0 0 5px 1px rgba(252,211,77,0.4)'
+                    : 'inset 0 0 20px 6px rgba(0,0,0,0.95), inset 0 0 4px 1px rgba(251,191,36,0.25)',
                 }}
               >
-                {/* Inner pinpoint — Session XXXVI v2: a small WHITE focal
-                    dot sitting at the heart of the amber pupil. Reads as
-                    the incandescent filament glowing through the warm
-                    pupil ring. Smaller than v1 (w-2 vs w-3) so it's a true
-                    pinpoint rather than a dot, with a soft amber-tinted
-                    halo that bleeds into the surrounding gradient. */}
+                {/* Inner pinpoint — Session XXXVI v3: SHRUNK per Mav.
+                    Now w-1.5 / w-2 (was w-2 / w-2.5) — true pinpoint scale,
+                    matching the 2001 reference where the white core is just
+                    a tiny incandescent speck inside the amber pupil. Halo
+                    intensities also pulled in so the dot doesn't optically
+                    bloom larger than its actual rendered size. */}
                 <span className={clsx(
                   'rounded-full transition-all duration-700',
                   orbOpen
-                    // Active: slightly larger, brighter, hot amber halo
-                    ? 'w-2.5 h-2.5 bg-white shadow-[0_0_16px_3px_rgba(254,243,199,0.95),0_0_28px_8px_rgba(252,211,77,0.55)]'
-                    // Idle: tiny white pinpoint, softer amber halo
-                    : 'w-2 h-2 bg-white shadow-[0_0_10px_2px_rgba(254,249,195,0.85),0_0_20px_5px_rgba(251,191,36,0.4)]'
+                    // Active: 8px white speck, tight cream + amber halo
+                    ? 'w-2 h-2 bg-white shadow-[0_0_10px_2px_rgba(254,243,199,0.9),0_0_18px_5px_rgba(252,211,77,0.45)]'
+                    // Idle: 6px white speck — pinpoint scale, soft amber halo
+                    : 'w-1.5 h-1.5 bg-white shadow-[0_0_7px_1.5px_rgba(254,249,195,0.8),0_0_14px_4px_rgba(251,191,36,0.32)]'
                 )} />
               </span>
             </span>
