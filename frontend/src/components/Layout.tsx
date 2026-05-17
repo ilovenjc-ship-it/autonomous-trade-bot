@@ -699,29 +699,33 @@ export default function Layout() {
                       inner:  tiny white pinpoint — the hot filament
                                                     that you can JUST
                                                     catch at the centre */}
+                {/* Pupil — Session XXXVI v8: amber faded a touch per Mav.
+                    Was amber-400/300 (#fbbf24/#fcd34d — bright yellow-amber);
+                    now amber-500/400 (#f59e0b/#fbbf24 — burnt orange-amber).
+                    Halo intensities pulled in too. The pupil now sits as a
+                    warm focal point rather than a glowing yellow disc, so
+                    the surrounding red iris breathes more. */}
                 <span className={clsx(
                   'rounded-full transition-all duration-700 flex items-center justify-center',
                   orbOpen
-                    // Active — slightly larger, hotter amber-300 pupil with broader amber halo
-                    ? 'w-2.5 h-2.5 bg-amber-300 shadow-[0_0_12px_3px_rgba(252,211,77,0.85),0_0_22px_6px_rgba(245,158,11,0.55)]'
-                    // Idle — 8px amber-400 pupil with softer amber halo
-                    : 'w-2 h-2 bg-amber-400 shadow-[0_0_9px_2px_rgba(251,191,36,0.75),0_0_16px_5px_rgba(217,119,6,0.4)]'
+                    // Active — amber-400 pupil, softer amber halo
+                    ? 'w-2.5 h-2.5 bg-amber-400 shadow-[0_0_10px_2.5px_rgba(251,191,36,0.7),0_0_18px_5px_rgba(217,119,6,0.4)]'
+                    // Idle — burnt amber-500 pupil, faded halo
+                    : 'w-2 h-2 bg-amber-500 shadow-[0_0_8px_2px_rgba(245,158,11,0.6),0_0_14px_4px_rgba(180,83,9,0.32)]'
                 )}>
-                  {/* Faint touch of white — Session XXXVI v7: bumped up
-                      one size (was w-px / w-0.5, now w-0.5 / w-1) per Mav.
-                      The previous pinpoint was so small it was sometimes
-                      lost to subpixel rendering; v7 makes it a visible
-                      sparkle of incandescence at the heart of the amber
-                      pupil — still small enough to read as 'a touch'
-                      rather than a discrete white dot, with a brighter
-                      halo so it sells the hot-filament feel. */}
+                  {/* Touch of white — Session XXXVI v8: bumped one more
+                      notch (was w-0.5 / w-1, now w-1 / w-1.5). With the
+                      amber faded slightly, the white needs a touch more
+                      presence to keep its role as the focal incandescence.
+                      Still half the diameter of the amber pupil so it
+                      reads as nested-inside, not competing-with. */}
                   <span className={clsx(
                     'rounded-full bg-white transition-all duration-700',
                     orbOpen
-                      // Active: 4px white speck — visible filament glow
-                      ? 'w-1 h-1 shadow-[0_0_6px_1.5px_rgba(255,255,255,0.95),0_0_10px_2.5px_rgba(254,243,199,0.6)]'
-                      // Idle: 2px speck — faint but always-present
-                      : 'w-0.5 h-0.5 shadow-[0_0_5px_1px_rgba(255,251,235,0.85),0_0_8px_2px_rgba(254,243,199,0.5)]'
+                      // Active: 6px white speck — clear filament glow
+                      ? 'w-1.5 h-1.5 shadow-[0_0_7px_1.5px_rgba(255,255,255,0.95),0_0_12px_3px_rgba(254,243,199,0.65)]'
+                      // Idle: 4px speck — visible incandescence at rest
+                      : 'w-1 h-1 shadow-[0_0_6px_1.25px_rgba(255,251,235,0.88),0_0_10px_2.5px_rgba(254,243,199,0.55)]'
                   )} />
                 </span>
               </span>
