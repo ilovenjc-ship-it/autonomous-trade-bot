@@ -275,7 +275,7 @@ function StakeModal({ subnet, onClose }: StakeModalProps) {
           {/* Info banner */}
           {tab === 'stake' && (
             <div className="bg-dark-700 border border-dark-600 rounded-lg px-3 py-2.5 text-xs text-slate-400 font-mono space-y-0.5">
-              <p>• Stake routes through TaoBot's configured validator for SN{subnet.uid}</p>
+              <p>• Stake routes through the II Agent's configured validator for SN{subnet.uid}</p>
               <p>• On-chain execution takes ~12 s (one block)</p>
               <p>• Keep at least 0.01τ liquid for fees</p>
             </div>
@@ -488,7 +488,7 @@ export default function MarketData() {
         </span>
         <span className="flex items-center gap-1.5">
           <span className="w-2 h-2 rounded-full bg-accent-green animate-pulse flex-shrink-0" />
-          <span>Actively monitored by TaoBot</span>
+          <span>Actively monitored by II Agent</span>
         </span>
       </div>
 
@@ -541,7 +541,7 @@ export default function MarketData() {
                   <div className="flex items-center gap-2">
                     {idx < 3 && <Star size={10} className="text-yellow-400 flex-shrink-0" />}
                     {MONITORED_UIDS.has(s.uid) && (
-                      <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse flex-shrink-0" title="TaoBot actively monitors this subnet" />
+                      <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse flex-shrink-0" title="II Agent actively monitors this subnet" />
                     )}
                     <div>
                       <p className="text-white font-medium group-hover:text-accent-blue transition-colors">{s.name}</p>
@@ -631,7 +631,7 @@ export default function MarketData() {
         </p>
         <p className="text-xs text-slate-500 font-mono flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-accent-green inline-block" />
-          Green glow = TaoBot actively monitoring
+          Green glow = II Agent actively monitoring
         </p>
       </div>
 

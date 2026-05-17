@@ -659,7 +659,7 @@ export default function WalletPage() {
                   {chainInfo?.wallet_loaded ? '● ACTIVE' : '○ NOT LOADED'}
                 </span>
               </div>
-              <p className="text-slate-400 text-xs font-mono">TaoBot's active trading wallet — connected to Finney mainnet</p>
+              <p className="text-slate-400 text-xs font-mono">II Agent's active trading wallet — connected to Finney mainnet</p>
             </div>
           </div>
 

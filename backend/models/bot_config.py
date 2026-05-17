@@ -22,7 +22,7 @@ class BotConfig(Base):
     netuid = Column(Integer, default=1)
 
     # Staking target — the validator hotkey we delegate TAO to
-    # This is TaoBot's SS58 hotkey (or whichever validator is chosen).
+    # This is the II Agent's SS58 hotkey (or whichever validator is chosen).
     # Distinct from hotkey_address which is the operator's own wallet hotkey.
     target_validator_hotkey = Column(String(255), nullable=True)
 

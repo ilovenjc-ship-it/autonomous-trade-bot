@@ -1,7 +1,7 @@
 """
 Webhook Notification Service
 ============================
-Dispatches HTTP POST notifications to external endpoints whenever a TaoBot
+Dispatches HTTP POST notifications to external endpoints whenever an II Agent
 alert or activity event fires.
 
 Supported endpoint types:
@@ -200,13 +200,13 @@ class WebhookService:
         if detail:
             fields.append({"name": "Detail", "value": f"`{detail}`", "inline": False})
         return {
-            "username": "TaoBot",
+            "username": "II Agent",
             "embeds": [{
                 "title":       title,
                 "description": message,
                 "color":       color,
                 "fields":      fields,
-                "footer":      {"text": "TaoBot Autonomous Trading System"},
+                "footer":      {"text": "II Agent · Autonomous Trading Orchestrator"},
                 "timestamp":   timestamp,
             }],
         }
@@ -236,7 +236,7 @@ class WebhookService:
                     {"type": "context", "elements": context_elements},
                     {"type": "divider"},
                 ],
-                "footer": "TaoBot",
+                "footer": "II Agent",
                 "ts":     str(int(time.time())),
             }],
         }
@@ -245,7 +245,7 @@ class WebhookService:
                                 alert_type: str, strategy: Optional[str],
                                 detail: str, timestamp: str) -> dict:
         return {
-            "source":     "taobot",
+            "source":     "ii_agent",
             "event":      "alert",
             "type":       alert_type,
             "level":      level,
@@ -277,7 +277,7 @@ class WebhookService:
                 resp = await client.post(
                     ep["url"],
                     json=payload,
-                    headers={"Content-Type": "application/json", "User-Agent": "TaoBot/1.0"},
+                    headers={"Content-Type": "application/json", "User-Agent": "II-Agent/1.0"},
                 )
             ep["last_delivered"]  = _now()
             ep["last_status"]     = resp.status_code
@@ -331,7 +331,7 @@ class WebhookService:
         """
         if not self._endpoints:
             return
-        title      = alert.get("title", "TaoBot Alert")
+        title      = alert.get("title", "II Agent Alert")
         message    = alert.get("message", "")
         level      = alert.get("level", "INFO")
         alert_type = alert.get("type", "SYSTEM")
@@ -359,7 +359,7 @@ class WebhookService:
         level_map  = {"trade": "INFO", "gate": "WARNING", "alert": "CRITICAL"}
         level      = level_map.get(kind, "INFO")
         alert_type = kind.upper()   # TRADE | GATE | ALERT
-        title      = f"TaoBot {kind.capitalize()}: {message[:60]}"
+        title      = f"II Agent {kind.capitalize()}: {message[:60]}"
 
         for ep in self._endpoints.values():
             if not self._should_dispatch(ep, level, alert_type, kind):
@@ -391,8 +391,8 @@ class WebhookService:
 
         payload = self._build_payload(
             ep,
-            title      = "✅ TaoBot Webhook Test",
-            message    = "This is a test notification from TaoBot. Your webhook endpoint is configured correctly!",
+            title      = "✅ II Agent Webhook Test",
+            message    = "This is a test notification from the II Agent. Your webhook endpoint is configured correctly!",
             level      = "INFO",
             alert_type = "TEST",
             strategy   = None,

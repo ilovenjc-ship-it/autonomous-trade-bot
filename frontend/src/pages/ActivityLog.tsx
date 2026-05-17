@@ -526,7 +526,7 @@ function WebhookDrawer({ open, onClose }: { open: boolean; onClose: () => void }
         <div className="mx-5 mt-4 flex items-start gap-2.5 bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex-shrink-0">
           <Info size={13} className="text-accent-blue flex-shrink-0 mt-0.5" />
           <div className="text-xs text-slate-400 font-mono space-y-0.5">
-            <p><span className="text-white font-semibold">How it works:</span> Every TaoBot alert or high-value activity event (trade executed, gate promotion, drawdown, consensus vote) is POSTed to your configured endpoints in real time.</p>
+            <p><span className="text-white font-semibold">How it works:</span> Every II Agent alert or high-value activity event (trade executed, gate promotion, drawdown, consensus vote) is POSTed to your configured endpoints in real time.</p>
             <p>Supports <span className="text-indigo-300">Discord</span>, <span className="text-green-300">Slack</span>, and <span className="text-slate-300">Generic HTTP</span> (Zapier, n8n, Make, PagerDuty, custom).</p>
           </div>
         </div>
@@ -846,7 +846,7 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
                 <a href="https://discord.gg/bittensor" target="_blank" rel="noopener" className="text-sky-400 hover:underline">discord.gg/bittensor</a>
                 {' '}and navigate to <span className="text-white">#dev-support</span> or <span className="text-white">#general</span>
               </p>
-              <p>2. Ask an OTF admin or moderator to invite the TaoBot to the server</p>
+              <p>2. Ask an OTF admin or moderator to invite the II Agent webhook bot to the server</p>
               <p>3. Once invited, the gateway connects automatically — no code change needed</p>
               <p className="text-slate-600 pt-0.5">Alternatively: invite the bot to any Discord server you manage to test the signal pipeline end-to-end while awaiting OTF access.</p>
             </div>

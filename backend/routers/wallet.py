@@ -272,7 +272,7 @@ async def stake_subnet(body: StakeSubnetRequest):
     Manually stake TAO into a subnet from the Market Data page.
 
     Hotkey resolution order:
-      1. subnet_router.get_stake_target() — uses the TaoBot-configured validator for this subnet
+      1. subnet_router.get_stake_target() — uses the II Agent's configured validator for this subnet
       2. PRIMARY_VALIDATOR — the globally configured validator hotkey
     Raises 400 if neither is available (wallet not ready or no validator set).
     """

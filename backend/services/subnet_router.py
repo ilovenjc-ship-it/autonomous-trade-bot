@@ -14,9 +14,9 @@ Logic:
   4. Root network (netuid=0) is always the final fallback.
 
 Validator selection:
-  - PRIMARY_VALIDATOR (TaoBot) is used when they are registered on
+  - PRIMARY_VALIDATOR (II Agent hotkey) is used when they are registered on
     the target subnet.
-  - For subnets where TaoBot is not present, the router selects the
+  - For subnets where the II Agent hotkey is not present, the router selects the
     top-staked permitted validator on that subnet dynamically.
   - The validator cache refreshes every VALIDATOR_CACHE_TTL seconds
     to avoid hammering the chain.
@@ -32,8 +32,8 @@ from services.bittensor_service import bittensor_service
 logger = logging.getLogger(__name__)
 
 # ── Primary validator ─────────────────────────────────────────────────────────
-# TaoBot's hotkey — set once confirmed, used for all root-network stakes
-# and any subnet where TaoBot has validator permit.
+# The II Agent's hotkey — set once confirmed, used for all root-network stakes
+# and any subnet where the II Agent has validator permit.
 PRIMARY_VALIDATOR: Optional[str] = None   # filled in by set_primary_validator()
 
 # ── Root network constant ─────────────────────────────────────────────────────
@@ -45,31 +45,31 @@ ROOT_ALPHA_PRICE   = 1.0   # always 1:1 TAO
 # The router picks the FIRST subnet whose live alpha price >= min_alpha_price.
 # Root (0) is appended implicitly as the final fallback.
 STRATEGY_SUBNET_PREFS: Dict[str, List[Tuple[int, float]]] = {
-    # TaoBot confirmed subnets (stake ≥ 1k τ, permit=True):
+    # II Agent confirmed subnets (stake ≥ 1k τ, permit=True):
     #   SN0 (root) 922,869τ | SN18 274,681τ | SN8 246,867τ
     #   SN96 204,252τ | SN64 7,580τ | SN1 7,541τ | SN9 1,538τ
 
-    # dTAO flow — follows highest α-price momentum; TaoBot on SN96 + SN64
+    # dTAO flow — follows highest α-price momentum; II Agent on SN96 + SN64
     "dtao_flow_momentum":  [(96, 1.50), (64, 0.06), (18, 0.01)],
-    # Pure momentum — hottest subnets; TaoBot on SN96
+    # Pure momentum — hottest subnets; II Agent on SN96
     "momentum_cascade":    [(96, 1.50), (18, 0.01), (8,  0.02)],
-    # Breakouts in high-demand subnets; TaoBot on SN96 + SN18
+    # Breakouts in high-demand subnets; II Agent on SN96 + SN18
     "breakout_hunter":     [(96, 1.00), (18, 0.01), (8,  0.02)],
-    # Stable yield — root + SN18 (TaoBot has huge stake on both)
+    # Stable yield — root + SN18 (II Agent has huge stake on both)
     "yield_maximizer":     [(18, 0.01), (9,  0.01)],
-    # Contrarian — undervalued; TaoBot on SN9
+    # Contrarian — undervalued; II Agent on SN9
     "contrarian_flow":     [(9,  0.01), (8,  0.02), (64, 0.06)],
-    # Mean reversion in mid-tier; TaoBot on SN64
+    # Mean reversion in mid-tier; II Agent on SN64
     "mean_reversion":      [(64, 0.06), (18, 0.01), (9,  0.01)],
-    # Liquidity-rich; TaoBot has biggest presence on SN8
+    # Liquidity-rich; II Agent has biggest presence on SN8
     "liquidity_hunter":    [(8,  0.02), (18, 0.01), (9,  0.01)],
-    # Emission-weighted; TaoBot on SN8 + SN9
+    # Emission-weighted; II Agent on SN8 + SN9
     "emission_momentum":   [(8,  0.02), (9,  0.01), (18, 0.01)],
-    # High-volatility; TaoBot on SN96 + SN9
+    # High-volatility; II Agent on SN96 + SN9
     "volatility_arb":      [(96, 1.00), (9,  0.01), (64, 0.06)],
-    # Sentiment-driven; TaoBot on SN18 + SN9
+    # Sentiment-driven; II Agent on SN18 + SN9
     "sentiment_surge":     [(18, 0.01), (9,  0.01), (8,  0.02)],
-    # Balanced; TaoBot on SN8 + SN18
+    # Balanced; II Agent on SN8 + SN18
     "balanced_risk":       [(8,  0.02), (18, 0.01)],
     # Macro = root is the anchor; falls through to SN0 fallback
     "macro_correlation":   [],
@@ -79,11 +79,11 @@ STRATEGY_SUBNET_PREFS: Dict[str, List[Tuple[int, float]]] = {
 VALIDATOR_CACHE_TTL = 300   # seconds — refresh every 5 minutes
 _validator_cache:    Dict[int, Optional[str]] = {}   # netuid → best hotkey
 _cache_ts:           float = 0.0
-_taobot_subnets:     set   = set()   # subnets where TaoBot is confirmed present
+_taobot_subnets:     set   = set()   # subnets where the II Agent hotkey is confirmed present
 
 
 def set_primary_validator(hotkey: str) -> None:
-    """Called once at startup (or from config) with TaoBot's SS58 hotkey."""
+    """Called once at startup (or from config) with the II Agent's SS58 hotkey."""
     global PRIMARY_VALIDATOR
     PRIMARY_VALIDATOR = hotkey
     logger.info(f"Primary validator set: {hotkey[:20]}…")
@@ -108,7 +108,7 @@ async def _refresh_validator_cache(netuids: List[int]) -> None:
                         mg.S.tolist(),
                         mg.validator_permit.tolist(),
                     ))
-                    # Check if TaoBot is present and permitted on this subnet
+                    # Check if the II Agent hotkey is present and permitted on this subnet
                     taobot_here = False
                     if PRIMARY_VALIDATOR:
                         for hk, stake, permit in validators:
@@ -118,7 +118,7 @@ async def _refresh_validator_cache(netuids: List[int]) -> None:
                     if taobot_here:
                         _validator_cache[netuid] = PRIMARY_VALIDATOR
                         _taobot_subnets.add(netuid)
-                        logger.info(f"SN{netuid}: TaoBot present — using primary validator")
+                        logger.info(f"SN{netuid}: II Agent present — using primary validator")
                     else:
                         # Pick top-staked permitted validator
                         permitted = [(hk, s) for hk, s, p in validators if p]
@@ -126,7 +126,7 @@ async def _refresh_validator_cache(netuids: List[int]) -> None:
                             best = max(permitted, key=lambda x: x[1])
                             _validator_cache[netuid] = best[0]
                             logger.info(
-                                f"SN{netuid}: TaoBot absent — top validator "
+                                f"SN{netuid}: II Agent absent — top validator "
                                 f"{best[0][:16]}… ({best[1]:.0f}τ)"
                             )
                         else:

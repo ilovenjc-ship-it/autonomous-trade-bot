@@ -264,7 +264,7 @@ async def _poll_coingecko() -> None:
     if cache_age > 90 or price == 0:
         try:
             async with httpx.AsyncClient(timeout=10) as client:
-                resp = await client.get(url, headers={"User-Agent": "TaoBot/1.0"})
+                resp = await client.get(url, headers={"User-Agent": "II-Agent/1.0"})
 
             if resp.status_code == 429:
                 # Rate-limited — back off, do NOT emit $0.00 noise
@@ -309,7 +309,7 @@ async def _poll_reddit_rss() -> None:
     try:
         async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
             resp = await client.get(url, headers={
-                "User-Agent":  "TaoBot/1.0 (signal ingestor)",
+                "User-Agent":  "II-Agent/1.0 (signal ingestor)",
                 "Accept":      "application/rss+xml, application/xml, */*",
             })
         items  = _parse_rss(resp.text)
@@ -342,7 +342,7 @@ async def _poll_taodaily_rss() -> None:
     try:
         async with httpx.AsyncClient(timeout=20, follow_redirects=True) as client:
             resp = await client.get(url, headers={
-                "User-Agent": "TaoBot/1.0",
+                "User-Agent": "II-Agent/1.0",
                 "Accept":     "application/rss+xml, application/xml, */*",
             })
         items  = _parse_rss(resp.text)
@@ -379,7 +379,7 @@ async def _poll_taostats() -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.get(url, headers={
                 "Authorization": api_key,   # raw key — no "Bearer" prefix (matches Taostats v1 spec)
-                "User-Agent":    "TaoBot/1.0",
+                "User-Agent":    "II-Agent/1.0",
             })
         data  = resp.json()
         row   = (data.get("data") or [{}])[0]

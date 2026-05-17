@@ -398,7 +398,7 @@ async def save_mnemonic(payload: MnemonicRequest):
     return {"success": True, "message": "Mnemonic saved to .env — will be loaded when Bittensor is available"}
 
 class ValidatorRequest(BaseModel):
-    hotkey: str   # SS58 address of the target validator (e.g. TaoBot)
+    hotkey: str   # SS58 address of the target validator (e.g. the II Agent hotkey)
 
 
 @router.post("/validator")
