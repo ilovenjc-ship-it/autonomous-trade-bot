@@ -977,16 +977,48 @@ export default function IIAgent() {
         <div className="flex items-center gap-4 px-5 py-4 border-b border-emerald-500/20"
              style={{ background: 'linear-gradient(90deg, rgba(16,185,129,0.12) 0%, rgba(45,212,191,0.06) 60%, transparent 100%)' }}>
 
-          {/* Chat orb — emerald body, RED HAL-eye indicator dot */}
+          {/* Chat orb — emerald body with a MINI HAL EYE indicator badge.
+              Session XXXVI v10: the previous red-dot-with-ping badge is
+              upgraded to a scaled-down clone of the main orb's eye, so
+              this corner of the page now feels like a window onto the
+              same living presence as the side-menu orb. Anatomy matches:
+              black housing → red iris → amber pupil → white pinpoint.
+              Ring-1 dark outline preserves the "floating badge" feel
+              that the previous border-2 provided, without competing
+              visually with the eye's own black housing band. */}
           <div className="relative flex-shrink-0">
             <div className="w-11 h-11 rounded-2xl bg-emerald-600/20 border border-emerald-500/40 flex items-center justify-center
                             shadow-lg shadow-emerald-500/20"
                  style={{ boxShadow: '0 0 20px rgba(16,185,129,0.25), inset 0 1px 0 rgba(255,255,255,0.05)' }}>
               <MessageSquare size={22} className="text-emerald-400" />
             </div>
-            {/* HAL-eye indicator — red dot nod to the original orb concept and Hal Finney */}
-            <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-red-500 border-2 border-[#0d1525] flex items-center justify-center">
-              <span className="w-1.5 h-1.5 rounded-full bg-red-300 animate-ping absolute" />
+            {/* Mini HAL eye — homage to the original orb concept and to
+                Hal Finney. Identical anatomy/gradient to the main orb,
+                breathing rhythm in lockstep (animate-hal-breathe). */}
+            <span className="absolute -top-0.5 -right-0.5 w-4 h-4 rounded-full ring-1 ring-[#0d1525]/90" aria-hidden>
+              {/* Soft outer halo — faint amber/red bleed so the eye
+                  reads as a presence, not a sticker. */}
+              <span
+                className="absolute -inset-0.5 rounded-full pointer-events-none"
+                style={{
+                  background: 'radial-gradient(circle, rgba(251,191,36,0.10) 0%, rgba(220,38,38,0.18) 30%, rgba(220,38,38,0.06) 60%, transparent 80%)',
+                  filter: 'blur(2.5px)',
+                }}
+              />
+              {/* Eye sphere — same idle gradient + inset vignette as the
+                  main orb (ratio-preserved at 16px scale). */}
+              <span
+                className="absolute inset-0 rounded-full flex items-center justify-center animate-hal-breathe"
+                style={{
+                  background: 'radial-gradient(circle at 50% 50%, #fde68a 0%, #fbbf24 2%, #f59e0b 6%, #ea580c 11%, #b91c1c 20%, #7f1d1d 33%, #450a0a 45%, #1a0303 55%, #000000 63%, #000000 100%)',
+                  boxShadow: 'inset 0 0 6px 2px rgba(0,0,0,1), inset 0 0 1.5px 0.4px rgba(251,191,36,0.25)',
+                }}
+              >
+                {/* Amber pupil with a barely-noticeable white pinpoint */}
+                <span className="rounded-full bg-amber-500 w-1 h-1 flex items-center justify-center shadow-[0_0_3px_0.7px_rgba(245,158,11,0.6),0_0_5px_1.5px_rgba(180,83,9,0.32)]">
+                  <span className="rounded-full bg-white w-px h-px shadow-[0_0_2px_0.4px_rgba(255,251,235,0.88),0_0_3.5px_0.8px_rgba(254,243,199,0.55)]" />
+                </span>
+              </span>
             </span>
           </div>
 
