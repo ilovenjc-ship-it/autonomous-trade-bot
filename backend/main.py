@@ -27,6 +27,7 @@ from routers import research as research_router
 from routers import tools as tools_router
 from routers import system as system_router
 from routers import audit as audit_router
+from routers import whale_flow as whale_flow_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -283,6 +284,11 @@ async def lifespan(app: FastAPI):
         # paused cycle engine surfaces visibly on the health page.
         system_health.register("forecast_accuracy_service", "Forecast Accuracy",
             "Forecast vs actual calibration tracker for OpenClaw", stale_after_s=1800)
+        # Phase 1 (Session XXXVII) — TaoStats /api/delegation/v1 poller.
+        # 5-min cadence; stale after 20 min so a hung upstream surfaces.
+        system_health.register("whale_flow",     "Whale Flow",
+            "Per-subnet stake/unstake whale activity (TaoStats free tier)",
+            stale_after_s=1200)
     except Exception as _e:
         logger.error(f"system_health pre-registration failed: {_e}")
 
@@ -316,6 +322,15 @@ async def lifespan(app: FastAPI):
             logger.info("CEX listing watch started — RSS poller active")
         except Exception as _e:
             logger.error(f"CEX listing watch start failed: {_e}")
+
+        # Whale Flow (Phase 1, Session XXXVII) — TaoStats delegation events
+        # poller. Pure HTTP, no chain dependency, ~5-min cadence.
+        try:
+            from services.whale_flow_service import whale_flow_service
+            await whale_flow_service.start()
+            logger.info("Whale flow service started — TaoStats /api/delegation/v1 poller active")
+        except Exception as _e:
+            logger.error(f"Whale flow service start failed: {_e}")
 
         # Services that require Finney chain access run as fire-and-forget tasks.
         # bittensor's substrate-interface blocks the event loop thread on connect;
@@ -365,6 +380,12 @@ async def lifespan(app: FastAPI):
         await cex_listing_service.stop()
     except Exception as _e:
         logger.error(f"CEX listing watch stop failed: {_e}")
+
+    try:
+        from services.whale_flow_service import whale_flow_service
+        await whale_flow_service.stop()
+    except Exception as _e:
+        logger.error(f"Whale flow service stop failed: {_e}")
 
     for svc in [promotion_service, agent_service, cycle_service, price_service, subnet_cache_service]:
         try:
@@ -445,6 +466,7 @@ app.include_router(research_router.router)
 app.include_router(tools_router.router)
 app.include_router(system_router.router)
 app.include_router(audit_router.router)
+app.include_router(whale_flow_router.router)
 
 
 @app.get("/")

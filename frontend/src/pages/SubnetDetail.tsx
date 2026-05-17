@@ -21,6 +21,7 @@ import {
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
+import WhaleActivityPanel from '@/components/WhaleActivityPanel'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface SubnetDetail {
@@ -456,6 +457,12 @@ export default function SubnetDetail() {
             </div>
           )}
         </div>
+
+        {/* ── Whale Activity panel ─────────────────────────────────────── */}
+        {/* Phase 1 (Session XXXVII) — replicates Talisman's Whale Activity
+            view, backed by our own poll of TaoStats /api/delegation/v1.
+            Free tier; replaces the value of TaoStats Standard ($50/mo). */}
+        <WhaleActivityPanel netuid={netuid} />
 
         {/* ── Stake / Unstake panel ────────────────────────────────────── */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden">
