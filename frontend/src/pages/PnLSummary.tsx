@@ -14,6 +14,7 @@ import clsx from 'clsx'
 import api from '@/api/client'
 import toast from 'react-hot-toast'
 import RollingWinRateChart from '@/components/RollingWinRateChart'
+import DrawdownChart from '@/components/DrawdownChart'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -534,6 +535,12 @@ export default function PnLSummary() {
           <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-red-500 inline-block" /> Negative</span>
         </div>
       </div>
+
+      {/* ── Drawdown from Peak (Session XXXV: relocated FROM Dashboard) ──────
+          Mav moved this here so the equity-curve / strategy-distribution /
+          drawdown trio reads as a single P&L story. Self-contained chart
+          component reads /api/analytics/drawdown directly. */}
+      <DrawdownChart />
 
       {/* ── Top / Worst Trade ── */}
       <div className="grid grid-cols-2 gap-4">

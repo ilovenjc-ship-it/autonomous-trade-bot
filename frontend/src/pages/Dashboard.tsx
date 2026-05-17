@@ -1,14 +1,15 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   TrendingUp, TrendingDown,
-  Activity, BarChart2, Clock, Award, Radio,
+  Activity, BarChart2, Award, Radio,
   Brain, Vote, Bell, Gauge, ChevronRight, DollarSign, Target, Hash, CalendarDays,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
 import api from '@/api/client'
-import DrawdownChart from '@/components/DrawdownChart'
 import CexListingHeroStrip from '@/components/CexListingHeroStrip'
+import HowItAllConnects from '@/components/HowItAllConnects'
+import WhaleTrackerTile from '@/components/WhaleTrackerTile'
 
 // ── intelligence types ────────────────────────────────────────────────────────
 interface AgentStatus { current_regime: string; regime_color: string; analysis_count: number; total_pnl: number }
@@ -656,33 +657,15 @@ export default function Dashboard() {
       {/* localStorage.                                                         */}
       <CexListingHeroStrip />
 
-      {/* ── Cycle status bar ─────────────────────────────────────────────────── */}
-      <div className={clsx(
-        'flex items-center gap-3 px-4 py-2.5 rounded-xl border font-mono text-xs',
-        isRunning
-          ? 'bg-accent-green/5 border-accent-green/20'
-          : 'bg-dark-800 border-dark-600'
-      )}>
-        <span className={clsx('w-2 h-2 rounded-full flex-shrink-0',
-          isRunning ? 'bg-accent-green run-pulse' : 'bg-slate-600')} />
-        <span className={isRunning ? 'text-accent-green' : 'text-slate-300'}>
-          {isRunning ? `RUNNING — Cycle #${cycleN}` : 'STOPPED'}
-        </span>
-        {isRunning && (
-          <>
-            <span className="text-slate-300">·</span>
-            <Clock size={11} className="text-slate-300" />
-            <span className="text-slate-300">Next cycle in {secToNext}s</span>
-            <span className="text-slate-300">·</span>
-            <span className="text-slate-300">{summary?.active_strategies ?? 0} strategies active</span>
-          </>
-        )}
-        <span className="ml-auto text-slate-300 font-mono text-[13px]">
-          {walletStatus?.connected
-            ? <span className="text-indigo-400">⛓ CHAIN CONNECTED · Block #{walletStatus.block_cached?.toLocaleString()}</span>
-            : <span>⚠ Paper trading — OpenClaw gates LIVE execution</span>}
-        </span>
-      </div>
+      {/* ── How It All Connects (Session XXXV: relocated FROM II Agent page) ── */}
+      {/* Lives at the top of the Dashboard above the KPI grid, per Mav's spec. */}
+      {/* Color swap from original placement: II Agent green, 12 Bots purple,   */}
+      {/* OpenClaw stays purple, Trades stays sky.                              */}
+      <HowItAllConnects />
+
+      {/* ── Cycle status bar (Session XXXV: relocated TO OpenClaw + Strategies) */}
+      {/* Removed from Dashboard. The bar still appears at the very top of the  */}
+      {/* OpenClaw page (below the BFT explainer) and at the top of Strategies. */}
 
       {/* ══════════════════════════════════════════════════════════════════════
           OPERATOR STATIC CARDS — Session XXXIV order (Partner spec):
@@ -975,10 +958,15 @@ export default function Dashboard() {
           serves as page-bottom reference material rather than headline. */}
       <TaoTradingViewChart heightPx={640} />
 
-      {/* ── Bottom row: Market Sentiment + Drawdown from Peak (Session XXVI) ── */}
+      {/* ── Bottom row: Market Sentiment + Whale Tracker tile ──────────────────
+          Session XXVI placed Drawdown from Peak here. Session XXXV: Mav moved
+          DrawdownChart down to P&L Summary (below Strategy PnL Distribution)
+          and asked for the Whale Tracker to fill the vacated slot, using the
+          System Health card's tile sizing (rounded-xl / border / p-4 / KPI
+          mini-grid). Click the tile to jump to the full Whale Tracker page. */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
         <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
-        <DrawdownChart />
+        <WhaleTrackerTile />
       </div>
 
     </div>

@@ -15,6 +15,7 @@ import clsx from 'clsx'
 import api from '@/api/client'
 import { InfoBubble } from '@/components/Tooltip'
 import ForecastAccuracyGauge from '@/components/ForecastAccuracyGauge'
+import CycleStatusBar from '@/components/CycleStatusBar'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -989,6 +990,14 @@ export default function OpenClaw() {
 
       {/* ── BFT Explainer (relocated from II Agent page) ── */}
       <OpenClawBFTSection />
+
+      {/* ── Cycle Status Bar (Session XXXV: relocated FROM Dashboard) ──────────
+          Mav requested this anchor sit on the OpenClaw page directly below
+          the BFT explainer so the operator can see "RUNNING — Cycle #N ·
+          Next cycle in Xs · Y strategies active" right where consensus
+          activity is being watched. Self-contained component subscribes to
+          the bot store + analytics summary. */}
+      <CycleStatusBar />
 
       {/* Session XXIX: 'How OpenClaw Works' was here — now relocated to TOP of
           the page (above Stat Cards). Promotion Gate already sits above
