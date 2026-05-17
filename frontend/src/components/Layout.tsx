@@ -39,7 +39,10 @@ const PAGE_TITLES: Record<string, string> = {
   '/wallet-transactions':  'Transactions',
   '/override':             'Manual Override',
   '/research':             'Subnet Scorecard',
-  '/tools':                'Whale Tracker',
+  // '/tools' route deleted in Session XXXV — Whale Tracker now lives as a
+  // Dashboard tile (components/WhaleTrackerTile.tsx). Title map entry kept
+  // out to avoid stale routes. /calculator (TAO Calculator) still served
+  // by Tools component with mode='calc'.
   '/calculator':           'TAO Calculator',
   '/system-health':        'System Health',
   '/audit':                'Audit Trail',
@@ -98,10 +101,9 @@ const navGroups: NavGroup[] = [
       { to: '/market',    icon: Globe,     label: 'Subnet Market Data' },
       // Session XXXII: Const 6-Filter scorecard + Owner Watch + Conviction-Era heuristics
       { to: '/research',  icon: Sparkles,  label: 'Subnet Scorecard' },
-      // Session XXXIV: Whale Tracker stays under SUBNETS; Calculator moved to ADMIN.
-      // Session XXXV note: Whale Tracker page slated for deletion in Phase 8 —
-      // graphic moves into a Dashboard tile. This nav item will be removed at that point.
-      { to: '/tools',     icon: Calculator, label: 'Whale Tracker'   },
+      // Session XXXV: Whale Tracker page deleted — moved to a Dashboard tile
+      // (<WhaleTrackerTile />). The /tools route is gone. Calculator stays
+      // under ADMIN. Mav: 'Give Whale Tracker its own Section, Not its own Page'.
     ],
   },
   {

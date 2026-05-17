@@ -83,7 +83,10 @@ export default function App() {
           <Route path="/market"               element={<Suspense fallback={<PageLoader />}><MarketData /></Suspense>} />
           <Route path="/market/subnet/:uid"   element={<Suspense fallback={<PageLoader />}><SubnetDetail /></Suspense>} />
           <Route path="/research"             element={<Suspense fallback={<PageLoader />}><Research /></Suspense>} />
-          <Route path="/tools"                element={<Suspense fallback={<PageLoader />}><Tools mode="whales" /></Suspense>} />
+          {/* Session XXXV: /tools (Whale Tracker page) deleted — Mav: 'Give
+              Whale Tracker its own Section, Not its own Page'. The data
+              now lives in <WhaleTrackerTile /> on the Dashboard. The
+              /calculator route stays as the TAO Calculator. */}
           <Route path="/calculator"           element={<Suspense fallback={<PageLoader />}><Tools mode="calc" /></Suspense>} />
           <Route path="/system-health"        element={<Suspense fallback={<PageLoader />}><SystemHealth /></Suspense>} />
           <Route path="/audit"                element={<Suspense fallback={<PageLoader />}><AuditTrail /></Suspense>} />

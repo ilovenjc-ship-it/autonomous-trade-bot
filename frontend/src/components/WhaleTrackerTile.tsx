@@ -20,8 +20,7 @@
  * Click anywhere on the tile → navigates to the full Whale Tracker page.
  */
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { Crown, Fish, Shell, ChevronRight, AlertTriangle, RefreshCw } from 'lucide-react'
+import { Crown, Fish, Shell, AlertTriangle, RefreshCw } from 'lucide-react'
 import api from '@/api/client'
 import { InfoBubble } from '@/components/Tooltip'
 
@@ -57,7 +56,6 @@ const fmtTao = (n: number) =>
   : n.toFixed(2) + ' τ'
 
 export default function WhaleTrackerTile() {
-  const navigate = useNavigate()
   const [data, setData] = useState<WhalesResp | null>(null)
   const [loading, setLoading] = useState(true)
 
@@ -81,14 +79,14 @@ export default function WhaleTrackerTile() {
   const k = data?.kpi || {}
   const top = (data?.leaderboard ?? []).slice(0, 3)
 
-  const handleOpen = () => navigate('/tools')
-
   return (
     <div
-      onClick={handleOpen}
-      className="rounded-xl border border-dark-600 bg-dark-800 p-4 cursor-pointer hover:border-cyan-500/40 transition-colors group"
+      className="rounded-xl border border-dark-600 bg-dark-800 p-4"
     >
-      {/* Header */}
+      {/* Header — Session XXXV: tile is now informational-only (the dedicated
+          Whale Tracker page was deleted; Mav wanted this as a Dashboard
+          section, not its own page). The 'i' bubble carries the full data
+          source explainer; no navigation chevron. */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
           <Crown size={14} className="text-cyan-300" />
@@ -109,14 +107,11 @@ export default function WhaleTrackerTile() {
                   <span className="text-sky-300">🐬 Dolphin</span> = 1K–10K τ ·{' '}
                   <span className="text-slate-300">🦐 Shrimp</span> = &lt;1K τ
                 </p>
-                <p className="text-slate-400 text-[11px] pt-1 border-t border-slate-700/50">
-                  Click the tile to open the full leaderboard and search.
-                </p>
               </div>
             }
           />
         </div>
-        <ChevronRight size={14} className="text-slate-600 group-hover:text-cyan-300 transition-colors" />
+        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500">live · 60s</span>
       </div>
 
       {/* Loading */}
