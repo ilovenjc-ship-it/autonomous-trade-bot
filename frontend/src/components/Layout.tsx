@@ -707,17 +707,21 @@ export default function Layout() {
                     // Idle — 8px amber-400 pupil with softer amber halo
                     : 'w-2 h-2 bg-amber-400 shadow-[0_0_9px_2px_rgba(251,191,36,0.75),0_0_16px_5px_rgba(217,119,6,0.4)]'
                 )}>
-                  {/* Barely-noticeable white pinpoint — the incandescent
-                      filament glowing through the amber pupil. Sized at
-                      w-px (1px) idle and w-0.5 (2px) active so it reads
-                      as a hint of brightness rather than a discrete dot.
-                      Soft cream-white halo lets it blend into the amber
-                      rather than contrast-pop against it. */}
+                  {/* Faint touch of white — Session XXXVI v7: bumped up
+                      one size (was w-px / w-0.5, now w-0.5 / w-1) per Mav.
+                      The previous pinpoint was so small it was sometimes
+                      lost to subpixel rendering; v7 makes it a visible
+                      sparkle of incandescence at the heart of the amber
+                      pupil — still small enough to read as 'a touch'
+                      rather than a discrete white dot, with a brighter
+                      halo so it sells the hot-filament feel. */}
                   <span className={clsx(
                     'rounded-full bg-white transition-all duration-700',
                     orbOpen
-                      ? 'w-0.5 h-0.5 shadow-[0_0_4px_1px_rgba(255,255,255,0.85)]'
-                      : 'w-px h-px shadow-[0_0_3px_0.5px_rgba(255,251,235,0.7)]'
+                      // Active: 4px white speck — visible filament glow
+                      ? 'w-1 h-1 shadow-[0_0_6px_1.5px_rgba(255,255,255,0.95),0_0_10px_2.5px_rgba(254,243,199,0.6)]'
+                      // Idle: 2px speck — faint but always-present
+                      : 'w-0.5 h-0.5 shadow-[0_0_5px_1px_rgba(255,251,235,0.85),0_0_8px_2px_rgba(254,243,199,0.5)]'
                   )} />
                 </span>
               </span>
