@@ -257,7 +257,12 @@ export default function WhaleActivityPanel({
             <Waves size={13} className="text-accent-blue" />
           </div>
           <div>
-            <h3 className="text-white font-semibold text-sm leading-tight">Whale Activity</h3>
+            {/* Session XXXVIII: canonical name "Whale Flow" — aligns the
+                UI header with the backend service / router / API surface
+                so we have one name across the stack. The internal file is
+                still WhaleActivityPanel.tsx (legacy Talisman-pattern
+                inheritance) but every user-facing surface says Whale Flow. */}
+            <h3 className="text-white font-semibold text-sm leading-tight">Whale Flow</h3>
             <p className="text-[10px] text-slate-500 font-mono">
               {netuid !== undefined ? `SN${netuid}` : 'All subnets'} · ≥ {summary?.min_tao ?? resp?.min_tao ?? 100} τ
             </p>

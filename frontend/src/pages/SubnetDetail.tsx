@@ -458,10 +458,14 @@ export default function SubnetDetail() {
           )}
         </div>
 
-        {/* ── Whale Activity panel ─────────────────────────────────────── */}
-        {/* Phase 1 (Session XXXVII) — replicates Talisman's Whale Activity
-            view, backed by our own poll of TaoStats /api/delegation/v1.
-            Free tier; replaces the value of TaoStats Standard ($50/mo). */}
+        {/* ── Whale Flow panel ──────────────────────────────────────────
+            Phase 1 (Session XXXVII) replicated Talisman's Whale Activity
+            pattern, originally backed by TaoStats /api/delegation/v1.
+            Session XXXVIII pivot: now sourced from a direct Finney WS
+            subscription (zero subscription cost, lower latency, tighter
+            data contract). Canonical name is "Whale Flow" everywhere
+            user-facing; legacy filename WhaleActivityPanel.tsx kept to
+            avoid a churn-only rename. ───────────────────────────────── */}
         <WhaleActivityPanel netuid={netuid} />
 
         {/* ── Stake / Unstake panel ────────────────────────────────────── */}
