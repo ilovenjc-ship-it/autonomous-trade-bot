@@ -10,6 +10,7 @@ import api from '@/api/client'
 import CexListingHeroStrip from '@/components/CexListingHeroStrip'
 import HowItAllConnects from '@/components/HowItAllConnects'
 import WhaleTrackerTile from '@/components/WhaleTrackerTile'
+import WhaleFlowTile from '@/components/WhaleFlowTile'
 import { InfoBubble } from '@/components/Tooltip'
 
 // ── intelligence types ────────────────────────────────────────────────────────
@@ -1008,15 +1009,17 @@ export default function Dashboard() {
           serves as page-bottom reference material rather than headline. */}
       <TaoTradingViewChart heightPx={640} />
 
-      {/* ── Bottom row: Market Sentiment + Whale Tracker tile ──────────────────
+      {/* ── Bottom row: Market Sentiment + Whale Tracker + Whale Flow ─────────
           Session XXVI placed Drawdown from Peak here. Session XXXV: Mav moved
-          DrawdownChart down to P&L Summary (below Strategy PnL Distribution)
-          and asked for the Whale Tracker to fill the vacated slot, using the
-          System Health card's tile sizing (rounded-xl / border / p-4 / KPI
-          mini-grid). Click the tile to jump to the full Whale Tracker page. */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          DrawdownChart down to P&L Summary and asked for the Whale Tracker to
+          fill the vacated slot. Session XXXVIII (final): added Whale Flow as a
+          sister tile fed by the live RPC stake event stream. Two whale surfaces,
+          two complementary lenses — Tracker = static positions (top-N holders),
+          Flow = directional movement (DELEGATE / UNDELEGATE in real time). */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
         <WhaleTrackerTile />
+        <WhaleFlowTile />
       </div>
 
     </div>

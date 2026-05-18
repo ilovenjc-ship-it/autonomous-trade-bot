@@ -281,24 +281,21 @@ export default function Trades() {
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* ── Market Regime — first KPI card (Session XXXVIII correction) ─────
-          Relocated FROM the retired II Agent KPI strip → here. Leads the
-          page so the operator reads the live market regime *before* they
-          decide to fire a manual buy/sell. Kept full-width / hero-sized
-          rather than crammed into the 4-up StatCard grid below — the card
-          carries TAO price + RSI + regime label, which is heavier than a
-          single-metric tile. ─────────────────────────────────────────────── */}
-      <RegimeCard
-        regime={agent?.current_regime ?? 'UNKNOWN'}
-        color={agent?.regime_color ?? '#6b7280'}
-        price={agent?.price ?? null}
-        rsi={null}
-      />
-
       {/* Stats — Session XXVI: honest win_rate (wins/executed) + correct τ/USD split
           Data from /api/trades/stats, now filtered by stats_reset_at so it matches
-          /api/analytics/summary (Dashboard's source). Zero drift. */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          /api/analytics/summary (Dashboard's source). Zero drift.
+
+          Session XXXVIII (final): Market Regime is the first cell, in a compact
+          variant sized to match StatCard. Per Mav: "first KPI card in the KPI Row
+          (not necessary for full page wide Section)." Grid widened from 4-up → 5-up. */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <RegimeCard
+          regime={agent?.current_regime ?? 'UNKNOWN'}
+          color={agent?.regime_color ?? '#6b7280'}
+          price={agent?.price ?? null}
+          rsi={null}
+          compact
+        />
         <StatCard
           label="Total Trades"
           value={tradeStats?.total_trades ?? 0}

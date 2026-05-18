@@ -40,9 +40,15 @@ export interface RegimeCardProps {
   color:  string
   price:  number | null
   rsi:    number | null
+  /**
+   * Session XXXVIII (final): when true, render a StatCard-sized variant
+   * that fits as the first cell in a KPI grid. Used on Manual Trades.
+   * Defaults to the original hero card.
+   */
+  compact?: boolean
 }
 
-export default function RegimeCard({ regime, color, price, rsi }: RegimeCardProps) {
+export default function RegimeCard({ regime, color, price, rsi, compact = false }: RegimeCardProps) {
   const cfg  = REGIME_CONFIG[regime] ?? REGIME_CONFIG.UNKNOWN
   const Icon = cfg.icon
 
@@ -59,6 +65,51 @@ export default function RegimeCard({ regime, color, price, rsi }: RegimeCardProp
     </div>
   )
 
+  // ── Compact variant — sized to fit alongside StatCard cells ─────────
+  if (compact) {
+    return (
+      <div className={clsx(
+        'relative rounded-xl border p-4 flex flex-col gap-2 overflow-hidden animate-fade-in',
+        cfg.bg, cfg.glow,
+      )}>
+        <div
+          className="absolute -top-6 -right-6 w-20 h-20 rounded-full blur-2xl opacity-20"
+          style={{ background: color }}
+        />
+        <div className="flex items-start justify-between relative">
+          <div className="space-y-1">
+            <div className="flex items-center gap-1.5">
+              <p className="stat-label">Market Regime</p>
+              <InfoBubble content={tip} side="right" maxWidth={320} />
+            </div>
+            <p className="text-xl font-black tracking-tight leading-tight" style={{ color }}>
+              {cfg.label}
+            </p>
+            <div className="flex gap-3 pt-0.5">
+              <p className="text-[11px] text-slate-300 font-mono">
+                ${price?.toFixed(2) ?? '—'}
+              </p>
+              {rsi !== null && (
+                <p
+                  className={clsx(
+                    'text-[11px] font-mono',
+                    rsi > 65 ? 'text-red-400' : rsi < 35 ? 'text-emerald-400' : 'text-slate-300',
+                  )}
+                >
+                  RSI {rsi.toFixed(1)}
+                </p>
+              )}
+            </div>
+          </div>
+          <div className="p-2 rounded-lg" style={{ background: color + '25' }}>
+            <Icon size={16} style={{ color }} />
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Hero variant (original) — used by other surfaces if needed ──────
   return (
     <div className={clsx(
       'relative rounded-2xl border p-5 flex flex-col gap-3 shadow-xl overflow-hidden',
