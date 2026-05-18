@@ -81,7 +81,9 @@ export default function WhaleFlowTile() {
     const load = async () => {
       try {
         const [sumRes, statRes] = await Promise.all([
-          api.get<FlowSummary>('/whale-flow/summary', { params: { window: '24h' } })
+          // /whale-flow/summary supports window=1d|1w|1m. We use 1d for the
+          // tile's "recent activity" view; full subnet panel uses 1w by default.
+          api.get<FlowSummary>('/whale-flow/summary', { params: { window: '1d' } })
               .catch(() => api.get<FlowSummary>('/whale-flow/summary')),
           api.get<FlowStatus>('/whale-flow/status').catch(() => null),
         ])
