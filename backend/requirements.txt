@@ -11,6 +11,11 @@ websockets>=12.0
 aiohttp>=3.9.0
 discord.py>=2.3.2,<4.0
 bittensor>=10.0.0
+# Pinned explicitly (Session XXXVIII whale-flow RPC pivot). Already a
+# transitive dep of bittensor>=10, but pinning here so a future minor
+# bittensor release can't silently swap our substrate stack out from
+# under the Finney WS subscriber.
+async-substrate-interface>=2.0.0,<3.0
 python-multipart>=0.0.9
 apscheduler>=3.10.0
 ta>=0.11.0

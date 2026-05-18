@@ -222,29 +222,39 @@ class AuditService:
 
     def _hydrate_from_disk(self) -> None:
         try:
-            if not LOG_PATH.exists():
-                return
-            # Read tail of the file — last MAX_RING lines.
-            with open(LOG_PATH, "r", encoding="utf-8", errors="replace") as fh:
-                lines = fh.readlines()
-            tail = lines[-MAX_RING:]
-            for line in tail:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    entry = json.loads(line)
-                    # Fix counter so post-hydrate IDs continue monotonically.
-                    self._counter = max(self._counter, int(entry.get("id", 0)))
-                    self._lifetime_total += 1
-                    self._ring.append(entry)
-                except json.JSONDecodeError:
-                    continue
-            logger.info(
-                f"audit_service hydrated {len(self._ring)} entries from {LOG_PATH}"
-            )
+            if LOG_PATH.exists():
+                # Read tail of the file — last MAX_RING lines.
+                with open(LOG_PATH, "r", encoding="utf-8", errors="replace") as fh:
+                    lines = fh.readlines()
+                tail = lines[-MAX_RING:]
+                for line in tail:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = json.loads(line)
+                        # Fix counter so post-hydrate IDs continue monotonically.
+                        self._counter = max(self._counter, int(entry.get("id", 0)))
+                        self._lifetime_total += 1
+                        self._ring.append(entry)
+                    except json.JSONDecodeError:
+                        continue
+                logger.info(
+                    f"audit_service hydrated {len(self._ring)} entries from {LOG_PATH}"
+                )
         except Exception as e:
             logger.warning(f"audit_service hydrate failed: {e}")
+        # ── Boot-time heartbeat (Session XXXVIII) ────────────────────────────
+        # The audit pipe is event-driven — record() is the only path that
+        # heartbeats on its own. That's correct, but it means a process
+        # restart followed by a quiet stretch leaves system_health.run_count
+        # at 0 and the service stuck in "cold" status, even though the pipe
+        # is fully functional. Pulse once on every hydration attempt so the
+        # registry reflects "this service booted and is ready" — fresh
+        # installs (no log file) and existing logs are both covered.
+        # The 24h stale window remains intact: if zero qualifying events
+        # fire in a real day, the page will correctly flag it as stale.
+        self._heartbeat(success=True)
 
     def _heartbeat(self, success: bool, error: Optional[str] = None) -> None:
         try:

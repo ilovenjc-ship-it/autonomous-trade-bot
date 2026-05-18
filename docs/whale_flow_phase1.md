@@ -1,9 +1,53 @@
 # Whale Flow — Phase 1
 
-**Sprint:** Session XXXVII
-**Status:** in-progress → done on first push
+**Sprint:** Session XXXVII (initial ship), Session XXXVIII (data-path pivot)
+**Status:** done — RPC pivot live
 **Owner:** II Agent
 **Cost replaced:** TaoStats Standard tier ($50/mo, $600/yr)
+
+## Session XXXVIII pivot — TaoStats → direct Finney RPC
+
+The original Phase 1 implementation (commit `1df367c6`) polled
+TaoStats `/api/delegation/v1` every 5 min on the free tier. The credit
+pool ran dry over the first weekend of operation, leaving the panel
+empty. Rather than top up a third-party budget, the data path was
+swapped to **direct Substrate WebSocket subscription** against
+`wss://entrypoint-finney.opentensor.ai:443` — the same chain endpoint
+validators read.
+
+| Aspect | Before (Phase 1 TaoStats) | After (Phase 1 RPC) |
+|---|---|---|
+| Source | TaoStats `/api/delegation/v1` HTTP poll | Finney chain WS subscribe |
+| Cadence | 300 s polling | ~12 s per finalized block |
+| Latency | up to 5 min | ~12 s (finalized lag) |
+| Auth | `TAOSTATS_API_KEY` required | None (chain RPC is keyless) |
+| Cost | TaoStats credits (free tier dry) | Free, source of truth |
+| Failure mode | upstream rate limit / credit exhaustion | Finney public node unreachable (also breaks rest of chain stack) |
+| Reconnect | implicit per poll | explicit exponential backoff (1 s → 60 s cap) |
+| `stale_after_s` | 1200 | 120 |
+
+**Public contract preserved exactly** — frontend `WhaleActivityPanel.tsx`
+and routers/whale_flow.py required zero changes. The on-the-wire JSON
+shape, all 5 endpoints (`/api/whale-flow`, `/summary`, `/{netuid}`,
+`/{netuid}/summary`, `/status`), and the canonical event dict are
+identical.
+
+**Library:** `async-substrate-interface` (already a transitive dep of
+`bittensor>=10`, now pinned explicitly in `requirements.txt`).
+
+**USD pricing:** TaoStats provided historical per-event USD. The chain
+emits raw rao only. We compute `amount_usd = amount_tao *
+price_service.current_price()` (CoinGecko TAO/USD, refreshed every
+~60 s). Negligible drift at the ~12 s block-time horizon.
+
+**Subnet event filter scope:** `SubtensorModule.StakeAdded` and
+`StakeRemoved` only — those are the canonical user-initiated whale
+events. `AutoStakeAdded` (auto-restake of validator emissions, ~30+
+per block) is deliberately excluded as noise.
+`StakeMoved`/`StakeTransferred`/`StakeSwapped` are easy adds for
+Phase 2.
+
+---
 
 ## Overview
 

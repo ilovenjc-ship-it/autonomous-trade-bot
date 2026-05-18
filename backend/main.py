@@ -284,11 +284,14 @@ async def lifespan(app: FastAPI):
         # paused cycle engine surfaces visibly on the health page.
         system_health.register("forecast_accuracy_service", "Forecast Accuracy",
             "Forecast vs actual calibration tracker for OpenClaw", stale_after_s=1800)
-        # Phase 1 (Session XXXVII) — TaoStats /api/delegation/v1 poller.
-        # 5-min cadence; stale after 20 min so a hung upstream surfaces.
+        # Phase 1 (Session XXXVIII) — direct Finney WS subscribe to
+        # SubtensorModule.StakeAdded/StakeRemoved. Per-block heartbeat
+        # (~12 s cadence). Stale after 120 s ≈ 10 missed finalized
+        # blocks — tight enough to surface a real WS hang, generous
+        # enough to absorb a brief reconnect.
         system_health.register("whale_flow",     "Whale Flow",
-            "Per-subnet stake/unstake whale activity (TaoStats free tier)",
-            stale_after_s=1200)
+            "Per-subnet stake/unstake whale activity (Finney chain RPC)",
+            stale_after_s=120)
     except Exception as _e:
         logger.error(f"system_health pre-registration failed: {_e}")
 
@@ -323,12 +326,16 @@ async def lifespan(app: FastAPI):
         except Exception as _e:
             logger.error(f"CEX listing watch start failed: {_e}")
 
-        # Whale Flow (Phase 1, Session XXXVII) — TaoStats delegation events
-        # poller. Pure HTTP, no chain dependency, ~5-min cadence.
+        # Whale Flow (Phase 1 RPC pivot, Session XXXVIII) — direct WS
+        # subscribe to Finney chain finalized heads. async-substrate-interface
+        # connection has its own reconnect/backoff inside the service.
+        # Started here alongside the other lightweight services (no
+        # bittensor SDK dependency on the boot path; the substrate
+        # connection is opened lazily inside the service task).
         try:
             from services.whale_flow_service import whale_flow_service
             await whale_flow_service.start()
-            logger.info("Whale flow service started — TaoStats /api/delegation/v1 poller active")
+            logger.info("Whale flow service started — Finney chain RPC subscribe active")
         except Exception as _e:
             logger.error(f"Whale flow service start failed: {_e}")
 
