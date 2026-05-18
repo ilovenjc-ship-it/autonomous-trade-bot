@@ -9,7 +9,13 @@ import clsx from 'clsx'
 import api from '@/api/client'
 import CexListingHeroStrip from '@/components/CexListingHeroStrip'
 import HowItAllConnects from '@/components/HowItAllConnects'
-import WhaleTrackerTile from '@/components/WhaleTrackerTile'
+// Session XXXIX (Day 6): WhaleTrackerTile retired — Whale Flow (live RPC)
+// is now the canonical dashboard whale surface. TaoStats top-100 leaderboard
+// was the original Tracker source and has been 429-throttled for the entire
+// paper-training run; rather than keep an empty tile lit, Mark green-lit the
+// removal: 'Pioneers, oh Pioneers... All the past we leave behind'. Whale
+// Flow tile now expands to fill the slot with full chronological feed +
+// click-to-expand row detail.
 import WhaleFlowTile from '@/components/WhaleFlowTile'
 import { InfoBubble } from '@/components/Tooltip'
 
@@ -1009,16 +1015,18 @@ export default function Dashboard() {
           serves as page-bottom reference material rather than headline. */}
       <TaoTradingViewChart heightPx={640} />
 
-      {/* ── Bottom row: Market Sentiment + Whale Tracker + Whale Flow ─────────
+      {/* ── Bottom row: Market Sentiment + Whale Flow ─────────────────────────
           Session XXVI placed Drawdown from Peak here. Session XXXV: Mav moved
-          DrawdownChart down to P&L Summary and asked for the Whale Tracker to
-          fill the vacated slot. Session XXXVIII (final): added Whale Flow as a
-          sister tile fed by the live RPC stake event stream. Two whale surfaces,
-          two complementary lenses — Tracker = static positions (top-N holders),
-          Flow = directional movement (DELEGATE / UNDELEGATE in real time). */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+          DrawdownChart down to P&L Summary and slotted the Whale Tracker
+          (TaoStats top-100 leaderboard) here. Session XXXVIII added the Whale
+          Flow tile (live Finney RPC) alongside the Tracker. Session XXXIX
+          (Day 6): Tracker retired — TaoStats free-tier 429s made it perma-empty,
+          and Whale Flow is the higher-signal surface anyway (directional movement
+          beats static positions for trade context). Bottom row is now 2-up:
+          Sentiment + Flow, with Flow showing chronological feed + click-to-expand
+          row detail. */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
         <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
-        <WhaleTrackerTile />
         <WhaleFlowTile />
       </div>
 

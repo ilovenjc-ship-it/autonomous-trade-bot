@@ -40,10 +40,10 @@ const PAGE_TITLES: Record<string, string> = {
   '/wallet-transactions':  'Transactions',
   '/override':             'Manual Override',
   '/research':             'Subnet Scorecard',
-  // '/tools' route deleted in Session XXXV — Whale Tracker now lives as a
-  // Dashboard tile (components/WhaleTrackerTile.tsx). Title map entry kept
-  // out to avoid stale routes. /calculator (TAO Calculator) still served
-  // by Tools component with mode='calc'.
+  // '/tools' route deleted in Session XXXV — Whale Tracker briefly lived as a
+  // Dashboard tile, then retired in XXXIX (Day 6) when Whale Flow superseded
+  // it. /calculator (TAO Calculator) still served by Tools component with
+  // mode='calc'.
   '/calculator':           'TAO Calculator',
   '/system-health':        'System Health',
   '/audit':                'Audit Trail',
@@ -102,9 +102,9 @@ const navGroups: NavGroup[] = [
       { to: '/market',    icon: Globe,     label: 'Subnet Market Data' },
       // Session XXXII: Const 6-Filter scorecard + Owner Watch + Conviction-Era heuristics
       { to: '/research',  icon: Sparkles,  label: 'Subnet Scorecard' },
-      // Session XXXV: Whale Tracker page deleted — moved to a Dashboard tile
-      // (<WhaleTrackerTile />). The /tools route is gone. Calculator stays
-      // under ADMIN. Mav: 'Give Whale Tracker its own Section, Not its own Page'.
+      // Session XXXV: Whale Tracker page deleted — moved to a Dashboard tile.
+      // Session XXXIX (Day 6): Tile retired. Whale Flow (live Finney RPC) is
+      // the canonical whale surface now. Calculator stays under ADMIN.
     ],
   },
   {
