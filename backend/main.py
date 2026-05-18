@@ -402,10 +402,22 @@ async def lifespan(app: FastAPI):
 
 
 async def seed_strategies():
-    """Insert default strategy rows if they don't exist."""
+    """Insert default strategy rows if they don't exist.
+
+    Session XXXVIII: also runs an idempotent wake-up migration for
+    mean_reversion + contrarian_flow. Both were set is_active=False in
+    Session XXXIV to stop them from absorbing 24% allocation each while
+    idle (legacy 50.0 bootstrap-score quirk). That quirk is fixed —
+    inactive strategies now get only ALLOC_FLOOR. We can safely re-enable
+    them. The migration only touches rows that match the original
+    Session XXXIV freeze fingerprint (is_active=False AND total_trades=0)
+    so any operator-driven disable with real history is preserved.
+    """
     from db.database import AsyncSessionLocal
     from sqlalchemy import select
     from models.strategy import Strategy
+
+    WAKE_UP_NAMES = {"mean_reversion", "contrarian_flow"}
 
     async with AsyncSessionLocal() as db:
         for s in DEFAULT_STRATEGIES:
@@ -430,6 +442,20 @@ async def seed_strategies():
                         cycles_completed=s.get("cycles_completed", 0),
                     )
                 )
+            else:
+                # Wake-up migration (Session XXXVIII): only touch the named
+                # zero-trade pair, idempotent — won't override a row the
+                # operator legitimately disabled later (those will have
+                # total_trades > 0).
+                if (
+                    existing.name in WAKE_UP_NAMES
+                    and existing.is_active is False
+                    and (existing.total_trades or 0) == 0
+                ):
+                    existing.is_active = True
+                    logger.info(
+                        f"Strategy '{existing.name}' woken up (Session XXXVIII migration)"
+                    )
         await db.commit()
     logger.info("Strategies seeded — 12 strategies initialised")
 

@@ -158,10 +158,16 @@ def _short_ss58(addr: str) -> str:
 def _current_tao_usd() -> float:
     """Best-effort TAO/USD spot price. Lazy import to avoid a hard cycle
     against price_service. Returns 0.0 if the price feed is degraded —
-    callers must tolerate that."""
+    callers must tolerate that.
+
+    Note: ``price_service.current_price`` is a @property (returns float | None),
+    NOT a callable — bug caught Day 5: calling it as ``current_price()``
+    raises TypeError, gets swallowed here, and quietly poisons every event
+    with amount_usd=0. No parens.
+    """
     try:
         from services.price_service import price_service
-        p = price_service.current_price()
+        p = price_service.current_price
         return float(p) if p else 0.0
     except Exception:
         return 0.0

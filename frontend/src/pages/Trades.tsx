@@ -36,6 +36,12 @@ import toast from 'react-hot-toast'
 import clsx from 'clsx'
 import api from '@/api/client'
 import StatCard from '@/components/StatCard'
+// Session XXXVIII (correction): Market Regime card lives here — first KPI
+// card on the Manual Trades page, so the operator sees the live market
+// context before reaching for a manual buy/sell button. The card was
+// initially mis-mounted on the Human Override page; relocated to its
+// correct home this session.
+import RegimeCard from '@/components/RegimeCard'
 
 interface TradingMode {
   overall_mode: 'LIVE' | 'PAPER'
@@ -52,6 +58,15 @@ interface TradeResult {
   price: number
   amount: number
   is_real: boolean
+}
+
+// Session XXXVIII: agent payload shape for the Market Regime KPI.
+// Manual RSI lives behind a /agent/analyze trigger so we leave it null
+// here — RegimeCard handles null gracefully and renders "—".
+interface AgentRegimeStatus {
+  current_regime: string
+  regime_color:   string
+  price?:         number | null
 }
 
 const STRATEGY_LABELS: Record<string, string> = {
@@ -140,6 +155,8 @@ export default function Trades() {
   const [tradingMode,  setTradingMode]    = useState<TradingMode | null>(null)
   const [strategyModes, setStrategyModes] = useState<Record<string, string>>({})
   const [selectedTrade, setSelectedTrade] = useState<TradeRecord | null>(null)
+  // Session XXXVIII: Market Regime KPI card data (lives on this page).
+  const [agent, setAgent] = useState<AgentRegimeStatus | null>(null)
 
   const pages = Math.max(1, Math.ceil((tradeTotal ?? 0) / PAGE_SIZE))
 
@@ -150,6 +167,21 @@ export default function Trades() {
       setTradingMode(data)
     } catch {}
   }, [])
+
+  // Session XXXVIII: load agent regime payload for the Market Regime KPI.
+  // Same endpoint the II Agent page used for its retired top-row KPI strip.
+  const loadAgentRegime = useCallback(async () => {
+    try {
+      const { data } = await api.get<AgentRegimeStatus>('/agent/status')
+      if (data) setAgent(data)
+    } catch {}
+  }, [])
+
+  useEffect(() => {
+    loadAgentRegime()
+    const t = setInterval(loadAgentRegime, 8000)
+    return () => clearInterval(t)
+  }, [loadAgentRegime])
 
   useEffect(() => {
     fetchTrades(page)
@@ -248,6 +280,20 @@ export default function Trades() {
     <div className="flex flex-col h-full overflow-hidden">
       {/* ── Page Header Bar ───────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
+
+      {/* ── Market Regime — first KPI card (Session XXXVIII correction) ─────
+          Relocated FROM the retired II Agent KPI strip → here. Leads the
+          page so the operator reads the live market regime *before* they
+          decide to fire a manual buy/sell. Kept full-width / hero-sized
+          rather than crammed into the 4-up StatCard grid below — the card
+          carries TAO price + RSI + regime label, which is heavier than a
+          single-metric tile. ─────────────────────────────────────────────── */}
+      <RegimeCard
+        regime={agent?.current_regime ?? 'UNKNOWN'}
+        color={agent?.regime_color ?? '#6b7280'}
+        price={agent?.price ?? null}
+        rsi={null}
+      />
 
       {/* Stats — Session XXVI: honest win_rate (wins/executed) + correct τ/USD split
           Data from /api/trades/stats, now filtered by stats_reset_at so it matches

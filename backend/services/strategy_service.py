@@ -213,11 +213,17 @@ DEFAULT_STRATEGIES = [
         "win_rate":  0.0, "total_pnl":  0.0,
     },
     {
+        # Session XXXVIII: re-enabled. Was set is_active=False in Session XXXIV
+        # to stop dormant strategies from absorbing 24% allocation each via the
+        # 50.0 bootstrap-score quirk in promotion_service. That quirk is fixed
+        # — bootstrap is now 10.0 and inactive strategies are routed to
+        # ALLOC_FLOOR. Mean Reversion's RSI<33 / RSI>67 trigger is sound and
+        # the regime-suitability gate (SIDEWAYS, VOLATILE) is correct. Wake up.
         "name": "mean_reversion",
         "display_name": "Mean Reversion",
         "description": "BB squeeze + Z-score extreme entry. Target middle band. Stop at 1.5x band distance.",
         "parameters": {"bb_period": 20, "bb_std": 2, "zscore_entry": 2.0, "zscore_exit": 0.0},
-        "is_active": False,
+        "is_active": True,
         "mode": "PAPER_ONLY",
         "win_trades":  0, "loss_trades":  0, "total_trades":  0,
         "win_rate":  0.0, "total_pnl":  0.0,
@@ -273,11 +279,15 @@ DEFAULT_STRATEGIES = [
         "win_rate":  0.0, "total_pnl":  0.0,
     },
     {
+        # Session XXXVIII: re-enabled — paired wake-up with mean_reversion. Same
+        # rationale: Session XXXIV merit-pool fix neutralised the original
+        # reason for benching it. RSI<35 / RSI>65 contrarian trigger is sound
+        # and TAO is currently sitting at RSI=77 — a textbook fire condition.
         "name": "contrarian_flow",
         "display_name": "Contrarian Flow",
         "description": "Fades extreme dTAO flow moves. Enters against consensus when flow z-score > 2.5.",
         "parameters": {"flow_zscore": 2.5, "reversal_confirm": 2, "max_hold_cycles": 3},
-        "is_active": False,
+        "is_active": True,
         "mode": "PAPER_ONLY",
         "win_trades":  0, "loss_trades":  0, "total_trades":  0,
         "win_rate":  0.0, "total_pnl":  0.0,
