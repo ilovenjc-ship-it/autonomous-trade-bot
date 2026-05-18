@@ -14,7 +14,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import {
   Activity, RefreshCw, CheckCircle2, AlertTriangle, XCircle, Clock,
-  Heart, Zap,
+  Heart,
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
@@ -121,16 +121,17 @@ function SummaryStrip({ s }: { s: HealthSummary }) {
   return (
     <div className="rounded-xl border border-slate-700/40 bg-gradient-to-br from-slate-900/60 to-slate-950/60 p-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
+        {/* Session XXXVIII: heart icon promoted out of this strip up to the
+            page H1 (replacing the lightning bolt, which is OpenClaw's). The
+            summary strip now leads with the count — same emerald accent
+            preserved on the number for continuity. */}
         <div className="flex items-center gap-3">
-          <div className="rounded-full bg-emerald-500/15 p-2">
-            <Heart className="text-emerald-300" size={18} />
-          </div>
           <div>
             <div className="text-xs font-mono uppercase tracking-wider text-slate-400">
               System health
             </div>
             <div className="text-2xl font-bold text-white">
-              {s.healthy} / {s.total} <span className="text-xs font-mono text-slate-500">healthy</span>
+              <span className="text-emerald-300">{s.healthy}</span> / {s.total} <span className="text-xs font-mono text-slate-500">healthy</span>
             </div>
           </div>
         </div>
@@ -288,7 +289,10 @@ export default function SystemHealth() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="flex items-center gap-2 text-xl font-bold text-white md:text-2xl">
-            <Zap className="text-emerald-300" /> System Health
+            {/* Session XXXVIII: lightning-bolt is OpenClaw's identity — promoted
+                the heart icon from the Summary Strip up here so the page
+                title reads "♥ System Health" and OpenClaw keeps ⚡ exclusive. */}
+            <Heart className="text-emerald-300" /> System Health
           </h1>
           <p className="mt-1 text-xs text-slate-400">
             Live heartbeat for every background loop. 5-second refresh.

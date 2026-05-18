@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from 'react'
 import {
   TrendingUp, TrendingDown,
   Activity, BarChart2, Award, Radio,
-  Brain, Vote, Bell, Gauge, ChevronRight, DollarSign, Target, Hash, CalendarDays,
+  Brain, Vote, Bell, ChevronRight, DollarSign, Target, Hash, CalendarDays, Flame,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import clsx from 'clsx'
@@ -10,15 +10,19 @@ import api from '@/api/client'
 import CexListingHeroStrip from '@/components/CexListingHeroStrip'
 import HowItAllConnects from '@/components/HowItAllConnects'
 import WhaleTrackerTile from '@/components/WhaleTrackerTile'
+import { InfoBubble } from '@/components/Tooltip'
 
 // ── intelligence types ────────────────────────────────────────────────────────
-interface AgentStatus { current_regime: string; regime_color: string; analysis_count: number; total_pnl: number }
+interface AgentStatus {
+  current_regime: string; regime_color: string
+  analysis_count: number; total_pnl: number
+  fleet_health?: Record<string, string>
+}
 interface ConsensusStats { total_rounds: number; approval_rate_pct: number; total_buy_votes: number; total_sell_votes: number }
 interface WalletStatus { balance_cached: number | null; connected: boolean; block_cached: number | null }
-interface DailyCap {
-  staked_today_tao: number; cap_tao: number; liquid_tao: number
-  pct_used: number; remaining_tao: number; reset_date: string | null; fraction: number
-}
+// Session XXXVIII: DailyCap interface relocated to WalletTransactions.tsx
+// alongside the Daily Cap KPI card, which now lives in the Transactions page
+// summary row instead of the Dashboard. Dashboard no longer fetches it.
 interface OpenPositionsSummary { open_count: number; sl_pct: number; tp_pct: number }
 
 const REGIME_LABEL: Record<string, string> = {
@@ -423,14 +427,19 @@ function RecentTradesMini({ trades }: { trades: RecentTrade[] }) {
     yield_maximizer:    'YldMax',  contrarian_flow:    'CntFlo',
   }
 
+  // Session XXXVIII (Mav spec): bumped from 8 → up to 25 entries with an
+  // internal scroll slider, mirroring the Top Strategies leaderboard pattern
+  // so the panel doesn't push the page taller.
   return (
-    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-1">
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 xl:col-span-1 flex flex-col">
       <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
         <BarChart2 size={14} className="text-accent-blue" /> Recent Trades
-        <span className="ml-auto text-[12px] text-slate-500 font-mono">last {trades.length}</span>
+        <span className="ml-auto text-[12px] text-slate-500 font-mono">
+          last {trades.length}{trades.length >= 25 ? ' · scroll' : ''}
+        </span>
       </h2>
-      <div className="space-y-2">
-        {trades.slice(0, 8).map(t => (
+      <div className="space-y-2 overflow-y-auto pr-1 dashboard-strat-scroll" style={{ maxHeight: 460 }}>
+        {trades.slice(0, 25).map(t => (
           <div key={t.id}
             className="flex items-center gap-2 px-3 py-2 bg-dark-700 rounded-lg hover:bg-dark-600 transition-colors">
             {/* Side badge */}
@@ -526,7 +535,7 @@ export default function Dashboard() {
   const [consensusStats, setConsensusStats] = useState<ConsensusStats | null>(null)
   const [walletStatus,   setWalletStatus]   = useState<WalletStatus | null>(null)
   const [unreadAlerts,   setUnreadAlerts]   = useState(0)
-  const [dailyCap,       setDailyCap]       = useState<DailyCap | null>(null)
+  // Session XXXVIII: dailyCap state retired here (moved to Transactions page).
   const [openPositions,  setOpenPositions]  = useState<OpenPositionsSummary | null>(null)
   // TAO.app Fear & Greed (refreshed every 5 min — matches backend cache)
   const [taoFearGreed,   setTaoFearGreed]   = useState<number | null>(null)
@@ -536,9 +545,13 @@ export default function Dashboard() {
 
   const load = useCallback(async () => {
     try {
+      // Session XXXVIII: pulled /api/fleet/daily-cap out of this Promise.all
+      // — the Daily Cap KPI now lives on the Transactions page and fetches
+      // its own copy. Recent Trades limit bumped 8 → 25 for the expanded
+      // section slider. Trades fetched from /api/trades?limit=25.
       const [statusRes, sumRes, stratRes, eqRes,
              agentRes, consensusRes, walletRes, alertsRes, tradesRes,
-             capRes, posRes] = await Promise.all([
+             posRes] = await Promise.all([
         api.get('/bot/status'),
         fetch('/api/analytics/summary'),
         fetch('/api/analytics/strategies'),
@@ -547,8 +560,7 @@ export default function Dashboard() {
         fetch('/api/consensus/stats').then(r => r.json()).catch(() => null),
         fetch('/api/wallet/status').then(r => r.json()).catch(() => null),
         fetch('/api/alerts/unread-count').then(r => r.json()).catch(() => null),
-        fetch('/api/trades?limit=8').then(r => r.json()).catch(() => []),
-        fetch('/api/fleet/daily-cap').then(r => r.json()).catch(() => null),
+        fetch('/api/trades?limit=25').then(r => r.json()).catch(() => []),
         fetch('/api/fleet/positions').then(r => r.json()).catch(() => null),
       ])
       setBotStatus(statusRes.data)
@@ -563,7 +575,6 @@ export default function Dashboard() {
       if (consensusRes)setConsensusStats(consensusRes)
       if (walletRes)   setWalletStatus(walletRes)
       if (alertsRes)   setUnreadAlerts(alertsRes.unread_count ?? 0)
-      if (capRes)      setDailyCap(capRes)
       if (posRes)      setOpenPositions({ open_count: posRes.open_count ?? 0, sl_pct: posRes.sl_pct ?? 8, tp_pct: posRes.tp_pct ?? 25 })
     } catch (e) {
       console.error('Dashboard load error', e)
@@ -646,6 +657,13 @@ export default function Dashboard() {
   const winRate        = summary?.win_rate ?? 0
   const totalTrades    = summary?.total_trades ?? 0
 
+  // Hot / Struggling derived from agentStatus.fleet_health (Session XXXVIII —
+  // Hot Strategies KPI relocated from II Agent page to slot 10 of the
+  // Dashboard's two-row grid).
+  const _fleetHealth   = agentStatus?.fleet_health ?? {}
+  const hotCount       = Object.values(_fleetHealth).filter(h => h === 'HOT').length
+  const strugglingCount = Object.values(_fleetHealth).filter(h => h === 'STRUGGLING').length
+
   return (
     <div className="p-6 space-y-5">
 
@@ -668,11 +686,18 @@ export default function Dashboard() {
       {/* OpenClaw page (below the BFT explainer) and at the top of Strategies. */}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          OPERATOR STATIC CARDS — Session XXXIV order (Partner spec):
+          OPERATOR STATIC CARDS — Session XXXVIII order (Mav spec):
           Row 1:  II Agent · Win Rate · Total PnL · Total Trades · Paper Day
-                                       └─ Total PnL now sits right of Win Rate
-          Row 2:  TAO/USD · 24h Change · Alerts · Approval Rate · Daily Cap
-          ══════════════════════════════════════════════════════════════════ */}
+          Row 2:  TAO/USD · 24h Change · Alerts · Approval Rate · Hot Strategies
+                                                                  └─ replaced
+                                                                     Daily Cap
+                                                                     (relocated
+                                                                      to the
+                                                                      Transactions
+                                                                      page KPI
+                                                                      row)
+          Every card now carries an InfoBubble (i) hover that explains what
+          the metric is and how it's computed. ════════════════════════════ */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
 
         {/* 1 — II Agent regime */}
@@ -682,7 +707,10 @@ export default function Dashboard() {
             <Brain size={14} style={{ color: agentStatus?.regime_color ?? '#818cf8' }} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">II Agent</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">II Agent</p>
+              <InfoBubble content="Current market regime detected by II Agent — BULL, BEAR, SIDEWAYS, or VOLATILE. Updated every 5-minute analysis cycle. The sub-line shows total analyses run since boot. Click the card to open the full II Agent page." side="right" maxWidth={300} />
+            </div>
             <p className="text-base font-black font-mono mt-0.5 truncate" style={{ color: agentStatus?.regime_color ?? '#818cf8' }}>
               {REGIME_LABEL[agentStatus?.current_regime ?? 'UNKNOWN'] ?? '⟳ SCANNING'}
             </p>
@@ -701,7 +729,10 @@ export default function Dashboard() {
             <Target size={14} className={winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Win Rate</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Win Rate</p>
+              <InfoBubble content="Fraction of winning trades across the entire fleet (paper + live). The 55% promotion gate is the threshold a bot must clear to graduate from PAPER to APPROVED. 65% + positive PnL is required for APPROVED → LIVE." side="right" maxWidth={300} />
+            </div>
             <p className={clsx('text-base font-black font-mono mt-0.5',
               winRate >= 55 ? 'text-emerald-400' : winRate >= 40 ? 'text-amber-400' : 'text-red-400'
             )}>
@@ -713,7 +744,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 3 — Total PnL  (Session XXXIV: relocated right of Win Rate per Partner spec) */}
+        {/* 3 — Total PnL  (Session XXXVIII: tooltip merged with retired Fleet PnL definition) */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
           <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
             totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
@@ -721,7 +752,10 @@ export default function Dashboard() {
             <DollarSign size={14} className={totalPnl >= 0 ? 'text-emerald-400' : 'text-red-400'} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total PnL</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total PnL</p>
+              <InfoBubble content="Cumulative profit/loss across ALL strategy bots, measured in TAO. Combines paper + live trades. A bot's contribution stays in PAPER until it earns LIVE promotion (55%+ WR → APPROVED, 65%+ WR & 0.05τ+ PnL → LIVE). Negative is expected early in paper training — this is the fleet's full track record from Zero Day." side="right" maxWidth={320} />
+            </div>
             <p className={clsx('text-base font-black font-mono mt-0.5',
               totalPnl > 0 ? 'text-emerald-400' : totalPnl < 0 ? 'text-red-400' : 'text-slate-300'
             )}>
@@ -731,13 +765,16 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 4 — Total Trades  (Session XXXIV: swapped position with Total PnL) */}
+        {/* 4 — Total Trades */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
           <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
             <Hash size={14} className="text-slate-300" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
+              <InfoBubble content="Total trade count across the fleet since Zero Day (formal restart 2026-05-13 16:39:39 UTC, when 8,552 fossil paper trades were wiped). Counts every entry/exit event from every strategy — paper and live combined." side="right" maxWidth={300} />
+            </div>
             <p className="text-base font-black font-mono text-white mt-0.5">
               {summary ? totalTrades.toLocaleString() : '—'}
             </p>
@@ -753,7 +790,10 @@ export default function Dashboard() {
             <CalendarDays size={14} className={paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Paper Day</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Paper Day</p>
+              <InfoBubble content="Days elapsed since Zero Day. Day 7 is the gate-open milestone — strategies need at least 7 days of paper history before they can pass the WR/PnL gates and earn promotion to LIVE. Until Day 7, the fleet is in pure observation mode." side="right" maxWidth={300} />
+            </div>
             <p className={clsx('text-base font-black font-mono mt-0.5',
               paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'
             )}>
@@ -773,7 +813,10 @@ export default function Dashboard() {
             {_up24h ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-red-400" />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">TAO / USD</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">TAO / USD</p>
+              <InfoBubble content="Current TAO spot price in USD. Sourced from CoinGecko, refreshed every 60 seconds. This is the same price feed every strategy reads when generating its BUY/SELL signal." side="right" maxWidth={280} />
+            </div>
             <p className="text-base font-black font-mono text-white mt-0.5">
               {price ? `$${price.toFixed(2)}` : '—'}
             </p>
@@ -789,7 +832,10 @@ export default function Dashboard() {
             {_up24h ? <TrendingUp size={14} className="text-emerald-400" /> : <TrendingDown size={14} className="text-red-400" />}
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">24h Change</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">24h Change</p>
+              <InfoBubble content="TAO spot percentage move over the last 24 hours. Drives the regime detector — large moves shift the fleet's regime classification (e.g., > +5% = BULL, < -5% = BEAR, choppy = VOLATILE)." side="right" maxWidth={280} />
+            </div>
             <p className={clsx('text-base font-black font-mono mt-0.5', _up24h ? 'text-emerald-400' : 'text-red-400')}>
               {change24h != null ? `${_up24h ? '+' : ''}${change24h.toFixed(2)}%` : '—'}
             </p>
@@ -811,7 +857,10 @@ export default function Dashboard() {
             <Bell size={14} className={unreadAlerts > 0 ? 'text-red-400' : 'text-slate-400'} />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Alerts</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Alerts</p>
+              <InfoBubble content="Unread alert count across all levels (CRITICAL · WARNING · INFO · SYSTEM). Click the card to open the inbox. Critical/Warning alerts also surface in the top-right notification bell with a priority pill." side="right" maxWidth={280} />
+            </div>
             <p className={clsx('text-base font-black font-mono mt-0.5 truncate',
               unreadAlerts > 0 ? 'text-red-400' : 'text-emerald-400'
             )}>
@@ -830,7 +879,10 @@ export default function Dashboard() {
             <Vote size={14} className="text-purple-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Approval Rate</p>
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Approval Rate</p>
+              <InfoBubble content="OpenClaw BFT consensus approval rate — fraction of consensus rounds that hit the 7-of-12 supermajority. Healthy band is 45–65%. Too high = the council is rubber-stamping; too low = the council never agrees on a trade. Click to dig into OpenClaw." side="right" maxWidth={300} />
+            </div>
             <p className={clsx('text-base font-black font-mono mt-0.5',
               _approvalRate >= 45 && _approvalRate <= 65 ? 'text-emerald-400' : 'text-amber-400'
             )}>
@@ -840,25 +892,23 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 10 — Daily Cap */}
+        {/* 10 — Hot Strategies (Session XXXVIII: relocated FROM II Agent page,
+                replaces Daily Cap which moved to the Transactions page) */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0">
-            <Gauge size={14} className="text-amber-400" />
+          <div className="w-8 h-8 rounded-lg bg-emerald-500/10 flex items-center justify-center flex-shrink-0">
+            <Flame size={14} className="text-emerald-400" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Daily Cap</p>
-            <p className={clsx('text-base font-black font-mono mt-0.5',
-              (dailyCap?.pct_used ?? 0) >= 90 ? 'text-red-400' :
-              (dailyCap?.pct_used ?? 0) >= 60 ? 'text-amber-400' : 'text-emerald-400'
-            )}>
-              {dailyCap ? `${dailyCap.pct_used.toFixed(0)}%` : '—'}
-            </p>
-            <div className="mt-1 h-1 bg-dark-600 rounded-full overflow-hidden">
-              <div className={clsx('h-full rounded-full transition-all',
-                (dailyCap?.pct_used ?? 0) >= 90 ? 'bg-red-500' :
-                (dailyCap?.pct_used ?? 0) >= 60 ? 'bg-amber-400' : 'bg-emerald-500'
-              )} style={{ width: `${Math.min(100, dailyCap?.pct_used ?? 0)}%` }} />
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Hot Strategies</p>
+              <InfoBubble content="🔥 HOT = bot is outperforming with a winning streak. 🔴 STRUGGLING = bot has consecutive losses or a win rate below threshold. Neither label is permanent — conditions re-evaluate every cycle. Sub-line shows current struggling count." side="right" maxWidth={300} />
             </div>
+            <p className="text-base font-black font-mono mt-0.5 text-emerald-400">
+              {hotCount}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+              {strugglingCount} struggling
+            </p>
           </div>
         </div>
 

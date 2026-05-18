@@ -299,19 +299,20 @@ export default function Research() {
     // Session XXXIV: p-6 padding adds the left-margin divider between the side
     // menu and the page content (other pages had p-6, Research didn't).
     <div className="p-6 space-y-6">
-      {/* ── Hero strip — Session XXXV restructure (Mav spec):
-            - "Conviction Era Framework" pre-header lifted OUT of the hero
-              and now sits on its own line directly above the KPI strip
-            - h2 dropped uppercase + tracking-wider, renders mixed-case
-            - "Scorecard · Owner Watch · Signal Candidates" subline removed
-              (deemed unnecessary; the KPI cards below tell that story already)
-            Session XXXVI follow-up: "Conviction" prefix dropped from the
-            h2 — "Conviction Era Framework" pre-header already establishes
-            the conviction context, so the h2 now reads as the cleaner
-            "Unlock Alerts" (the conviction qualifier was redundant).
+      {/* ── Hero strip — Session XXXVIII (Mav spec):
+            - "Conviction Era Framework" chip relocated BACK INTO the hero,
+              sitting as a kicker line directly above the "Unlock Alerts"
+              h2. Mixed-case mark kept (Session XXXV style); previous
+              standalone-banner placement (above the KPI strip) is retired.
+            - h2 still mixed-case "Unlock Alerts" (no uppercase / tracking).
+            - "Scorecard · Owner Watch · Signal Candidates" subline stays out.
           ───────────────────────────────────────────────────────────────────── */}
       <div className="flex flex-col items-start justify-between gap-3 rounded-2xl border border-violet-500/30 bg-gradient-to-br from-violet-950/40 via-slate-900/60 to-slate-950 p-5 lg:flex-row lg:items-center">
         <div>
+          {/* Kicker — Conviction Era Framework anchor */}
+          <div className="flex items-center gap-2 mb-1.5 text-violet-300 text-[11px] uppercase tracking-widest font-mono">
+            <Sparkles size={12} /> Conviction Era Framework
+          </div>
           <h2 className="flex items-center gap-2 text-2xl font-bold text-white">
             Unlock Alerts
             <InfoBubble content={headerHoverInfo} side="right" maxWidth={420} />
@@ -334,13 +335,6 @@ export default function Research() {
             <RefreshCw className={clsx(refreshing && 'animate-spin')} size={14} /> Refresh
           </button>
         </div>
-      </div>
-
-      {/* ── Conviction Era Framework banner — sits by itself above the KPI
-            cards per Mav's spec. Subtle violet pill so it reads as a
-            section anchor rather than competing with the hero header. ──── */}
-      <div className="flex items-center gap-2 px-4 py-2 rounded-lg border border-violet-500/20 bg-violet-500/5 text-violet-300 text-xs uppercase tracking-widest font-mono w-fit">
-        <Sparkles size={14} /> Conviction Era Framework
       </div>
 
       {/* ── KPI strip ──────────────────────────────────────────────────────── */}

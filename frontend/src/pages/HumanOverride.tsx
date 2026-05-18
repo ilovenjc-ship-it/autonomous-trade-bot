@@ -10,6 +10,8 @@ import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
 import DangerZonePanel from '@/components/DangerZonePanel'
 import StrategyModeOverride from '@/components/StrategyModeOverride'
+// Session XXXVIII: Market Regime card relocated FROM II Agent → here.
+import RegimeCard from '@/components/RegimeCard'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface OverrideStatus {
@@ -17,6 +19,16 @@ interface OverrideStatus {
   halted_at: string | null
   cycle_engine_running: boolean
   trading_engine_running: boolean
+}
+
+// Session XXXVIII: agent status shape for the relocated Market Regime
+// card. We read only what the card needs (regime, color, price). RSI
+// only refreshes on a manual /agent/analyze POST so we leave it null
+// here — the card handles null gracefully and renders "—".
+interface AgentRegimeStatus {
+  current_regime: string
+  regime_color:   string
+  price?:         number | null
 }
 
 // ── sub-components ────────────────────────────────────────────────────────────
@@ -44,6 +56,8 @@ export default function HumanOverride() {
   const [forcePaper,     setForcePaper]     = useState(false)
   const [togglingPaper,  setTogglingPaper]  = useState(false)
   const [resettingStats, setResettingStats] = useState(false)
+  // Session XXXVIII: Market Regime card data (relocated from II Agent).
+  const [agent, setAgent] = useState<AgentRegimeStatus | null>(null)
 
   // manual trade form
   const [tradeAction, setTradeAction] = useState<'buy' | 'sell'>('buy')
@@ -54,12 +68,15 @@ export default function HumanOverride() {
 
   const fetchStatus = useCallback(async () => {
     try {
-      const [ovRes, botRes] = await Promise.all([
+      const [ovRes, botRes, agentRes] = await Promise.all([
         api.get('/override/status'),
         api.get('/bot/status'),
+        // Session XXXVIII: pull regime payload for the Market Regime card.
+        api.get('/agent/status').catch(() => ({ data: null })),
       ])
       setStatus(ovRes.data)
       setForcePaper(botRes.data.force_paper_mode ?? false)
+      if (agentRes.data) setAgent(agentRes.data)
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }, [])
@@ -217,17 +234,24 @@ export default function HumanOverride() {
 
       {/* ══════════════════════════════════════════════════════════════════════
           Session XXX: Banner stack reordered + clarity rewrite per Partner spec.
-          New order (top → bottom):
-            1. SYSTEM OPERATIONAL  (was bottom — now its own top line)
-            2. EXECUTION MODE      (was top — now tri-state, honest)
+          Session XXXVIII: Market Regime card relocated FROM II Agent → here,
+          mounted at the very top so the operator sees the live regime context
+          before they reach for a manual trade button. The card also keeps
+          RSI / TAO price visible without a tab-switch. ──────────────────────
 
-          The old single banner read "🔴 Live Trading Active" any time the
-          force-paper FLAG was off — including Day 2 of paper baseline when
-          0 strategies were LIVE. That misled the Operator. Tri-state truth:
-            • PAPER_OVERRIDE  — force flag locked ON  (amber, locked-down)
-            • PAPER_BASELINE  — flag off, 0 LIVE      (slate, neutral)
-            • LIVE_TRADING    — flag off, 1+ LIVE     (green, real money)
+          Stack order (top → bottom):
+            0. MARKET REGIME       (relocated XXXVIII — context-setter)
+            1. SYSTEM OPERATIONAL  (XXX)
+            2. EXECUTION MODE      (XXX, tri-state)
           ══════════════════════════════════════════════════════════════════ */}
+
+      {/* ── 0. Market Regime — relocated FROM II Agent (Session XXXVIII) ───── */}
+      <RegimeCard
+        regime={agent?.current_regime ?? 'UNKNOWN'}
+        color={agent?.regime_color ?? '#6b7280'}
+        price={agent?.price ?? null}
+        rsi={null}
+      />
 
       {/* ── 1. SYSTEM OPERATIONAL — top line ────────────────────────────────── */}
       <div className={clsx(

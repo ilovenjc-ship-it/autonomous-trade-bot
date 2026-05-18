@@ -9,9 +9,12 @@
  * Color swap from the original IIAgent placement:
  *   - II Agent  : indigo  →  GREEN (it IS the Intelligent Internet's
  *                 emerald-themed orchestrator, not just any planner)
- *   - 12 Bots   : emerald →  PURPLE (matches OpenClaw's purple identity
- *                 since the 12-bot fleet IS what the BFT consensus
- *                 deliberates over — same colour family)
+ *   - 12 Bots   : emerald →  PURPLE (Session XXXV) → ROSE (Session XXXVIII)
+ *                 OpenClaw and 12 Bots both rendered as side-by-side
+ *                 purples (purple-500 + fuchsia-500). Mav flagged the
+ *                 monotony; rose-400 keeps a warm hue at the strategy-
+ *                 fleet (workhorse) layer while letting OpenClaw retain
+ *                 its consensus-purple identity untouched.
  *   - OpenClaw  : purple  →  PURPLE (unchanged — keeps consensus identity)
  *   - Trades    : sky     →  SKY (unchanged — chain execution layer)
  *
@@ -67,9 +70,9 @@ export default function HowItAllConnects() {
     <div className="relative rounded-2xl border border-dark-600 overflow-hidden"
          style={{ background: 'linear-gradient(135deg, #0d1525 0%, #152030 50%, #0d1525 100%)' }}>
 
-      {/* Subtle top glow strip — green→purple→purple→sky to match new node colours */}
+      {/* Subtle top glow strip — green→purple→rose→sky to match new node colours */}
       <div className="absolute top-0 left-0 right-0 h-px"
-           style={{ background: 'linear-gradient(90deg, #10b981, #8b5cf6, #a855f7, #0ea5e9)' }} />
+           style={{ background: 'linear-gradient(90deg, #10b981, #a855f7, #fb7185, #0ea5e9)' }} />
 
       {/* Header */}
       <div className="flex items-center justify-between px-6 pt-5 pb-3">
@@ -144,15 +147,16 @@ export default function HowItAllConnects() {
         <div className="flex items-center justify-center px-2 py-2 md:py-0">
           <div className="flex gap-0.5" style={{ animation: 'flowPulse 1.8s ease-in-out infinite 0.3s' }}>
             <ChevronRight size={16} className="text-purple-400/60" />
-            <ChevronRight size={16} className="text-fuchsia-400/60 -ml-2" />
+            <ChevronRight size={16} className="text-rose-400/60 -ml-2" />
           </div>
         </div>
 
-        {/* Node 3 — 12 Bots  ── PURPLE (Session XXXV colour swap) */}
-        <div className="group relative flex-1 rounded-xl border border-fuchsia-500/30 bg-fuchsia-500/10 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-fuchsia-400/60 hover:bg-fuchsia-500/15 hover:shadow-lg hover:shadow-fuchsia-500/10">
+        {/* Node 3 — 12 Bots  ── ROSE (Session XXXVIII colour swap; previously
+            fuchsia which read as a second shade of purple next to OpenClaw) */}
+        <div className="group relative flex-1 rounded-xl border border-rose-400/30 bg-rose-400/10 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-rose-300/60 hover:bg-rose-400/15 hover:shadow-lg hover:shadow-rose-400/10">
           <div className="transition-opacity duration-300 group-hover:opacity-0">
             <p className="text-lg mb-1">🤖</p>
-            <p className="text-sm font-bold text-fuchsia-400 font-mono">12 Bots</p>
+            <p className="text-sm font-bold text-rose-300 font-mono">12 Bots</p>
             <p className="text-[13px] text-slate-400 uppercase tracking-wider mb-2">Strategy Fleet</p>
             <p className="text-xs font-mono font-semibold text-slate-200">
               {liveCount} active · {strugCount} struggling
@@ -160,7 +164,7 @@ export default function HowItAllConnects() {
             <p className="text-[13px] text-slate-400 font-mono">cycling every 60 seconds</p>
           </div>
           <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
-            <p className="text-xs font-bold text-fuchsia-300 mb-2">🤖 12 Bots — Strategy Fleet</p>
+            <p className="text-xs font-bold text-rose-200 mb-2">🤖 12 Bots — Strategy Fleet</p>
             <p className="text-[14px] text-slate-300 leading-relaxed">
               12 strategies run autonomously every 60 seconds. Each starts in PAPER mode and earns
               promotion through performance — 55%+ win rate unlocks APPROVED, 65%+ unlocks LIVE.
@@ -172,7 +176,7 @@ export default function HowItAllConnects() {
         {/* Arrow 3 */}
         <div className="flex items-center justify-center px-2 py-2 md:py-0">
           <div className="flex gap-0.5" style={{ animation: 'flowPulse 1.8s ease-in-out infinite 0.6s' }}>
-            <ChevronRight size={16} className="text-fuchsia-400/60" />
+            <ChevronRight size={16} className="text-rose-400/60" />
             <ChevronRight size={16} className="text-sky-400/60 -ml-2" />
           </div>
         </div>

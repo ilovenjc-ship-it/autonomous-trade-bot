@@ -7,14 +7,21 @@ import {
   Brain, TrendingUp, TrendingDown, Minus, Zap,
   Activity, RefreshCw, ChevronRight, AlertTriangle, Users,
   HelpCircle, ShieldCheck, ShieldX,
-  CheckCircle2, Flame, Eye, BarChart3, Lightbulb,
+  Eye, BarChart3, Lightbulb,
   Cpu, Radio, ShieldAlert, ArrowUpRight, MessageSquare,
   Send, Sparkles, User, Bot,
+  // Session XXXVIII: removed CheckCircle2, Flame — only used by the
+  // retired top-row KPI strip (Fleet PnL + Hot Strategies cards).
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
 import { InfoBubble } from '@/components/Tooltip'
+// Session XXXVIII: REGIME_CONFIG + RegimeCard extracted to
+// components/RegimeCard.tsx so Manual Trades can import the same card.
+// REGIME_CONFIG kept available here for regime label lookups in chat /
+// observations rendering.
+import { REGIME_CONFIG } from '@/components/RegimeCard'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -73,14 +80,8 @@ interface AnalysisReport {
 }
 
 // ── Regime config ─────────────────────────────────────────────────────────────
-
-const REGIME_CONFIG: Record<string, { icon: typeof TrendingUp; label: string; glow: string; bg: string; text: string }> = {
-  BULL:     { icon: TrendingUp,   label: 'BULL MARKET',   glow: 'shadow-emerald-500/30', bg: 'bg-emerald-500/10 border-emerald-500/40', text: 'text-emerald-400' },
-  BEAR:     { icon: TrendingDown, label: 'BEAR MARKET',   glow: 'shadow-red-500/30',     bg: 'bg-red-500/10 border-red-500/40',         text: 'text-red-400'     },
-  SIDEWAYS: { icon: Minus,        label: 'SIDEWAYS',      glow: 'shadow-amber-500/30',   bg: 'bg-amber-500/10 border-amber-500/40',     text: 'text-amber-400'   },
-  VOLATILE: { icon: Zap,          label: 'VOLATILE',      glow: 'shadow-purple-500/30',  bg: 'bg-purple-500/10 border-purple-500/40',   text: 'text-purple-400'  },
-  UNKNOWN:  { icon: Activity,     label: 'SCANNING…',     glow: 'shadow-slate-500/20',   bg: 'bg-slate-700/30 border-slate-600/40',     text: 'text-slate-300'   },
-}
+// REGIME_CONFIG imported from components/RegimeCard.tsx at the top of the
+// file (Session XXXVIII relocation).
 
 const HEALTH_CONFIG: Record<string, { label: string; border: string; bg: string; text: string; dot: string }> = {
   HOT:        { label: '🔥 HOT',       border: 'border-emerald-500/60', bg: 'bg-emerald-500/10', text: 'text-emerald-300', dot: 'bg-emerald-500' },
@@ -250,63 +251,11 @@ function timeSince(iso: string | null): string {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
-function PulseRing({ color }: { color: string }) {
-  return (
-    <span className="relative flex h-3 w-3">
-      <span className={clsx('animate-ping absolute inline-flex h-full w-full rounded-full opacity-75', color)} />
-      <span className={clsx('relative inline-flex rounded-full h-3 w-3', color)} />
-    </span>
-  )
-}
-
-function RegimeCard({ regime, color, price, rsi }: {
-  regime: string; color: string; price: number | null; rsi: number | null
-}) {
-  const cfg = REGIME_CONFIG[regime] ?? REGIME_CONFIG.UNKNOWN
-  const Icon = cfg.icon
-
-  return (
-    <div className={clsx(
-      'relative rounded-2xl border p-5 flex flex-col gap-3 shadow-xl overflow-hidden',
-      cfg.bg, cfg.glow,
-    )}>
-      {/* Ambient glow blob */}
-      <div
-        className="absolute -top-8 -right-8 w-32 h-32 rounded-full blur-3xl opacity-20"
-        style={{ background: color }}
-      />
-
-      <div className="flex items-center justify-between relative">
-        <div className="flex items-center gap-3">
-          <div className="p-3 rounded-xl" style={{ background: color + '25' }}>
-            <Icon size={22} style={{ color }} />
-          </div>
-          <div>
-            <p className="text-[13px] text-slate-300 uppercase tracking-widest font-mono">Market Regime</p>
-            <p className="text-2xl font-black tracking-tight" style={{ color }}>{cfg.label}</p>
-          </div>
-        </div>
-        <PulseRing color={regime === 'BULL' ? 'bg-emerald-500' : regime === 'BEAR' ? 'bg-red-500' : 'bg-amber-500'} />
-      </div>
-
-      <div className="flex gap-4 relative">
-        <div>
-          <p className="text-[13px] text-slate-300 font-mono">TAO Price</p>
-          <p className="text-lg font-bold text-white font-mono">${price?.toFixed(2) ?? '—'}</p>
-        </div>
-        {rsi !== null && (
-          <div>
-            <p className="text-[13px] text-slate-300 font-mono">RSI-14</p>
-            <p className={clsx('text-lg font-bold font-mono', rsi > 65 ? 'text-red-400' : rsi < 35 ? 'text-emerald-400' : 'text-white')}>
-              {(rsi ?? 0).toFixed(1)}
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  )
-}
+// Session XXXVIII: PulseRing + RegimeCard relocated to
+// components/RegimeCard.tsx (the only thing that referenced them on this
+// page was the retired top-row KPI strip). Manual Trades hosts the card
+// now. REGIME_CONFIG is re-imported above so chat/observations rendering
+// keeps working.
 
 function FleetHealthCard({ bot }: { bot: FleetBot }) {
   const hcfg = HEALTH_CONFIG[bot.health] ?? HEALTH_CONFIG.INACTIVE
@@ -894,9 +843,9 @@ export default function IIAgent() {
   // Build fleet array from last report or status health map
   const fleetBots: FleetBot[] = lastReport?.fleet_summary ?? []
 
-  // Derive counts from observations
-  const hotCount        = lastReport?.hot_bots?.length        ?? Object.values(status?.fleet_health ?? {}).filter(h => h === 'HOT').length
-  const strugglingCount = lastReport?.struggling_bots?.length ?? Object.values(status?.fleet_health ?? {}).filter(h => h === 'STRUGGLING').length
+  // Session XXXVIII: hotCount/strugglingCount were only used by the retired
+  // top-row KPI strip. The Hot Strategies KPI now lives on the Dashboard
+  // and computes its own counts there.
 
   const stableAnalyze = useCallback(() => { handleAnalyze() }, [analyzing])
 
@@ -910,60 +859,16 @@ export default function IIAgent() {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* ── Top row: Regime + Stats ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Regime card — takes 1 col */}
-        <RegimeCard
-          regime={regime}
-          color={status?.regime_color ?? '#6b7280'}
-          price={status?.price ?? null}
-          rsi={lastReport?.rsi ?? null}
-        />
-
-        {/* Stat cards — 2 cols
-            Session XXXV: Fleet PnL relocated to the LEFTMOST position in this
-            grid so it sits directly to the right of the Market Regime card,
-            per Mav's spec. Order is now [Fleet PnL → Analyses Run → Hot
-            Strategies → Recommendations]. */}
-        <div className="md:col-span-2 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {[
-            {
-              icon: CheckCircle2, label: 'Fleet PnL',
-              value: `${(status?.total_pnl ?? 0) >= 0 ? '+' : ''}${(status?.total_pnl ?? 0).toFixed(4)}τ`,
-              sub: 'cumulative', accent: (status?.total_pnl ?? 0) >= 0 ? 'text-emerald-400' : 'text-red-400',
-              tip: 'Cumulative profit/loss across ALL strategy bots, measured in TAO. Includes paper trades only until a bot earns LIVE promotion. Negative is expected early in paper training.',
-            },
-            {
-              icon: BarChart3, label: 'Analyses Run',
-              value: status?.analysis_count ?? 0,
-              sub: 'total cycles', accent: 'text-indigo-400',
-              tip: 'Total number of autonomous analysis cycles completed. Runs every 5 minutes. Each cycle evaluates all 12 bots, detects market regime, and issues recommendations.',
-            },
-            {
-              icon: Flame, label: 'Hot Strategies',
-              value: hotCount,
-              sub: `${strugglingCount} struggling`, accent: 'text-emerald-400',
-              tip: '🔥 HOT = bot is outperforming with a winning streak. 🔴 STRUGGLING = bot has consecutive losses or a win rate below threshold. Neither is permanent — conditions change every cycle.',
-            },
-            {
-              icon: Lightbulb, label: 'Recommendations',
-              value: status?.recommendation_count ?? 0,
-              sub: 'active directives', accent: 'text-amber-400',
-              tip: 'Active directives issued by II Agent during the last analysis. Types: WARNING (risk alert), OPPORTUNITY (entry signal), REGIME (market-wide shift), CONSENSUS (BFT voting outcome). Scroll down to see the full list.',
-            },
-          ].map(({ icon: Icon, label, value, sub, accent, tip }) => (
-            <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl p-3 flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <Icon size={14} className={accent} />
-                <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
-                <InfoBubble content={tip} side="right" maxWidth={280} className="ml-auto" />
-              </div>
-              <p className={clsx('text-xl font-bold font-mono', accent)}>{value}</p>
-              <p className="text-[13px] text-slate-300">{sub}</p>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ── Top KPI strip — RETIRED in Session XXXVIII ────────────────────────
+          Mav redistributed the four KPIs across the rest of the app:
+            · Market Regime    → Manual Trades (top of page)
+            · Fleet PnL        → tooltip merged into Dashboard's "Total PnL"
+            · Analyses Run     → OpenClaw KPI row (right of Total Rounds)
+            · Hot Strategies   → Dashboard slot 10 (replaces Daily Cap)
+            · Recommendations  → already covered by the "Active Directives"
+                                 section in the right column below; KPI removed
+          The page now leads straight into the Chat Panel — the actual
+          interaction surface — without the redundant KPI deck. ──────────── */}
 
       {/* ── Chat Panel ──
           Session XXXV: dominant section colour flipped from indigo → emerald
@@ -1189,7 +1094,7 @@ export default function IIAgent() {
         </div>
       )}
 
-      {/* ── Observations + Recommendations ── */}
+      {/* ── Observations + Active Directives ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Observations — 2/3 width */}
         <div className="lg:col-span-2 bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden flex flex-col">
@@ -1219,11 +1124,14 @@ export default function IIAgent() {
           </div>
         </div>
 
-        {/* Recommendations — 1/3 width */}
+        {/* Active Directives — 1/3 width
+            Session XXXVIII: section renamed Directives → Active Directives
+            (Mav spec). The retired "Recommendations" KPI card pointed here
+            anyway, so the new name makes the section self-describing. */}
         <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden flex flex-col">
           <div className="px-4 py-3 border-b border-dark-700 flex items-center gap-2">
             <Lightbulb size={14} className="text-amber-400" />
-            <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Directives</span>
+            <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Active Directives</span>
             <span className="ml-auto text-[13px] text-slate-300 font-mono">{recommendations.length}</span>
           </div>
 

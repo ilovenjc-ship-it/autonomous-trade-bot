@@ -223,15 +223,27 @@ export default function AlertInbox() {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* ── Stats row — Session XXX: includes Lifetime (monotonic, DVR-style) ── */}
-      {stats && (
+      {/* ── Stats row — Session XXX: includes Lifetime (monotonic, DVR-style)
+            Session XXXVIII (Mav spec): when stats.unread === 0 the inbox is
+            "consumed" — all four displayed KPIs zero out so the page reads
+            clean (inbox-zero feel). The underlying buffer counts remain
+            intact server-side; this is presentation-only. ───────────────── */}
+      {stats && (() => {
+        const allRead = (stats.unread ?? 0) === 0
+        const display = {
+          inBuffer: allRead ? 0 : (stats.total ?? 0),
+          unread:   allRead ? 0 : (stats.unread ?? 0),
+          critical: allRead ? 0 : (stats.by_level?.CRITICAL ?? 0),
+          warnings: allRead ? 0 : (stats.by_level?.WARNING  ?? 0),
+        }
+        return (
         <>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
             {[
-              { label: 'In Buffer', value: stats.total,                          accent: 'text-slate-300' },
-              { label: 'Unread',    value: stats.unread,                         accent: 'text-red-400'    },
-              { label: 'Critical',  value: stats.by_level?.CRITICAL ?? 0,        accent: 'text-red-400'    },
-              { label: 'Warnings',  value: (stats.by_level?.WARNING ?? 0),       accent: 'text-amber-400'  },
+              { label: 'In Buffer', value: display.inBuffer, accent: allRead ? 'text-emerald-400' : 'text-slate-300' },
+              { label: 'Unread',    value: display.unread,   accent: allRead ? 'text-emerald-400' : 'text-red-400'   },
+              { label: 'Critical',  value: display.critical, accent: allRead ? 'text-emerald-400' : 'text-red-400'   },
+              { label: 'Warnings',  value: display.warnings, accent: allRead ? 'text-emerald-400' : 'text-amber-400' },
             ].map(({ label, value, accent }) => (
               <div key={label} className="bg-dark-800 border border-dark-600 rounded-xl p-3 text-center">
                 <p className="text-[13px] text-slate-300 uppercase tracking-wider font-mono">{label}</p>
@@ -244,10 +256,12 @@ export default function AlertInbox() {
             <div className="text-[12px] font-mono text-slate-500 text-center -mt-3">
               <span className="text-slate-400">{stats.lifetime_total?.toLocaleString()}</span> alerts received lifetime
               {stats.buffer_max ? <> · buffer rotates at <span className="text-slate-400">{stats.buffer_max}</span> (oldest drops off)</> : null}
+              {allRead && <> · <span className="text-emerald-400">inbox clear</span></>}
             </div>
           )}
         </>
-      )}
+        )
+      })()}
 
       {/* ── Filters ── */}
       <div className="flex flex-wrap gap-3 items-center">

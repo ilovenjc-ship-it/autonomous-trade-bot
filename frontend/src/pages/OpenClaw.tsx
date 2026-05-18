@@ -860,6 +860,9 @@ export default function OpenClaw() {
   const [stats,         setStats]         = useState<ConsensusStats | null>(null)
   const [triggering,    setTriggering]    = useState(false)
   const [flashRound,    setFlashRound]    = useState(false)
+  // Session XXXVIII: Analyses Run KPI relocated FROM II Agent → here.
+  // Source: GET /agent/status.analysis_count.
+  const [analysisCount, setAnalysisCount] = useState<number | null>(null)
 
   // ── Consensus History pagination (Session XXV spec) ───────────────────
   const HISTORY_PAGE_SIZE = 20
@@ -872,10 +875,12 @@ export default function OpenClaw() {
   useEffect(() => { if (historyPage > historyPages) setHistoryPage(1) }, [historyPages, historyPage])
 
   const load = useCallback(async () => {
-    const [latestRes, histRes, statsRes] = await Promise.allSettled([
+    const [latestRes, histRes, statsRes, agentRes] = await Promise.allSettled([
       api.get('/consensus/latest'),
       api.get('/consensus/history', { params: { limit: 200 } }),
       api.get('/consensus/stats'),
+      // Session XXXVIII: Analyses Run KPI source.
+      api.get('/agent/status'),
     ])
     if (latestRes.status === 'fulfilled' && latestRes.value.data.round)
       setLatestRound(latestRes.value.data.round)
@@ -883,6 +888,8 @@ export default function OpenClaw() {
       setHistory(histRes.value.data.rounds)
     if (statsRes.status === 'fulfilled')
       setStats(statsRes.value.data)
+    if (agentRes.status === 'fulfilled' && agentRes.value.data?.analysis_count != null)
+      setAnalysisCount(agentRes.value.data.analysis_count)
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -948,13 +955,26 @@ export default function OpenClaw() {
       {/* (Session XXIX: <LegendBar /> previously rendered here as page top-line;
           now relocated INTO the latest-round container, above Council Votes,
           stacked vertically — see JSX below.) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Session XXXVIII: grid bumped 4 → 5 cols. Analyses Run KPI relocated
+          from II Agent and inserted directly to the right of Total Rounds
+          per Mav's spec. Tooltip text preserved verbatim from the old
+          location ("Keep all tooltips and use at next location"). */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <StatCard
           icon={BarChart3}
           label="Total Rounds"
           value={stats?.total_rounds ?? 0}
           sub="consensus rounds run"
           accent="bg-indigo-500/15 text-indigo-400"
+          tip="Total number of OpenClaw consensus rounds that have completed since boot. Each round is a 12-bot vote on a proposed BUY or SELL — counted regardless of whether it cleared the 7-of-12 supermajority."
+        />
+        <StatCard
+          icon={Activity}
+          label="Analyses Run"
+          value={analysisCount ?? 0}
+          sub="II Agent cycles"
+          accent="bg-emerald-500/15 text-emerald-400"
+          tip="Total number of autonomous analysis cycles completed. Runs every 5 minutes. Each cycle evaluates all 12 bots, detects market regime, and issues recommendations."
         />
         <StatCard
           icon={CheckCircle2}
@@ -962,6 +982,7 @@ export default function OpenClaw() {
           value={`${(stats?.approval_rate_pct ?? 0).toFixed(1)}%`}
           sub={`${stats?.approved_rounds ?? 0} approved / ${stats?.rejected_rounds ?? 0} rejected`}
           accent="bg-emerald-500/15 text-emerald-400"
+          tip="Fraction of consensus rounds that hit the 7-of-12 supermajority. The healthy band is 45–65% — too high means the council is rubber-stamping, too low means the bots can't agree on any trade."
         />
         <StatCard
           icon={Users}
@@ -985,6 +1006,7 @@ export default function OpenClaw() {
           value={latestRound ? (latestRound.approved ? '✅ APPROVED' : '🚫 REJECTED') : '—'}
           sub={latestRound ? `Round #${latestRound.round_id}` : 'No rounds yet'}
           accent={latestRound?.approved ? 'bg-emerald-500/15 text-emerald-400' : 'bg-red-500/15 text-red-400'}
+          tip="Outcome of the most recent consensus round. APPROVED = 7+ bots voted the same way and the trade is cleared to fire (paper or live, depending on each bot's mode). REJECTED = no supermajority, no trade."
         />
       </div>
 
