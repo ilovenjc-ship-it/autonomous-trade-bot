@@ -70,9 +70,6 @@ const fmtUsd = (n: number) =>
 const fmtTao = (n: number) =>
   n >= 1_000 ? (n / 1_000).toFixed(1) + 'K τ' : n.toFixed(1) + ' τ'
 
-// Visible row count before scroll kicks in. Each row ~24px so 8 = ~192px.
-const VISIBLE_ROWS = 8
-
 export default function WhaleFlowTile() {
   const [events,  setEvents]  = useState<WhaleFlowEvent[]>([])
   const [summary, setSummary] = useState<FlowSummary | null>(null)
@@ -85,8 +82,10 @@ export default function WhaleFlowTile() {
     const load = async () => {
       try {
         const [listRes, sumRes, statRes] = await Promise.all([
-          // Chronological newest-first feed for the row list.
-          api.get<FlowListResp>('/whale-flow', { params: { window: '1d', limit: 20 } })
+          // Chronological newest-first feed for the row list. limit=50
+          // gives plenty of scroll depth — list container is flex-1 so
+          // visible-row count auto-adapts to the tile's actual height.
+          api.get<FlowListResp>('/whale-flow', { params: { window: '1d', limit: 50 } })
               .catch(() => null),
           // KPI aggregates for the bottom strip.
           api.get<FlowSummary>('/whale-flow/summary', { params: { window: '1d' } })
@@ -116,14 +115,14 @@ export default function WhaleFlowTile() {
   const netFlowTao  = summary?.net_flow_tao ?? 0
   const netPositive = netFlowTao >= 0
 
-  // Approximate scroll height: each row is roughly 22px high (text-xs).
-  // 8 rows ≈ 176px + small padding. Lets all events scroll within tile
-  // without forcing the dashboard layout to grow.
-  const listMaxH = `${VISIBLE_ROWS * 22 + 8}px`
-
   return (
     <>
-      <div className="rounded-xl border border-dark-600 bg-dark-800 p-4">
+      {/* h-full + flex column → tile stretches to match the Sentiment tile's
+          height (CSS Grid items-stretch default), and the events list grows
+          to fill whatever vertical space remains after header/KPI-strip.
+          Session XXXIX (Day 6) follow-up: Mark — 'extend the data entries
+          to fill the section'. */}
+      <div className="rounded-xl border border-dark-600 bg-dark-800 p-4 h-full flex flex-col min-h-[420px]">
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
           <div className="flex items-center gap-2">
@@ -171,31 +170,32 @@ export default function WhaleFlowTile() {
 
         {/* Loading */}
         {loading && (
-          <div className="flex items-center gap-2 text-slate-500 text-xs font-mono py-6 justify-center">
+          <div className="flex-1 flex items-center gap-2 text-slate-500 text-xs font-mono py-6 justify-center">
             <RefreshCw size={12} className="animate-spin" /> Loading whale flow…
           </div>
         )}
 
         {/* Empty / hard error */}
         {!loading && events.length === 0 && (
-          <div className="text-slate-500 text-xs font-mono py-6 text-center">
+          <div className="flex-1 flex items-center justify-center text-slate-500 text-xs font-mono py-6 text-center">
             {status?.connected
               ? `Listening on block ${status.last_block ?? '—'} · no whales ≥ ${status?.min_tao ?? 100} τ yet`
               : 'Whale flow warming up…'}
           </div>
         )}
 
-        {/* Event list — chronological, scrollable, click for detail */}
+        {/* Event list — chronological, scrollable, click for detail.
+            flex-1 + min-h-0 lets the list expand to fill remaining tile
+            height regardless of how tall the sibling tile (Sentiment) is. */}
         {!loading && events.length > 0 && (
           <>
             <div
-              className="space-y-1 mb-3 overflow-y-auto pr-1 -mr-1
+              className="flex-1 min-h-0 space-y-1 mb-3 overflow-y-auto pr-1 -mr-1
                          [&::-webkit-scrollbar]:w-1.5
                          [&::-webkit-scrollbar-track]:bg-transparent
                          [&::-webkit-scrollbar-thumb]:bg-dark-600
                          [&::-webkit-scrollbar-thumb]:rounded-full
                          hover:[&::-webkit-scrollbar-thumb]:bg-dark-500"
-              style={{ maxHeight: listMaxH }}
             >
               {events.map((e) => (
                 <button
