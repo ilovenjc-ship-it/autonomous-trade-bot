@@ -17,6 +17,8 @@ import HowItAllConnects from '@/components/HowItAllConnects'
 // Flow tile now expands to fill the slot with full chronological feed +
 // click-to-expand row detail.
 import WhaleFlowTile from '@/components/WhaleFlowTile'
+// Session XXXIX (Day 6): SignalFeedTile slots into the new bottom 3-col row.
+import SignalFeedTile from '@/components/SignalFeedTile'
 import { InfoBubble } from '@/components/Tooltip'
 
 // ── intelligence types ────────────────────────────────────────────────────────
@@ -921,13 +923,17 @@ export default function Dashboard() {
 
       </div>{/* end 10-card grid */}
 
-      {/* ── Bottom row: Top Strategies · Recent Trades · Live Indicators ───────
+      {/* ── Top working-data row: Top Strategies · Recent Trades · Whale Flow ──
           Session XXIX: TradingView chart relocated FROM here to BELOW this row
           (chart now sits at the bottom of the Dashboard). Partner walked the
           960px chart above the bottom row and called it impractical — the
           chart now sits below the working-data tiles so the actionable
-          fleet/recent/indicators view is the lead, and price chart is
-          reference material at page-bottom. */}
+          fleet/recent/flow view is the lead, and price chart is
+          reference material at page-bottom.
+          Session XXXIX (Day 6): Whale Flow swapped IN from the post-chart row
+          per Mav — Whale Flow is the highest-signal action surface, belongs
+          alongside strategy/trade tiles. Live Indicators moved DOWN to the
+          new 3-col ambient/context row below the chart. */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
 
         {/* Strategy leaderboard — Session XXXIV: ALL strategies w/ internal scroll */}
@@ -972,36 +978,13 @@ export default function Dashboard() {
         {/* Recent Trades */}
         <RecentTradesMini trades={recentTrades} />
 
-        {/* Live Indicators (relocated from 2-col row) */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
-            <Radio size={14} className="text-accent-blue" /> Live Indicators
-          </h2>
-          <IndRow label="RSI (14)"     val={ind.rsi_14}      good={30} bad={70} />
-          <IndRow label="EMA 9"        val={ind.ema_9} />
-          <IndRow label="EMA 21"       val={ind.ema_21} />
-          <IndRow label="MACD"         val={ind.macd} />
-          <IndRow label="MACD Signal"  val={ind.macd_signal} />
-          <IndRow label="BB Upper"     val={ind.bb_upper} />
-          <IndRow label="BB Lower"     val={ind.bb_lower} />
-          <IndRow label="SMA 50"       val={ind.sma_50} />
-
-          {/* Momentum signal summary */}
-          <div className="mt-4 p-3 rounded-lg bg-dark-700 border border-dark-600">
-            <p className="text-[13px] text-slate-300 font-mono uppercase tracking-widest mb-1">Momentum Signal</p>
-            {ind.rsi_14 != null ? (
-              <p className={clsx('text-sm font-bold font-mono',
-                ind.rsi_14 < 35 ? 'text-accent-green' :
-                ind.rsi_14 > 65 ? 'text-red-400' : 'text-yellow-400'
-              )}>
-                {ind.rsi_14 < 35 ? '🟢 OVERSOLD — BUY' :
-                 ind.rsi_14 > 65 ? '🔴 OVERBOUGHT — SELL' : '🟡 NEUTRAL — HOLD'}
-              </p>
-            ) : (
-              <p className="text-slate-300 text-sm font-mono">Accumulating data…</p>
-            )}
-          </div>
-        </div>
+        {/* Whale Flow — Session XXXIX (Day 6): promoted from the post-chart
+            2-col row UP to the working-data 3-col row alongside Top Strategies
+            + Recent Trades. Whale Flow is action-tier (directional pressure
+            from large stake/unstake events) — natural neighbor for strategy
+            and trade context. Live Indicators moved DOWN to the new ambient
+            3-col row below the chart. */}
+        <WhaleFlowTile />
 
       </div>
 
@@ -1015,19 +998,63 @@ export default function Dashboard() {
           serves as page-bottom reference material rather than headline. */}
       <TaoTradingViewChart heightPx={640} />
 
-      {/* ── Bottom row: Market Sentiment + Whale Flow ─────────────────────────
+      {/* ── Bottom row: Signal Feed · Market Sentiment · Live Indicators ──────
           Session XXVI placed Drawdown from Peak here. Session XXXV: Mav moved
-          DrawdownChart down to P&L Summary and slotted the Whale Tracker
-          (TaoStats top-100 leaderboard) here. Session XXXVIII added the Whale
-          Flow tile (live Finney RPC) alongside the Tracker. Session XXXIX
-          (Day 6): Tracker retired — TaoStats free-tier 429s made it perma-empty,
-          and Whale Flow is the higher-signal surface anyway (directional movement
-          beats static positions for trade context). Bottom row is now 2-up:
-          Sentiment + Flow, with Flow showing chronological feed + click-to-expand
-          row detail. */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+          DrawdownChart down to P&L Summary and slotted the Whale Tracker here.
+          Session XXXVIII added the Whale Flow tile alongside the Tracker.
+          Session XXXIX morning (Day 6): Tracker retired (TaoStats free-tier
+          429s) → 2-up: Sentiment + Flow.
+
+          Session XXXIX (Day 6, second pass): Mav rearranged again —
+            • Whale Flow swapped UP into the working-data row above the chart
+              (action-tier, lives next to Top Strategies + Recent Trades).
+            • Live Indicators swapped DOWN here (ambient/context tier — RSI,
+              EMA, MACD etc. are reference signals, not trigger surfaces).
+            • New SignalFeedTile added as the third column — pulls live
+              kind="signal" events from the activity ring buffer (CoinGecko /
+              Reddit / TaoDaily / Taostats / Discord). Twitter/X intentionally
+              not wired (paid API tier; we just removed Perplexity for the
+              same reason — see signal_ingestor.py XXXIX comment).
+          Three columns fit and read better than two on this row. */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+        {/* Column 1 — Signal Feed (new XXXIX Day 6) */}
+        <SignalFeedTile />
+
+        {/* Column 2 — Market Sentiment */}
         <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
-        <WhaleFlowTile />
+
+        {/* Column 3 — Live Indicators (relocated from working-data row) */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 h-full flex flex-col">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+            <Radio size={14} className="text-accent-blue" /> Live Indicators
+          </h2>
+          <IndRow label="RSI (14)"     val={ind.rsi_14}      good={30} bad={70} />
+          <IndRow label="EMA 9"        val={ind.ema_9} />
+          <IndRow label="EMA 21"       val={ind.ema_21} />
+          <IndRow label="MACD"         val={ind.macd} />
+          <IndRow label="MACD Signal"  val={ind.macd_signal} />
+          <IndRow label="BB Upper"     val={ind.bb_upper} />
+          <IndRow label="BB Lower"     val={ind.bb_lower} />
+          <IndRow label="SMA 50"       val={ind.sma_50} />
+
+          {/* Momentum signal summary */}
+          <div className="mt-auto pt-4">
+            <div className="p-3 rounded-lg bg-dark-700 border border-dark-600">
+              <p className="text-[13px] text-slate-300 font-mono uppercase tracking-widest mb-1">Momentum Signal</p>
+              {ind.rsi_14 != null ? (
+                <p className={clsx('text-sm font-bold font-mono',
+                  ind.rsi_14 < 35 ? 'text-accent-green' :
+                  ind.rsi_14 > 65 ? 'text-red-400' : 'text-yellow-400'
+                )}>
+                  {ind.rsi_14 < 35 ? '🟢 OVERSOLD — BUY' :
+                   ind.rsi_14 > 65 ? '🔴 OVERBOUGHT — SELL' : '🟡 NEUTRAL — HOLD'}
+                </p>
+              ) : (
+                <p className="text-slate-300 text-sm font-mono">Accumulating data…</p>
+              )}
+            </div>
+          </div>
+        </div>
       </div>
 
     </div>
