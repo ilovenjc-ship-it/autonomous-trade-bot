@@ -547,6 +547,82 @@ def get_feed_status() -> list:
     return result
 
 
+# Session XXXIX (Day 6) Round 6 — Discord gateway diagnostic.
+# Exposes guild-level membership view of the live bot connection so the
+# Activity Log panel and operators can confirm "Listening on: <server>"
+# without digging into the Discord Developer Portal Installation tab on
+# every redeploy.
+def get_discord_guilds() -> dict:
+    """
+    Return a snapshot of the Discord gateway connection state and the
+    guilds the bot is currently a member of.
+
+    Safe to call any time — never awaits, never raises.
+
+    Shape:
+      {
+        "connected":     bool,         # gateway socket alive
+        "bot_user":      str | None,   # e.g. "OTF Signal Bot#8669"
+        "guild_count":   int,
+        "guilds": [
+          {
+            "id":               str,
+            "name":             str,
+            "member_count":     int | None,
+            "text_channels":    int,   # total text channels in guild
+            "channels_visible": int,   # text channels bot can read_messages
+          },
+          ...
+        ],
+      }
+    """
+    out = {
+        "connected":   False,
+        "bot_user":    None,
+        "guild_count": 0,
+        "guilds":      [],
+    }
+    client = _discord_client
+    try:
+        if client is None or client.is_closed():
+            return out
+        out["connected"] = True
+        if client.user is not None:
+            out["bot_user"] = str(client.user)
+        guilds = list(client.guilds or [])
+        out["guild_count"] = len(guilds)
+        for g in guilds:
+            try:
+                text_channels = list(getattr(g, "text_channels", []) or [])
+                visible = 0
+                me = getattr(g, "me", None)
+                for ch in text_channels:
+                    try:
+                        # If we can resolve perms, count channels we can read.
+                        # Fallback: count all if perm resolution fails.
+                        if me is not None:
+                            perms = ch.permissions_for(me)
+                            if getattr(perms, "read_messages", False):
+                                visible += 1
+                        else:
+                            visible += 1
+                    except Exception:
+                        visible += 1
+                out["guilds"].append({
+                    "id":               str(getattr(g, "id", "")),
+                    "name":             getattr(g, "name", "(unknown)"),
+                    "member_count":     getattr(g, "member_count", None),
+                    "text_channels":    len(text_channels),
+                    "channels_visible": visible,
+                })
+            except Exception as e:
+                logger.debug(f"get_discord_guilds: skipping malformed guild: {e}")
+                continue
+    except Exception as e:
+        logger.warning(f"get_discord_guilds: unexpected error: {e}")
+    return out
+
+
 def configure_feed(feed_id: str, config: dict) -> bool:
     """
     Persist config (api_key / bot_token / etc.) for a feed.

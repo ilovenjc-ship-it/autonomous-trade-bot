@@ -14,6 +14,7 @@ from pydantic import BaseModel
 
 from services.signal_ingestor import (
     get_feed_status,
+    get_discord_guilds,
     configure_feed,
     toggle_feed,
     _FEEDS,
@@ -49,6 +50,18 @@ class ConfigRequest(BaseModel):
 async def list_feeds():
     """Return all signal feeds with live status (secrets masked)."""
     return {"feeds": get_feed_status()}
+
+
+@router.get("/discord/guilds")
+async def discord_guilds():
+    """
+    Diagnostic — show which Discord servers the bot is currently a member of.
+
+    Useful for confirming "Listening on: <server>" in the Activity Log panel
+    and for verifying new invites took effect after Railway redeploys.
+    Session XXXIX Day 6 Round 6 — Discord gateway closeout follow-up.
+    """
+    return get_discord_guilds()
 
 
 @router.post("/{feed_id}/toggle")
