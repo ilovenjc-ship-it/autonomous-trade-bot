@@ -14,7 +14,6 @@ import {
   ArrowDownCircle, ArrowUpCircle, RefreshCw, ExternalLink, Plus,
   Copy, Trash2, DollarSign, TrendingDown, CheckCircle2, XCircle,
   AlertTriangle, ArrowRightLeft, Landmark, ChevronDown, Eye, EyeOff,
-  Gauge,
   type LucideIcon,
 } from 'lucide-react'
 import clsx from 'clsx'
@@ -25,7 +24,8 @@ import LivePositionsPanel   from '@/components/LivePositionsPanel'
 // Session XXXIV: Privacy mode now follows the Operator from Wallet → Transactions
 import { PrivacyValue, maskAddr } from '@/components/PrivacyValue'
 import { usePrivacyMode } from '@/hooks/usePrivacyMode'
-// Session XXXVIII: Daily Cap KPI relocated here from Dashboard — uses InfoBubble.
+// Session XXXIX (Day 6): Daily Cap card relocated to /risk — Gauge icon
+// dropped.  InfoBubble is still used by SummaryCard tooltips below.
 import { InfoBubble } from '@/components/Tooltip'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -159,76 +159,11 @@ function SummaryCard({
   )
 }
 
-// ── Daily Cap Card (Session XXXVIII — relocated from Dashboard) ──────────────
-// Self-contained: pulls its own data from /api/fleet/daily-cap, refreshes
-// every 30s. Displays the % of today's deployment cap consumed with a small
-// progress bar — same visual idiom as the Dashboard's previous slot, just
-// re-skinned to match the Transactions page surface.
-interface DailyCap {
-  staked_today_tao: number; cap_tao: number; liquid_tao: number
-  pct_used: number; remaining_tao: number; reset_date: string | null; fraction: number
-}
-
-function DailyCapCard() {
-  const [cap, setCap] = useState<DailyCap | null>(null)
-
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const r = await fetch('/api/fleet/daily-cap')
-        if (r.ok) setCap(await r.json())
-      } catch { /* soft-fail */ }
-    }
-    load()
-    const id = setInterval(load, 30_000)
-    return () => clearInterval(id)
-  }, [])
-
-  const pct = cap?.pct_used ?? 0
-  const tone =
-    pct >= 90 ? 'text-red-400'    :
-    pct >= 60 ? 'text-amber-400'  :
-                'text-emerald-400'
-  const bar =
-    pct >= 90 ? 'bg-red-500'    :
-    pct >= 60 ? 'bg-amber-400'  :
-                'bg-emerald-500'
-
-  const tip = (
-    <div className="space-y-2">
-      <p className="text-white font-bold">Daily Deployment Cap</p>
-      <p>The maximum TAO the autonomous fleet is allowed to deploy (stake) in a single UTC day. A safety guardrail — the fleet cannot exceed it even if every strategy votes BUY.</p>
-      <p>Computed as <span className="text-amber-300 font-mono">liquid_balance × {((cap?.fraction ?? 0) * 100).toFixed(0)}%</span> with a floor of 0.02 τ. Resets at UTC midnight.</p>
-      {cap && (
-        <p className="text-[11px] text-slate-400 border-t border-slate-700/50 pt-1 font-mono">
-          {cap.staked_today_tao.toFixed(4)} τ staked / {cap.cap_tao.toFixed(4)} τ cap · {cap.remaining_tao.toFixed(4)} τ left today
-        </p>
-      )}
-    </div>
-  )
-
-  return (
-    <div className="bg-[#0f1929] border border-[#1e3a5f] rounded-xl p-5 flex flex-col gap-2">
-      <div className="flex items-center gap-2 text-slate-400 text-xs font-semibold uppercase tracking-wider">
-        <Gauge size={13} className="text-amber-400" />
-        Daily Cap
-        <InfoBubble content={tip} side="left" maxWidth={320} className="ml-auto" />
-      </div>
-      <div className={clsx('text-2xl font-bold font-mono', tone)}>
-        {cap ? `${pct.toFixed(0)}%` : '—'}
-      </div>
-      <div className="h-1.5 bg-[#0a1220] rounded-full overflow-hidden">
-        <div
-          className={clsx('h-full rounded-full transition-all', bar)}
-          style={{ width: `${Math.min(100, pct)}%` }}
-        />
-      </div>
-      <div className="text-xs text-slate-500">
-        {cap ? `${cap.remaining_tao.toFixed(4)} τ left today` : 'fetching…'}
-      </div>
-    </div>
-  )
-}
+// Session XXXIX (Day 6): DailyCapCard component removed from this file —
+// the Daily Cap KPI now lives at the end of the Risk Configuration KPI row
+// (see pages/RiskConfig.tsx → DailyCapStatusCard).  Mav: "now since I know
+// what it's for, I know where it goes."  Removing dead code rather than
+// commenting it out — git history retains the previous implementation.
 
 // ── Add Funding Modal ─────────────────────────────────────────────────────────
 
@@ -571,9 +506,12 @@ export default function WalletTransactions() {
 
       {/* Summary cards — Session XXXIV: all 4 amount cards now respect privacy
           mode. Session XXXVIII: Daily Cap KPI relocated here from the
-          Dashboard (slot 5 below) so the deployment safety guardrail lives
-          alongside the funding ledger that bankrolls it. ────────────────── */}
-      <div id="tx-summary" className="px-6 py-4 grid grid-cols-2 md:grid-cols-5 gap-3">
+          Dashboard. Session XXXIX (Day 6): Daily Cap moved again to
+          /risk (Risk Configuration KPI row) per Mav — the deployment
+          guardrail belongs with the other autonomous-fleet guardrails
+          (Drawdown, Daily Loss, Open Positions, Circuit Breaker, Halt).
+          Tx page reverts to a clean 4-card summary row. ─────────────── */}
+      <div id="tx-summary" className="px-6 py-4 grid grid-cols-2 md:grid-cols-4 gap-3">
         <SummaryCard
           label="Total Funded"
           value={s ? fmt(s.total_funded_tao) : '…'}
@@ -614,8 +552,7 @@ export default function WalletTransactions() {
           placeholder="±τ ████"
           tip="Total Value minus Total Funded — the wallet's realised + unrealised gain or loss vs every TAO ever sent in. Positive means the autonomous fleet has grown the bankroll; negative means it's eaten into it."
         />
-        {/* Session XXXVIII: Daily Cap KPI — relocated from Dashboard slot 10. */}
-        <DailyCapCard />
+        {/* Session XXXIX (Day 6): Daily Cap moved to /risk (Risk Config KPI row). */}
       </div>
 
       {/* ── Staking + Live Positions (Session XXVII: relocated here from

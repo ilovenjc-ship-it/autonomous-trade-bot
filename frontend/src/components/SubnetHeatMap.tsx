@@ -102,6 +102,12 @@ export default function SubnetHeatMap() {
   // Session XXXV: pagination — 64 cells per page (8×8 grid),
   // 128 subnets across 2 pages per Mav's spec.
   const [page,     setPage]     = useState(1)
+  // Session XXXIX (Day 6): trading mode gate — II Agent active-subnet
+  // outline + dot are PAPER-OFF, LIVE-ON. While we're paper-training, the
+  // hardcoded TAOBOT_SUBNETS list isn't representative of live activity, so
+  // suppressing the highlight until /bot/trading-mode reports overall_mode
+  // == 'LIVE' avoids the "5 cells always lit" misleading visual.
+  const [isLive,   setIsLive]   = useState(false)
 
   useEffect(() => {
     api.get<{ subnets: SubnetRow[] }>('/market/subnets?sort=uid&order=asc')
@@ -116,6 +122,24 @@ export default function SubnetHeatMap() {
         .catch(() => {})
     }, 30_000)
     return () => clearInterval(t)
+  }, [])
+
+  // Trading-mode gate — fetched once + every 30s. Soft-fails to paper if
+  // the endpoint is unreachable (safer default — never accidentally flag
+  // live highlights when we can't confirm).
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const r = await api.get<{ overall_mode?: string }>('/bot/trading-mode')
+        if (!cancelled) setIsLive(r.data?.overall_mode === 'LIVE')
+      } catch {
+        if (!cancelled) setIsLive(false)
+      }
+    }
+    load()
+    const id = setInterval(load, 30_000)
+    return () => { cancelled = true; clearInterval(id) }
   }, [])
 
   const modeCfg   = MODES.find(m => m.key === mode) ?? MODES[0]
@@ -138,19 +162,19 @@ export default function SubnetHeatMap() {
             content={
               <div className="space-y-2">
                 <p className="text-white font-bold text-[12px]">Network Heat Map</p>
-                <p>Each cell = one Bittensor subnet (SN1–SN64). Color intensity reflects the selected metric — darker blue is cold (low), amber-red is hot (high).</p>
+                <p>Each cell = one Bittensor subnet (SN1–SN128, paginated 64 per page). Color intensity reflects the selected metric — pale red is <span className="text-red-400 font-bold">▼ falling</span> (low), green is <span className="text-emerald-400 font-bold">▲ rising</span> (high).</p>
                 <div className="border-t border-slate-700/50 pt-2 space-y-1">
                   <p className="flex items-center gap-2">
                     <span className="inline-block w-3 h-3 rounded-sm border-2 border-[#00e5a0] flex-shrink-0" />
-                    <span><span className="text-emerald-400 font-bold">Green outline</span> = subnet actively monitored by the II Agent (SN1, 8, 9, 18, 64). The Orchestrator coordinates stake, votes, and emission collection on these networks.</span>
+                    <span><span className="text-emerald-400 font-bold">Green outline</span> = subnet actively monitored by the II Agent (SN1, 8, 9, 18, 64). Visible only in <span className="text-emerald-300">LIVE</span> mode — paper-training mode hides the highlight to avoid implying real activity.</span>
                   </p>
                   <p className="flex items-center gap-2">
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00e5a0] flex-shrink-0" />
-                    <span><span className="text-emerald-400 font-bold">Green dot</span> (top-right corner) = same II Agent active indicator.</span>
+                    <span><span className="text-emerald-400 font-bold">Green dot</span> (top-right corner) = same II Agent active indicator (LIVE only).</span>
                   </p>
                   <p className="flex items-center gap-2">
                     <span className="text-emerald-400 font-bold flex-shrink-0">▲</span>
-                    <span>Rising / falling arrow = 30-min price trend from TAO.app.</span>
+                    <span>Per-cell ▲/▼ arrow = 30-min price trend from TAO.app (independent of magnitude color).</span>
                   </p>
                 </div>
                 <p className="text-slate-400 text-[11px]">Hover any cell for full subnet stats. Switch view modes (Stake · APY · Miners · Score) with the buttons above.</p>
@@ -158,14 +182,21 @@ export default function SubnetHeatMap() {
             }
           />
         </h2>
-        <div className="flex items-center gap-1 text-[11px] font-mono flex-shrink-0">
-          <span className="text-slate-500">COLD</span>
+        {/* Session XXXIX (Day 6): legend wording updated per Mav — COLD/HOT
+            replaced with FALLING/RISING + matching ▼/▲ arrows so the gradient
+            scale shares the same visual language as the per-cell trend
+            indicators.  The standalone arrow legend was removed from the
+            bottom of the panel (consolidated here, top-right). */}
+        <div className="flex items-center gap-1.5 text-[11px] font-mono flex-shrink-0">
+          <span className="text-red-400 font-bold">▼</span>
+          <span className="text-slate-500">FALLING</span>
           <div className="flex gap-0.5">
             {[0, 0.2, 0.4, 0.6, 0.8, 1].map(v => (
               <div key={v} style={{ background: heatColor(v), width: 12, height: 8, borderRadius: 2 }} />
             ))}
           </div>
-          <span className="text-orange-400">HOT</span>
+          <span className="text-emerald-400">RISING</span>
+          <span className="text-emerald-400 font-bold">▲</span>
         </div>
       </div>
 
@@ -210,7 +241,7 @@ export default function SubnetHeatMap() {
         const display = subnets.slice(start, start + SIZE)
         const padded: (SubnetRow | null)[] = [...display, ...Array(Math.max(0, SIZE - display.length)).fill(null)]
         return (
-          <div className="flex-1 relative min-h-0">
+          <div data-heatmap-bounds className="flex-1 relative min-h-0">
             <div className="h-full grid gap-1" style={{
               gridTemplateColumns: `repeat(${COLS}, 1fr)`,
               gridTemplateRows:    `repeat(${ROWS}, 1fr)`,
@@ -223,18 +254,28 @@ export default function SubnetHeatMap() {
                 const n        = norm(raw)
                 const bg       = heatColor(n)
                 const txt      = heatText(n)
-                const isTaoBot = TAOBOT_SUBNETS.has(s.uid)
+                // Session XXXIX (Day 6): II Agent outline + green dot are
+                // PAPER-OFF.  While paper-training the hardcoded list is
+                // misleading — five cells lit "always-on" doesn't reflect
+                // any real activity.  Flip on once /bot/trading-mode reports
+                // overall_mode == 'LIVE'.
+                const isTaoBot = isLive && TAOBOT_SUBNETS.has(s.uid)
                 return (
                   <div
                     key={s.uid}
                     onMouseEnter={e => {
                       setHovered(s)
-                      // Session XXXV: anchor tooltip AT the hovered cell, not at
-                      // the upper-left corner. Position it adjacent to the cell
-                      // (default: right-of-cell), flipped to left-of-cell when
-                      // the right edge would overflow, and clamped vertically.
+                      // Session XXXIX (Day 6) bug fix:  closest('.relative')
+                      // was matching the cell itself (the cell carries the
+                      // .relative class so its inner ▲/▼/dot can be
+                      // absolutely-positioned), which made the tooltip
+                      // anchor to (0,0) of every cell — i.e. always
+                      // appearing on the first square in the upper-left
+                      // corner.  Switched to a unique data attribute on
+                      // the bounding wrapper so the tooltip math uses the
+                      // grid container's rect, not the cell's.
                       const container = (e.currentTarget as HTMLElement)
-                        .closest('.relative') as HTMLElement
+                        .closest('[data-heatmap-bounds]') as HTMLElement
                       const rect = container.getBoundingClientRect()
                       const el = (e.currentTarget as HTMLElement).getBoundingClientRect()
                       const TOOLTIP_W = 200
@@ -294,7 +335,7 @@ export default function SubnetHeatMap() {
                 <div className="bg-[#0d1424] border border-slate-700/60 rounded-xl px-3 py-2.5 shadow-2xl min-w-[180px]">
                   <div className="flex items-center justify-between mb-1.5">
                     <span className="text-[12px] font-bold text-white">SN{hovered.uid} — {hovered.name}</span>
-                    {TAOBOT_SUBNETS.has(hovered.uid) && (
+                    {isLive && TAOBOT_SUBNETS.has(hovered.uid) && (
                       <span className="text-[10px] font-mono text-emerald-400 border border-emerald-500/30 rounded px-1 py-0.5">
                         II Agent ✓
                       </span>
@@ -361,20 +402,28 @@ export default function SubnetHeatMap() {
         )
       })()}
 
-      {/* ── Legend ────────────────────────────────────────────────────────── */}
+      {/* ── Legend ──────────────────────────────────────────────────────────
+          Session XXXIX (Day 6): rising/falling arrow legend removed from
+          here (consolidated into the FALLING/RISING gradient bar in the top
+          header so the visual language doesn't repeat). The II Agent
+          "Active Subnets" pill is now PAPER-OFF — while we're paper-training
+          the hardcoded list isn't representative; flips on automatically the
+          moment /bot/trading-mode reports overall_mode == 'LIVE'. */}
       <div className="mt-2 flex-shrink-0 space-y-1">
-        {/* II Agent active legend — more prominent */}
-        <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-emerald-950/40 border border-emerald-800/30">
-          <span className="w-3 h-3 rounded-sm border-2 border-emerald-400 flex-shrink-0 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-          <span className="text-[11px] font-mono text-emerald-400 font-bold">II Agent Active Subnets</span>
-          <span className="text-[10px] font-mono text-emerald-600">SN1 · SN8 · SN9 · SN18 · SN64</span>
-          <span className="ml-auto text-[10px] font-mono text-slate-600">Green outline = II Agent</span>
-        </div>
-        <div className="flex items-center gap-3 text-[10px] font-mono text-slate-500 px-1">
-          <span className="text-emerald-400 font-bold">▲</span><span>rising</span>
-          <span className="text-red-400 font-bold">▼</span><span>falling</span>
-          <span className="ml-auto text-slate-600">Hover any cell for full stats</span>
-        </div>
+        {isLive ? (
+          <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-emerald-950/40 border border-emerald-800/30">
+            <span className="w-3 h-3 rounded-sm border-2 border-emerald-400 flex-shrink-0 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
+            <span className="text-[11px] font-mono text-emerald-400 font-bold">II Agent Active Subnets</span>
+            <span className="text-[10px] font-mono text-emerald-600">SN1 · SN8 · SN9 · SN18 · SN64</span>
+            <span className="ml-auto text-[10px] font-mono text-slate-600">Green outline = II Agent</span>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-slate-900/40 border border-slate-700/40">
+            <span className="w-2 h-2 rounded-full bg-amber-400/70 flex-shrink-0" />
+            <span className="text-[11px] font-mono text-slate-400">Paper mode — II Agent active-subnet highlights are off until LIVE</span>
+            <span className="ml-auto text-[10px] font-mono text-slate-600">Hover any cell for full stats</span>
+          </div>
+        )}
       </div>
     </div>
   )

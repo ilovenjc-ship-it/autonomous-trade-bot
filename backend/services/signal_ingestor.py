@@ -10,9 +10,15 @@ Sources
   coingecko    — TAO/USD spot price + 24h momentum        (60s,  no auth)
   reddit_rss   — r/bittensor_ community sentiment         (5min, no auth)
   taodaily_rss — TaoDaily ecosystem / subnet news         (30min, no auth)
-  taostats     — Subnet alpha prices + staking events     (60s,  API key)
-  perplexity   — AI-synthesised TAO news + sentiment      (15min, API key)
+  taostats     — Subnet alpha prices + staking events     (60s,  API key, free tier OK)
   discord      — Protocol announcements (scaffold only)   (WS,   bot token + OTF invite)
+
+Removed
+-------
+  perplexity   — Sonar (paid subscription, ~$16/mo) — removed Session XXXIX
+                 (Day 6) per Mav: "Remove paid-subscription feeds from Signal
+                 Feed."  Desearch (SN22) is the planned Bittensor-native
+                 replacement for AI-synthesised search/news.
 
 All sources call activity_service.push_event(kind="signal", ...)
 Feed status is exposed via get_feed_status() → served by signal_feeds router.
@@ -102,22 +108,11 @@ _FEEDS: dict = {
         "config":         {"api_key": ""},
         "_prev_price":    None,
     },
-    "perplexity": {
-        "id":             "perplexity",
-        "name":           "Perplexity Sonar",
-        "description":    "AI-synthesised TAO news + sentiment — searches web in real-time, 1h window",
-        "icon":           "ai",
-        "auth":           "api_key",
-        "interval_label": "15 min",
-        "interval_s":     900,
-        "enabled":        False,
-        "status":         "disabled",
-        "last_fetch":     None,
-        "last_value":     None,
-        "error":          None,
-        "events_total":   0,
-        "config":         {"api_key": ""},
-    },
+    # Session XXXIX (Day 6): Perplexity Sonar registration removed —
+    # paid-subscription feed (~$16/mo at 15-min cadence) and Mav's directive
+    # was to drop paid-subscription sources from the Signal Feed list.
+    # Desearch (SN22) is the planned Bittensor-native replacement and is
+    # being scoped for its own service.
     "discord": {
         "id":             "discord",
         "name":           "Discord",
@@ -414,77 +409,11 @@ async def _poll_taostats() -> None:
         logger.warning(f"Taostats poll failed: {exc}")
 
 
-async def _poll_perplexity() -> None:
-    """
-    Query Perplexity Sonar for TAO news + sentiment (last 1h).
-    Requires Perplexity API key (api.perplexity.ai).
-    Cost: ~$0.006 / call · ~$0.55/day at 15-min interval.
-    """
-    feed    = _FEEDS["perplexity"]
-    api_key = (feed.get("config") or {}).get("api_key", "").strip()
-    if not api_key:
-        return
-    try:
-        payload = {
-            "model": "sonar",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a concise crypto signal extractor. "
-                        "Respond in ONE sentence only: "
-                        "sentiment (Bullish/Bearish/Neutral), confidence 0.0–1.0, primary catalyst. "
-                        "Example: 'Bullish (0.74) — OTF confirmed emission increase for SN1 starting block 4M.'"
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        "What are the most significant Bittensor TAO signals from the last hour? "
-                        "Include subnet launches, large staking moves, OTF governance decisions, or protocol upgrades."
-                    ),
-                },
-            ],
-            "search_recency_filter": "hour",
-            "search_domain_filter": [
-                "taodaily.io",
-                "taostats.io",
-                "cointelegraph.com",
-                "decrypt.co",
-                "theblock.co",
-                "coindesk.com",
-                "reddit.com",
-            ],
-        }
-        async with httpx.AsyncClient(timeout=30) as client:
-            resp = await client.post(
-                "https://api.perplexity.ai/chat/completions",
-                json=payload,
-                headers={
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type":  "application/json",
-                },
-            )
-        content = (
-            resp.json()
-            .get("choices", [{}])[0]
-            .get("message", {})
-            .get("content", "")
-            or ""
-        ).strip()
-        if content:
-            push_event(
-                "signal",
-                f"[Perplexity Sonar] {content[:200]}",
-                detail="source:perplexity | model:sonar | window:1h",
-            )
-            _mark_ok("perplexity", content[:60])
-        else:
-            _mark_idle("perplexity")
-        logger.debug(f"Perplexity Sonar: {content[:80]}")
-    except Exception as exc:
-        _mark_error("perplexity", str(exc))
-        logger.warning(f"Perplexity poll failed: {exc}")
+# Session XXXIX (Day 6): _poll_perplexity removed.  See registry comment
+# above — paid feed dropped per Mav's directive.  When Desearch (SN22)
+# integration lands it will live in services/desearch_service.py and be
+# wired into the activity ring buffer the same way as the remaining
+# pollers below.
 
 
 # ── Background loop ───────────────────────────────────────────────────────────
@@ -494,7 +423,6 @@ _STAGGER = {
     "reddit_rss":   8,
     "taodaily_rss": 16,
     "taostats":     5,
-    "perplexity":   22,
 }
 
 
@@ -688,23 +616,21 @@ async def start_all() -> None:
 
     Environment variable seeding (runs before any loop starts):
       TAOSTATS_API_KEY   → _FEEDS["taostats"]["config"]["api_key"]
-      PERPLEXITY_API_KEY → _FEEDS["perplexity"]["config"]["api_key"]
       DISCORD_BOT_TOKEN  → _FEEDS["discord"]["config"]["bot_token"]
 
     This ensures keys survive Railway redeployments — Railway env vars are
     the persistent store; the UI drawer lets operators update without a redeploy.
+
+    Session XXXIX (Day 6): PERPLEXITY_API_KEY no longer seeded — feed dropped.
+    Existing env var (if present) is silently ignored.
     """
     # ── Seed keys from environment variables ──────────────────────────────────
     taostats_key  = os.environ.get("TAOSTATS_API_KEY",   "").strip()
-    perplexity_key = os.environ.get("PERPLEXITY_API_KEY", "").strip()
-    discord_token  = os.environ.get("DISCORD_BOT_TOKEN",  "").strip()
+    discord_token = os.environ.get("DISCORD_BOT_TOKEN",  "").strip()
 
     if taostats_key:
         _FEEDS["taostats"]["config"]["api_key"] = taostats_key
         logger.info("SignalIngestor: TAOSTATS_API_KEY loaded from environment")
-    if perplexity_key:
-        _FEEDS["perplexity"]["config"]["api_key"] = perplexity_key
-        logger.info("SignalIngestor: PERPLEXITY_API_KEY loaded from environment")
     if discord_token:
         _FEEDS["discord"]["config"]["bot_token"] = discord_token
         logger.info("SignalIngestor: DISCORD_BOT_TOKEN loaded from environment")
@@ -715,7 +641,6 @@ async def start_all() -> None:
     asyncio.create_task(_run_loop("reddit_rss",   _poll_reddit_rss))
     asyncio.create_task(_run_loop("taodaily_rss", _poll_taodaily_rss))
     asyncio.create_task(_run_loop("taostats",     _poll_taostats))
-    asyncio.create_task(_run_loop("perplexity",   _poll_perplexity))
 
     # ── Discord Gateway — starts immediately; waits internally for a valid token
     global _discord_task
@@ -727,9 +652,9 @@ async def start_all() -> None:
         _FEEDS["discord"]["status"] = "pending_invite"
         logger.info("DiscordGateway: task started — waiting for DISCORD_BOT_TOKEN")
 
-    active = sum(1 for k in ("taostats", "perplexity", "discord")
+    active = sum(1 for k in ("taostats", "discord")
                  if _FEEDS[k]["config"].get("api_key") or _FEEDS[k]["config"].get("bot_token"))
     logger.info(
         f"SignalIngestor: CoinGecko/Reddit/TaoDaily auto-started · "
-        f"{active}/3 keyed feeds pre-loaded from env · Discord awaits OTF invite"
+        f"{active}/2 keyed feeds pre-loaded from env · Discord awaits OTF invite"
     )

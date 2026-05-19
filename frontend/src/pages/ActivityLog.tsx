@@ -764,7 +764,7 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
         </div>
       )}
 
-      {/* API key input (for taostats / perplexity) */}
+      {/* API key input (for taostats — perplexity removed XXXIX Day 6) */}
       {feed.auth === 'api_key' && (
         <div className="space-y-1.5">
           <label className="text-[10px] text-slate-400 font-mono uppercase tracking-wide">
@@ -800,15 +800,7 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
               </a>
             </p>
           )}
-          {feed.id === 'perplexity' && (
-            <p className="text-[10px] text-slate-500 font-mono">
-              Get a key at{' '}
-              <a href="https://www.perplexity.ai/api" target="_blank" rel="noopener" className="text-accent-blue hover:underline">
-                perplexity.ai/api
-              </a>
-              {' '}· sonar model · ~$0.006/call · ~$16/month at 15-min interval
-            </p>
-          )}
+          {/* Session XXXIX (Day 6): Perplexity helper removed — feed dropped (paid subscription). */}
         </div>
       )}
 
@@ -1111,7 +1103,7 @@ export default function ActivityLog() {
           <button
             onClick={() => setSignalFeedsOpen(true)}
             className="flex items-center gap-1.5 px-3 py-1.5 bg-accent-blue/10 hover:bg-accent-blue/20 border border-accent-blue/30 hover:border-accent-blue/50 text-accent-blue hover:text-sky-200 rounded-lg text-xs font-mono font-semibold transition-all"
-            title="Connect inbound signal feeds (CoinGecko, TaoDaily, Reddit, Taostats, Perplexity, Discord)"
+            title="Connect inbound signal feeds (CoinGecko, TaoDaily, Reddit, Taostats, Discord)"
           >
             <Radio size={12} />
             Signal Feeds

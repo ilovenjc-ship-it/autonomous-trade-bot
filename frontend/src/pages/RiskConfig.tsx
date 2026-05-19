@@ -1,8 +1,9 @@
 import { useEffect, useState, useCallback } from 'react'
-import { CheckCircle2, RefreshCw, ShieldAlert, Zap, BarChart2, TrendingDown, Layers } from 'lucide-react'
+import { CheckCircle2, RefreshCw, ShieldAlert, Zap, BarChart2, TrendingDown, Layers, Gauge } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 import toast from 'react-hot-toast'
+import { InfoBubble } from '@/components/Tooltip'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Config {
@@ -193,6 +194,94 @@ function StatusCard({
   )
 }
 
+// ── Daily Cap Status Card ─────────────────────────────────────────────────────
+// Session XXXIX (Day 6) — relocated from Wallet/Transactions per Mav: "now
+// since I know what it's for, I know where it goes."  Slot at the END of the
+// Risk-Configuration KPI row (after Open Positions) so the row reads:
+//   Global HALT · Circuit Breaker · Drawdown · Daily Loss · Open Positions · Daily Cap
+// Uses the same outer StatusCard chrome (icon + label + value + sub) for
+// visual parity, plus a thin progress bar and an InfoBubble — the operator
+// tooltip Mav specifically called out as the reason this card now has a
+// natural home on the Risk page.
+interface DailyCap {
+  staked_today_tao: number; cap_tao: number; liquid_tao: number
+  pct_used: number; remaining_tao: number; reset_date: string | null; fraction: number
+}
+
+function DailyCapStatusCard() {
+  const [cap, setCap] = useState<DailyCap | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    const load = async () => {
+      try {
+        const r = await fetch('/api/fleet/daily-cap')
+        if (!cancelled && r.ok) setCap(await r.json())
+      } catch { /* soft-fail */ }
+    }
+    load()
+    const id = setInterval(load, 30_000)
+    return () => { cancelled = true; clearInterval(id) }
+  }, [])
+
+  const pct    = cap?.pct_used ?? 0
+  const danger = pct >= 90
+  const warn   = pct >= 60 && pct < 90
+  const tone =
+    danger ? 'text-red-400'    :
+    warn   ? 'text-amber-400'  :
+             'text-emerald-400'
+  const bar =
+    danger ? 'bg-red-500'    :
+    warn   ? 'bg-amber-400'  :
+             'bg-emerald-500'
+
+  const tip = (
+    <div className="space-y-2">
+      <p className="text-white font-bold">Daily Deployment Cap</p>
+      <p>The maximum TAO the autonomous fleet is allowed to deploy (stake) in a single UTC day. A safety guardrail — the fleet cannot exceed it even if every strategy votes BUY.</p>
+      <p>Computed as <span className="text-amber-300 font-mono">liquid_balance × {((cap?.fraction ?? 0) * 100).toFixed(0)}%</span> with a floor of 0.02 τ. Resets at UTC midnight.</p>
+      {cap && (
+        <p className="text-[11px] text-slate-400 border-t border-slate-700/50 pt-1 font-mono">
+          {cap.staked_today_tao.toFixed(4)} τ staked / {cap.cap_tao.toFixed(4)} τ cap · {cap.remaining_tao.toFixed(4)} τ left today
+        </p>
+      )}
+    </div>
+  )
+
+  return (
+    <div className={clsx(
+      'relative flex items-center gap-3 px-4 py-3 rounded-xl border transition-all duration-300',
+      danger ? 'bg-red-500/10 border-red-500/30'
+             : warn ? 'bg-amber-500/10 border-amber-500/30'
+                    : 'bg-dark-800 border-dark-700',
+    )}>
+      <div className={clsx('p-2 rounded-lg flex-shrink-0',
+        danger ? 'bg-red-500/20' : warn ? 'bg-amber-500/20' : 'bg-slate-700/60')}>
+        <Gauge size={14} className={danger ? 'text-red-400' : warn ? 'text-amber-400' : 'text-amber-300'} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <p className="text-[13px] text-slate-500 uppercase tracking-widest font-mono">Daily Cap</p>
+          <InfoBubble content={tip} side="left" maxWidth={320} />
+        </div>
+        <p className={clsx('text-sm font-bold font-mono', tone)}>
+          {cap ? `${pct.toFixed(0)}%` : '—'}
+        </p>
+        <div className="h-1 mt-1 bg-dark-700 rounded-full overflow-hidden">
+          <div
+            className={clsx('h-full rounded-full transition-all', bar)}
+            style={{ width: `${Math.min(100, pct)}%` }}
+          />
+        </div>
+        <p className="text-[13px] text-slate-500 mt-0.5">
+          {cap ? `${cap.remaining_tao.toFixed(4)} τ left today` : 'fetching…'}
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 export default function RiskConfig() {
   const [config,   setConfig]   = useState<Config>(DEFAULTS)
@@ -283,8 +372,10 @@ export default function RiskConfig() {
         )}
       </div>
 
-      {/* ── Live status cards (relocated from right panel) ──────────────────── */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+      {/* ── Live status cards (relocated from right panel) ────────────────────
+          Session XXXIX (Day 6): grid widened from 5 → 6 columns on lg+ to
+          fit the relocated Daily Cap card at the end of the row. */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <StatusCard
           icon={ShieldAlert}
           label="Global HALT"
@@ -322,6 +413,10 @@ export default function RiskConfig() {
           sub={openPos === 0 ? 'No active trades' : `${maxPos - openPos} slots remaining`}
           warn={openPos >= maxPos}
         />
+        {/* Session XXXIX (Day 6): Daily Cap KPI relocated here from
+            Wallet/Transactions per Mav's call — natural home alongside the
+            other autonomous-fleet guardrails. */}
+        <DailyCapStatusCard />
       </div>
 
       {/* ── Autonomous Guardrails ───────────────────────────────────────────── */}

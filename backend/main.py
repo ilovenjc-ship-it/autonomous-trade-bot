@@ -271,8 +271,13 @@ async def lifespan(app: FastAPI):
             "Alpha prices + metagraph snapshots from Finney chain", stale_after_s=180)
         system_health.register("cycle_service",  "Cycle Engine",
             "Strategy evaluation + trade emission loop", stale_after_s=900)
-        system_health.register("whale_service",  "Whale Tracker",
-            "TaoStats top-N TAO-holder leaderboard (lazy)", stale_after_s=1200)
+        # Session XXXIX (Day 6): whale_service / "Whale Tracker" registration
+        # removed — the Dashboard Whale Tracker tile was retired in XXXIX
+        # (TaoStats free-tier 429s made it perma-empty). The Whale Flow
+        # registration below covers the canonical operator-facing whale
+        # surface (live Finney WS RPC). The /tools route still exposes the
+        # legacy snapshot endpoint for ad-hoc queries — it just doesn't
+        # need a permanent System Health row anymore.
         system_health.register("cex_listing",    "CEX Listing Watch",
             "RSS poller — Coinbase / Kraken / Crypto.com", stale_after_s=1800)
         # Phase B — audit_service has no loop; it heartbeats on every record().

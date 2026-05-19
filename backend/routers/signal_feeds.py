@@ -21,18 +21,17 @@ from services.signal_ingestor import (
     _poll_reddit_rss,
     _poll_taodaily_rss,
     _poll_taostats,
-    _poll_perplexity,
 )
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/api/signal-feeds", tags=["signal-feeds"])
 
+# Session XXXIX (Day 6): perplexity removed (paid-subscription feed).
 _TEST_MAP = {
     "coingecko":    _poll_coingecko,
     "reddit_rss":   _poll_reddit_rss,
     "taodaily_rss": _poll_taodaily_rss,
     "taostats":     _poll_taostats,
-    "perplexity":   _poll_perplexity,
 }
 
 
