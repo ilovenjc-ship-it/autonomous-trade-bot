@@ -129,39 +129,13 @@ _FEEDS: dict = {
         "events_total":   0,
         "config":         {"bot_token": "", "channel_ids": ""},
     },
-    # ─── SN8 Vanta — Conviction-Era candidate signal source ───────────────────
-    # Research filed Session XXXII: Taoshi runs SN8 (DEFENDED band, owner share
-    # 27.7% as of 2026-05-14). Signal types are LONG/SHORT/FLAT for Crypto,
-    # Forex, Equities. Realtime trade-data subscription at request.taoshi.io
-    # (paid, login-gated, no public pricing on docs.taoshi.io). Per-position
-    # leverage cap [0.01, 0.5] on crypto, [0.1, 5] on Forex/Equities.
-    #
-    # Integration plan (when subscription is acquired):
-    #   1. Set subnet_netuid=8 → quality gate auto-applies (currently passes 6/6)
-    #   2. Poll Vanta REST endpoint (URL TBD post-subscription) every 60s
-    #   3. Parse position deltas → push as signal events with detail="source:vanta_sn8"
-    #   4. Routing: feed into consensus as a 13th BFT contributor weighted by
-    #      Vanta's omega score / portfolio metric
-    #   5. Quality gate: passes_quality_gate(8) is True at default 6/6 threshold
-    #
-    # Status: DISABLED until paid subscription + endpoint URL acquired.
-    "vanta_sn8": {
-        "id":             "vanta_sn8",
-        "name":           "Vanta SN8 Trading Signals",
-        "description":    "Taoshi Vanta — LONG/SHORT/FLAT signals across Crypto/Forex/Equities (subnet candidate, 6/6 quality gate)",
-        "icon":           "ai",
-        "auth":           "subscription",
-        "interval_label": "60s",
-        "interval_s":     60,
-        "enabled":        False,
-        "status":         "pending_subscription",
-        "last_fetch":     None,
-        "last_value":     None,
-        "error":          "Requires paid subscription at request.taoshi.io/login (no public pricing on docs)",
-        "events_total":   0,
-        "config":         {"api_key": "", "endpoint": "https://request.taoshi.io"},
-        "subnet_netuid":  8,
-    },
+    # Session XXXIX (Day 6, post-redo): Vanta SN8 entry retired from the
+    # Signal Feed registry per Mav — paid-subscription feed (request.taoshi.io,
+    # no public pricing).  Stays on the Watch List in the Bittensor research
+    # docs so we can re-add it the moment we choose to subscribe; no need for
+    # it to advertise itself as a "Disabled" panel row in the meantime.
+    # Earlier registry block + integration plan preserved in git history at
+    # commit 3fd0b71f (Session XXXIX Round 3).
 }
 
 
