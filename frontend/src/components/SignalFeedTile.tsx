@@ -32,10 +32,11 @@ import {
 import clsx from 'clsx'
 import api from '@/api/client'
 import { InfoBubble } from '@/components/Tooltip'
+import SignalEventDetailModal, { type SignalEvent } from '@/components/SignalEventDetailModal'
 
 // ── Types — mirror /api/fleet/activity payload shape ────────────────────────
 interface ActivityEvent {
-  id:        string
+  id:        number
   kind:      'trade' | 'signal' | 'gate' | 'system' | 'alert'
   message:   string
   strategy?: string | null
@@ -100,9 +101,11 @@ function timeAgoShort(iso: string): string {
 
 // ─── Component ──────────────────────────────────────────────────────────────
 export default function SignalFeedTile() {
-  const [events,  setEvents]  = useState<ActivityEvent[]>([])
-  const [loading, setLoading] = useState(true)
-  const [stale,   setStale]   = useState(false)
+  const [events,        setEvents]        = useState<ActivityEvent[]>([])
+  const [loading,       setLoading]       = useState(true)
+  const [stale,         setStale]         = useState(false)
+  // Session XL (Day 7): click-to-detail — selected event drives the modal.
+  const [selectedEvent, setSelectedEvent] = useState<SignalEvent | null>(null)
 
   const load = async () => {
     try {
@@ -218,11 +221,16 @@ export default function SignalFeedTile() {
               const meta = SOURCE_META[src]
               const Icon = meta.Icon
               return (
-                <div
+                <button
                   key={e.id}
-                  className="flex items-center gap-2 text-xs font-mono px-2 py-1
-                             rounded-md hover:bg-dark-700/40 transition-colors group"
-                  title={e.detail || e.message}
+                  type="button"
+                  onClick={() => setSelectedEvent(e)}
+                  className="w-full flex items-center gap-2 text-xs font-mono px-2 py-1
+                             rounded-md hover:bg-dark-700/60 hover:ring-1 hover:ring-dark-500/50
+                             transition-all group cursor-pointer text-left
+                             focus:outline-none focus-visible:ring-1 focus-visible:ring-accent-blue/50"
+                  title="Click for full detail"
+                  aria-label={`Open detail for: ${e.message}`}
                 >
                   <Icon size={11} className={clsx('flex-shrink-0', meta.cls)} />
                   <span className={clsx('w-16 flex-shrink-0 text-[10px] uppercase tracking-wider', meta.cls)}>
@@ -231,10 +239,10 @@ export default function SignalFeedTile() {
                   <span className="text-slate-200 flex-1 truncate group-hover:text-white">
                     {e.message}
                   </span>
-                  <span className="text-slate-500 flex-shrink-0 text-[10px] tabular-nums">
+                  <span className="text-slate-500 flex-shrink-0 text-[10px] tabular-nums group-hover:text-slate-300">
                     {timeAgoShort(e.timestamp)}
                   </span>
-                </div>
+                </button>
               )
             })}
           </div>
@@ -256,6 +264,12 @@ export default function SignalFeedTile() {
           </div>
         </>
       )}
+
+      {/* Session XL (Day 7): click-to-detail modal — portal-mounted to body */}
+      <SignalEventDetailModal
+        event={selectedEvent}
+        onClose={() => setSelectedEvent(null)}
+      />
     </div>
   )
 }
