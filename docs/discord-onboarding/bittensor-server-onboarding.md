@@ -12,8 +12,9 @@ This server is the **higher-priority install** of the two. It is closer to the a
 | Field | Value |
 |---|---|
 | Discord Application ID | `1500891557312594060` |
-| Application name (current) | TaoBot — **HARD COLLISION: TaoStat already operates a validator-related "TaoBot" branded service in this ecosystem. Rename mandatory before invite.** |
-| Suggested rename targets | `signal-ingestor`, `emcee-listener`, `atb-feed`, or unbranded operator name. Avoid anything starting with "Tao". |
+| Application name | **Signal Seeker** (renamed 2026-05-20 from "OTF Signal Bot"; live `bot_user` confirmed `signal-seeker#8669` via `/api/signal-feeds/discord/guilds`) |
+| Bot username | `signal-seeker` |
+| **Note on the original TaoBot/TaoStat-collision concern (Session XXXIX)** | The earlier prep-kit draft incorrectly stated the application was named "TaoBot" and flagged a TaoStat collision as the urgent rename driver. The actual prior name was "OTF Signal Bot" — no TaoStat collision existed. The rename to "Signal Seeker" was still correct, but for a *different* reason: the OTF prefix implies Opentensor Foundation endorsement (false) and would have read as borderline impersonation in the Bittensor server's consent screen. Same fix, different rationale. Logged for transparency in case a future agent reads stale context. |
 | Operator account | `emcee` |
 | Bot purpose in this server | Listen-only signal aggregation across announcement / release / subnet channels. No posting, no mod, no DMs. |
 
@@ -83,7 +84,7 @@ Confirmed Community Managers visible in the screenshot:
 > The bot has **zero send permissions**. No DMs, no mod, no voice, no slash commands. Permission integer is `66560` — that's `View Channels` + `Read Message History` only. The Discord consent screen will show exactly that; happy to send the OAuth URL so you can verify before approving.
 >
 > Two things I want to flag proactively:
-> 1. The bot's current Discord application name is "TaoBot" but I'll rename before invite — I don't want any confusion with TaoStat's TaoBot. Suggesting `atb-listener` or similar.
+> 1. The bot's name is **Signal Seeker** — neutral, descriptive, server-agnostic. Not affiliated with TaoStat, OTF, or any existing branded validator service.
 > 2. The repo is public on GitHub if you want to audit before approving — github.com/ilovenjc-ship-it/autonomous-trade-bot.
 >
 > Totally fine if the answer is no or "not yet." Wanted to ask transparently rather than try to backdoor it.
@@ -92,7 +93,7 @@ Confirmed Community Managers visible in the screenshot:
 
 **Why this works for Bittensor specifically:**
 - Acknowledges the scam-advisory culture directly (most bot requests don't)
-- Pre-empts the TaoStat name collision before they raise it
+- Names the bot up front as Signal Seeker (no branded-validator collision, no OTF impersonation read)
 - Offers public repo for audit — engineer signal, hard to fake
 - Names exact permission integer — easy admin verification
 - Mentions II GitHub Verified as cross-server reputation
@@ -121,7 +122,7 @@ Same as II Community §7. Additionally:
 ## 8. Status
 
 - [x] Intro post live in `#general` (May 19, 11:39 PM)
-- [ ] Application renamed (TaoBot → TBD — **mandatory before any invite ask**)
+- [x] Application renamed (OTF Signal Bot → **Signal Seeker** ✓ 2026-05-20)
 - [ ] Public repo audit-ready (currently public ✓, but README should clearly state "listen-only Discord ingestor" purpose)
 - [ ] Uzor identified as primary contact target
 - [ ] Pitch DM sent to Uzor

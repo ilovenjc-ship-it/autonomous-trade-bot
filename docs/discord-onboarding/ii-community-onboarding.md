@@ -11,7 +11,8 @@
 | Field | Value |
 |---|---|
 | Discord Application ID | `1500891557312594060` |
-| Application name (current) | TaoBot — **flag: collides with TaoStat validator's TaoBot in Bittensor server. Rename before invite.** |
+| Application name | **Signal Seeker** (renamed 2026-05-20 from "OTF Signal Bot"; live `bot_user` confirmed `signal-seeker#8669` via `/api/signal-feeds/discord/guilds`) |
+| Bot username | `signal-seeker` |
 | Operator account | `emcee` |
 | Bot purpose in this server | Listen-only signal aggregation. No posting, no mod actions, no DMs. Read public channels for ecosystem-trend research feeding the autonomous-trade-bot dashboard. |
 
@@ -112,7 +113,7 @@ Once admin grants invite:
 - [x] GitHub Verified earned (May 20, 2026)
 - [x] Intro post live in `#introduce-yourself`
 - [ ] Admin recon
-- [ ] Application renamed (TaoBot → TBD to avoid collision)
+- [x] Application renamed (OTF Signal Bot → **Signal Seeker** ✓ 2026-05-20)
 - [ ] Pitch DM sent
 - [ ] Bot installed
 - [ ] Verification complete
