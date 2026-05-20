@@ -118,10 +118,21 @@ interface DetailFragment {
   value: string
 }
 
+// URL detector — matches http(s) and any well-formed `scheme://...` URI.
+// Used both by the detail parser (so URLs aren't shredded by the colon split)
+// and by the renderer (so URL values become clickable anchors).
+const URL_RE = /^[a-z][a-z0-9+.-]*:\/\/\S+$/i
+function isUrl(s: string): boolean { return URL_RE.test(s.trim()) }
+
 function parseDetail(detail?: string): DetailFragment[] {
   if (!detail) return []
   return detail.split('|').map(seg => seg.trim()).filter(Boolean).map((seg) => {
-    // colon split — but only the FIRST colon to preserve URLs / values containing colons
+    // URL guard — handle BEFORE the colon split, otherwise `https://...`
+    // gets sliced into key="https" / value="//..." (the bug seen in #17).
+    if (isUrl(seg)) {
+      return { key: 'Link', value: seg }
+    }
+    // colon split — but only the FIRST colon to preserve values containing colons
     const colonIdx = seg.indexOf(':')
     const eqIdx    = seg.indexOf('=')
     if (colonIdx > 0 && (eqIdx < 0 || colonIdx < eqIdx)) {
@@ -232,10 +243,30 @@ export default function SignalEventDetailModal({ event, onClose }: Props) {
                         <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mb-1">
                           {f.key}
                         </div>
-                        <div className="text-sm font-mono text-slate-200 break-all">
-                          {f.value}
-                        </div>
+                        {isUrl(f.value) ? (
+                          <a
+                            href={f.value}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className="text-sm font-mono text-accent-blue hover:text-accent-blue/80 underline-offset-2 hover:underline break-all transition-colors"
+                          >
+                            {f.value}
+                          </a>
+                        ) : (
+                          <div className="text-sm font-mono text-slate-200 break-all">
+                            {f.value}
+                          </div>
+                        )}
                       </>
+                    ) : isUrl(f.value) ? (
+                      <a
+                        href={f.value}
+                        target="_blank"
+                        rel="noreferrer noopener"
+                        className="text-sm font-mono text-accent-blue hover:text-accent-blue/80 underline-offset-2 hover:underline break-words transition-colors"
+                      >
+                        {f.value}
+                      </a>
                     ) : (
                       <div className="text-sm font-mono text-slate-300 break-words italic">
                         {f.value}
