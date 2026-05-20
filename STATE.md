@@ -1834,7 +1834,9 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | ~~HOSTING DECISION~~ | ✅ DONE | **Railway Hobby Plan active** — $5/mo, card charged, bot deployed at autonomous-trade-bot-production.up.railway.app |
 | ~~Railway redeploy confirmation~~ | ✅ DONE | Session XVIII: Redeployed 562056c5 — SUCCESS. Bot confirmed LIVE mode. |
 | ~~Transaction audit trail~~ | ✅ DONE | All Railway trades: live=False, tx=NO_HASH. Zero real txs since Session VII. Wallet 0.227τ untouched. |
-| **Strategy re-promotion** | **Active** | All strategies PAPER_ONLY. Honest sim WRs 33-37%, none near 55% gate. Day 2 of 7+ baseline. Next eval: May 11. |
+| **Strategy re-promotion** | **Day 7 / Gate held** | 2026-05-20: Day 7 decision = NO PROMOTIONS. Live data (1955 cycles, 12 bots): top WR Volatility Arb 43.8%/16 trades (sample too thin), best-with-sample Macro Correlation 38.7%/163 trades. Avg WR 34.6% across 10 trading bots vs 55% gate. Fleet PnL -0.443τ paper. Mean Reversion + Contrarian Flow generated **0 trades over 1,955 cycles** — broken signal logic, not "needs more time". Next: strategy + code review, then another paper week. |
+| **Regime architecture review** | **High — flagged Day 7** | Owner diagnosis 2026-05-20: regime classifier uses single-timeframe RSI to produce binary bench/active gate. On +5.76%/24h TAO move (today), 5 momentum-style bots benched on macro=SIDEWAYS label and missed exactly the kind of micro-move they're built for. Fix paths to evaluate during review: (a) multi-timeframe regime (macro AND micro), (b) soft-bench via reduced capital allocation instead of binary on/off, (c) per-strategy regime detection tuned to each bot's operating timeframe. Not today's work. |
+| **Mean Reversion + Contrarian Flow signal logic** | **High — flagged Day 7** | Both bots logged 1,955 cycles with **zero trades**. Either entry conditions are too restrictive or signal pipeline is broken upstream. Code-review priority alongside regime architecture. |
 | **Wallet balance verification** | Medium | Balance shows 0.0 (RPC async startup). Confirm 0.227τ still on-chain via Taostats. |
 | MANTIS API research | Medium | Is SN123 output queryable via API? If yes, direct signal feed into TaoBot. |
 | SN3 owner key resolution | Monitor | Const warned: do not buy SN3 alpha until resolved. Check each session. |
@@ -1853,11 +1855,11 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
 | Session XXII/XXIII PDF Archive | Low | Generate combined session PDF next session |
 | ~~Discord Gateway connection (OTF)~~ | ✅ DONE | Bot live. Multi-session carry-over (XXVIII→XXXIX) CLEARED `d141068a`. Smoke test passed. |
-| Move 2 — `/discord/guilds` endpoint live verify | Waiting | Code shipped `a30287cd`. Awaiting Railway throttle thaw to hit live URL. |
+| ~~Move 2 — `/discord/guilds` endpoint live verify~~ | ✅ DONE | 2026-05-20 morning: live response confirmed — `connected: true`, `bot_user: "OTF Signal Bot#8669"`, 1 guild ("OTF Signals", 2 members, 1 text channel, 1 channel visible). Railway throttle thawed. Endpoint operational. |
 | Discord app rename (TaoBot → TBD) | **Mandatory pre-invite** | TaoStat collision in Bittensor ecosystem. Rename in Dev Portal before any server admin sees the bot. App ID `1500891557312594060` is stable — only display name changes. See `docs/discord-onboarding/`. |
 | II Community bot install | Pitch-ready | GitHub Verified earned tonight. Intro post live in `#introduce-yourself`. Pitch DM draft in `docs/discord-onboarding/ii-community-onboarding.md` §5. Target: whoever configured Linked Roles. |
 | Bittensor server bot install | **II install must precede** | Intro post live in `#general` (May 19, 11:39 PM). Pitch DM draft in `docs/discord-onboarding/bittensor-server-onboarding.md` §5. Target: Uzor (warmer tone) → Kat (enforcer) only if Uzor escalates. Wait ≥7 days post-II install for proof point. |
-| Old PAT revocation | Security | Owner action: revoke `ghp_...DWlM` at github.com/settings/tokens. gh device flow now permanent (§10A). |
+| ~~Old PAT revocation~~ | ✅ DONE | Owner revoked `ghp_...DWlM` at github.com/settings/tokens during Railway downtime (May 19 evening). gh device flow now the only auth path (§10A). Sandbox `~/.secrets/github_pat` already shredded. |
 | Wallet balance on-chain verify | Low | Railway shows 0.0τ at boot (async RPC). Verify 0.227τ intact via Taostats before next session. |
 | Regime gating — live observation | Active | SIDEWAYS regime active. 5 momentum bots benched. First TRENDING switch will auto-wake them. Monitor May 11. |
 
