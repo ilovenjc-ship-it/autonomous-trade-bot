@@ -36,6 +36,63 @@ If you are the owner returning after a break — check Section 5 (Current State)
 
 ---
 
+## SESSION XXXIX (May 19–20, 2026 — Day 6 → Day 7 boundary) — Auth Pivot, Move 2/3 Closeout, II Community Foothold, Discord Prep Kit
+
+### Overview
+A long evening that started on the wrong side of a Railway outage and ended with a clean handoff package for tomorrow. Eight tracked rounds, four pushes, two server intro posts live, one new permanent auth pattern, and a foothold (GitHub Verified) in the II Community server. The Bittensor and II onboarding plans are both committed to disk under `docs/discord-onboarding/`.
+
+### The five wins, in order
+
+**1. Railway recovery (no commit — operational).**
+Railway double-down at session start traced to an edge-network outage compounded by a GCP account block on the non-enterprise build queue. Both backend (`autonomous-trade-bot-production.up.railway.app`) and frontend recovered after the throttle thawed. Discord gateway re-attached cleanly: `events_total` ticked `1 → 2` on smoke test.
+
+**2. Auth pattern pivot — `gh` device flow (`ae629ffc`).**
+The PAT-paste-into-chat → seal-to-`~/.secrets/github_pat` pattern (sessions XXVIII–XXXIX) has been **retired**. New permanent pattern: `gh auth login --web` device flow. No raw token ever appears in chat; the 8-character device code is single-use, ~15-min TTL, harmless if leaked. Recipe lives in **§10A** as a step-by-step recipe for tomorrow's agent. `~/.secrets/github_pat` was shredded after gh push proved working on the same commit. Old PAT (`ghp_...DWlM`) needs revocation by owner at github.com/settings/tokens.
+
+**3. Move 2 — Discord gateway diagnostic endpoint cherry-picked (`a30287cd`).**
+`GET /api/signal-feeds/discord/guilds` exposes `_discord_client.guilds` — name, id, member_count, text_channels, channels_visible. Survives revert (`07a143db`) via clean cherry-pick from `6241a5f6`. This is the eyes-on-the-bot endpoint that lets the dashboard's Activity Log surface "Listening on: <server>" without requiring dev-portal digging on future redeploys.
+**Status:** code shipped to GitHub. Live verification on Railway pending throttle resolution.
+
+**4. Move 1 partial — GitHub Verified earned in II Community (no commit — operator action).**
+Direct bot install was blocked (no Manage Server perms in either target server). Pivot: **Linked Roles flow**. Walked through the II Community's GitHub Verified gate, earned the role legitimately. Unlocks `#technical-chat`, `#report-bugs`, `#show-your-builds`, `#ii-chat`. This is the warmest possible foothold for a future bot-install ask — whoever configured the Linked Roles has already implicitly trusted my GitHub identity.
+
+**5. Discord prep kit shipped (`1d9dddb7`).**
+Two onboarding plans, one per target server, under `docs/discord-onboarding/`:
+- **`ii-community-onboarding.md`** — OAuth invite URL with `permissions=66560` (View Channels + Read Message History only), pitch draft for whoever runs Linked Roles, fallback ladder (webhook-only → personal-account scrape → skip).
+- **`bittensor-server-onboarding.md`** — same OAuth integer, admin recon (Uzor primary / Kat secondary as identified from May 19 #general scrollback), sequencing rationale ("II first, then Bittensor"), scam-aware pitch tuned for the server's pinned anti-scam advisory.
+
+Both files flag the **TaoBot rename as mandatory pre-invite** — TaoStat already operates a TaoBot-branded validator service in the Bittensor ecosystem, so the bot's Discord application name (currently still "TaoBot") must be changed to avoid collision. Application ID `1500891557312594060` is stable; only the display name changes.
+
+### Intro posts live (both servers)
+
+| Server | Channel | Time | Status |
+|---|---|---|---|
+| Bittensor | `#general` | May 19, 11:39 PM | Live, no replies yet (slowmode-enabled channel) |
+| II Community | `#introduce-yourself` | May 20, 12:10 AM | Live, GitHub Verified badge visible — upper-quartile credibility on the channel |
+
+Both posts deliberately omit the project name (TaoStat collision avoidance). II post explicitly names "II Agent as my co-pilot" — stealth signal to the II team that the operator is a power-user of their flagship product.
+
+### Round ledger
+
+| Round | Description | Commit |
+|---|---|---|
+| 1+2 | System Health cleanup, Subnet HeatMap polish, Daily Cap relocated, Perplexity removed | `9b40f672` |
+| 3 | Dashboard layout swap (Whale Flow up, Live Indicators down) + new SignalFeedTile | `3fd0b71f` |
+| 4 | Retire Vanta SN8 from Signal Feed registry (Watch List only) | `fac664cf` |
+| 5 | Discord OTF Gateway closeout — multi-session carry-over (XXVIII→XXXIX) CLEARED | `d141068a` |
+| 6 (initial) | `/api/signal-feeds/discord/guilds` diagnostic endpoint | `6241a5f6` (reverted `07a143db`, cherry-picked as `a30287cd`) |
+| 7 | STATE.md §10A — gh device-flow auth pattern documented | `ae629ffc` |
+| 8 | Discord onboarding prep kit (2 docs) | `1d9dddb7` |
+
+### Open threads at session boundary
+- Move 2 endpoint live verification (waits on Railway throttle thaw)
+- Discord application rename (TaoBot → TBD; mandatory pre-invite)
+- Old PAT revocation by owner (security hygiene)
+- II Community pitch DM (target: whoever configured Linked Roles)
+- Bittensor pitch DM to Uzor (sequencing: only after II install proves stable for ≥7 days)
+
+---
+
 ## SESSION XXXI (May 14, 2026 — Day 2 evening) — Carry-Over Closeout: Drawdown Auto-Demotion + Substrate Bundle + Memory Bank Pass
 
 ### Overview
@@ -1795,7 +1852,12 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | Auto-demotion on drawdown breach | Medium | Inverse of promotion — not yet built |
 | Real αTAO positions in Wallet | Medium | Live staked balance per subnet from chain |
 | Session XXII/XXIII PDF Archive | Low | Generate combined session PDF next session |
-| Discord Gateway connection | Waiting | Awaiting OTF invite — external dependency, not a code issue |
+| ~~Discord Gateway connection (OTF)~~ | ✅ DONE | Bot live. Multi-session carry-over (XXVIII→XXXIX) CLEARED `d141068a`. Smoke test passed. |
+| Move 2 — `/discord/guilds` endpoint live verify | Waiting | Code shipped `a30287cd`. Awaiting Railway throttle thaw to hit live URL. |
+| Discord app rename (TaoBot → TBD) | **Mandatory pre-invite** | TaoStat collision in Bittensor ecosystem. Rename in Dev Portal before any server admin sees the bot. App ID `1500891557312594060` is stable — only display name changes. See `docs/discord-onboarding/`. |
+| II Community bot install | Pitch-ready | GitHub Verified earned tonight. Intro post live in `#introduce-yourself`. Pitch DM draft in `docs/discord-onboarding/ii-community-onboarding.md` §5. Target: whoever configured Linked Roles. |
+| Bittensor server bot install | **II install must precede** | Intro post live in `#general` (May 19, 11:39 PM). Pitch DM draft in `docs/discord-onboarding/bittensor-server-onboarding.md` §5. Target: Uzor (warmer tone) → Kat (enforcer) only if Uzor escalates. Wait ≥7 days post-II install for proof point. |
+| Old PAT revocation | Security | Owner action: revoke `ghp_...DWlM` at github.com/settings/tokens. gh device flow now permanent (§10A). |
 | Wallet balance on-chain verify | Low | Railway shows 0.0τ at boot (async RPC). Verify 0.227τ intact via Taostats before next session. |
 | Regime gating — live observation | Active | SIDEWAYS regime active. 5 momentum bots benched. First TRENDING switch will auto-wake them. Monitor May 11. |
 
