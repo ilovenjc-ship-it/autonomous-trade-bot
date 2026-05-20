@@ -161,21 +161,30 @@ A skip-day is a first-class log entry. "Read the room and stayed quiet" is a res
 
 ---
 
-**Counter-reply — DRAFTED-NOT-SENT** *(2026-05-20, awaiting Mark's send)*
+**Counter-reply — POST** *(verbatim send of Mark's edit of Ari's draft)*
 
 - **Drafted by:** Ari → **Mark's edit** (sentence-case, single-paragraph collapse, "One thing though" replacing "one thing I'm chewing on", slash-as-alternatives-list)
-- **Sent by:** Mark *(pending)*
-- **Sent at:** *(pending)*
-- **Version queued (Mark's edit of Ari's draft):**
+- **Sent by:** Mark
+- **Sent at:** 2026-05-20 ~4:26 PM ET (≈20:26 UTC) — confirmed by Discord client timestamp on emcee's message in the channel screenshot. ≈49 min after Hm8ker's 3:37 PM response.
+- **Version sent (verbatim):**
 
   > The move from "Is this output good enough?" to "Is this action allowed at all?" is the actual reframe — Quality and authorization were always different problems, score-as-approval just collapsed them. And "audit logs are receipts" is a precise choice. Receipt implies third-party-checkable, not just internal replay. That's a stronger commitment than most agent loggers make. One thing though — when you say local multi-agent DAG, what's the node and what's the edge? Capabilities with consent profiles attached as nodes, authorization handoffs as edges/ or tasks as nodes, dependency-plus-gate-check as edges? Where the consent-gates sit in the topology probably decides whether the system stays composable or turns into special-cases.
 
-- **Voice-calibration notes from Mark's edit (filing for §9a update):**
+- **Voice-calibration notes from Mark's edit (now reflected in STATE.md §9a, Round 12):**
   1. **Subject-forward, not speaker-forward.** "One thing though" > "one thing I'm chewing on." Lead with the question, not the speaker's relationship to it.
   2. **Single paragraph for substantive replies.** Two-paragraph break creates a hedge transition. Continuous thought reads as engaged-peer.
   3. **Sentence case for substantive responses.** Lowercase is the *short-reply* register, not a universal rule. Form should match substance — a 5KB letter from a peer earns proper capitalization back.
   4. **Slash-as-alternatives-list** (`edges/ or tasks as nodes`) signals two phrasings of one alternative, not two separate questions.
-- **Link:** *(pending — paste Discord permalink after send)*
+- **Link:** https://discord.com/channels/1266371493475127432/1376930649692180570/1506754967183032521
+  - Server ID `1266371493475127432` = Intelligent Internet Community
+  - Channel ID `1376930649692180570` = `#show-your-builds`
+  - Message ID `1506754967183032521` = emcee's counter-reply
+- **Send mechanics confirmed via screenshot:** posted as a Discord *Reply* under Hm8ker's 3:37 PM response → @-ping intact → conversation now a proper threaded exchange (initial Ari draft → Mark's send → Hm8ker's 5KB reply → Mark's edit of Ari's counter-draft → posted). Three-message exchange in one afternoon, peer-to-peer, GitHub-Verified handshake on both sides.
+- **Reply tracking (round 2):**
+  - 2026-05-20 ~4:26 PM ET — sent. No response yet.
+  - **Watch protocol unchanged:** Mark refers to Ari before responding to anything Hm8ker says back. Same draft → customize → send contract.
+  - **Window:** if no response by 2026-05-27 (7 days from original post), log thread as "exchange complete, no further response." If he replies, log Round 3.
+  - **Substance to expect if he answers the DAG question:** node/edge topology choice, plus likely a sketch of how the consent-gates compose. That answer would tell us whether his architecture is closer to a capabilities graph (nodes = what-can-be-done) or a process graph (nodes = what-is-being-done). Different commitments, different failure modes.
 - **Notes:**
   - 11 days old, but he explicitly asked for replies → not a graveyard post.
   - GitHub Verified → GitHub Verified handshake; legitimate peer surface.
