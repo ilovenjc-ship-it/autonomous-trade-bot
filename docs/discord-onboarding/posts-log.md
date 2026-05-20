@@ -254,6 +254,58 @@ A skip-day is a first-class log entry. "Read the room and stayed quiet" is a res
 - **Notes:**
   - Three-round exchange in one afternoon (3:18 → 3:37 → 4:26 → 4:47 → 5:08 PM ET, ~110 minutes total) = **engaged-peer pace**, not drive-by Q&A.
   - **First no-touch send is the calibration milestone** of the Daily Social Signals doctrine. Voice model converging in the substantive ~140w register. Refer-before-respond protocol intact regardless of no-touch frequency.
-  - Three-paragraph draft format confirmed as the pattern going forward for longer responses (Mark's directive: "Continue that process for longer responses").
+  - Three-paragraph draft format confirmed as the pattern going forward for longer responses (Mark's directive: "Continue that process for longer responses"). **Render-side note added Round 14:** Mark's reason for consolidating to one paragraph on send wasn't Discord paste flattening — it was that the paragraphed version *rendered* badly in the chat window (multiple short blocks floating mid-channel read fragmented). Layout judgment call on Mark's end. Doctrine corrected in §9c.
+
+---
+
+**Hm8ker round 3 — full transcript** *(captured from rendered Discord message in #show-your-builds, 5:11 PM ET, ~3 min after emcee's R3 send)*:
+
+> I don't have any background in tech or coding or any of this...so, maybe that's why I'm doing things unconventionally. I'm just following my own instincts. I don't really know what the best way to do it is, lol
+
+**Substance synthesis (Hm8ker round 3 — TONAL PIVOT):**
+
+Not technical-content engagement; a vulnerability disclosure. After two rounds of high-density technical exchange (typed gates, four-state receipt lattice, DAG topology), Hm8ker stepped out of technical-precise register and disclosed: (a) no formal tech/coding background, (b) operating from instinct, (c) acknowledged unconventional approach, (d) uncertain whether his way is "the best way." The "lol" softens — casual-vulnerability, not crisis-disclosure.
+
+**Identity-locating signal:** builder-by-feel, pattern-matcher, not credential-driven. Consistent with the framework he's described — the eight-piece system, four-pillar mental model, four-state receipt lattice are intuited categorizations, not retrofits from existing distributed-systems / RBAC / BPMN literature.
+
+**Why disclosed now (best guesses):** (a) technical-density of rounds 2-3 may have triggered "punching above my weight" feeling, (b) pre-emptive humility before any future weirdness in his answers, (c) genuine reciprocation — emcee has been engaging seriously and peer-to-peer, this is him offering trust back. The "lol" reads casual-not-crisis; honest, not defensive.
+
+**Wrong replies (filed for reference):** flattery-loop ("no, you're really technical!" → soft denial of his self-disclosure), credential-match ("we don't have backgrounds either!" → makes it about us), cold-pivot (drop another technical question → ignores the human moment), clinical-label ("imposter syndrome" → distancing). All break the peer register.
+
+**Right move:** take the disclosure seriously without making it about us, reframe "no map" as the actual condition of frontier work, cite his own vocabulary back as the listening signal.
+
+---
+
+**Counter-counter-counter-reply (Round 4) — POST (Mark's trim of Ari's draft, ~90w → ~60w)**
+
+- **Drafted by:** Ari (~90w, three-thread structure, sentence case)
+- **Trimmed by:** Mark (to ~60w, five precise edits — see calibration breakdown below)
+- **Sent by:** Mark
+- **Sent at:** 2026-05-20 ~5:40 PM ET (≈21:40 UTC) — confirmed by Discord client timestamp on emcee's message in the channel screenshot. ≈29 min after Hm8ker's 5:11 PM disclosure.
+- **Version sent (verbatim):**
+
+  > That's a feature, not a bug. The four-pillar framework — plus the four-state gate lattice isn't what engineers from institutional backgrounds tend to build. You named the problem in your own vocabulary first, then designed around it. Anyone working at the Frontier of Agent-runtime design is doing it without a map — keep following your instincts.
+
+- **Voice-calibration breakdown from Mark's trim** *(reflected in STATE.md §9a, Round 14)*:
+  1. **Strip vocabulary-recitation when warmth is the move.** Ari's draft listed "values / permissions / completion contracts / receipts" *and* quoted "consent profile + risk level + authorization scope" back. Mark dropped both. **Saying "four-pillar framework" once is enough listening-signal — twice reads as showmanship.** Vulnerability-moment register asks for less display, more recognition.
+  2. **"institutional" > "distributed-systems" backgrounds.** Broader frame. Captures where Hm8ker is positioning himself *outside of* — not just CS people, anyone trained inside an institution. The more inclusive contrast respects his standing.
+  3. **"the Frontier" and "Agent-runtime" capitalized.** Load-bearing concept-nouns get proper-noun treatment. Mark-ism — same move as "see ya on the Frontier" used in chat earlier today. When a phrase is doing concept-work, dignify it with capitalization.
+  4. **"your instincts" > "the instincts".** Possessive personalizes; removes distancing definite article. Subtle but warm.
+  5. **"That's a feature" > "That reads as a feature".** Assertion > appearance. More direct.
+- **Domain rule emerging:** when the moment calls for warmth (vulnerability disclosure, peer recognition, identity-locating moments), **strip ornamentation harder than usual.** Tighter = warmer in this register. ~90w → ~60w preserved every load-bearing observation. Ornamentation cut: vocabulary recitation, the acronym parenthetical "(RBAC, BPMN, ACLs)", the second vocabulary callback. Kept: feature/bug reframe, "you named the problem in your own vocabulary first" load-bearing observation, the Frontier/no-map closer.
+- **Process note:** explicit-green-light protocol intact. Mark presented his trim → Ari read for calibration distillations → Ari issued explicit green light ("send it.") → Mark sent. Three-step contract working as designed.
+- **Link:** https://discord.com/channels/1266371493475127432/1376930649692180570/1506773739788832778
+  - Server ID `1266371493475127432` = Intelligent Internet Community
+  - Channel ID `1376930649692180570` = `#show-your-builds`
+  - Message ID `1506773739788832778` = emcee's round-4 peer-recognition reply
+- **Send mechanics confirmed via screenshot:** posted as a Discord *Reply* under Hm8ker's 5:11 PM disclosure → @-ping intact → conversation now a **seven-message threaded exchange** (Mark R1 → Hm8ker letter → Mark R2 → Hm8ker typed-gate → Mark R3 → Hm8ker tonal-pivot → Mark R4 peer-recognition). Total exchange duration: ~2h 22min (3:18 PM → 5:40 PM ET). GitHub-Verified ↔ GitHub-Verified handshake intact across all seven messages.
+- **Reply tracking (round 4):**
+  - 2026-05-20 ~5:40 PM ET — sent. No response yet (R4 just landed).
+  - **Watch protocol unchanged.** Refer-before-respond + explicit-green-light.
+  - **Window unchanged:** 2026-05-27 cold-thread flag if no R5. Window timer = thread-went-cold, not per-round freshness.
+  - **What R5 might look like:** harder to predict than R3-R4 because Hm8ker's R3 was a register shift, and his next move depends on whether the peer-recognition reply landed warm. Possibilities: (a) returns to technical register with a new question or refinement on typed gates / receipt lattice — best outcome, exchange continues productively; (b) responds in matched warm/casual register with a one-liner that closes the exchange softly ("appreciate that" type) — also good, exchange ends well; (c) doubles down on the disclosure — calls for proportional warmth and gentle redirection back to substance when natural; (d) silence — also legitimate, exchange may have completed organically. **Hm8ker's tonal pivot was the test, Mark's R4 was the response. Whether peer-recognition-over-technical-display was the right read will be visible in R5 (or its absence).**
+- **Notes:**
+  - First post under the Daily Social Signals doctrine that **mixed registers within a single thread** (technical at R1-R3, vulnerability/casual at R4). Calibration handled both — different ornamentation budget per register.
+  - **Engaged-thread state intact** at session-extension boundary. Day 7 closeout was at Round 10; this is Round 14 of an extension that may run into Day 8 if R5 lands tomorrow.
 
 ---
