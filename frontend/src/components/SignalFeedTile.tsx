@@ -229,8 +229,8 @@ export default function SignalFeedTile() {
                              rounded-md hover:bg-dark-700/60 hover:ring-1 hover:ring-dark-500/50
                              transition-all group cursor-pointer text-left
                              focus:outline-none focus-visible:ring-1 focus-visible:ring-accent-blue/50"
-                  title="Click for full detail"
-                  aria-label={`Open detail for: ${e.message}`}
+                  title={`Event #${e.id} — click for full detail`}
+                  aria-label={`Open detail for event #${e.id}: ${e.message}`}
                 >
                   <Icon size={11} className={clsx('flex-shrink-0', meta.cls)} />
                   <span className={clsx('w-16 flex-shrink-0 text-[10px] uppercase tracking-wider', meta.cls)}>
@@ -238,6 +238,15 @@ export default function SignalFeedTile() {
                   </span>
                   <span className="text-slate-200 flex-1 truncate group-hover:text-white">
                     {e.message}
+                  </span>
+                  {/* Event ID — dim power-user reference so rows can be cited
+                      without opening the modal. Brightens slightly on hover. */}
+                  <span
+                    className="text-slate-600 flex-shrink-0 text-[9.5px] tabular-nums tracking-tight
+                               group-hover:text-slate-400 transition-colors"
+                    aria-hidden="true"
+                  >
+                    #{e.id}
                   </span>
                   <span className="text-slate-500 flex-shrink-0 text-[10px] tabular-nums group-hover:text-slate-300">
                     {timeAgoShort(e.timestamp)}
