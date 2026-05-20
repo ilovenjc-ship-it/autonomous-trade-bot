@@ -1833,6 +1833,124 @@ Read this before anything else. Do these steps in order.
 - [ ] Check `ps aux | grep uvicorn` and `ps aux | grep vite` — confirm servers
 - [ ] Read Section 7 (Pending Items) — pick up from there
 - [ ] Do not introduce new patterns without checking Section 4 (Decision Log)
+- [ ] **Set up GitHub auth FIRST before any push attempt** — see Section 10A
+
+---
+
+## 10A. SESSION-START AUTH PATTERN — GitHub CLI Device Flow
+
+> **Established:** Session XXXIX (Day 6 evening, May 19, 2026, ~23:55 UTC), during Railway-edge outage downtime.
+> **Replaces:** PAT-paste-into-chat → seal-to-`~/.secrets/github_pat` pattern (used Sessions XXVIII–XXXIX).
+> **Why:** No raw token ever appears in chat. The 8-character device code is single-use, ~15-min TTL, and harmless if leaked.
+
+### Background — what tomorrow's agent must understand
+
+The sandbox is **ephemeral**. Every session starts with no `gh` CLI installed, no token, no git credential helper. You must re-authenticate at session start before any `git push` will work.
+
+The user (steward) is on a learning curve with this pattern as of the day this section was written. **Walk them through it gently** — they don't need to memorize the steps; you do.
+
+### The recipe — run this BEFORE attempting any git push
+
+#### Step 1 — Install `gh` (one-time per session, ~10 seconds)
+
+```bash
+sudo mkdir -p -m 755 /etc/apt/keyrings \
+&& wget -qO- https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo tee /etc/apt/keyrings/githubcli-archive-keyring.gpg > /dev/null \
+&& sudo chmod go+r /etc/apt/keyrings/githubcli-archive-keyring.gpg \
+&& echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null \
+&& sudo apt-get update -qq \
+&& sudo apt-get install gh -y -qq
+```
+
+Verify: `gh --version` → expect `gh version 2.92.0` or newer.
+
+#### Step 2 — Start device flow
+
+```bash
+# Pre-feed Y to the "Authenticate Git with GitHub credentials?" prompt,
+# tee the output so we can grep the 8-char code, run in background:
+printf 'Y\n' | gh auth login --hostname github.com --git-protocol https --web 2>&1 | tee /tmp/ghauth.log &
+sleep 4
+grep -A1 "one-time code" /tmp/ghauth.log
+```
+
+This prints something like:
+```
+! First copy your one-time code: XXXX-XXXX
+Open this URL to continue in your web browser: https://github.com/login/device
+```
+
+#### Step 3 — Onboard the user (script for tomorrow's agent)
+
+Tell the steward, verbatim or close to it:
+
+> "I need you to authorize this sandbox to push to GitHub. It takes 30 seconds:
+> 1. Open https://github.com/login/device on any device
+> 2. Enter this 8-character code: **`XXXX-XXXX`**
+> 3. Click Continue → Authorize as `ilovenjc-ship-it`
+>
+> The code is harmless if leaked — it expires in 15 minutes and only works while my polling process is alive. Tell me when done, or just wait — I'll detect it automatically."
+
+#### Step 4 — Wait for completion, then wire git
+
+```bash
+# Poll until gh process exits cleanly:
+while pgrep -af "gh auth login" >/dev/null; do sleep 2; done
+tail -5 /tmp/ghauth.log    # expect "✓ Logged in as ilovenjc-ship-it"
+
+# Verify auth landed:
+gh auth status 2>&1 | cat   # expect "Logged in to github.com account ilovenjc-ship-it"
+
+# Install gh as the git credential helper (global config):
+gh auth setup-git
+
+# If the local repo has a leftover credential.helper from prior sessions
+# (e.g. an old PAT-based helper from `.git/config`), unset it:
+cd /workspace/autonomous-trade-bot
+git config --local --unset-all credential.helper 2>/dev/null || true
+
+# Smoke test:
+git fetch origin 2>&1 | cat                # silent = success
+git push --dry-run origin main 2>&1 | cat  # "Everything up-to-date" = success
+```
+
+#### Step 5 — You're done. Push as normal
+
+`git push` now works transparently. The token lives in `~/.config/gh/hosts.yml` and dies with the sandbox.
+
+### Pitfalls and gotchas
+
+- **Prompt is not literal "root"** — sandbox prompt shows `root@sandbox` but `whoami` returns `user`. Use `sudo` for system installs.
+- **`gh auth login` is interactive** — you can't send input to a running process via the bash tool. Pre-feed `Y\n` via `printf '%s\n' Y | gh ...` so the "Authenticate Git with GitHub?" prompt doesn't hang.
+- **`--web` flag is misleading** — in a headless sandbox it falls through to device flow automatically (it tries to open a browser, fails silently, then polls). That's the desired behavior.
+- **TTY artifacts** — `gh auth status` may emit terminal-control sequences (`11;?`) when piped through the bash tool. Pipe through `cat` to suppress.
+- **Local repo `.git/config`** may still have an old PAT-based helper from a prior session if the repo is reused. Always run `git config --local --unset-all credential.helper` before relying on the global gh helper.
+
+### Fallback if device flow fails for any reason
+
+Revert to the old PAT-paste pattern (documented in earlier sessions):
+
+1. Ask user to mint a fresh classic PAT at https://github.com/settings/tokens
+   - Scope: `repo` only
+   - Expiry: 1 day (not 7)
+2. User pastes it once in chat.
+3. `mkdir -p -m 700 ~/.secrets && printf '%s' '<PAT>' > ~/.secrets/github_pat && chmod 600 ~/.secrets/github_pat`
+4. `git config --local credential.helper "!f() { echo username=x-access-token; echo password=$(cat /home/user/.secrets/github_pat); }; f"`
+5. `history -c && : > ~/.bash_history` to scrub residue
+6. Tell user to revoke the PAT at session end.
+
+### Session-end cleanup (optional, belt-and-suspenders)
+
+When the session is wrapping up, the user MAY revoke the gh OAuth token at https://github.com/settings/tokens → "Authorized OAuth Apps" → "GitHub CLI". Not strictly required — the token dies with the sandbox naturally. But revoking is one click and zero downside.
+
+### Reference — what's stored where
+
+| Item | Path | Lifetime |
+|------|------|----------|
+| `gh` binary | `/usr/bin/gh` | dies with sandbox |
+| OAuth token (`gho_…`) | `~/.config/gh/hosts.yml` | dies with sandbox |
+| Git credential helper config | `~/.gitconfig` (global) | dies with sandbox |
+| Repo-local credential helper | `.git/config` | should be empty — use global |
 
 ---
 
