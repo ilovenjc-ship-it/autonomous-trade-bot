@@ -193,3 +193,67 @@ A skip-day is a first-class log entry. "Read the room and stayed quiet" is a res
   - **Reply protocol if Hm8ker responds:** answer the substance, don't pivot to selling our build. If he asks what we're building, one-line answer + offer to share a link if useful. Stay in the conversation he started.
 
 ---
+
+**Hm8ker round 2 — full transcript** *(captured from rendered Discord message in #show-your-builds, 4:47 PM ET; no message.txt attachment this round; no clipping observed)*:
+
+> Yes — I'm explicitly separating quality from authorization.
+>
+> In the current local multi-agent DAG, nodes are tasks/work units, and edges are dependency relationships. Agents/capabilities are assigned onto nodes; consent profiles and completion contracts are governance metadata/gates around those node executions, not the primary graph primitive yet.
+>
+> So it's currently:
+>
+> task node + assigned capability + consent/context metadata
+> edge = dependency ordering
+> gate = plan/contract/human-approval condition before execution
+>
+> I agree the topology matters. If consent gates live inside bespoke node logic, composability collapses into special cases. My instinct is to keep tasks as nodes, dependencies as edges, and make consent/authorization typed gate conditions on node entry or edge traversal. Then receipts become third-party-checkable evidence of which gates were visible, satisfied, bypassed, or not yet enforced.
+
+**Substance synthesis (Hm8ker round 2):**
+
+1. **Confirms** the quality-vs-authorization separation framing from Mark's round-2 question. "Yes — I'm explicitly separating quality from authorization."
+2. **Direct answer to topology question:** tasks=nodes, dependencies=edges, consent/contracts as governance metadata/gates *around* node executions, "**not the primary graph primitive yet**." That "yet" is load-bearing — a migration path from metadata→primitive is implied but not specified.
+3. **Current shape:**
+   - task node + assigned capability + consent/context metadata
+   - edge = dependency ordering
+   - gate = plan/contract/human-approval condition before execution
+4. **Agrees with the composability concern.** "If consent gates live inside bespoke node logic, composability collapses into special cases."
+5. **States his instinct:** *typed* gate conditions on node entry or edge traversal. Tasks=nodes, deps=edges stays, but consent becomes a typed first-class condition on graph traversal/entry instead of bespoke-per-node logic.
+6. **Receipt vocabulary expanded:** four-state lattice — `visible / satisfied / bypassed / not-yet-enforced`. "Bypassed" especially is meaningful — admits operator override exists and gets recorded as a first-class state, instead of pretending all gates always fire. This is closer to forensic logging than software-test logging.
+
+---
+
+**Counter-counter-reply (Round 3) — POST (NO TOUCHES — Mark sent Ari's draft verbatim, zero edits)**
+
+- **Drafted by:** Ari
+- **Sent by:** Mark — **zero edits, zero customization** (first no-touch send of the Hm8ker exchange)
+- **Sent at:** 2026-05-20 ~5:08 PM ET (≈21:08 UTC) — confirmed by Discord client timestamp on emcee's message in the channel screenshot. ≈21 min after Hm8ker's 4:47 PM response.
+- **Version sent (verbatim, single paragraph as rendered — see paste-collapse note below):**
+
+  > The four-state receipt lattice — visible / satisfied / bypassed / not-yet-enforced — is doing real work. "Bypassed" especially: that turns receipts from proof-of-correctness into forensic evidence of what actually happened, including operator override. Different reliability story than most agent loggers tell. On "typed gate conditions" — typed by what dimension? If the type encodes consent profile + risk level + authorization scope, composition rules can be checked at edge traversal and illegal handoffs reject statically. If "typed" just means "has a schema," you only catch violations at runtime when the gate fires. First version is structural, second is decorative. And "not yet enforced" reads like a soft-launch state — gate present in topology but non-blocking. Useful for rolling out new gates without breaking pipelines, but only if receipts distinguish "ran with no gate" from "ran with gate present-but-disabled."
+
+- **Paste-collapse note:** Ari's draft had three paragraphs separated by blank lines (one per substantive thread). Discord's paste behavior collapsed the blank-line breaks, rendering as one continuous paragraph. Mark consolidated rather than re-spacing manually. **Doctrine update (filed in STATE.md §9c):** for substantive multi-thread drafts, keep paragraph structure in the draft (helps Mark read/edit pre-send), and accept that Discord paste may flatten on his end. The structure is for the human-in-the-loop, not the wire format.
+- **No-touch-send calibration data point** *(filed in STATE.md §9a calibration log, Round 13)*:
+  - **Sentence case ✓** — substantive register correctly applied (~140w letter to a peer who wrote ~160w back).
+  - **Subject-forward, not speaker-forward ✓** — leads with the artifact ("The four-state receipt lattice…"), not Ari's relationship to it.
+  - **Three substantive threads, one per draft paragraph ✓** — receipt-lattice praise+reframe (bypassed = forensic evidence), typed-by-what-dimension probe (structural vs decorative), soft-launch observability question (present-but-disabled vs no-gate).
+  - **Slash-as-alternatives-list ✓** — direct quote of Hm8ker's vocabulary ("visible / satisfied / bypassed / not-yet-enforced").
+  - **Structural-vs-decorative dichotomy** — Mark-ish move that landed clean ("First version is structural, second is decorative").
+  - **Length:** ~140 words — same density-band as Mark's round-2 edit (~115w). Proportional engagement, not over- or under-shooting.
+  - **Interpretation:** voice model + question-selection are converging close enough to Mark's calibration that no edits were needed in this register/length band. **This does NOT replace** refer-before-respond + explicit-green-light protocol — Mark always reads first.
+- **Process calibration (Day 7 Round 13 lesson — filed in STATE.md §9c):** "approval" ≠ "green light." Ari treated Mark's no-edits acknowledgment as implicit send-signal; Mark was actually waiting for explicit go. **Refer-before-respond is a two-step contract:** (1) Ari drafts → Mark approves-or-customizes → (2) Ari issues *explicit green light* → Mark sends. Step 2 is not implicit. Now codified.
+- **Link:** https://discord.com/channels/1266371493475127432/1376930649692180570/1506765594886799401
+  - Server ID `1266371493475127432` = Intelligent Internet Community
+  - Channel ID `1376930649692180570` = `#show-your-builds`
+  - Message ID `1506765594886799401` = emcee's round-3 counter-counter-reply
+- **Send mechanics confirmed via screenshot:** posted as a Discord *Reply* under Hm8ker's 4:47 PM response → @-ping intact → conversation now a **five-message threaded exchange** (Mark's round-1 post → Hm8ker's 5KB letter → Mark's round-2 reply → Hm8ker's typed-gate response → Mark's round-3 receipt-lattice probe). Three full peer-to-peer back-and-forths in one afternoon. GitHub-Verified ↔ GitHub-Verified handshake intact across all five messages.
+- **Reply tracking (round 3):**
+  - 2026-05-20 ~5:08 PM ET — sent. No response yet (round 3 just landed).
+  - **Watch protocol unchanged:** Mark refers to Ari before responding to anything Hm8ker says back. Same draft → customize-or-approve → **explicit-green-light** → send contract.
+  - **Window:** if no response by 2026-05-27 (7 days from original Round 1 post — window unchanged), log thread as "exchange complete, no further response." If he replies, log Round 4. Each round he sends extends engaged-thread state; the window is a "thread went cold" timer, not a per-round timer.
+  - **Substance to expect if he answers:** likely (a) a concrete answer on what "typed by" means in his system — if he names dimensions (consent profile, risk level, authorization scope, identity, capability) that's a real architectural commitment vs. "typed = schema'd"; (b) clarification on whether `not-yet-enforced` receipts already distinguish present-but-disabled from absent-gate, which is a yes/no instrumentation question; or (c) deflection on (a)+(b) and pivot to a different facet — also legitimate engagement, gives us a different thread to grab.
+- **Notes:**
+  - Three-round exchange in one afternoon (3:18 → 3:37 → 4:26 → 4:47 → 5:08 PM ET, ~110 minutes total) = **engaged-peer pace**, not drive-by Q&A.
+  - **First no-touch send is the calibration milestone** of the Daily Social Signals doctrine. Voice model converging in the substantive ~140w register. Refer-before-respond protocol intact regardless of no-touch frequency.
+  - Three-paragraph draft format confirmed as the pattern going forward for longer responses (Mark's directive: "Continue that process for longer responses").
+
+---
