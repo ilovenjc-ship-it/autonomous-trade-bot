@@ -273,8 +273,29 @@ SIGNAL_CONFIG: Dict[str, float] = {
     "balanced_risk":      0.32,   # Multi-confirm: EMA + RSI + MACD must ALL agree
     "mean_reversion":     0.15,   # Pure RSI extremes (<33 / >67) — most selective
     "emission_momentum":  0.30,   # Dual EMA + MACD confirm — strict dual gate
-    "macro_correlation":  0.22,   # Price vs SMA50 + RSI — moderate selectivity
+    # Day 8 Round 4 rewrite: macro_correlation now reads BTC 24h change as a
+    # macro reference and only fires on BTC-vs-TAO divergence. Most cycles
+    # BTC and TAO move in step → no divergence → no signal. The natural
+    # selectivity is therefore in the signal logic itself; this probability
+    # bumps to 0.50 so divergence days actually translate to a trade rather
+    # than being randomly throttled on top of the structural rarity.
+    "macro_correlation":  0.50,   # BTC-vs-TAO divergence (rare by construction)
 }
+
+# ── macro_correlation thresholds (Day 8 Round 4 — BTC divergence rewrite) ────
+# Replaces the decorative `btc_correlation_window: 24, divergence_threshold:
+# 0.15, max_hold: 6` parameter dict in strategy_service.DEFAULT_STRATEGIES,
+# none of which were ever consumed.
+#
+# Logic: signal = btc_change_24h - tao_change_24h.
+#   signal > +MIN_DIVERGENCE_PCT  → TAO is lagging BTC up → BUY (catch-up long)
+#   signal < -MIN_DIVERGENCE_PCT  → TAO is lagging BTC down → SELL (catch-down)
+#   otherwise                     → no edge, return None
+#
+# Asymmetric BTC moves are required (|btc_change_24h| ≥ MIN_BTC_MOVE_PCT)
+# so the bot doesn't trade noise during quiet macro days.
+MACRO_CORR_MIN_DIVERGENCE_PCT = 1.5    # TAO must lag BTC by ≥1.5pp / 24h
+MACRO_CORR_MIN_BTC_MOVE_PCT   = 1.0    # BTC must have moved ≥1.0% / 24h
 
 # ── Honest paper trading simulation parameters ────────────────────────────────
 #
@@ -650,6 +671,21 @@ def _signal_confidence(strategy: str, side: str, indicators: Dict[str, Any], pri
     bb_lo = indicators.get("bb_lower")
     hist  = (macd - sig) if (macd is not None and sig is not None) else None
 
+    # ── macro_correlation: confidence = divergence magnitude only ──
+    # The signal is BTC-vs-TAO 24h divergence; RSI / EMA / MACD don't
+    # describe its conviction. A wider divergence = stronger expected
+    # convergence trade. 4pp divergence saturates to 1.0.
+    if strategy == "macro_correlation":
+        btc_chg = indicators.get("btc_change_24h")
+        tao_chg = indicators.get("tao_change_24h")
+        if btc_chg is None or tao_chg is None:
+            return 0.0
+        divergence = abs(btc_chg - tao_chg)
+        # Floor at 0.55 once the threshold is cleared (signal already passed
+        # the trigger gate, so it deserves at least the typical min_conf
+        # default), scale to 1.0 at 4pp divergence.
+        return max(0.55, min(1.0, divergence / 4.0))
+
     contributors: list[float] = []
 
     # RSI distance from 50 (neutral) — capped at distance 30 → score 1.0
@@ -702,7 +738,7 @@ def _compute_signal(strategy: str, indicators: Dict[str, Any], price: float) -> 
         balanced_risk      → Multi-confirmation: EMA + RSI + MACD must ALL agree
         mean_reversion     → Pure RSI extremes (only trades at <33 or >67)
         emission_momentum  → EMA AND MACD must both agree (strict dual-confirm)
-        macro_correlation  → Price vs SMA50 + RSI (longer-term view)
+        macro_correlation  → BTC-vs-TAO 24h-change divergence (cross-asset)
     """
     rsi   = indicators.get("rsi_14")
     ema9  = indicators.get("ema_9")
@@ -830,16 +866,41 @@ def _compute_signal(strategy: str, indicators: Dict[str, Any], price: float) -> 
         return None
 
     # ── macro_correlation ─────────────────────────────────────────────
+    # Day 8 Round 4 rewrite. Pre-rewrite this branch was TAO-only logic
+    # (price vs SMA50 + RSI) with three structural defects identified
+    # against 193 live trades: asymmetric BUY-AND / SELL-OR triggers
+    # (5.2:1 SELL:BUY ratio with both sides negative-edge), thresholds
+    # so loose the bot bought RSI 80+ and sold RSI <10, and an EMA
+    # fallback that silently cloned yield_maximizer when SMA50 wasn't
+    # ready. The description ("TAO/subnet correlation divergence vs BTC
+    # macro trend") was fiction — no BTC reference existed in the code.
+    #
+    # New logic: BTC 24h change is now fetched alongside TAO in
+    # price_service. The signal is the divergence between BTC and TAO
+    # over the same 24h window:
+    #   signal = btc_change_24h - tao_change_24h
+    #
+    #   signal >= +MIN_DIVERGENCE_PCT  → TAO lagging BTC up   → BUY
+    #   signal <= -MIN_DIVERGENCE_PCT  → TAO lagging BTC down → SELL
+    #   |btc_change_24h| < MIN_BTC_MOVE_PCT → quiet macro     → None
+    #   either input None              → can't compute        → None
+    #
+    # Hard rule: NO fallback to TAO-only logic when BTC data is missing.
+    # This bot's edge is BTC divergence; without BTC, it has no edge.
+    # Returning None lets the rest of the fleet handle the cycle.
     elif strategy == "macro_correlation":
-        # Long-timeframe view: price relative to SMA50 + RSI
-        if sma50 is not None and rsi is not None:
-            if price > sma50 and rsi > 47:
-                return "buy"    # macro bullish
-            if price < sma50 or rsi < 43:
-                return "sell"   # macro bearish
-        if ema9 and ema21:      # SMA50 not ready yet (need 50 data points)
-            return "buy" if ema9 > ema21 else "sell"
-        return None
+        btc_chg = indicators.get("btc_change_24h")
+        tao_chg = indicators.get("tao_change_24h")
+        if btc_chg is None or tao_chg is None:
+            return None    # macro reference unavailable — abstain, do not guess
+        if abs(btc_chg) < MACRO_CORR_MIN_BTC_MOVE_PCT:
+            return None    # quiet macro day — no risk-on/risk-off tide to ride
+        divergence = btc_chg - tao_chg
+        if divergence >= MACRO_CORR_MIN_DIVERGENCE_PCT:
+            return "buy"   # TAO lagging BTC's rally — bet on convergence up
+        if divergence <= -MACRO_CORR_MIN_DIVERGENCE_PCT:
+            return "sell"  # TAO lagging BTC's drop  — bet on convergence down
+        return None        # BTC moved but TAO is tracking — no divergence edge
 
     return None   # unknown strategy
 
@@ -849,6 +910,23 @@ def _build_signal_reason(strategy: str, indicators: Dict[str, Any], price: float
     Build a human-readable reason that explains WHY the signal fired,
     referencing the actual indicator values that drove the decision.
     """
+    name = DISPLAY_NAMES.get(strategy, strategy)
+
+    # ── macro_correlation: BTC-vs-TAO divergence is its own logic, so
+    # surface BTC/TAO 24h moves and the divergence rather than the
+    # generic RSI/EMA/MACD blob the other strategies use.
+    if strategy == "macro_correlation":
+        btc_chg = indicators.get("btc_change_24h")
+        tao_chg = indicators.get("tao_change_24h")
+        if btc_chg is not None and tao_chg is not None:
+            div = btc_chg - tao_chg
+            return (
+                f"{name}: {side.upper()} — "
+                f"BTC{btc_chg:+.2f}% / TAO{tao_chg:+.2f}% "
+                f"(divergence {div:+.2f}pp)"
+            )
+        return f"{name}: {side.upper()} — macro reference data unavailable"
+
     rsi   = indicators.get("rsi_14")
     ema9  = indicators.get("ema_9")
     ema21 = indicators.get("ema_21")
@@ -865,7 +943,6 @@ def _build_signal_reason(strategy: str, indicators: Dict[str, Any], price: float
     if bb_up and bb_lo:   parts.append(f"BB_pct={((price-bb_lo)/(bb_up-bb_lo)*100):.0f}%")
 
     indicator_str = ", ".join(parts) if parts else f"price=${price:.2f}"
-    name = DISPLAY_NAMES.get(strategy, strategy)
     return f"{name}: {side.upper()} — {indicator_str}"
 
 

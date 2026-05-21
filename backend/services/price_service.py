@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 
 COINGECKO_BASE = "https://api.coingecko.com/api/v3"
 TAO_COINGECKO_ID = "bittensor"
+BTC_COINGECKO_ID = "bitcoin"
 
 # RSI(14) needs approximately 2× the period of price ticks before its
 # Wilder-smoothed average stabilizes. Below this, RSI is reported as
@@ -46,6 +47,13 @@ class PriceService:
         self._price_data: Dict[str, Any] = {}
         self._price_history: List[float] = []   # rolling window for indicators
         self._max_history = 200
+        # BTC reference feed (Day 8 Round 4 — macro_correlation rewrite).
+        # CoinGecko's /simple/price endpoint accepts a comma-separated
+        # ids list for free, so adding BTC costs zero extra rate-limit
+        # budget. The macro_correlation strategy reads btc_change_24h
+        # alongside the TAO 24h change to detect cross-asset divergence.
+        self._btc_price: Optional[float] = None
+        self._btc_data: Dict[str, Any] = {}
         self._lock = asyncio.Lock()
         self._running = False
         self._task: Optional[asyncio.Task] = None
@@ -62,6 +70,14 @@ class PriceService:
     @property
     def price_data(self) -> Dict[str, Any]:
         return self._price_data
+
+    @property
+    def btc_price(self) -> Optional[float]:
+        return self._btc_price
+
+    @property
+    def btc_data(self) -> Dict[str, Any]:
+        return self._btc_data
 
     def get_price_history_list(self) -> List[float]:
         return list(self._price_history)
@@ -119,7 +135,11 @@ class PriceService:
                 resp = await client.get(
                     f"{COINGECKO_BASE}/simple/price",
                     params={
-                        "ids": TAO_COINGECKO_ID,
+                        # Day 8 Round 4: fetch BTC alongside TAO in the same
+                        # request — same endpoint, same rate-limit cost.
+                        # macro_correlation consumes btc_change_24h as its
+                        # macro reference.
+                        "ids": f"{TAO_COINGECKO_ID},{BTC_COINGECKO_ID}",
                         "vs_currencies": "usd",
                         "include_market_cap": "true",
                         "include_24hr_vol": "true",
@@ -127,7 +147,9 @@ class PriceService:
                     },
                 )
                 resp.raise_for_status()
-                data = resp.json().get(TAO_COINGECKO_ID, {})
+                payload = resp.json()
+                data     = payload.get(TAO_COINGECKO_ID, {})
+                btc_data = payload.get(BTC_COINGECKO_ID, {})
 
             async with self._lock:
                 self._current_price = data.get("usd", self._current_price)
@@ -144,7 +166,30 @@ class PriceService:
                     if len(self._price_history) > self._max_history:
                         self._price_history.pop(0)
 
-            logger.debug(f"TAO price updated: ${self._current_price}")
+                # ── BTC reference (Day 8 Round 4 — macro_correlation) ──
+                # If the BTC slice came back, refresh the cached reference.
+                # If it didn't (partial response, network blip), retain the
+                # last good value rather than substituting zero — but flag
+                # it via the 'stale' bit so the strategy can decline to
+                # trade if reference data is too old.
+                btc_usd = btc_data.get("usd")
+                if btc_usd is not None:
+                    self._btc_price = btc_usd
+                    self._btc_data = {
+                        "price_usd": btc_usd,
+                        "price_change_pct_24h": btc_data.get("usd_24h_change"),
+                        "timestamp": datetime.utcnow().isoformat(),
+                        "stale": False,
+                    }
+                elif self._btc_data:
+                    # Mark previous reading as stale; macro_correlation will
+                    # see this and abstain rather than trade on dead data.
+                    self._btc_data["stale"] = True
+
+            logger.debug(
+                f"Prices updated: TAO=${self._current_price} "
+                f"BTC=${self._btc_price}"
+            )
         except Exception as e:
             logger.warning(f"Price fetch failed: {e}")
             _success = False
@@ -237,6 +282,21 @@ class PriceService:
             result["bb_upper"] = None
             result["bb_mid"] = None
             result["bb_lower"] = None
+
+        # ── Macro reference (Day 8 Round 4 — macro_correlation rewrite) ──
+        # Surface TAO/BTC 24h % changes as first-class indicators so
+        # cycle_service._compute_signal can read them through the same
+        # dict it uses for everything else. None when data is missing
+        # or stale; macro_correlation must defend against None and skip
+        # rather than trade on a phantom zero.
+        tao_chg = self._price_data.get("price_change_pct_24h")
+        btc_chg = self._btc_data.get("price_change_pct_24h")
+        btc_stale = self._btc_data.get("stale", True)
+        result["tao_change_24h"] = float(tao_chg) if tao_chg is not None else None
+        result["btc_change_24h"] = (
+            float(btc_chg) if (btc_chg is not None and not btc_stale) else None
+        )
+        result["btc_price"] = self._btc_price
 
         return result
 

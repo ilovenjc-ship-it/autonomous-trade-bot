@@ -249,10 +249,32 @@ DEFAULT_STRATEGIES = [
         "win_rate":  0.0, "total_pnl":  0.0,
     },
     {
+        # Day 8 Round 4 rewrite (2026-05-21).
+        # Pre-rewrite, this was a TAO-only strategy (price vs SMA50 + RSI)
+        # with three structural defects: asymmetric BUY-AND / SELL-OR
+        # triggers (5.2:1 SELL:BUY ratio over 193 live trades, both sides
+        # negative-edge), thresholds so loose it bought RSI 80+ and sold
+        # RSI <10, and an EMA fallback that silently cloned yield_maximizer
+        # when SMA50 wasn't ready. The original description ("TAO/subnet
+        # correlation divergence vs BTC macro trend") was fiction — no BTC
+        # reference existed in the code. The rewrite wires BTC into
+        # price_service alongside TAO and trades the divergence: BUY when
+        # BTC outperforms TAO by ≥divergence_threshold% over the last 24h
+        # (TAO catch-up long), SELL when BTC underperforms TAO by ≥same
+        # threshold (TAO catch-down short). Returns no signal when the
+        # macro reference is unavailable — no falsely-confident fallback.
         "name": "macro_correlation",
         "display_name": "Macro Correlation",
-        "description": "Trades TAO/subnet correlation divergence vs BTC macro trend.",
-        "parameters": {"btc_correlation_window": 24, "divergence_threshold": 0.15, "max_hold": 6},
+        "description": (
+            "Cross-asset divergence: BUY when BTC outperforms TAO by "
+            "≥divergence_threshold % over the last 24h, SELL when BTC "
+            "underperforms TAO by the same. Abstains when the macro "
+            "reference is missing or BTC moved less than min_btc_move %."
+        ),
+        "parameters": {
+            "divergence_threshold": 1.5,   # percentage points (BTC% − TAO%)
+            "min_btc_move":         1.0,   # require BTC to have moved ≥1% / 24h
+        },
         "is_active": False,
         "mode": "PAPER_ONLY",
         "win_trades":  0, "loss_trades":  0, "total_trades":  0,
