@@ -530,6 +530,22 @@ function IndRow({ label, val, good, bad }: {
   )
 }
 
+/** MacroRow — row variant for pre-formatted string values (e.g. BTC price
+ *  with currency symbol, percentage with sign and % suffix). Used by the
+ *  Macro Reference card on the Dashboard Live Indicators column. */
+function MacroRow({ label, val, cls }: {
+  label: string; val: string; cls?: string
+}) {
+  return (
+    <div className="flex justify-between items-center py-1 last:border-0">
+      <span className="text-[11px] text-slate-400">{label}</span>
+      <span className={clsx('text-[12px] font-mono font-semibold', cls ?? 'text-white')}>
+        {val}
+      </span>
+    </div>
+  )
+}
+
 // ═════════════════════════════════════════════════════════════════════════════
 export default function Dashboard() {
   const [botStatus,  setBotStatus]  = useState<BotStatus | null>(null)
@@ -1036,6 +1052,43 @@ export default function Dashboard() {
           <IndRow label="BB Upper"     val={ind.bb_upper} />
           <IndRow label="BB Lower"     val={ind.bb_lower} />
           <IndRow label="SMA 50"       val={ind.sma_50} />
+
+          {/* Macro Reference — BTC divergence (Day 9, Task #C).
+              The macro_correlation strategy fires on BTC-vs-TAO 24h
+              divergence (±1.5pp + 1.0% BTC activity floor). Surfacing
+              the live values here gives the operator situational
+              awareness on macro days without hunting through logs. */}
+          {(ind.btc_price != null || ind.btc_change_24h != null) && (
+            <div className="mt-3 pt-3 border-t border-dark-600">
+              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-2">
+                Macro Reference (BTC)
+              </p>
+              <MacroRow label="BTC Price"
+                        val={ind.btc_price != null ? `$${ind.btc_price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'} />
+              <MacroRow label="BTC 24h"
+                        val={ind.btc_change_24h != null ? `${ind.btc_change_24h >= 0 ? '+' : ''}${ind.btc_change_24h.toFixed(2)}%` : '—'}
+                        cls={ind.btc_change_24h == null ? 'text-slate-400' : ind.btc_change_24h >= 0 ? 'text-accent-green' : 'text-red-400'} />
+              <MacroRow label="TAO 24h"
+                        val={ind.tao_change_24h != null ? `${ind.tao_change_24h >= 0 ? '+' : ''}${ind.tao_change_24h.toFixed(2)}%` : '—'}
+                        cls={ind.tao_change_24h == null ? 'text-slate-400' : ind.tao_change_24h >= 0 ? 'text-accent-green' : 'text-red-400'} />
+              {ind.btc_change_24h != null && ind.tao_change_24h != null && (() => {
+                const div = ind.btc_change_24h! - ind.tao_change_24h!
+                const triggered = Math.abs(div) >= 1.5
+                const cls = triggered ? (div > 0 ? 'text-accent-green' : 'text-red-400') : 'text-slate-400'
+                const note = triggered
+                  ? (div > 0 ? ' • TAO lagging' : ' • TAO leading')
+                  : ' • neutral'
+                return (
+                  <div className="flex items-center justify-between text-[12px] font-mono mt-2 pt-2 border-t border-dark-700">
+                    <span className="text-slate-400">Divergence</span>
+                    <span className={cls}>
+                      {div > 0 ? '+' : ''}{div.toFixed(2)}pp{note}
+                    </span>
+                  </div>
+                )
+              })()}
+            </div>
+          )}
 
           {/* Momentum signal summary */}
           <div className="mt-auto pt-4">

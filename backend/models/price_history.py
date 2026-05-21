@@ -25,4 +25,12 @@ class PriceHistory(Base):
     bb_lower = Column(Float, nullable=True)
     bb_mid = Column(Float, nullable=True)
 
+    # Macro reference (Day 9 — Task #C). BTC is the macro_correlation
+    # strategy's reference asset; storing it alongside TAO lets us
+    # replay/backtest macro_correlation against the same data the live
+    # bot saw, and lets the local /api/price/history reader serve a
+    # full picture without re-querying CoinGecko.
+    btc_price_usd            = Column(Float, nullable=True)
+    btc_price_change_pct_24h = Column(Float, nullable=True)
+
     recorded_at = Column(DateTime(timezone=True), server_default=func.now(), index=True)

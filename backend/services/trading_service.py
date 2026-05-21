@@ -13,7 +13,7 @@ from sqlalchemy import select, update
 from db.database import AsyncSessionLocal
 from models.bot_config import BotConfig
 from models.trade import Trade
-from models.price_history import PriceHistory
+
 from services.bittensor_service import bittensor_service
 from services.price_service import price_service
 from services.strategy_service import get_signal, Signal
@@ -102,8 +102,12 @@ class TradingService:
             )
             return
 
-        # Persist price snapshot
-        await self._save_price_snapshot(current_price, price_service.price_data)
+        # NOTE (Day 9 — Task #C): price-snapshot persistence has moved to
+        # PriceService._persist_tick (fires every 30s poll alongside the
+        # in-memory buffer). This run_cycle path is legacy single-strategy
+        # code and is not started from main.py — cycle_service is the live
+        # decision engine. Removing the call here prevents double-writes
+        # if this method is ever re-attached to a loop.
 
         # Get indicators and signal
         prices = price_service.get_price_history_list()
@@ -282,20 +286,12 @@ class TradingService:
                 config.last_trade_at = datetime.utcnow()
                 await db.commit()
 
-    async def _save_price_snapshot(self, price: float, data: Dict[str, Any]):
-        async with AsyncSessionLocal() as db:
-            indicators = price_service.compute_indicators()
-            snapshot = PriceHistory(
-                symbol="TAO",
-                price_usd=price,
-                volume_24h=data.get("volume_24h"),
-                market_cap=data.get("market_cap"),
-                price_change_24h=data.get("price_change_24h"),
-                price_change_pct_24h=data.get("price_change_pct_24h"),
-                **{k: v for k, v in indicators.items() if v is not None},
-            )
-            db.add(snapshot)
-            await db.commit()
+    # _save_price_snapshot REMOVED Day 9 — Task #C.
+    # Tick persistence is now owned by PriceService._persist_tick, which
+    # fires fire-and-forget after every successful CoinGecko poll so the
+    # persisted sequence matches the in-memory buffer 1:1. The hydrator
+    # in PriceService.start() reads it back on boot, eliminating the
+    # 14-minute UNKNOWN window strategies used to suffer post-redeploy.
 
 
 # Singleton

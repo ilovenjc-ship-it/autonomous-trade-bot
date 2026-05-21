@@ -96,6 +96,14 @@ async def init_db():
         # Added in Session XIX: Execution Guard — AMM slippage estimate per trade.
         # Populated by cycle_service for all paper and live trades going forward.
         ("trades", "slippage_est", "REAL DEFAULT 0.0"),
+        # Added Day 9 (Task #C): macro reference columns on price_history.
+        # BTC was added to the live indicator dict in Day 8 R4 for the
+        # macro_correlation rewrite. Persisting it alongside TAO lets us
+        # replay macro_correlation against history and lets the local
+        # /api/price/history reader serve a full picture without
+        # re-querying CoinGecko's market_chart endpoint.
+        ("price_history", "btc_price_usd",            "REAL"),
+        ("price_history", "btc_price_change_pct_24h", "REAL"),
     ]
 
     async with async_engine.begin() as conn:

@@ -101,10 +101,71 @@ class PriceService:
         if self._running:
             return
         self._running = True
+        # Hydrate the rolling buffer from persisted ticks BEFORE the first
+        # fetch (Day 9 — Task #C). Pre-Day-9, every Railway redeploy reset
+        # the buffer to empty and stranded the system in a 14-minute
+        # UNKNOWN window while RSI re-warmed (28 ticks × 30s). With
+        # hydration, indicators are usable from t=0 of the new process.
+        await self._hydrate_from_db()
         # Fetch once immediately so we have data before the loop starts
         await self._fetch_price()
         self._task = asyncio.create_task(self._loop())
-        logger.info("PriceService started")
+        logger.info(
+            f"PriceService started — buffer={len(self._price_history)} "
+            f"warmed_up={self.is_warmed_up()}"
+        )
+
+    async def _hydrate_from_db(self) -> None:
+        """
+        Seed the in-memory _price_history buffer from the persisted
+        price_history table. Pulls the last self._max_history ticks of
+        TAO price ordered most-recent-first, then reverses them into
+        chronological order before extending the buffer.
+
+        Indicator columns (rsi_14, ema_*, etc.) on the persisted rows
+        are intentionally NOT consumed here — they were computed under
+        whatever code shipped with the bot when the row was written, and
+        re-computing in-memory from raw prices keeps the math under the
+        current code's control. The stored indicator columns are an
+        observability/audit log, not a hot read.
+
+        Failure modes are non-fatal: a DB hiccup at boot just leaves the
+        buffer empty, which is identical to pre-Day-9 behavior.
+        """
+        try:
+            from db.database import AsyncSessionLocal
+            from models.price_history import PriceHistory
+            from sqlalchemy import select, desc
+
+            async with AsyncSessionLocal() as db:
+                stmt = (
+                    select(PriceHistory.price_usd)
+                    .where(PriceHistory.symbol == "TAO")
+                    .order_by(desc(PriceHistory.recorded_at))
+                    .limit(self._max_history)
+                )
+                rows = (await db.execute(stmt)).scalars().all()
+
+            if not rows:
+                logger.info("PriceService hydrate: no persisted ticks (cold start)")
+                return
+
+            # rows are most-recent-first; reverse into chronological order
+            seeded = [float(p) for p in reversed(rows) if p is not None]
+            async with self._lock:
+                self._price_history.extend(seeded)
+                # In case start() is called twice or a stale loop wrote
+                # ticks before hydrate landed, clip to the cap.
+                if len(self._price_history) > self._max_history:
+                    self._price_history = self._price_history[-self._max_history:]
+
+            logger.info(
+                f"PriceService hydrate: seeded {len(seeded)} ticks "
+                f"from price_history (warmed_up={self.is_warmed_up()})"
+            )
+        except Exception as e:
+            # Boot proceeds with an empty buffer — same as pre-Day-9.
+            logger.warning(f"PriceService hydrate failed (non-fatal): {e}")
 
     async def stop(self):
         self._running = False
@@ -190,6 +251,15 @@ class PriceService:
                 f"Prices updated: TAO=${self._current_price} "
                 f"BTC=${self._btc_price}"
             )
+
+            # ── Persist tick (Day 9 — Task #C) ──────────────────────────
+            # Fire-and-forget so DB latency cannot stall the price loop.
+            # Writes the same tick that just landed in _price_history,
+            # so the hydrator on next boot reproduces this exact buffer.
+            # Failures are logged but never raised — the price feed must
+            # not be coupled to DB availability.
+            if self._current_price is not None:
+                asyncio.create_task(self._persist_tick())
         except Exception as e:
             logger.warning(f"Price fetch failed: {e}")
             _success = False
@@ -299,6 +369,57 @@ class PriceService:
         result["btc_price"] = self._btc_price
 
         return result
+
+    # ------------------------------------------------------------------
+    # Persist current tick (Day 9 — Task #C)
+    # ------------------------------------------------------------------
+
+    async def _persist_tick(self) -> None:
+        """
+        Write the most recently fetched price + indicator snapshot to
+        the price_history table. Called as a fire-and-forget task from
+        _fetch_price after each successful poll, so the persisted
+        sequence matches the in-memory buffer one-for-one and the
+        hydrator on next boot reproduces it exactly.
+
+        Indicator columns are populated from compute_indicators() so
+        the row is self-contained for replay/audit. macro_correlation's
+        BTC reference is recorded alongside (Day 8 R4 columns).
+        """
+        try:
+            from db.database import AsyncSessionLocal
+            from models.price_history import PriceHistory
+
+            indicators = self.compute_indicators()
+            async with AsyncSessionLocal() as db:
+                snapshot = PriceHistory(
+                    symbol="TAO",
+                    price_usd=self._current_price,
+                    volume_24h=self._price_data.get("volume_24h"),
+                    market_cap=self._price_data.get("market_cap"),
+                    price_change_24h=self._price_data.get("price_change_24h"),
+                    price_change_pct_24h=self._price_data.get("price_change_pct_24h"),
+                    btc_price_usd=self._btc_price,
+                    btc_price_change_pct_24h=(
+                        self._btc_data.get("price_change_pct_24h")
+                        if not self._btc_data.get("stale", True) else None
+                    ),
+                    # Filter Nones — let the DB defaults / nullable columns
+                    # keep the schema honest about what was actually
+                    # available at write time.
+                    **{
+                        k: v for k, v in indicators.items()
+                        if v is not None and k in {
+                            "rsi_14", "ema_9", "ema_21", "sma_50",
+                            "macd", "macd_signal",
+                            "bb_upper", "bb_lower", "bb_mid",
+                        }
+                    },
+                )
+                db.add(snapshot)
+                await db.commit()
+        except Exception as e:
+            logger.warning(f"Price tick persist failed (non-fatal): {e}")
 
     # ------------------------------------------------------------------
     # Fetch historical OHLCV from CoinGecko (for charting)
