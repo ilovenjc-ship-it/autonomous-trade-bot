@@ -366,4 +366,17 @@ Not technical-content engagement; a vulnerability disclosure. After two rounds o
   - **First five-round exchange under the Daily Social Signals doctrine.** Voice model + register-mixing + customization-vs-no-touch all calibrating live. R3 was no-touch substantive (~140w), R4 was Mark-trim substantive→warm pivot (~60w), R5 was Mark-customize casual short (~25w). Three different registers, three different draft-reactions; calibration log capturing all three at §9a.
   - **Engaged-thread state intact** at session-extension boundary. Day 7 closeout was at Round 10; this is Round 15 of an extension that may run into Day 8 if R6 lands tomorrow.
 
+**R5 follow-up — Hm8ker reaction received (warm pause, not R6)**:
+
+- **Signal:** 👍 reaction (count: 1) on emcee's R5 message (`1506788411535654942`).
+- **Captured:** screenshot 2026-05-20 evening (post-R5 send).
+- **Read:** branch (c) from the R6 prediction tree — *"soft-close acknowledgment, exchange ends warm, sketch may or may not arrive later; we wait."* The thumbs-up is **cleaner than a verbal "will do!"** — receipt without obligation in either direction. Lowest-friction warm acknowledgment available in the channel.
+- **Watch-state transition:** thread moves from `engaged R6 pending` → **`warm pause`**. Distinct from `cold thread`:
+  - **Cold thread** = silence, ambiguous read, 7-day window timer applies.
+  - **Warm pause** = explicit acknowledgment delivered in lowest-friction form; sketch may surface in a day, a week, never; all three legitimate.
+- **No reply sent or drafted.** **Reactions are punctuation, not invitations.** Reacting back to his thumbs would force the round open after he chose to pause it. Replying to a reaction reads as fishing. Closing punctuation accepted as one.
+- **Window unchanged:** 2026-05-27 cold-thread flag still applies as a backstop, but the *primary* read is now warm-pause-may-resume rather than cold-thread-may-die. If sketch arrives, that's R6 (substantive). If silence persists past 2026-05-27, log as "exchange complete, ended warm."
+- **Doctrinal note (filed in STATE.md §9b):** **Reactions are first-class signals** in the Daily Social Signals doctrine, not noise. A thumbs-up after a substantive thread = "received, appreciated, nothing else required." Catalog it; don't chase it; don't reciprocate-react. The thumbs is a closing punctuation mark.
+- **Five-round exchange closed clean.** Total arc: 9 messages on the wire (8 from emcee + Hm8ker, 1 reaction) → ~5h 41m active dialogue → warm pause as Day 7 closes. Three registers calibrated. GitHub-Verified ↔ GitHub-Verified handshake intact end-to-end. **First exchange under the doctrine to land a graceful close in the wild.** Pattern reference for future threads: substantive R1-R3 → register pivot R3-R4 → swarms-thread R4-R5 → reaction-as-punctuation R5+.
+
 ---
