@@ -130,9 +130,27 @@ REGIME_SUITABILITY: Dict[str, List[str]] = {
     "breakout_hunter":    ["TRENDING_UP", "TRENDING_DOWN", "VOLATILE"],
     "dtao_flow_momentum": ["TRENDING_UP", "TRENDING_DOWN", "VOLATILE"],
     "emission_momentum":  ["TRENDING_UP", "TRENDING_DOWN", "VOLATILE"],
-    # ── Mean-reversion / range: bench in strong trends ────────────────────
-    "mean_reversion":     ["SIDEWAYS", "VOLATILE"],
-    "contrarian_flow":    ["SIDEWAYS", "VOLATILE"],
+    # ── Contrarian (RSI-extreme) / range: regime-agnostic, signal-gated ───
+    # Session XLI Day 8 R3 (Task #3): mean_reversion and contrarian_flow
+    # were ["SIDEWAYS", "VOLATILE"] — and logged 0 trades over 2,202 cycles
+    # each. Diagnosis: their signal logic fires only on RSI extremes
+    # (mean_rev <33/>67, contrarian <35/>65), but per cycle_service's
+    # canonical regime detector, RSI<40 → TRENDING_DOWN and RSI>60 →
+    # TRENDING_UP. The bench gate excluded these bots from exactly the
+    # regimes their signals would fire in. Empty intersection → dead bots.
+    # Trade-history evidence: 397 RSI-tagged trades, 46% had RSI<33 and
+    # 42% had RSI>67 — abundant fire opportunities, all blocked by the
+    # gate. Fix: make these two regime-agnostic. Their signal logic is
+    # already very selective (the trade_prob in SIGNAL_CONFIG is 0.15/0.18,
+    # plus the RSI-extreme requirement); piling a regime exclusion on top
+    # of an already-selective signal creates dead bots by construction.
+    # This matches the pattern of liquidity_hunter / sentiment_surge /
+    # balanced_risk — selective signals, regime-agnostic gate.
+    # volatility_arb stays SIDEWAYS+VOLATILE because its signal fires on
+    # BB-position (not RSI), which can be extreme in non-trending regimes;
+    # it's already firing (18 trades) — the gate works correctly there.
+    "mean_reversion":     ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"],
+    "contrarian_flow":    ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"],
     "volatility_arb":     ["SIDEWAYS", "VOLATILE"],
     # ── Regime-agnostic: always active ───────────────────────────────────
     "macro_correlation":  ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"],
