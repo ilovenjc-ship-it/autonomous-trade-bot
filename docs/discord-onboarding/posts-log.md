@@ -309,3 +309,61 @@ Not technical-content engagement; a vulnerability disclosure. After two rounds o
   - **Engaged-thread state intact** at session-extension boundary. Day 7 closeout was at Round 10; this is Round 14 of an extension that may run into Day 8 if R5 lands tomorrow.
 
 ---
+
+**Hm8ker round 4 — full transcript** *(captured from rendered Discord message in #show-your-builds, 6:39 PM ET, ~59 min after emcee's R4 send)*:
+
+> I appreciate that, thank you. I may just come up with something extraordinary! I have some interesting ideas for my human ambassador swarms.
+
+**Substance synthesis (Hm8ker round 4 — three moves in 25 words):**
+
+1. **Gratitude received.** "I appreciate that, thank you." — peer-recognition reply landed warm; the R3→R4 register-mix worked. Hm8ker explicitly acknowledges and accepts the reframe.
+2. **Confidence reset.** "I may just come up with something extraordinary!" — exclamation point, future-positive, reads as morale-restored. The vulnerability disclosure of R3 is fully resolved by R4; he is back in builder-mode.
+3. **NEW substantive thread opened.** "I have some interesting ideas for my human ambassador *swarms*." — plural where the original 5KB letter had **Human Ambassador (singular)** as one of the eight pieces. Structural shift from a singular role to a multi-agent collective. He is teasing the next architectural layer without committing to specifics.
+
+**Listening signal embedded in his closer:** singular → plural shift is the substantive hook. Whether the swarms coordinate (planned topology) or emerge (uncoordinated, market-like) is the unanswered design question. Reply should name that shift back as the listening signal — that's what tells him we read carefully — and leave space for him to send the sketch if he wants.
+
+**Wrong replies (filed for reference):** flattery-match ("can't wait!" + exclamation point → performance, mirrors his energy too literally), credential-pivot (drop another technical-frame question → ignores the gratitude/morale moment entirely), close-the-thread soft-exit ("good luck with it!" → friendly but ends the engagement and forfeits the swarms hook), substance-only ("singular → plural — talk about coordination?" → reads cold without acknowledging the gratitude). Right move = punchy gratitude receipt + name the structural shift + open invite no schedule.
+
+**Register read:** matched casual energy without matching the exclamation point. Lowercase short-reply form, em-dash, paren-aside for the design question.
+
+---
+
+**Counter-counter-counter-counter-reply (Round 5) — POST (Mark customized Ari's draft, ~25w → ~25w with three precise edits)**
+
+- **Drafted by:** Ari (~25w, lowercase short-reply register)
+- **Customized by:** Mark (three precise edits — see calibration breakdown below)
+- **Sent by:** Mark
+- **Sent at:** 2026-05-20 ~8:59 PM ET (≈00:59 UTC May 21) — confirmed by Discord client timestamp on emcee's message in the channel screenshot. ≈2h 20m after Hm8ker's 6:39 PM R4 reply (longer gap than R3→R4's 29 min — deliberate, not reflexive; "I'll think about it" pace, not "I have a hot take" pace).
+- **Version sent (verbatim):**
+
+  > Sounds interesting. Swarms — plural where the original was singular. Curious how they coordinate (or don't). send the sketch when it's ready.
+
+- **Voice-calibration breakdown from Mark's customization** *(reflected in STATE.md §9a, Round 15)*:
+  1. **"Sounds interesting." > "good."** Warmer receipt, more engaged. "good." is the punchy-builder version; "Sounds interesting." signals the swarms thread is actually catching attention without being effusive. **Engagement signal calibrated up one notch.**
+  2. **Sentence-case caps on Sounds / Swarms / Curious.** Mark's default register is sentence case for first-of-sentence even in casual short-form. **Holding sentence case here while Hm8ker writes with proper case + exclamation is the right move** — flattening to all-lowercase to match casual-Discord convention would have read as register-mismatch downward. Mark sets his own register; he doesn't drop to match.
+  3. **"send the sketch when it's ready." stays lowercase.** The casual tail is preserved as one piece of texture — keeps the close from sounding like a deadline-issue. **Sentence-case caps on the openers, lowercase on the casual tail = a dual-register short reply within 25 words.** Subtle but Mark-ish.
+- **Three substantive moves preserved through customization:**
+  - **Gratitude receipt** without flattery loop (no "thank you back" or matched exclamation point) — "Sounds interesting." closes the gratitude exchange and pivots to substance in one beat.
+  - **Listening signal naming the structural shift** — "Swarms — plural where the original was singular." Direct citation of his vocabulary back to him, names the singular→plural pivot from his original 5KB letter as the architectural move worth flagging. **Tells him we read the original letter carefully enough to notice a one-word shift four rounds later.**
+  - **"(or don't)" parenthetical opens uncoordinated-swarm as a legitimate design.** Most readers would assume "swarm" implies coordination; the parenthetical hands him permission to design for emergent / uncoordinated / market-like topology. This is the substantive hook — he can answer the coordination question or not, and either path keeps the thread alive.
+  - **"send the sketch when it's ready."** Open invite without a schedule. He sends a sketch when he has one; if he doesn't, the thread closes warm. No deadline pressure, no follow-up obligation.
+- **Domain rule emerging from Round 15:** in matched casual short-reply register against a peer who writes proper-case + exclamation, **don't flatten down to all-lowercase to mirror.** Sentence-case openers + lowercase casual tail = dual-register within 25 words preserves Mark's voice signature without performing match. **Mirroring isn't matching; matching is meeting where two registers agree without either party performing the other's tics.**
+- **Process note:** explicit-green-light protocol intact. Mark presented his customization → Ari read for calibration distillations + green-lit ("send it.") → Mark sent. Three-step contract working as designed at five rounds in.
+- **Link:** https://discord.com/channels/1266371493475127432/1376930649692180570/1506788411535654942
+  - Server ID `1266371493475127432` = Intelligent Internet Community
+  - Channel ID `1376930649692180570` = `#show-your-builds`
+  - Message ID `1506788411535654942` = emcee's round-5 swarms-thread reply
+- **Send mechanics confirmed via screenshot:** posted as a Discord *Reply* under Hm8ker's 6:39 PM R4 reply → @-ping intact → conversation now a **nine-message threaded exchange** (Mark R1 → Hm8ker letter → Mark R2 → Hm8ker typed-gate → Mark R3 → Hm8ker tonal-pivot → Mark R4 peer-recognition → Hm8ker swarms-gratitude → Mark R5 swarms-listening). Total exchange duration: ~5h 41min (3:18 PM → 8:59 PM ET). GitHub-Verified ↔ GitHub-Verified handshake intact across all nine messages.
+- **Reply tracking (round 5):**
+  - 2026-05-20 ~8:59 PM ET — sent. R5 is the current end-of-thread.
+  - **Watch protocol unchanged.** Refer-before-respond + explicit-green-light.
+  - **Window unchanged:** 2026-05-27 cold-thread flag if no R6. Window timer = thread-went-cold from the original R1 post (3:18 PM 2026-05-20), not per-round freshness.
+  - **What R6 might look like:** (a) **Hm8ker sends the sketch** — best outcome, real architectural document of the swarms layer arrives; calls for substantive engagement with his actual design, not generic encouragement. (b) **Hm8ker answers the coordination question in-channel** without a sketch — second-best, lets us probe the design verbally before he writes it up. (c) **Soft-close acknowledgment** ("will do!" type) — exchange ends warm, swarms sketch may or may not arrive later; we wait. (d) **Silence** — also legitimate; the close was open-ended ("when it's ready"), no obligation either way. (e) **He pivots to a different facet of his system** — engagement continues but on a different thread.
+  - **What R5 was deliberately NOT doing:** (i) NOT scheduling — "when it's ready" not "this week." (ii) NOT pre-judging coordination as the right answer — "(or don't)" makes uncoordinated a first-class design choice. (iii) NOT closing the thread — open invite, not a goodbye. (iv) NOT pivoting back to typed gates / receipts / DAG — that thread is paused; swarms is the new thread Hm8ker opened, we're following his lead.
+- **Notes:**
+  - **Five-round threaded exchange** in one afternoon-evening, ~5h 41min total. **Engaged-peer pace at the high end** — most Discord exchanges close at 2-3 rounds; five rounds with register-mixing across technical/vulnerability/builder-future-positive registers is unusually deep engagement.
+  - **Mark's deliberate 2h 20m gap before R5** is a calibration data point in itself. Hm8ker's 29-min reply to R4 was reactive-warm; Mark's 2h 20m reply to R5 is considered. **The longer reply gap signals "I'm thinking about it" vs "I have a take" — appropriate response when the peer just opened a new substantive thread (swarms) and the right move is to land one well-aimed observation, not three rapid-fire.**
+  - **First five-round exchange under the Daily Social Signals doctrine.** Voice model + register-mixing + customization-vs-no-touch all calibrating live. R3 was no-touch substantive (~140w), R4 was Mark-trim substantive→warm pivot (~60w), R5 was Mark-customize casual short (~25w). Three different registers, three different draft-reactions; calibration log capturing all three at §9a.
+  - **Engaged-thread state intact** at session-extension boundary. Day 7 closeout was at Round 10; this is Round 15 of an extension that may run into Day 8 if R6 lands tomorrow.
+
+---
