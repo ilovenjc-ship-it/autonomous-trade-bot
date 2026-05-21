@@ -1,6 +1,6 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-21 (Session XLI Day 8 Round 1 — **RSI(14) computation anomaly FIXED (Task #1 closed)**: Wilder's smoothing replaces simple-rolling-mean, warmup guard tightened to len≥28 ticks (= 2× period), falsely-confident 50.0-on-NaN fallback removed → returns None during warmup so downstream regime classifiers fall back to UNKNOWN cleanly. Latent f-string crasher caught at fleet.py:463 fixed in same commit. Posts-log: Hm8ker = Tiffani biographical reveal filed — stage IV cancer thriver, maker of Herbal Oracle (331-herb plant-medicine app, Android), recontextualizes R3 vulnerability disclosure as survival-builder humility. Posture unchanged (warm pause).)
+**Last updated:** 2026-05-21 (Session XLI Day 8 Round 2 — **Regime architecture reconciled (Task #2 closed)**: `cycle_service._detect_regime` is now the single source of truth for the whole system; `agent_service._detect_regime` collapsed to a 3-line wrapper that calls the canonical detector and maps TRENDING_UP/TRENDING_DOWN→BULL/BEAR via the new `to_human_regime()` helper. The previous body had conflicting thresholds (BULL≥55 vs canonical TRENDING_UP>60), conflicting VOLATILE rules (RSI 32/68 vs Bollinger band width >8%), and — most dangerously — a fast-path that produced confident SIDEWAYS from just 2 prices and a flat trend. That fast-path was leaking into the bench gate via `get_current_regime()`'s step-3 fallback and was actively benching 5 momentum bots on phantom data while the CoinGecko price feed sat in 429-throttle. Same anti-pattern class as the `else: 50.0` killed in Task #1, one layer up. Live verification: regime flipped SIDEWAYS→UNKNOWN, benched_count flipped 5→0 across all three endpoints (`/fleet/regime/current`, `/agent/status`, `/fleet/bots` summary). Round 1 (Task #1, RSI Wilder smoothing + 28-tick warmup guard + false-50 fallback removal + fleet.py:463 latent crasher) closed earlier in the session and remains intact.)
 
 **Post-closeout addendum (2026-05-20 evening — Hm8ker exchange continued past Day 7 closeout, FIVE rounds):** five-round threaded peer exchange completed Day 7 evening in II Community `#show-your-builds`, ~5h 41m total (3:18 PM → 8:59 PM ET), **9 messages on the wire**. Timeline: R1 (Mark edit) 3:18 PM `1506737913574981632` → Hm8ker 5KB letter 3:37 PM (eight-piece auto-approval stack, consent-governed runtime pivot, **Human Ambassador as singular role**) → R2 (Mark edit) 4:26 PM `1506754967183032521` (DAG topology question) → Hm8ker 4:47 PM (tasks=nodes/deps=edges/consent-as-gate-metadata, four-state receipt lattice `visible / satisfied / bypassed / not-yet-enforced`) → **R3 (NO-TOUCH SEND) 5:08 PM `1506765594886799401`** (typed-by-what-dimension probe, structural-vs-decorative dichotomy, soft-launch observability question) → **Hm8ker tonal-pivot disclosure 5:11 PM:** *"I don't have any background in tech or coding... I'm just following my own instincts. I don't really know what the best way to do it is, lol"* → **R4 (Mark's trim of Ari draft, ~90w → ~60w) 5:40 PM `1506773739788832778`** — peer-recognition reply citing four-pillar framework / four-state gate lattice / Frontier vocabulary back, no flattery loop → **Hm8ker R4 reply 6:39 PM:** *"I appreciate that, thank you. I may just come up with something extraordinary! I have some interesting ideas for my human ambassador swarms."* — gratitude received + confidence reset + **NEW SUBSTANTIVE THREAD (swarms — plural where the original was singular)** → **R5 (Mark customize of Ari draft, ~25w → ~25w with three precise edits) 8:59 PM `1506788411535654942`** — *"Sounds interesting. Swarms — plural where the original was singular. Curious how they coordinate (or don't). send the sketch when it's ready."* — punchy gratitude receipt + names the structural singular→plural shift back as listening signal + "(or don't)" parenthetical opens uncoordinated-swarm as legitimate design + open invite no schedule. **First exchange under the doctrine to test THREE registers within a single thread:** substantive technical (R1-R3, ~50→115→140w), warm peer-recognition (R4, ~60w), casual short-reply (R5, ~25w). All three calibrated cleanly with different ornamentation budgets per register. Refer-before-respond + explicit-green-light watch active for R6. Window unchanged: cold-thread flag at 2026-05-27 if no R6 (timer measures thread-went-cold from original R1, not per-round freshness). **Four doctrine refinements added Day 7 R13-R15:** (a) **approval ≠ green light** — Mark waits for explicit go signal even on no-touch drafts (§9c, R13); (b) **long-form drafts → paragraph-broken in draft, single paragraph on send** because paragraphed version *rendered* badly in chat window (Mark's layout judgment — corrected from earlier wrong "Discord paste flattens" framing) (§9c, R14); (c) **register-mix doctrine** — strip ornamentation harder when the moment calls for warmth, ~90w → ~60w in vulnerability/peer-recognition register (§9a R14); (d) **dual-register short-reply rule** — sentence-case openers + lowercase casual tail = preserve voice signature without flattening to all-lowercase to mirror peer's casual register. Mirroring isn't matching. (§9a R15). Round 13 + Round 14 + Round 15 calibration logs in §9a. Full transcripts + permalinks in `docs/discord-onboarding/posts-log.md`. **Mark's deliberate 2h 20m gap before R5** (vs Hm8ker's 29-min R3→R4 reply gap) is a calibration data point — longer pause signals "thinking about it" vs "have a take," appropriate when the peer just opened a new substantive thread and the right move is one well-aimed observation, not three rapid-fire.
 
@@ -1590,7 +1590,8 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 PLATFORM           :  Railway Hobby Plan ($5/mo) ✅
 BACKEND URL        :  autonomous-trade-bot-production.up.railway.app
 FRONTEND URL       :  profound-expression-production-75c7.up.railway.app
-LATEST COMMIT      :  26782ff1  (Day 8 Round 1 — RSI(14) fix Task #1)
+LATEST COMMIT      :  84879022  (Day 8 Round 2 — Regime architecture Task #2)
+PREVIOUS COMMIT    :  26782ff1  (Day 8 Round 1 — RSI(14) fix Task #1)
 
 PAPER TRAINING (Day 8 of 7+ minimum — gate held since Day 7)
   total bots         :  12
@@ -1605,7 +1606,86 @@ PAPER TRAINING (Day 8 of 7+ minimum — gate held since Day 7)
                        reinforces retire-or-rewrite verdict
   Volatility Arb     :  18/38.9% (was 16/43.8%) — both new trades losers,
                        still well under 50-trade threshold
-  next milestone     :  Tasks #2-#6 of code-review queue — see §7 PENDING ITEMS
+  next milestone     :  Tasks #3-#6 of code-review queue — see §7 PENDING ITEMS
+
+DAY 8 ROUND 2 — REGIME ARCHITECTURE RECONCILIATION (Task #2) — CLOSED
+  commit             :  84879022
+  files              :  backend/services/cycle_service.py
+                        backend/services/agent_service.py
+  diagnosis          :  TWO regime classifiers in active conflict.
+                          • cycle_service._detect_regime — bench-gate authority,
+                            vocab UNKNOWN/SIDEWAYS/TRENDING_UP/TRENDING_DOWN/
+                            VOLATILE, RSI 60/40 + BB-width-based VOLATILE.
+                          • agent_service._detect_regime — UI label authority,
+                            vocab UNKNOWN/BULL/BEAR/SIDEWAYS/VOLATILE, RSI 55/45
+                            + RSI 32/68 VOLATILE (inverse), with a
+                            macd_hist+price_trend FAST-PATH that fired with as
+                            few as 2 price samples + 0.3% movement.
+                        Same RSI input → different label. RSI=58 was BULL on
+                        agent and SIDEWAYS on cycle. RSI=70 was VOLATILE on
+                        agent and TRENDING_UP on cycle. RSI=None during warmup
+                        was UNKNOWN on cycle, but agent's fast-path produced
+                        confident SIDEWAYS from 2 cached prices.
+  consequence (live) :  cycle_service.get_current_regime had a step-3 fallback
+                        into agent_service.current_regime. With CoinGecko
+                        throttled by 429s post-redeploy, RSI was None and
+                        cycle returned UNKNOWN, but the fallback grabbed
+                        agent's phantom-SIDEWAYS — and the bench gate
+                        (current_regime != UNKNOWN gates per-strategy
+                        REGIME_SUITABILITY) **was actively benching 5
+                        momentum bots on phantom data**: momentum_cascade,
+                        yield_maximizer, breakout_hunter, dtao_flow_momentum,
+                        emission_momentum. Same anti-pattern class as Task #1's
+                        `else: 50.0` — falsely-confident fallback masking the
+                        absence of data, just one architectural layer up.
+  fix A — single SoT :  cycle_service._detect_regime is now the canonical
+                        classifier for the entire system. Vocabulary stays
+                        canonical (UNKNOWN/SIDEWAYS/TRENDING_UP/TRENDING_DOWN/
+                        VOLATILE). Threshold tuning happens here only.
+  fix B — mapper     :  Added cycle_service.to_human_regime(canonical). Maps
+                        TRENDING_UP→BULL, TRENDING_DOWN→BEAR. SIDEWAYS,
+                        VOLATILE, UNKNOWN pass through unchanged. The whole
+                        BULL/BEAR/SIDEWAYS/VOLATILE/UNKNOWN vocab in
+                        REGIME_COLORS, _regime_observation templates, the
+                        fleet/chat regime_desc lookup, and recommendation
+                        engine all keep working — vocabulary preserved at the
+                        UI boundary, single source of truth at the engine.
+  fix C — wrapper    :  agent_service._detect_regime collapsed from 41 lines
+                        of parallel logic to a 3-line wrapper around the
+                        canonical detector + mapper. Lazy import to avoid
+                        any module-load cycle. The MACD/price-trend fast-path
+                        is GONE — when RSI is None, both classifiers now
+                        return UNKNOWN, which the bench gate correctly
+                        treats as "all 12 strategies active" (the right
+                        default during warmup).
+  fix D — chain trim :  Removed the step-3 agent_service fallback in
+                        get_current_regime (provably redundant after fix C —
+                        agent now returns the same answer as the canonical).
+  fix E — labeling   :  Marked BULL_RSI_MIN/BEAR_RSI_MAX/VOLATILE_RANGE
+                        as legacy/unused in agent_service.py with a comment
+                        pointing future tuners to cycle_service.
+  verification (synth):  12/12 boundary cases pass.
+                          • RSI=None  → UNKNOWN/UNKNOWN  ✓ (the critical case)
+                          • RSI=60.01 → TRENDING_UP/BULL ✓
+                          • RSI=39.99 → TRENDING_DOWN/BEAR ✓
+                          • RSI=50 + BB-wide → VOLATILE/VOLATILE ✓
+                          • RSI=70 + BB-wide → TRENDING_UP/BULL (directional
+                            override under volatility — preserved) ✓
+                          • Boundary equalities at 60 / 40 → SIDEWAYS ✓
+                          • All 6 vocab mappings round-trip correctly ✓
+  verification (live):  After Railway redeploy of `84879022`:
+                          • /api/fleet/regime/current : SIDEWAYS→UNKNOWN,
+                            benched_count: 5→0, benched_list: [5 names]→[]
+                          • /api/agent/status         : SIDEWAYS→UNKNOWN,
+                            regime_color: #f59e0b (yellow) → #6b7280 (gray)
+                          • /api/fleet/bots summary   : SIDEWAYS→UNKNOWN,
+                            benched_count: 5→0
+                        All three downstreams of the regime now agree —
+                        because they're all consuming the same source.
+                        The 5 momentum bots that were sidelined on phantom
+                        data are correctly active again, awaiting Wilder-
+                        smoothed RSI from the upstream price feed (still
+                        gated on CoinGecko 429 thaw).
 
 DAY 8 ROUND 1 — RSI(14) FIX (Task #1) — CLOSED
   commit             :  26782ff1
@@ -1637,8 +1717,12 @@ DAY 8 ROUND 1 — RSI(14) FIX (Task #1) — CLOSED
                         all-down → 0 / random walk → ~50 (neutral).
   cadence note       :  update_interval=30s, so RSI(14) reads on a 7-minute
                         price window. Whether that's the right timeframe for
-                        regime classification is Task #2 (regime architecture
-                        review). Documented in price_service.py module docstring.
+                        regime classification was Task #2 (regime architecture
+                        review) — closed in Round 2 below; multi-timeframe
+                        regime was considered and deferred (single-source-of-
+                        truth + the 28-tick warmup guard solved the immediate
+                        consequence — 5 phantom-benched momentum bots).
+                        Documented in price_service.py module docstring.
 
 DISCORD GATEWAY
   app name           :  Signal Seeker  (unchanged from Day 7 close)
@@ -1662,11 +1746,12 @@ DISCORD GATEWAY
                           mutual servers, 14d old) → ignored per doctrine.
 
 KNOWN ISSUES (queued for remaining code review)
-  • Task #2 — Regime architecture review (gated on Task #1, now unblocked)
+  • ~~Task #2 — Regime architecture review~~ ✅ DONE Day 8 R2 (commit 84879022)
   • Task #3 — Mean Reversion + Contrarian Flow zero-trade pathology
   • Task #4 — Macro Correlation retire-or-rewrite (38.7%→37.4% WR with sample growth)
   • Task #5 — Volatility Arb watchlist (sample-too-thin until 50+ trades)
   • Task #6 — Momentum strategies not firing on +7% macro move
+  • Task #C — Price-history persistence (Day 9, surfaced by 429 throttle today)
 ```
 
 ### 5a-prev. System Status — Session XL Day 7 (2026-05-20, session close)
@@ -1980,7 +2065,7 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | ~~Railway redeploy confirmation~~ | ✅ DONE | Session XVIII: Redeployed 562056c5 — SUCCESS. Bot confirmed LIVE mode. |
 | ~~Transaction audit trail~~ | ✅ DONE | All Railway trades: live=False, tx=NO_HASH. Zero real txs since Session VII. Wallet 0.227τ untouched. |
 | **Strategy re-promotion** | **Day 7 / Gate held** | 2026-05-20: Day 7 decision = NO PROMOTIONS. Live data (1955 cycles, 12 bots): top WR Volatility Arb 43.8%/16 trades (sample too thin), best-with-sample Macro Correlation 38.7%/163 trades. Avg WR 34.6% across 10 trading bots vs 55% gate. Fleet PnL -0.443τ paper. Mean Reversion + Contrarian Flow generated **0 trades over 1,955 cycles** — broken signal logic, not "needs more time". Next: strategy + code review, then another paper week. |
-| **Regime architecture review** | **High — flagged Day 7** | Owner diagnosis 2026-05-20: regime classifier uses single-timeframe RSI to produce binary bench/active gate. On +5.76%/24h TAO move (today), 5 momentum-style bots benched on macro=SIDEWAYS label and missed exactly the kind of micro-move they're built for. **Live evidence found Day 7 morning:** /api/fleet/regime/current returns `SIDEWAYS` while signal events from II Agent #8 emitted same minute report `Regime: VOLATILE`. Two regime detectors are running in production with contradicting verdicts; the bench gate uses one, the II Agent narration uses another. Fix paths to evaluate during review: (a) reconcile to a single source of truth, (b) multi-timeframe regime (macro AND micro), (c) soft-bench via reduced capital allocation instead of binary on/off, (d) per-strategy regime detection tuned to each bot's operating timeframe. **NOTE:** This entire gate is driven by RSI(14). If the RSI computation itself is junk (see next row), the regime gate is being driven by garbage and reconciling the two classifiers is meaningless — fix RSI first. Not today's work. |
+| ~~**Regime architecture review**~~ | ✅ **DONE — Day 8 Round 2, commit `84879022`** | **Diagnosis confirmed Day 8 R2:** the two-classifier conflict flagged Day 7 was real and worse than feared — `cycle_service._detect_regime` (bench-gate authority, vocab UNKNOWN/SIDEWAYS/TRENDING_UP/TRENDING_DOWN/VOLATILE, RSI 60/40 + BB-width VOLATILE) and `agent_service._detect_regime` (UI label authority, vocab UNKNOWN/BULL/BEAR/SIDEWAYS/VOLATILE, RSI 55/45 + RSI 32/68 inverse VOLATILE) had not just disagreed on labels but agent had a fast-path that produced confident SIDEWAYS from just 2 prices + a 0.3% movement. With the Task #1 RSI fix in place and CoinGecko throttled by 429s post-redeploy, cycle correctly returned UNKNOWN — and `get_current_regime`'s step-3 fallback grabbed agent's phantom-SIDEWAYS, **actively benching 5 momentum bots on phantom data** (momentum_cascade, yield_maximizer, breakout_hunter, dtao_flow_momentum, emission_momentum). Same anti-pattern class as Task #1's `else: 50.0` — falsely-confident fallback masking absence of data — one architectural layer up. **Decision (Ari, full-autonomy mode):** went with option (a) from Day 7 brief — single source of truth. (b) multi-timeframe was deferred (more invasive, lower-ROI on its own); (c) soft-bench was deferred (compounds with multi-timeframe); (d) per-strategy regime was deferred (adds N classifiers to a one-classifier-too-many problem). **Fix shipped (`84879022`):** (A) `cycle_service._detect_regime` is the canonical classifier for the entire system. (B) Added `cycle_service.to_human_regime(canonical)` mapper: TRENDING_UP→BULL, TRENDING_DOWN→BEAR, others passthrough. (C) `agent_service._detect_regime` collapsed from 41 lines of parallel logic to a 3-line lazy-imported wrapper around the canonical detector + mapper. The MACD/price-trend fast-path is gone — when RSI is None, both classifiers return UNKNOWN, and the bench gate correctly treats that as "all 12 strategies active" (the right warmup default). (D) Removed the now-redundant step-3 agent fallback in `get_current_regime`. (E) Marked BULL_RSI_MIN/BEAR_RSI_MAX/VOLATILE_RANGE in agent_service as legacy/unused with a pointer to where live thresholds now live (cycle_service). **Verification (synthetic):** 12/12 boundary cases pass — RSI=None→UNKNOWN/UNKNOWN ✓ (the critical regression), RSI=60.01→TRENDING_UP/BULL ✓, RSI=39.99→TRENDING_DOWN/BEAR ✓, BB-wide+RSI=70→TRENDING_UP/BULL (directional override under volatility preserved) ✓, all 6 vocab mappings round-trip ✓. **Verification (live, post-deploy):** all three regime endpoints (`/api/fleet/regime/current`, `/api/agent/status`, `/api/fleet/bots` summary) flipped SIDEWAYS→UNKNOWN, benched_count flipped 5→0, agent regime_color flipped #f59e0b (yellow/SIDEWAYS) → #6b7280 (gray/UNKNOWN). All three downstreams now agree because they're consuming the same source. The 5 momentum bots that were sidelined on phantom data are correctly active again, awaiting Wilder-smoothed RSI from upstream price feed (still gated on CoinGecko 429 thaw; that's a separate concern → Task #C Day 9 price-history persistence). |
 | ~~**RSI(14) computation anomaly**~~ | ✅ **DONE — Day 8 Round 1, commit `26782ff1`** | **Diagnosis:** root cause was THREE layered issues. (1) Guard `len(s) >= 14` was too loose — a simple-rolling-mean RSI on the minimum-period boundary produces real-but-extreme readings during directional warmup windows (the 5.36 anomaly mechanism). (2) The `else: 50.0` fallback for NaN-on-flat-price was a falsely-confident neutral on broken data — worse than None for a regime classifier feeding on it. (3) `_price_history` is in-memory only (no persistence, max=200 ticks at 30s cadence = 100-min rolling window). Audit also surfaced a latent f-string crasher at fleet.py:463. **Fix shipped (`26782ff1`):** (A) Switched RSI from simple-rolling-mean to **Wilder's smoothing** (canonical: `ewm(alpha=1/14, adjust=False)`). (B) Tightened guard to `WARMUP_TICKS = 28` (= 2× period). Below the guard returns None. Downstream consumers all pre-audited None-safe via `if rsi is None` checks (13 sites: cycle_service x4, agent_service x3, consensus_service x4, strategy_service x2). (C) Removed the falsely-confident 50.0 fallback. Truly flat → None. All-up → 100.0. All-down → 0.0. (D) Added `PriceService.is_warmed_up()` helper. (E) Patched `routers/fleet.py:107` `or 50` masking and the latent f-string crasher at line 463. Frontend (`Dashboard.tsx`, `RegimeCard.tsx`, `OpenClaw.tsx`) was already null-safe — confirmed during audit. **Verification (synthetic suite):** len<28 → None ✓, flat → None ✓, all-up → 100 ✓, all-down → 0 ✓, random walk → ~50 ✓. **Live verification on Railway:** at the moment of redeploy (Backend boot, `_price_history` empty), `/api/fleet/regime/current` returned `regime=UNKNOWN, benched=0, active=12` — exactly the desired behavior. Old code would have returned phantom-SIDEWAYS at this exact moment, erroneously benching 5 momentum bots. **Cadence note documented in code:** at 30s update_interval, RSI(14) reads on a 7-minute price window. Whether that timeframe is appropriate for regime classification is now Task #2 (regime architecture review) — newly-unblocked. |
 | **Mean Reversion + Contrarian Flow signal logic** | **High — flagged Day 7** | Both bots logged 1,955 cycles with **zero trades**. Either entry conditions are too restrictive or signal pipeline is broken upstream. Code-review priority alongside regime architecture. |
 | **Wallet balance verification** | Medium | Balance shows 0.0 (RPC async startup). Confirm 0.227τ still on-chain via Taostats. |
