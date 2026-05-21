@@ -3,6 +3,13 @@
 > **Use this file any time the sandbox resets, the session crashes, or you start
 > from a cold clone.** Follow steps in order; each step is a checkbox you tick
 > before moving on.
+>
+> **Scope:** this file covers the **infrastructure** side — getting the bot,
+> backend, frontend, wallet, and keepalive back online on a fresh sandbox.
+> If instead you need to bootstrap a **fresh agent** (chat crashed, new
+> session, need a new Ari with full context), see `AGENT_RECOVERY.md`.
+> The two files are independent: the bot can be running fine while the agent
+> is gone, and vice versa.
 
 ---
 

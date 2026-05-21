@@ -185,6 +185,10 @@ Site: `backend/services/price_service.py _persist_tick` + `_hydrate_from_db`;
 5. Read the most recent 3 commits in detail (`git log -3 --stat`).
 6. Then ask Mark what's next, or if directives are already in chat, proceed.
 
+If Mark himself bootstrapped you using `AGENT_RECOVERY.md` after a workspace
+crash, the steps above mirror its Phase 1 prompt — you'll already be doing
+them. Confirm to Mark when each step lands.
+
 ## 9. The doctrine, restated
 
 > Make the record.
