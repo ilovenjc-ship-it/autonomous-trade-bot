@@ -1,6 +1,6 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-21 (Session XLI Day 8 Round 2 — **Regime architecture reconciled (Task #2 closed)**: `cycle_service._detect_regime` is now the single source of truth for the whole system; `agent_service._detect_regime` collapsed to a 3-line wrapper that calls the canonical detector and maps TRENDING_UP/TRENDING_DOWN→BULL/BEAR via the new `to_human_regime()` helper. The previous body had conflicting thresholds (BULL≥55 vs canonical TRENDING_UP>60), conflicting VOLATILE rules (RSI 32/68 vs Bollinger band width >8%), and — most dangerously — a fast-path that produced confident SIDEWAYS from just 2 prices and a flat trend. That fast-path was leaking into the bench gate via `get_current_regime()`'s step-3 fallback and was actively benching 5 momentum bots on phantom data while the CoinGecko price feed sat in 429-throttle. Same anti-pattern class as the `else: 50.0` killed in Task #1, one layer up. Live verification: regime flipped SIDEWAYS→UNKNOWN, benched_count flipped 5→0 across all three endpoints (`/fleet/regime/current`, `/agent/status`, `/fleet/bots` summary). Round 1 (Task #1, RSI Wilder smoothing + 28-tick warmup guard + false-50 fallback removal + fleet.py:463 latent crasher) closed earlier in the session and remains intact.)
+**Last updated:** 2026-05-21 (Session XLI Day 8 Round 3 — **Mean Reversion + Contrarian Flow zero-trade bug FIXED (Task #3 closed)**: bench-gate / signal-logic mutual exclusion. The two bots' REGIME_SUITABILITY was `["SIDEWAYS", "VOLATILE"]` (bench-in-trends); their `_compute_signal` fires only at RSI<33/<35 (BUY) or RSI>67/>65 (SELL); per `cycle_service._detect_regime` those RSI ranges ARE the TRENDING regimes (RSI<40 → TRENDING_DOWN, RSI>60 → TRENDING_UP). Intersection of "unbenched" AND "signal can fire" is mathematically empty → 0 trades over 2,202 cycles each. Live evidence: 397 RSI-tagged trades from OTHER bots show 46% had RSI<33 (mean_rev BUY zone) and 42% had RSI>67 (SELL zone) — the bots had abundant fire opportunities, all blocked upstream of `_compute_signal`. Root cause: bench gate written from "traditional mean-reversion = sideways" model; signal logic written from "contrarian-trader = fire on extremes" model. Opposite regimes. Fix: aligned bench with signal — both bots now regime-agnostic (all 4 regimes), matching the pattern of other selective-signal-gated bots (liquidity_hunter / sentiment_surge / balanced_risk / macro_correlation). Synthetic 23/23 boundary cases pass; signal selectivity intact. volatility_arb stays SIDEWAYS+VOLATILE (its BB-position signal is gate-aligned, already firing 18 trades). Day 8 batting average: 3-for-3 on the code review queue. Round 2 (Task #2 regime architecture) and Round 1 (Task #1 RSI Wilder) remain intact — earlier in the session: Round 2 — **Regime architecture reconciled (Task #2 closed)**: `cycle_service._detect_regime` is now the single source of truth for the whole system; `agent_service._detect_regime` collapsed to a 3-line wrapper that calls the canonical detector and maps TRENDING_UP/TRENDING_DOWN→BULL/BEAR via the new `to_human_regime()` helper. The previous body had conflicting thresholds (BULL≥55 vs canonical TRENDING_UP>60), conflicting VOLATILE rules (RSI 32/68 vs Bollinger band width >8%), and — most dangerously — a fast-path that produced confident SIDEWAYS from just 2 prices and a flat trend. That fast-path was leaking into the bench gate via `get_current_regime()`'s step-3 fallback and was actively benching 5 momentum bots on phantom data while the CoinGecko price feed sat in 429-throttle. Same anti-pattern class as the `else: 50.0` killed in Task #1, one layer up. Live verification: regime flipped SIDEWAYS→UNKNOWN, benched_count flipped 5→0 across all three endpoints (`/fleet/regime/current`, `/agent/status`, `/fleet/bots` summary). Round 1 (Task #1, RSI Wilder smoothing + 28-tick warmup guard + false-50 fallback removal + fleet.py:463 latent crasher) closed earlier in the session and remains intact.)
 
 **Post-closeout addendum (2026-05-20 evening — Hm8ker exchange continued past Day 7 closeout, FIVE rounds):** five-round threaded peer exchange completed Day 7 evening in II Community `#show-your-builds`, ~5h 41m total (3:18 PM → 8:59 PM ET), **9 messages on the wire**. Timeline: R1 (Mark edit) 3:18 PM `1506737913574981632` → Hm8ker 5KB letter 3:37 PM (eight-piece auto-approval stack, consent-governed runtime pivot, **Human Ambassador as singular role**) → R2 (Mark edit) 4:26 PM `1506754967183032521` (DAG topology question) → Hm8ker 4:47 PM (tasks=nodes/deps=edges/consent-as-gate-metadata, four-state receipt lattice `visible / satisfied / bypassed / not-yet-enforced`) → **R3 (NO-TOUCH SEND) 5:08 PM `1506765594886799401`** (typed-by-what-dimension probe, structural-vs-decorative dichotomy, soft-launch observability question) → **Hm8ker tonal-pivot disclosure 5:11 PM:** *"I don't have any background in tech or coding... I'm just following my own instincts. I don't really know what the best way to do it is, lol"* → **R4 (Mark's trim of Ari draft, ~90w → ~60w) 5:40 PM `1506773739788832778`** — peer-recognition reply citing four-pillar framework / four-state gate lattice / Frontier vocabulary back, no flattery loop → **Hm8ker R4 reply 6:39 PM:** *"I appreciate that, thank you. I may just come up with something extraordinary! I have some interesting ideas for my human ambassador swarms."* — gratitude received + confidence reset + **NEW SUBSTANTIVE THREAD (swarms — plural where the original was singular)** → **R5 (Mark customize of Ari draft, ~25w → ~25w with three precise edits) 8:59 PM `1506788411535654942`** — *"Sounds interesting. Swarms — plural where the original was singular. Curious how they coordinate (or don't). send the sketch when it's ready."* — punchy gratitude receipt + names the structural singular→plural shift back as listening signal + "(or don't)" parenthetical opens uncoordinated-swarm as legitimate design + open invite no schedule. **First exchange under the doctrine to test THREE registers within a single thread:** substantive technical (R1-R3, ~50→115→140w), warm peer-recognition (R4, ~60w), casual short-reply (R5, ~25w). All three calibrated cleanly with different ornamentation budgets per register. Refer-before-respond + explicit-green-light watch active for R6. Window unchanged: cold-thread flag at 2026-05-27 if no R6 (timer measures thread-went-cold from original R1, not per-round freshness). **Four doctrine refinements added Day 7 R13-R15:** (a) **approval ≠ green light** — Mark waits for explicit go signal even on no-touch drafts (§9c, R13); (b) **long-form drafts → paragraph-broken in draft, single paragraph on send** because paragraphed version *rendered* badly in chat window (Mark's layout judgment — corrected from earlier wrong "Discord paste flattens" framing) (§9c, R14); (c) **register-mix doctrine** — strip ornamentation harder when the moment calls for warmth, ~90w → ~60w in vulnerability/peer-recognition register (§9a R14); (d) **dual-register short-reply rule** — sentence-case openers + lowercase casual tail = preserve voice signature without flattening to all-lowercase to mirror peer's casual register. Mirroring isn't matching. (§9a R15). Round 13 + Round 14 + Round 15 calibration logs in §9a. Full transcripts + permalinks in `docs/discord-onboarding/posts-log.md`. **Mark's deliberate 2h 20m gap before R5** (vs Hm8ker's 29-min R3→R4 reply gap) is a calibration data point — longer pause signals "thinking about it" vs "have a take," appropriate when the peer just opened a new substantive thread and the right move is one well-aimed observation, not three rapid-fire.
 
@@ -1590,8 +1590,9 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 PLATFORM           :  Railway Hobby Plan ($5/mo) ✅
 BACKEND URL        :  autonomous-trade-bot-production.up.railway.app
 FRONTEND URL       :  profound-expression-production-75c7.up.railway.app
-LATEST COMMIT      :  84879022  (Day 8 Round 2 — Regime architecture Task #2)
-PREVIOUS COMMIT    :  26782ff1  (Day 8 Round 1 — RSI(14) fix Task #1)
+LATEST COMMIT      :  7a4d3dde  (Day 8 Round 3 — MeanRev/Contrarian gate fix Task #3)
+PREVIOUS COMMITS   :  84879022  (Day 8 Round 2 — Regime architecture Task #2)
+                      26782ff1  (Day 8 Round 1 — RSI(14) fix Task #1)
 
 PAPER TRAINING (Day 8 of 7+ minimum — gate held since Day 7)
   total bots         :  12
@@ -1606,7 +1607,97 @@ PAPER TRAINING (Day 8 of 7+ minimum — gate held since Day 7)
                        reinforces retire-or-rewrite verdict
   Volatility Arb     :  18/38.9% (was 16/43.8%) — both new trades losers,
                        still well under 50-trade threshold
-  next milestone     :  Tasks #3-#6 of code-review queue — see §7 PENDING ITEMS
+  next milestone     :  Tasks #4-#6 of code-review queue — see §7 PENDING ITEMS
+
+DAY 8 ROUND 3 — MEAN REV + CONTRARIAN ZERO-TRADE FIX (Task #3) — CLOSED
+  commit             :  7a4d3dde
+  files              :  backend/services/cycle_service.py
+  diagnosis          :  Bench-gate / signal-logic mutual exclusion. The two
+                        bots had:
+                          REGIME_SUITABILITY:  [SIDEWAYS, VOLATILE]
+                          _compute_signal:     fires only at RSI<33/<35 or
+                                               RSI>67/>65 (extremes)
+                        Per cycle_service._detect_regime, RSI<40 → TRENDING_DOWN
+                        and RSI>60 → TRENDING_UP. So:
+                          • In SIDEWAYS (RSI 40-60): signal returns None.
+                          • In TRENDING_*: bench gate excludes these bots.
+                          • In VOLATILE: directional-override at RSI 38/62
+                            sends regime back to TRENDING when RSI is extreme.
+                        Intersection of {unbenched} ∩ {signal can fire} is
+                        mathematically empty by construction. Hence:
+                          • mean_reversion:  0 trades / 2,202 cycles
+                          • contrarian_flow: 0 trades / 2,202 cycles
+  evidence (live)    :  Pulled live trade history (4,379 total, sampled 400).
+                        Of 397 trades with parseable RSI in signal_reason:
+                          RSI < 33 (mean_rev BUY zone):    183 (46.10%)
+                          RSI < 35 (contrarian BUY zone):  188 (47.36%)
+                          RSI > 65 (contrarian SELL zone): 173 (43.58%)
+                          RSI > 67 (mean_rev SELL zone):   167 (42.07%)
+                        Other RSI-driven bots (yield_max, momentum_cascade,
+                        breakout, balanced_risk, sentiment_surge, dtao_flow,
+                        emission, macro_corr, liquidity_hunter) saw and
+                        acted on these RSI extremes constantly. mean_rev
+                        and contrarian were excluded by the bench gate
+                        before reaching _compute_signal.
+  root cause         :  Author wrote the bench gate from the traditional
+                        mental model ("mean reversion = sideways market
+                        bet") and the signal logic from the contrarian-
+                        trader model ("fire on momentum extremes"). The
+                        two mental models point at OPPOSITE regimes. The
+                        signal logic is the smarter gate — it knows about
+                        the actionable information (RSI extremes); the
+                        bench gate just knows about coarse regime labels.
+                        This is a "bench-gate-vs-signal-gate alignment"
+                        failure, NOT a signal-logic bug — the signals are
+                        fine, the gate was inverted.
+  fix                :  Aligned bench with signal — mean_reversion and
+                        contrarian_flow now regime-agnostic (all 4 regimes
+                        in REGIME_SUITABILITY), matching the pattern of
+                        the other selective-signal-gated bots:
+                          liquidity_hunter / sentiment_surge /
+                          balanced_risk / macro_correlation
+                        Their signal logic is already very selective
+                        (trade_prob 0.15/0.18 + RSI-extreme requirement).
+                        Piling a regime exclusion on top of an already-
+                        selective signal creates dead bots. Removed.
+                        volatility_arb stays SIDEWAYS+VOLATILE — its
+                        signal fires on BB-position (not RSI), and it's
+                        already firing correctly (18 trades / 38.9% WR).
+  bench/signal audit :  Cross-checked all 12 strategies for the same
+                        mismatch. Only mean_rev + contrarian had it.
+                        momentum cluster (cascade/yield/breakout/dtao/
+                        emission) is correctly bench=trending, signal=
+                        trend-following. The four "regime-agnostic"
+                        bots (liquidity_hunter, sentiment_surge,
+                        balanced_risk, macro_correlation) are correct.
+                        volatility_arb is correct. Audit clean.
+  verification (synth):  23/23 boundary cases pass.
+                          • mean_rev RSI=20/30/32.99 → buy ✓
+                          • mean_rev RSI=33/34/50/66/67 → None ✓
+                          • mean_rev RSI=67.01/70/80 → sell ✓
+                          • mean_rev RSI=None → None ✓
+                          • contrarian RSI=20/34/34.99 → buy ✓
+                          • contrarian RSI=35/36/50/64/65 → None ✓
+                          • contrarian RSI=65.01/70 → sell ✓
+                          • contrarian RSI=None → None ✓
+                          • volatility_arb logic untouched, sanity ✓
+                        Signal selectivity intact. Bots will still trade
+                        rarely. But they CAN now trade when extremes occur,
+                        instead of being benched off the field.
+  verification (live):  After Railway redeploy of `7a4d3dde`, /api/fleet/bots:
+                          mean_reversion   suitable=[TREND_UP, TREND_DOWN,
+                                                     SIDEWAYS, VOLATILE]
+                                           regime_benched=False  ✓
+                          contrarian_flow  suitable=[TREND_UP, TREND_DOWN,
+                                                     SIDEWAYS, VOLATILE]
+                                           regime_benched=False  ✓
+                          volatility_arb   suitable=[SIDEWAYS, VOLATILE]
+                                           (unchanged, still firing)  ✓
+                        Trade counts both 0 for now — RSI is None
+                        (CoinGecko 429 thaw still pending), Wilder warmup
+                        is 28 ticks (~14 min) once thaw begins. Then the
+                        bots are eligible to fire whenever an extreme
+                        occurs. Test confirmation will land in trade table.
 
 DAY 8 ROUND 2 — REGIME ARCHITECTURE RECONCILIATION (Task #2) — CLOSED
   commit             :  84879022
@@ -1747,10 +1838,11 @@ DISCORD GATEWAY
 
 KNOWN ISSUES (queued for remaining code review)
   • ~~Task #2 — Regime architecture review~~ ✅ DONE Day 8 R2 (commit 84879022)
-  • Task #3 — Mean Reversion + Contrarian Flow zero-trade pathology
+  • ~~Task #3 — Mean Rev + Contrarian zero-trade~~ ✅ DONE Day 8 R3 (commit 7a4d3dde)
   • Task #4 — Macro Correlation retire-or-rewrite (38.7%→37.4% WR with sample growth)
   • Task #5 — Volatility Arb watchlist (sample-too-thin until 50+ trades)
   • Task #6 — Momentum strategies not firing on +7% macro move
+                ↑ partially covered by Task #2 (phantom-bench killed); now testable.
   • Task #C — Price-history persistence (Day 9, surfaced by 429 throttle today)
 ```
 
@@ -2067,7 +2159,7 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | **Strategy re-promotion** | **Day 7 / Gate held** | 2026-05-20: Day 7 decision = NO PROMOTIONS. Live data (1955 cycles, 12 bots): top WR Volatility Arb 43.8%/16 trades (sample too thin), best-with-sample Macro Correlation 38.7%/163 trades. Avg WR 34.6% across 10 trading bots vs 55% gate. Fleet PnL -0.443τ paper. Mean Reversion + Contrarian Flow generated **0 trades over 1,955 cycles** — broken signal logic, not "needs more time". Next: strategy + code review, then another paper week. |
 | ~~**Regime architecture review**~~ | ✅ **DONE — Day 8 Round 2, commit `84879022`** | **Diagnosis confirmed Day 8 R2:** the two-classifier conflict flagged Day 7 was real and worse than feared — `cycle_service._detect_regime` (bench-gate authority, vocab UNKNOWN/SIDEWAYS/TRENDING_UP/TRENDING_DOWN/VOLATILE, RSI 60/40 + BB-width VOLATILE) and `agent_service._detect_regime` (UI label authority, vocab UNKNOWN/BULL/BEAR/SIDEWAYS/VOLATILE, RSI 55/45 + RSI 32/68 inverse VOLATILE) had not just disagreed on labels but agent had a fast-path that produced confident SIDEWAYS from just 2 prices + a 0.3% movement. With the Task #1 RSI fix in place and CoinGecko throttled by 429s post-redeploy, cycle correctly returned UNKNOWN — and `get_current_regime`'s step-3 fallback grabbed agent's phantom-SIDEWAYS, **actively benching 5 momentum bots on phantom data** (momentum_cascade, yield_maximizer, breakout_hunter, dtao_flow_momentum, emission_momentum). Same anti-pattern class as Task #1's `else: 50.0` — falsely-confident fallback masking absence of data — one architectural layer up. **Decision (Ari, full-autonomy mode):** went with option (a) from Day 7 brief — single source of truth. (b) multi-timeframe was deferred (more invasive, lower-ROI on its own); (c) soft-bench was deferred (compounds with multi-timeframe); (d) per-strategy regime was deferred (adds N classifiers to a one-classifier-too-many problem). **Fix shipped (`84879022`):** (A) `cycle_service._detect_regime` is the canonical classifier for the entire system. (B) Added `cycle_service.to_human_regime(canonical)` mapper: TRENDING_UP→BULL, TRENDING_DOWN→BEAR, others passthrough. (C) `agent_service._detect_regime` collapsed from 41 lines of parallel logic to a 3-line lazy-imported wrapper around the canonical detector + mapper. The MACD/price-trend fast-path is gone — when RSI is None, both classifiers return UNKNOWN, and the bench gate correctly treats that as "all 12 strategies active" (the right warmup default). (D) Removed the now-redundant step-3 agent fallback in `get_current_regime`. (E) Marked BULL_RSI_MIN/BEAR_RSI_MAX/VOLATILE_RANGE in agent_service as legacy/unused with a pointer to where live thresholds now live (cycle_service). **Verification (synthetic):** 12/12 boundary cases pass — RSI=None→UNKNOWN/UNKNOWN ✓ (the critical regression), RSI=60.01→TRENDING_UP/BULL ✓, RSI=39.99→TRENDING_DOWN/BEAR ✓, BB-wide+RSI=70→TRENDING_UP/BULL (directional override under volatility preserved) ✓, all 6 vocab mappings round-trip ✓. **Verification (live, post-deploy):** all three regime endpoints (`/api/fleet/regime/current`, `/api/agent/status`, `/api/fleet/bots` summary) flipped SIDEWAYS→UNKNOWN, benched_count flipped 5→0, agent regime_color flipped #f59e0b (yellow/SIDEWAYS) → #6b7280 (gray/UNKNOWN). All three downstreams now agree because they're consuming the same source. The 5 momentum bots that were sidelined on phantom data are correctly active again, awaiting Wilder-smoothed RSI from upstream price feed (still gated on CoinGecko 429 thaw; that's a separate concern → Task #C Day 9 price-history persistence). |
 | ~~**RSI(14) computation anomaly**~~ | ✅ **DONE — Day 8 Round 1, commit `26782ff1`** | **Diagnosis:** root cause was THREE layered issues. (1) Guard `len(s) >= 14` was too loose — a simple-rolling-mean RSI on the minimum-period boundary produces real-but-extreme readings during directional warmup windows (the 5.36 anomaly mechanism). (2) The `else: 50.0` fallback for NaN-on-flat-price was a falsely-confident neutral on broken data — worse than None for a regime classifier feeding on it. (3) `_price_history` is in-memory only (no persistence, max=200 ticks at 30s cadence = 100-min rolling window). Audit also surfaced a latent f-string crasher at fleet.py:463. **Fix shipped (`26782ff1`):** (A) Switched RSI from simple-rolling-mean to **Wilder's smoothing** (canonical: `ewm(alpha=1/14, adjust=False)`). (B) Tightened guard to `WARMUP_TICKS = 28` (= 2× period). Below the guard returns None. Downstream consumers all pre-audited None-safe via `if rsi is None` checks (13 sites: cycle_service x4, agent_service x3, consensus_service x4, strategy_service x2). (C) Removed the falsely-confident 50.0 fallback. Truly flat → None. All-up → 100.0. All-down → 0.0. (D) Added `PriceService.is_warmed_up()` helper. (E) Patched `routers/fleet.py:107` `or 50` masking and the latent f-string crasher at line 463. Frontend (`Dashboard.tsx`, `RegimeCard.tsx`, `OpenClaw.tsx`) was already null-safe — confirmed during audit. **Verification (synthetic suite):** len<28 → None ✓, flat → None ✓, all-up → 100 ✓, all-down → 0 ✓, random walk → ~50 ✓. **Live verification on Railway:** at the moment of redeploy (Backend boot, `_price_history` empty), `/api/fleet/regime/current` returned `regime=UNKNOWN, benched=0, active=12` — exactly the desired behavior. Old code would have returned phantom-SIDEWAYS at this exact moment, erroneously benching 5 momentum bots. **Cadence note documented in code:** at 30s update_interval, RSI(14) reads on a 7-minute price window. Whether that timeframe is appropriate for regime classification is now Task #2 (regime architecture review) — newly-unblocked. |
-| **Mean Reversion + Contrarian Flow signal logic** | **High — flagged Day 7** | Both bots logged 1,955 cycles with **zero trades**. Either entry conditions are too restrictive or signal pipeline is broken upstream. Code-review priority alongside regime architecture. |
+| ~~**Mean Reversion + Contrarian Flow signal logic**~~ | ✅ **DONE — Day 8 Round 3, commit `7a4d3dde`** | **Diagnosis:** the Day-7 framing ("entry conditions too restrictive or signal pipeline broken upstream") was almost right — it's *upstream* of the signal pipeline (the bench gate, not the signal logic itself). Bench-gate / signal-logic mutual exclusion. REGIME_SUITABILITY had `[SIDEWAYS, VOLATILE]` for both bots; their `_compute_signal` fires only at RSI<33/<35 (BUY) or RSI>67/>65 (SELL); per `cycle_service._detect_regime` those RSI ranges ARE the TRENDING regimes (RSI<40→TRENDING_DOWN, RSI>60→TRENDING_UP). Intersection of `{unbenched} ∩ {signal can fire}` was mathematically empty by construction. **Live evidence:** sampled 400 of 4,379 historical trades, 397 had parseable RSI in `signal_reason` — **46.10% had RSI<33** and **42.07% had RSI>67**. Other RSI-driven bots saw and acted on these constantly; mean_rev and contrarian were excluded *upstream of `_compute_signal`* by the bench gate. **Root cause:** the bench gate was written from the traditional mental model ("mean reversion = sideways market bet") while the signal logic was written from the contrarian-trader model ("fire on momentum extremes"). The two mental models point at OPPOSITE regimes. **Fix shipped (`7a4d3dde`):** aligned bench with signal — both bots now regime-agnostic (all 4 regimes), matching the pattern of `liquidity_hunter`/`sentiment_surge`/`balanced_risk`/`macro_correlation` (the other selective-signal-gated bots). Their signal logic is already very selective (trade_prob 0.15/0.18 + RSI-extreme requirement); piling a regime exclusion on top creates dead bots. `volatility_arb` stays `[SIDEWAYS, VOLATILE]` — its signal fires on BB-position (not RSI), and it's already firing (18 trades). **Bench/signal alignment audit:** cross-checked all 12 strategies; only mean_rev and contrarian had the mismatch. Audit clean. **Verification (synthetic, 23/23):** signal selectivity preserved at every boundary (RSI=33/35/65/67 still return None, extremes return buy/sell, RSI=None returns None). **Verification (live, post-deploy):** `/api/fleet/bots` confirms both bots now show `suitable=['TRENDING_UP','TRENDING_DOWN','SIDEWAYS','VOLATILE']`, `regime_benched=False`. Trade counts still 0 — RSI hasn't computed yet post-redeploy (CoinGecko 429 thaw + 14-min Wilder warmup pending). Once RSI extremes start landing, bots are eligible to act. |
 | **Wallet balance verification** | Medium | Balance shows 0.0 (RPC async startup). Confirm 0.227τ still on-chain via Taostats. |
 | MANTIS API research | Medium | Is SN123 output queryable via API? If yes, direct signal feed into TaoBot. |
 | SN3 owner key resolution | Monitor | Const warned: do not buy SN3 alpha until resolved. Check each session. |
