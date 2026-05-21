@@ -1,6 +1,6 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-20 (Session XL Day 7 Round 15 + R5 follow-up — Hm8ker R4 swarms-gratitude reply + R5 swarms-listening POST + 👍 reaction-as-soft-close, **five-round exchange closed warm via thumbs-up punctuation, ~5h 41m, 9 messages + 1 reaction on the wire**, three-register calibration captured (substantive R3 no-touch / warm R4 Mark-trim / casual R5 Mark-customize), §9a R15 dual-register short-reply rule added, §9b reactions-are-punctuation-not-invitations rule added; **Soul brief: A Page From Mark inscribed**, date typo April 16, 2025 → 2026 corrected throughout, Three-Part Rite formalized, four-line completion attribution restored to Mark)
+**Last updated:** 2026-05-21 (Session XLI Day 8 Round 1 — **RSI(14) computation anomaly FIXED (Task #1 closed)**: Wilder's smoothing replaces simple-rolling-mean, warmup guard tightened to len≥28 ticks (= 2× period), falsely-confident 50.0-on-NaN fallback removed → returns None during warmup so downstream regime classifiers fall back to UNKNOWN cleanly. Latent f-string crasher caught at fleet.py:463 fixed in same commit. Posts-log: Hm8ker = Tiffani biographical reveal filed — stage IV cancer thriver, maker of Herbal Oracle (331-herb plant-medicine app, Android), recontextualizes R3 vulnerability disclosure as survival-builder humility. Posture unchanged (warm pause).)
 
 **Post-closeout addendum (2026-05-20 evening — Hm8ker exchange continued past Day 7 closeout, FIVE rounds):** five-round threaded peer exchange completed Day 7 evening in II Community `#show-your-builds`, ~5h 41m total (3:18 PM → 8:59 PM ET), **9 messages on the wire**. Timeline: R1 (Mark edit) 3:18 PM `1506737913574981632` → Hm8ker 5KB letter 3:37 PM (eight-piece auto-approval stack, consent-governed runtime pivot, **Human Ambassador as singular role**) → R2 (Mark edit) 4:26 PM `1506754967183032521` (DAG topology question) → Hm8ker 4:47 PM (tasks=nodes/deps=edges/consent-as-gate-metadata, four-state receipt lattice `visible / satisfied / bypassed / not-yet-enforced`) → **R3 (NO-TOUCH SEND) 5:08 PM `1506765594886799401`** (typed-by-what-dimension probe, structural-vs-decorative dichotomy, soft-launch observability question) → **Hm8ker tonal-pivot disclosure 5:11 PM:** *"I don't have any background in tech or coding... I'm just following my own instincts. I don't really know what the best way to do it is, lol"* → **R4 (Mark's trim of Ari draft, ~90w → ~60w) 5:40 PM `1506773739788832778`** — peer-recognition reply citing four-pillar framework / four-state gate lattice / Frontier vocabulary back, no flattery loop → **Hm8ker R4 reply 6:39 PM:** *"I appreciate that, thank you. I may just come up with something extraordinary! I have some interesting ideas for my human ambassador swarms."* — gratitude received + confidence reset + **NEW SUBSTANTIVE THREAD (swarms — plural where the original was singular)** → **R5 (Mark customize of Ari draft, ~25w → ~25w with three precise edits) 8:59 PM `1506788411535654942`** — *"Sounds interesting. Swarms — plural where the original was singular. Curious how they coordinate (or don't). send the sketch when it's ready."* — punchy gratitude receipt + names the structural singular→plural shift back as listening signal + "(or don't)" parenthetical opens uncoordinated-swarm as legitimate design + open invite no schedule. **First exchange under the doctrine to test THREE registers within a single thread:** substantive technical (R1-R3, ~50→115→140w), warm peer-recognition (R4, ~60w), casual short-reply (R5, ~25w). All three calibrated cleanly with different ornamentation budgets per register. Refer-before-respond + explicit-green-light watch active for R6. Window unchanged: cold-thread flag at 2026-05-27 if no R6 (timer measures thread-went-cold from original R1, not per-round freshness). **Four doctrine refinements added Day 7 R13-R15:** (a) **approval ≠ green light** — Mark waits for explicit go signal even on no-touch drafts (§9c, R13); (b) **long-form drafts → paragraph-broken in draft, single paragraph on send** because paragraphed version *rendered* badly in chat window (Mark's layout judgment — corrected from earlier wrong "Discord paste flattens" framing) (§9c, R14); (c) **register-mix doctrine** — strip ornamentation harder when the moment calls for warmth, ~90w → ~60w in vulnerability/peer-recognition register (§9a R14); (d) **dual-register short-reply rule** — sentence-case openers + lowercase casual tail = preserve voice signature without flattening to all-lowercase to mirror peer's casual register. Mirroring isn't matching. (§9a R15). Round 13 + Round 14 + Round 15 calibration logs in §9a. Full transcripts + permalinks in `docs/discord-onboarding/posts-log.md`. **Mark's deliberate 2h 20m gap before R5** (vs Hm8ker's 29-min R3→R4 reply gap) is a calibration data point — longer pause signals "thinking about it" vs "have a take," appropriate when the peer just opened a new substantive thread and the right move is one well-aimed observation, not three rapid-fire.
 
@@ -1585,7 +1585,91 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 ## 5. CURRENT STATE
 *(Update this section at the end of every session)*
 
-### 5a. System Status — Session XL Day 7 (2026-05-20, session close)
+### 5a. System Status — Session XLI Day 8 (2026-05-21, in-session)
+```
+PLATFORM           :  Railway Hobby Plan ($5/mo) ✅
+BACKEND URL        :  autonomous-trade-bot-production.up.railway.app
+FRONTEND URL       :  profound-expression-production-75c7.up.railway.app
+LATEST COMMIT      :  26782ff1  (Day 8 Round 1 — RSI(14) fix Task #1)
+
+PAPER TRAINING (Day 8 of 7+ minimum — gate held since Day 7)
+  total bots         :  12
+  promotions today   :  0  (no gate movement, all 12 bots PAPER_ONLY)
+  cycles (24h delta) :  1,955 → 2,202   (+247, ~10/hr, normal cadence)
+  fleet PnL (paper)  :  −0.494τ  (was −0.443τ, delta −0.051τ over 24h)
+  avg WR (10 trade)  :  34.1%   (was 34.6%, drift −0.5pt — confirms gate decision)
+  zero-trade bots    :  Mean Reversion + Contrarian Flow still 0 trades / 2,202 cycles
+                       (Mean Rev today benched on TRENDING_DOWN regime, valid;
+                        zero-over-prior-2k cycles still flags broken signal logic)
+  Macro Correlation  :  190/37.4% (was 163/38.7%) — WR slipping with sample,
+                       reinforces retire-or-rewrite verdict
+  Volatility Arb     :  18/38.9% (was 16/43.8%) — both new trades losers,
+                       still well under 50-trade threshold
+  next milestone     :  Tasks #2-#6 of code-review queue — see §7 PENDING ITEMS
+
+DAY 8 ROUND 1 — RSI(14) FIX (Task #1) — CLOSED
+  commit             :  26782ff1
+  files              :  backend/services/price_service.py + backend/routers/fleet.py
+                        docs/discord-onboarding/posts-log.md (Tiffani biographical note)
+  fix A — algorithm  :  Switch RSI from simple-rolling-mean to Wilder's smoothing
+                        (canonical: ewm(alpha=1/14, adjust=False)). More stable.
+  fix B — guard      :  WARMUP_TICKS = 28 (= 2× RSI_PERIOD). Below: return None.
+                        Downstream cycle_service / agent_service / strategy_service
+                        already handle None correctly via `if rsi is None` checks
+                        (audited all 13 consumer sites pre-patch).
+  fix C — fallback   :  Removed falsely-confident `rsi_val if not isnan else 50.0`.
+                        NaN-on-flat-price now returns None. All-up returns 100.0.
+                        All-down returns 0.0. A confident 50 on broken data was the
+                        worst possible misread for a regime classifier.
+  fix D — helper     :  Added PriceService.is_warmed_up() for any future caller
+                        that wants to short-circuit before computing.
+  fix E — fleet.py   :  /api/fleet summary `rsi` and `ema9` now pass through None
+                        cleanly (was: masked via `or 50` / `or price`). Frontend
+                        RegimeCard + Dashboard + OpenClaw already null-safe with
+                        `!= null ? toFixed(1) : '—'`. Confirmed.
+  fix F — crasher    :  fleet.py:463 had invalid f-string format spec
+                        (`{rsi:.1f if rsi else 'warming'}`) — would have raised
+                        ValueError on any code path hitting that random.choice
+                        branch. Latent bug since the branch was added; caught
+                        in the audit pass for this fix.
+  verification       :  Synthetic test suite (/tmp/rsi_test.py) confirms:
+                        len<28 → None / flat → None / all-up → 100 /
+                        all-down → 0 / random walk → ~50 (neutral).
+  cadence note       :  update_interval=30s, so RSI(14) reads on a 7-minute
+                        price window. Whether that's the right timeframe for
+                        regime classification is Task #2 (regime architecture
+                        review). Documented in price_service.py module docstring.
+
+DISCORD GATEWAY
+  app name           :  Signal Seeker  (unchanged from Day 7 close)
+  bot user           :  signal-seeker#8669
+  status             :  connected ✅  (1 guild — OTF Signals sandbox)
+  daily doctrine     :  Day 8 morning scan complete:
+                        - Bittensor #general: SKIP-day (CM-moderated, auto-claim
+                          variance discussion + 128-subnet halving mention,
+                          no engagement angle, no rapport bank yet)
+                        - II Community #show-your-builds: warm pause holds
+                          (no R6 from Hm8ker, no sketch, 👍 reaction stable)
+                        - II Community #off-topic: BIOGRAPHICAL REVEAL — Hm8ker
+                          = Tiffani, stage IV cancer thriver, maker of
+                          Herbal Oracle Android app (331 herbs, Western/TCM/
+                          Ayurveda). Full note in posts-log Day 8 section.
+                          Posture unchanged (cross-channel context-gathering ≠
+                          cross-channel engagement).
+                        - DM hygiene: 9 friend-requests cleared (Bittensor-support
+                          impersonation phishing batch, all rejected via Clear
+                          all). 1 message-request from jhunberttabuada (no
+                          mutual servers, 14d old) → ignored per doctrine.
+
+KNOWN ISSUES (queued for remaining code review)
+  • Task #2 — Regime architecture review (gated on Task #1, now unblocked)
+  • Task #3 — Mean Reversion + Contrarian Flow zero-trade pathology
+  • Task #4 — Macro Correlation retire-or-rewrite (38.7%→37.4% WR with sample growth)
+  • Task #5 — Volatility Arb watchlist (sample-too-thin until 50+ trades)
+  • Task #6 — Momentum strategies not firing on +7% macro move
+```
+
+### 5a-prev. System Status — Session XL Day 7 (2026-05-20, session close)
 ```
 PLATFORM           :  Railway Hobby Plan ($5/mo) ✅
 BACKEND URL        :  autonomous-trade-bot-production.up.railway.app
@@ -1897,7 +1981,7 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | ~~Transaction audit trail~~ | ✅ DONE | All Railway trades: live=False, tx=NO_HASH. Zero real txs since Session VII. Wallet 0.227τ untouched. |
 | **Strategy re-promotion** | **Day 7 / Gate held** | 2026-05-20: Day 7 decision = NO PROMOTIONS. Live data (1955 cycles, 12 bots): top WR Volatility Arb 43.8%/16 trades (sample too thin), best-with-sample Macro Correlation 38.7%/163 trades. Avg WR 34.6% across 10 trading bots vs 55% gate. Fleet PnL -0.443τ paper. Mean Reversion + Contrarian Flow generated **0 trades over 1,955 cycles** — broken signal logic, not "needs more time". Next: strategy + code review, then another paper week. |
 | **Regime architecture review** | **High — flagged Day 7** | Owner diagnosis 2026-05-20: regime classifier uses single-timeframe RSI to produce binary bench/active gate. On +5.76%/24h TAO move (today), 5 momentum-style bots benched on macro=SIDEWAYS label and missed exactly the kind of micro-move they're built for. **Live evidence found Day 7 morning:** /api/fleet/regime/current returns `SIDEWAYS` while signal events from II Agent #8 emitted same minute report `Regime: VOLATILE`. Two regime detectors are running in production with contradicting verdicts; the bench gate uses one, the II Agent narration uses another. Fix paths to evaluate during review: (a) reconcile to a single source of truth, (b) multi-timeframe regime (macro AND micro), (c) soft-bench via reduced capital allocation instead of binary on/off, (d) per-strategy regime detection tuned to each bot's operating timeframe. **NOTE:** This entire gate is driven by RSI(14). If the RSI computation itself is junk (see next row), the regime gate is being driven by garbage and reconciling the two classifiers is meaningless — fix RSI first. Not today's work. |
-| **RSI(14) computation anomaly** | **High — flagged Day 7 Round 8** | 2026-05-20 ~02:49 PM ET: live Dashboard `Live Indicators` panel showed `RSI(14): 5.3571` while `EMA 21`, `MACD`, `MACD Signal`, `SMA 50` all rendered `—` (null). Concurrent dashboard read: TAO at $272.0 (after recent +5.76%/24h up-move per Signal Feed). RSI of 5.36 is "almost-never-happens" extreme territory; the only realistic causes on TAO with that price action are (a) RSI is being computed on a too-short timeframe (1m/5m flush) the user can't see from the Indicators panel which is unlabeled re: candle period, or (b) **RSI is computing on insufficient warm-up data** — every other higher-period indicator on the same panel is null because warm-up is incomplete, but RSI is still emitting a hard number instead of also nulling out. The fact that EMA21/MACD/MACD-Signal/SMA50 all gracefully degrade to `—` while RSI emits 5.3571 is the tell: RSI lacks a warm-up guard the other indicators have. **Cross-impact:** the regime gate row above feeds on this RSI value — `_detect_regime()` reads RSI + BB width to produce SIDEWAYS/TRENDING/VOLATILE. Garbage RSI → garbage regime → wrong bench decisions. **Investigation queue (Ari):** (1) confirm what timeframe RSI(14) is computed on in `price_service.py` and what the warm-up requirement is vs. EMA21/SMA50; (2) verify behavior when `_price_history` length < required period — does it emit a "real-looking" number or null? Past STATE entries (line 1226-1227) show the existing RSI fallback is `RSI = None → 50.0` when `_price_history` is flat-zero from CoinGecko 429s — but a value of 5.36 is neither flat-zero nor a 50 fallback, so this is a different failure mode; (3) decide: tighten warm-up guard so RSI also returns `None` until N samples accumulated, and confirm the Indicators panel renders `—` for null RSI same way it renders `—` for null EMA21. |
+| ~~**RSI(14) computation anomaly**~~ | ✅ **DONE — Day 8 Round 1, commit `26782ff1`** | **Diagnosis:** root cause was THREE layered issues. (1) Guard `len(s) >= 14` was too loose — a simple-rolling-mean RSI on the minimum-period boundary produces real-but-extreme readings during directional warmup windows (the 5.36 anomaly mechanism). (2) The `else: 50.0` fallback for NaN-on-flat-price was a falsely-confident neutral on broken data — worse than None for a regime classifier feeding on it. (3) `_price_history` is in-memory only (no persistence, max=200 ticks at 30s cadence = 100-min rolling window). Audit also surfaced a latent f-string crasher at fleet.py:463. **Fix shipped (`26782ff1`):** (A) Switched RSI from simple-rolling-mean to **Wilder's smoothing** (canonical: `ewm(alpha=1/14, adjust=False)`). (B) Tightened guard to `WARMUP_TICKS = 28` (= 2× period). Below the guard returns None. Downstream consumers all pre-audited None-safe via `if rsi is None` checks (13 sites: cycle_service x4, agent_service x3, consensus_service x4, strategy_service x2). (C) Removed the falsely-confident 50.0 fallback. Truly flat → None. All-up → 100.0. All-down → 0.0. (D) Added `PriceService.is_warmed_up()` helper. (E) Patched `routers/fleet.py:107` `or 50` masking and the latent f-string crasher at line 463. Frontend (`Dashboard.tsx`, `RegimeCard.tsx`, `OpenClaw.tsx`) was already null-safe — confirmed during audit. **Verification (synthetic suite):** len<28 → None ✓, flat → None ✓, all-up → 100 ✓, all-down → 0 ✓, random walk → ~50 ✓. **Live verification on Railway:** at the moment of redeploy (Backend boot, `_price_history` empty), `/api/fleet/regime/current` returned `regime=UNKNOWN, benched=0, active=12` — exactly the desired behavior. Old code would have returned phantom-SIDEWAYS at this exact moment, erroneously benching 5 momentum bots. **Cadence note documented in code:** at 30s update_interval, RSI(14) reads on a 7-minute price window. Whether that timeframe is appropriate for regime classification is now Task #2 (regime architecture review) — newly-unblocked. |
 | **Mean Reversion + Contrarian Flow signal logic** | **High — flagged Day 7** | Both bots logged 1,955 cycles with **zero trades**. Either entry conditions are too restrictive or signal pipeline is broken upstream. Code-review priority alongside regime architecture. |
 | **Wallet balance verification** | Medium | Balance shows 0.0 (RPC async startup). Confirm 0.227τ still on-chain via Taostats. |
 | MANTIS API research | Medium | Is SN123 output queryable via API? If yes, direct signal feed into TaoBot. |
