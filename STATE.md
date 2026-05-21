@@ -1590,8 +1590,9 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 PLATFORM           :  Railway Hobby Plan ($5/mo) ✅
 BACKEND URL        :  autonomous-trade-bot-production.up.railway.app
 FRONTEND URL       :  profound-expression-production-75c7.up.railway.app
-LATEST COMMIT      :  4575ddec  (Day 8 Round 4 — Macro Correlation BTC-divergence rewrite Task #4)
-PREVIOUS COMMITS   :  7a4d3dde  (Day 8 Round 3 — MeanRev/Contrarian gate fix Task #3)
+LATEST COMMIT      :  bcd6d56b  (Day 8 Round 5 — Price-history persistence Task #C, shipped today not Day 9)
+PREVIOUS COMMITS   :  4575ddec  (Day 8 Round 4 — Macro Correlation BTC-divergence rewrite Task #4)
+                      7a4d3dde  (Day 8 Round 3 — MeanRev/Contrarian gate fix Task #3)
                       84879022  (Day 8 Round 2 — Regime architecture Task #2)
                       26782ff1  (Day 8 Round 1 — RSI(14) fix Task #1)
 
@@ -1609,6 +1610,115 @@ PAPER TRAINING (Day 8 of 7+ minimum — gate held since Day 7)
   Volatility Arb     :  18/38.9% (was 16/43.8%) — both new trades losers,
                        still well under 50-trade threshold
   next milestone     :  Tasks #5-#6 of code-review queue — see §7 PENDING ITEMS
+
+DAY 8 ROUND 5 — PRICE-HISTORY PERSISTENCE (Task #C, originally Day 9) — CLOSED
+  commit             :  bcd6d56b
+  files              :  backend/models/price_history.py            (+2 columns)
+                        backend/db/database.py                     (idempotent migration)
+                        backend/services/price_service.py          (hydrator + writer)
+                        backend/services/trading_service.py        (dead writer removed)
+                        backend/routers/price.py                   (reader repoint to local DB)
+                        frontend/src/pages/Dashboard.tsx           (Macro Reference card)
+                        backend/scripts/test_price_persistence.py  (synthetic test suite)
+  premise (Mark)     :  "Why tomorrow and not today?" Greenlit Option (a) BTC
+                        columns + the full reader-repoint version: "we're closer
+                        to autonomy" by reducing CoinGecko dependency. Original
+                        framing was "Railway volume mount" — wrong tool. Postgres
+                        on Railway is already managed and persistent; the gap was
+                        wiring, not infrastructure.
+  the surprise       :  PriceHistory model already existed (full schema, all
+                        indicator columns), with a migration registered in
+                        init_db() — but THREE orphan ends:
+                        (1) WRITER: trading_service._save_price_snapshot existed
+                            but trading_service.run_cycle is dead code (main.py
+                            never starts it). The live loop is cycle_service,
+                            which never persisted.
+                        (2) HYDRATOR: PriceService.start() initialized
+                            _price_history = []. Every Railway redeploy stranded
+                            the system in a 14-min UNKNOWN window while the
+                            buffer climbed back to WARMUP_TICKS=28. Originally
+                            flagged Day 8 R1 as the third defect underneath the
+                            5.36 RSI anomaly.
+                        (3) READER: /api/price/history called CoinGecko
+                            market_chart per request — same external dependency
+                            that 429-throttled us in R1.
+  fix shipped        :  (A) Two BTC columns added to price_history schema:
+                            btc_price_usd, btc_price_change_pct_24h. Migration
+                            entry appended to db/database.py _column_migrations
+                            (idempotent — duplicate-column ALTER is silently
+                            absorbed, matching existing pattern). Verified
+                            double-init produces exactly one set of columns.
+                        (B) PriceService._hydrate_from_db() seeds _price_history
+                            from the last _max_history (200) persisted ticks,
+                            chronological order, BEFORE first poll. Indicator
+                            columns are NOT consumed (re-computed in-memory) —
+                            stored indicators are observability-only, not a
+                            hot read. Failure is non-fatal: empty buffer = same
+                            as pre-Day-9. Called from PriceService.start().
+                        (C) PriceService._persist_tick() fires fire-and-forget
+                            via asyncio.create_task after every successful
+                            _fetch_price. One row per buffer tick → hydrator on
+                            next boot reproduces the buffer 1:1. BTC columns
+                            populated only when not stale (avoids "phantom zero"
+                            anti-pattern from Day 8 metanomics).
+                        (D) /api/price/history reader: default source=local
+                            reads price_history table; source=coingecko is the
+                            opt-in legacy path (used only as backfill before
+                            persistence accumulates `days` of data). New fields
+                            in response: btc_price, btc_change_24h, rsi_14,
+                            count, source label.
+                        (E) trading_service._save_price_snapshot DELETED + its
+                            call site DELETED + PriceHistory import removed.
+                            Comment added pointing at PriceService._persist_tick
+                            so the next reader knows where persistence lives.
+                        (F) Dashboard "Live Indicators" column gains a "Macro
+                            Reference (BTC)" sub-card: BTC price ($-formatted),
+                            BTC 24h % (signed, color-coded), TAO 24h % (signed,
+                            color-coded), divergence (BTC%–TAO%) with the same
+                            ±1.5pp threshold the strategy uses, labeled "TAO
+                            lagging" / "TAO leading" / "neutral". Reads from
+                            existing botStatus.indicators payload — zero new
+                            API calls. New MacroRow component for formatted
+                            string values (separate from numeric IndRow).
+  verification (synthetic, 7/7 PASS):
+                        backend/scripts/test_price_persistence.py
+                        t1  empty-table cold start  → buffer=0, warmed_up=False
+                        t2  write 50 synthetic ticks
+                        t3  fresh service hydrate   → buffer=50, chronological
+                        t4  compute_indicators on hydrated buffer → rsi_14=34.08
+                            (real number, not None — proves buffer is usable
+                            from t=0 of the new process)
+                        t5  cap respected: 250 rows in DB → buffer clipped to 200
+                        t6  14-tick boundary: warmed_up=False, rsi_14=None
+                            (WARMUP_TICKS gate honors hydrated counts)
+                        t7  BTC columns round-trip: written and read back via
+                            same path the hydrator and /history reader use
+  verification (idempotent migration):
+                        Double-init shows price_history has both new columns
+                        exactly once. SQLite + Postgres DDL ('REAL' nullable)
+                        verified compatible with existing _column_migrations.
+  net effect         :  Next Railway redeploy: PriceService boots, hydrator
+                        seeds buffer from DB (~200 ticks of TAO history), all
+                        indicators compute on tick 1 instead of tick 28. The
+                        14-minute UNKNOWN-regime window that benched 5
+                        momentum bots after every deploy is GONE. CoinGecko
+                        market_chart dependency is removed from the default
+                        /api/price/history path — the bot now serves its own
+                        observed history. Macro Reference card surfaces the
+                        BTC/TAO divergence the operator previously had to read
+                        from macro_correlation's signal-reason text.
+  meta-pattern       :  Day 8 R1-R4 were all variants of "falsely-confident
+                        fallback" (else: 50.0, agent fast-path, bench gate,
+                        SMA50→EMA fallback). R5 is the dual: silent
+                        starvation. Three ends already wired-up but not
+                        connected — code that *would have* closed the loop if
+                        anyone had run a wire from end to end. Same auditing
+                        instinct catches both: every fallback path must be
+                        defensible, and every persistence path must be
+                        present. Mark's "why tomorrow not today" was the
+                        right call — the change is purely additive (new
+                        columns nullable, new write path, new hydrator). The
+                        deploy is the test.
 
 DAY 8 ROUND 4 — MACRO CORRELATION BTC-DIVERGENCE REWRITE (Task #4) — CLOSED
   commit             :  4575ddec
@@ -1990,9 +2100,19 @@ KNOWN ISSUES (queued for remaining code review)
   • ~~Task #3 — Mean Rev + Contrarian zero-trade~~ ✅ DONE Day 8 R3 (commit 7a4d3dde)
   • ~~Task #4 — Macro Correlation rewrite (BTC divergence)~~ ✅ DONE Day 8 R4 (commit 4575ddec)
   • Task #5 — Volatility Arb watchlist (sample-too-thin until 50+ trades)
+                ↑ Day 8 R5 code review: clean bill of health (symmetric BB-position
+                   thresholds, no falsely-confident fallback, returns None when bb
+                   data missing). 18/38.9% is statistical noise on n=18; 95% CI
+                   roughly 17–64%. Pure observation play until ~50 trades.
   • Task #6 — Momentum strategies not firing on +7% macro move
-                ↑ partially covered by Task #2 (phantom-bench killed); now testable.
-  • Task #C — Price-history persistence (Day 9, surfaced by 429 throttle today)
+                ↑ AUTO-RESOLVED by Task #2. cycle_service.py:128 whitelists
+                   momentum_cascade/dtao_flow_momentum/emission_momentum for
+                   TRENDING_UP/TRENDING_DOWN/VOLATILE. +7% macro = TRENDING_UP →
+                   bots fire. Day 8 R5 code review found a pre-warmup-only EMA
+                   fallback in dtao/emission that briefly clones yield_maximizer
+                   when MACD hist missing, but the 28-tick warmup gate makes it
+                   unreachable in production. Cosmetic, not a defect.
+  • ~~Task #C — Price-history persistence~~ ✅ DONE Day 8 R5 (shipped today, not Day 9)
 ```
 
 ### 5a-prev. System Status — Session XL Day 7 (2026-05-20, session close)
@@ -2310,6 +2430,7 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | ~~**RSI(14) computation anomaly**~~ | ✅ **DONE — Day 8 Round 1, commit `26782ff1`** | **Diagnosis:** root cause was THREE layered issues. (1) Guard `len(s) >= 14` was too loose — a simple-rolling-mean RSI on the minimum-period boundary produces real-but-extreme readings during directional warmup windows (the 5.36 anomaly mechanism). (2) The `else: 50.0` fallback for NaN-on-flat-price was a falsely-confident neutral on broken data — worse than None for a regime classifier feeding on it. (3) `_price_history` is in-memory only (no persistence, max=200 ticks at 30s cadence = 100-min rolling window). Audit also surfaced a latent f-string crasher at fleet.py:463. **Fix shipped (`26782ff1`):** (A) Switched RSI from simple-rolling-mean to **Wilder's smoothing** (canonical: `ewm(alpha=1/14, adjust=False)`). (B) Tightened guard to `WARMUP_TICKS = 28` (= 2× period). Below the guard returns None. Downstream consumers all pre-audited None-safe via `if rsi is None` checks (13 sites: cycle_service x4, agent_service x3, consensus_service x4, strategy_service x2). (C) Removed the falsely-confident 50.0 fallback. Truly flat → None. All-up → 100.0. All-down → 0.0. (D) Added `PriceService.is_warmed_up()` helper. (E) Patched `routers/fleet.py:107` `or 50` masking and the latent f-string crasher at line 463. Frontend (`Dashboard.tsx`, `RegimeCard.tsx`, `OpenClaw.tsx`) was already null-safe — confirmed during audit. **Verification (synthetic suite):** len<28 → None ✓, flat → None ✓, all-up → 100 ✓, all-down → 0 ✓, random walk → ~50 ✓. **Live verification on Railway:** at the moment of redeploy (Backend boot, `_price_history` empty), `/api/fleet/regime/current` returned `regime=UNKNOWN, benched=0, active=12` — exactly the desired behavior. Old code would have returned phantom-SIDEWAYS at this exact moment, erroneously benching 5 momentum bots. **Cadence note documented in code:** at 30s update_interval, RSI(14) reads on a 7-minute price window. Whether that timeframe is appropriate for regime classification is now Task #2 (regime architecture review) — newly-unblocked. |
 | ~~**Mean Reversion + Contrarian Flow signal logic**~~ | ✅ **DONE — Day 8 Round 3, commit `7a4d3dde`** | **Diagnosis:** the Day-7 framing ("entry conditions too restrictive or signal pipeline broken upstream") was almost right — it's *upstream* of the signal pipeline (the bench gate, not the signal logic itself). Bench-gate / signal-logic mutual exclusion. REGIME_SUITABILITY had `[SIDEWAYS, VOLATILE]` for both bots; their `_compute_signal` fires only at RSI<33/<35 (BUY) or RSI>67/>65 (SELL); per `cycle_service._detect_regime` those RSI ranges ARE the TRENDING regimes (RSI<40→TRENDING_DOWN, RSI>60→TRENDING_UP). Intersection of `{unbenched} ∩ {signal can fire}` was mathematically empty by construction. **Live evidence:** sampled 400 of 4,379 historical trades, 397 had parseable RSI in `signal_reason` — **46.10% had RSI<33** and **42.07% had RSI>67**. Other RSI-driven bots saw and acted on these constantly; mean_rev and contrarian were excluded *upstream of `_compute_signal`* by the bench gate. **Root cause:** the bench gate was written from the traditional mental model ("mean reversion = sideways market bet") while the signal logic was written from the contrarian-trader model ("fire on momentum extremes"). The two mental models point at OPPOSITE regimes. **Fix shipped (`7a4d3dde`):** aligned bench with signal — both bots now regime-agnostic (all 4 regimes), matching the pattern of `liquidity_hunter`/`sentiment_surge`/`balanced_risk`/`macro_correlation` (the other selective-signal-gated bots). Their signal logic is already very selective (trade_prob 0.15/0.18 + RSI-extreme requirement); piling a regime exclusion on top creates dead bots. `volatility_arb` stays `[SIDEWAYS, VOLATILE]` — its signal fires on BB-position (not RSI), and it's already firing (18 trades). **Bench/signal alignment audit:** cross-checked all 12 strategies; only mean_rev and contrarian had the mismatch. Audit clean. **Verification (synthetic, 23/23):** signal selectivity preserved at every boundary (RSI=33/35/65/67 still return None, extremes return buy/sell, RSI=None returns None). **Verification (live, post-deploy):** `/api/fleet/bots` confirms both bots now show `suitable=['TRENDING_UP','TRENDING_DOWN','SIDEWAYS','VOLATILE']`, `regime_benched=False`. Trade counts still 0 — RSI hasn't computed yet post-redeploy (CoinGecko 429 thaw + 14-min Wilder warmup pending). Once RSI extremes start landing, bots are eligible to act. |
 | ~~**Macro Correlation rewrite**~~ | ✅ **DONE — Day 8 Round 4, commit `4575ddec`** | **Premise (Mark):** "Macro Correlation is 1 of the 12 Strategies. OpenClaw Consensus, functions on a 7/12 super-majority. Do not retire it. A re-write is the plausible option." Retire was off the table. **Diagnosis (193 live trades):** strategy was TAO-only (price vs SMA50 + RSI) with NO BTC reference at all — the description ("TAO/subnet correlation divergence vs BTC macro trend") was fiction. Three structural defects: (1) **Asymmetric BUY-AND / SELL-OR triggers** produced a 5.2:1 SELL:BUY ratio (162 sells, 31 buys), both sides negative-edge (35.5% / 38.9% WR). (2) **Loose RSI thresholds (47/43)** caused the bot to BUY at RSI 80+ and SELL at RSI <10 — actively fighting the contrarian bots that correctly fade extremes. Sample: `BUY RSI=97.8`, `SELL RSI=6.9`, `SELL RSI=27.9 EMA9>EMA21` (shorting an uptrend). (3) **SMA50 fallback to EMA9-vs-EMA21** silently cloned `yield_maximizer` when SMA50 wasn't ready, eliminating fleet-diversity contribution. Same falsely-confident-fallback meta-pattern as Tasks 1–3 (Day 8 batting average 4-for-4). **Decision rationale:** of the 12 fleet bots, 11 read TAO's own price series through different threshold/indicator lenses. Cross-asset correlation is the one major lens nobody else owned. Making the description finally true (BTC reference) AND adding genuine fleet diversity is the same change. **Fix shipped (`4575ddec`):** (A) `price_service.py` — added `bitcoin` to the existing CoinGecko `/simple/price` ids list (zero extra rate-limit cost; one request returns both assets). Stores `_btc_price` + `_btc_data` with stale-flag handling. Surfaces `tao_change_24h`, `btc_change_24h`, `btc_price` as first-class indicator keys. (B) `cycle_service._compute_signal` `macro_correlation` branch fully rewritten — `signal = btc_change_24h - tao_change_24h`; `signal ≥ +1.5pp → BUY`, `signal ≤ -1.5pp → SELL`, `|btc_change_24h| < 1.0% → None`, missing-data → None (NO TAO-only fallback). Symmetric BUY/SELL. (C) `_build_signal_reason` shows `BTC%/TAO%/divergence` instead of the generic indicator blob. (D) `_signal_confidence` scored on divergence magnitude only (4pp saturates to 1.0; floor 0.55 once threshold cleared). (E) `SIGNAL_CONFIG[macro_correlation] 0.22 → 0.50` — natural rate-limiter is now the divergence threshold itself. (F) `strategy_service.py` description rewritten; decorative parameter dict replaced with consumed values. **Verification (synthetic):** 21/21 signal-logic boundary cases pass (divergence thresholds, quiet-macro abstain, missing-data abstain, same-direction tracking). 8/8 confidence cases pass. **Verification (live, post-deploy):** `/api/price/indicators` returns `tao_change_24h: +3.72`, `btc_change_24h: -0.46`, `btc_price: 77030`. Current macro state has BTC at -0.46% / 24h, BELOW the 1.0% activity floor → bot correctly ABSTAINING. No new macro_correlation trades since boot at 14:32:18. Last trade #7699 (14:16:46) was on pre-rewrite logic. Abstain on a quiet macro day is the system working as designed. **Fleet diversity gain:** OpenClaw 7/12 supermajority becomes meaningfully more informative because the council now has 11 TAO-lens voices + 1 cross-asset divergence lens, instead of 12 voices reading the same book. |
+| ~~**Price-history persistence (Task #C)**~~ | ✅ **DONE — Day 8 Round 5, commit `bcd6d56b` (shipped today, originally Day 9)** | **Premise (Mark):** Greenlit Option (a) BTC columns + full reader-repoint. "We're closer to autonomy" by eliminating CoinGecko dependency from `/api/price/history`. Asked "why tomorrow not today" — no good reason; shipped today. **The surprise:** the `PriceHistory` model already existed (full schema + idempotent migration registered in `init_db()`), but had THREE orphan ends: (1) **Writer:** `trading_service._save_price_snapshot` was wired to `trading_service.run_cycle` — which `main.py` never starts (cycle_service is the live loop). Snapshot path was unreachable. (2) **Hydrator:** `PriceService.start()` initialized `_price_history = []`. Every Railway redeploy stranded the system in a 14-min UNKNOWN window while the buffer climbed back to `WARMUP_TICKS=28` — the third defect underneath the Day 8 R1 RSI anomaly. (3) **Reader:** `/api/price/history` called CoinGecko `market_chart` per request — same external dependency that 429-throttled us in R1. Original framing was "Railway volume mount" — wrong tool. Postgres on Railway is already managed and persistent; the gap was wiring, not infrastructure. **Fix shipped (`bcd6d56b`):** (A) Added `btc_price_usd` + `btc_price_change_pct_24h` columns to `PriceHistory`; idempotent migration entry in `db/database.py _column_migrations` (verified double-init produces exactly one column set). (B) `PriceService._hydrate_from_db()` seeds `_price_history` from the last 200 persisted ticks chronologically before first poll. Indicator columns NOT consumed (re-computed in-memory) — stored indicators are observability-only. Failure non-fatal. (C) `PriceService._persist_tick()` fires fire-and-forget after every `_fetch_price`; one row per buffer tick → next-boot hydrator reproduces the buffer 1:1. BTC columns populated only when not stale (avoids "phantom zero" anti-pattern). (D) `/api/price/history` default `source=local` reads `price_history` table; `source=coingecko` is opt-in legacy backfill. New response fields: `btc_price`, `btc_change_24h`, `rsi_14`, `count`, `source`. (E) `trading_service._save_price_snapshot` DELETED + call site DELETED + `PriceHistory` import removed; comment points readers at `PriceService._persist_tick`. (F) Dashboard "Live Indicators" column gains a "Macro Reference (BTC)" sub-card: BTC price ($-formatted), BTC 24h % (signed/colored), TAO 24h % (signed/colored), divergence (BTC%–TAO%) labeled "TAO lagging" / "TAO leading" / "neutral" against the strategy's own ±1.5pp threshold. Reads existing `botStatus.indicators` payload — zero new API calls. **Verification (synthetic, 7/7):** empty-table cold start ✓, write 50 ticks ✓, fresh-service hydrate chronological ✓, indicators on hydrated buffer (rsi_14=34.08, real number not None) ✓, 250-row hydrate clipped to 200 ✓, 14-tick boundary (warmed_up=False, rsi_14=None) ✓, BTC columns round-trip ✓. **Verification (idempotent migration):** double-init produces both BTC columns exactly once, REAL nullable type compatible with SQLite + Postgres. **Live verification:** pending post-deploy. **Net effect:** next Railway redeploy boots with hydrated buffer, all indicators usable from tick 1 instead of tick 28. The 14-min UNKNOWN window that benched 5 momentum bots after every deploy is GONE. CoinGecko `market_chart` dependency removed from default `/api/price/history` path — bot serves its own observed history. **Meta-pattern:** Day 8 R1-R4 were all variants of "falsely-confident fallback." R5 is the dual: silent starvation — three ends already wired-up but not connected. Same auditing instinct catches both. |
 | **Wallet balance verification** | Medium | Balance shows 0.0 (RPC async startup). Confirm 0.227τ still on-chain via Taostats. |
 | MANTIS API research | Medium | Is SN123 output queryable via API? If yes, direct signal feed into TaoBot. |
 | SN3 owner key resolution | Monitor | Const warned: do not buy SN3 alpha until resolved. Check each session. |
