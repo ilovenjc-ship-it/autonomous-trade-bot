@@ -144,7 +144,9 @@ REGIME_SUITABILITY: Dict[str, List[str]] = {
 
 def _detect_regime(indicators: Dict[str, Any]) -> str:
     """
-    Classify the current market regime from RSI and Bollinger Band width.
+    Canonical regime classifier — the single source of truth for the
+    bench-gate authority and (since Session XLI Day 8 R2) for the UI label
+    rendered by agent_service. Any future threshold tuning happens here.
 
     Returns one of: SIDEWAYS | TRENDING_UP | TRENDING_DOWN | VOLATILE | UNKNOWN
 
@@ -156,6 +158,9 @@ def _detect_regime(indicators: Dict[str, Any]) -> str:
       3. RSI > 60 → TRENDING_UP
       4. RSI < 40 → TRENDING_DOWN
       5. RSI 40–60 → SIDEWAYS
+
+    For UI consumers that want the human vocabulary (BULL/BEAR), pipe the
+    return value through `to_human_regime()` below.
     """
     rsi   = indicators.get("rsi_14")
     bb_up = indicators.get("bb_upper")
@@ -183,6 +188,20 @@ def _detect_regime(indicators: Dict[str, Any]) -> str:
     return "SIDEWAYS"
 
 
+def to_human_regime(canonical: str) -> str:
+    """
+    Map canonical regime vocabulary (TRENDING_UP/TRENDING_DOWN/SIDEWAYS/
+    VOLATILE/UNKNOWN) to the human-friendly UI vocabulary used by agent_service
+    observations and the chat assistant (BULL/BEAR/SIDEWAYS/VOLATILE/UNKNOWN).
+
+    SIDEWAYS, VOLATILE, UNKNOWN pass through unchanged.
+    """
+    return {
+        "TRENDING_UP":   "BULL",
+        "TRENDING_DOWN": "BEAR",
+    }.get(canonical, canonical)
+
+
 def get_current_regime() -> str:
     """
     Always returns a FRESH regime classification from the current price_service
@@ -197,23 +216,23 @@ def get_current_regime() -> str:
     Fallback chain (each level tried only if the previous returns UNKNOWN):
       1. Fresh classification from current indicators
       2. Cached module-level _current_regime (set by the cycle engine)
-      3. Agent service's cached regime (uses fast-path price-trend detection)
+
+    Note (Session XLI Day 8 R2): the previous step-3 fallback into
+    agent_service.current_regime was removed. agent_service is now a thin
+    derivative of this same canonical detector, so the fallback would have
+    returned the same answer — except when its old fast-path produced a
+    falsely-confident SIDEWAYS from 2 prices + a flat trend, which leaked
+    into the bench gate and benched 5 momentum bots on phantom data.
+    UNKNOWN is the correct answer during warmup.
     """
     try:
         indicators = price_service.compute_indicators()
         fresh = _detect_regime(indicators)
         if fresh != "UNKNOWN":
             return fresh
-        # Fresh is UNKNOWN — try cached cycle-engine value
+        # Fresh is UNKNOWN — try cached cycle-engine value (last good)
         if _current_regime != "UNKNOWN":
             return _current_regime
-        # Both UNKNOWN — try agent_service fast-path (price-trend + MACD)
-        try:
-            from services.agent_service import agent_service as _agent_svc
-            if _agent_svc.current_regime not in ("", None, "UNKNOWN"):
-                return _agent_svc.current_regime
-        except Exception:
-            pass
         return "UNKNOWN"
     except Exception:
         return _current_regime

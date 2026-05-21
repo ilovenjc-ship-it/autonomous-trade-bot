@@ -43,10 +43,14 @@ MAX_OBSERVATIONS    = 100
 MAX_RECOMMENDATIONS = 20
 ANALYSIS_INTERVAL   = 300   # seconds (5 min)
 
-# Market regime thresholds
-BULL_RSI_MIN   = 55.0
-BEAR_RSI_MAX   = 45.0
-VOLATILE_RANGE = 8.0   # RSI swing in 1 cycle
+# Market regime thresholds — DEPRECATED (Session XLI Day 8 R2).
+# The live thresholds now live in cycle_service._detect_regime
+# (TRENDING_UP > 60, TRENDING_DOWN < 40, BB-width-based VOLATILE).
+# These are kept only for backward import compatibility; they are no
+# longer read by any classifier. Do not tune here — tune cycle_service.
+BULL_RSI_MIN   = 55.0   # legacy, unused
+BEAR_RSI_MAX   = 45.0   # legacy, unused
+VOLATILE_RANGE = 8.0    # legacy, unused
 
 # Fleet health classification
 HEALTH_HOT        = "HOT"
@@ -240,47 +244,34 @@ class IIAgentService:
 
     # ── Regime detection ──────────────────────────────────────────────────────
 
-    def _detect_regime(self, rsi: Optional[float], macd_hist: Optional[float], price_history: List[float]) -> str:
-        # Price trend is always available — use it as fast-path
-        trend_up = False
-        trend_dn = False
-        trend_strong = False
+    def _detect_regime(self) -> str:
+        """
+        Thin wrapper around `cycle_service._detect_regime` — the canonical
+        bench-gate authority and (since Session XLI Day 8 R2) single source
+        of truth for regime classification across the whole system.
 
-        if len(price_history) >= 3:
-            recent   = price_history[-min(6, len(price_history)):]
-            first, last = recent[0], recent[-1]
-            pct_change = ((last - first) / first * 100) if first else 0
-            trend_up     = last > first
-            trend_dn     = last < first
-            trend_strong = abs(pct_change) > 0.3   # >0.3% move is meaningful
+        Maps the canonical vocabulary (TRENDING_UP/TRENDING_DOWN/...) to the
+        human-friendly UI vocabulary (BULL/BEAR/SIDEWAYS/VOLATILE/UNKNOWN)
+        used by observation templates, the chat assistant, and recommendations.
 
-        macd_bull = macd_hist is not None and macd_hist > 0
-        macd_bear = macd_hist is not None and macd_hist < 0
+        Why this is now a wrapper:
+          The previous body had a parallel classifier with conflicting
+          thresholds (BULL>=55 vs canonical TRENDING_UP>60), conflicting
+          VOLATILE rules (RSI 32/68 vs Bollinger-band-width), and — most
+          dangerously — a "fast-path" that produced confident SIDEWAYS from
+          just 2 price samples + a flat trend. That fast-path leaked into
+          the bench gate via `cycle_service.get_current_regime`'s old step-3
+          fallback and was actively benching 5 momentum bots on phantom data
+          during warmup. The fast-path is the same anti-pattern as
+          `else: 50.0` killed in Task #1, one layer up. Killed here.
 
-        # ── Full RSI-based detection (15+ data points) ──
-        if rsi is not None:
-            if rsi > 68 or rsi < 32:
-                return REGIME_VOLATILE
-            if rsi >= BULL_RSI_MIN and (macd_bull or trend_up):
-                return REGIME_BULL
-            if rsi <= BEAR_RSI_MAX and (macd_bear or trend_dn):
-                return REGIME_BEAR
-            return REGIME_SIDEWAYS
-
-        # ── Fast-path regime (RSI warming up, use price trend + MACD) ──
-        if len(price_history) >= 2:
-            if trend_strong and trend_up and (macd_bull or macd_hist is None):
-                return REGIME_BULL
-            if trend_strong and trend_dn and (macd_bear or macd_hist is None):
-                return REGIME_BEAR
-            if macd_bull and trend_up:
-                return REGIME_BULL
-            if macd_bear and trend_dn:
-                return REGIME_BEAR
-            # Tiny movement → sideways
-            return REGIME_SIDEWAYS
-
-        return REGIME_UNKNOWN
+          During warmup, we now correctly return UNKNOWN — which the bench
+          gate treats as "all strategies active" (the right default).
+        """
+        # Lazy import to avoid any circular-load risk between the two services.
+        from services.cycle_service import _detect_regime as _canonical_regime, to_human_regime
+        canonical = _canonical_regime(price_service.compute_indicators())
+        return to_human_regime(canonical)
 
     # ── Core analysis ─────────────────────────────────────────────────────────
 
@@ -302,10 +293,9 @@ class IIAgentService:
         macd       = indicators.get("macd")
         macd_sig   = indicators.get("macd_signal")
         macd_hist  = (macd - macd_sig) if (macd and macd_sig) else None
-        px_history = price_service.get_price_history_list()[-15:]
 
-        # ── Regime ──
-        regime       = self._detect_regime(rsi, macd_hist, px_history)
+        # ── Regime ── (delegates to cycle_service canonical detector)
+        regime       = self._detect_regime()
         regime_changed = (regime != self._last_regime and self._last_regime != REGIME_UNKNOWN)
         self._last_regime    = regime
         self.current_regime  = regime
