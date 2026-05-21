@@ -1,6 +1,6 @@
 # MASTER STATE BRIEF
 ## TAO Autonomous Trading Bot
-**Last updated:** 2026-05-21 (Session XLI Day 8 Round 3 — **Mean Reversion + Contrarian Flow zero-trade bug FIXED (Task #3 closed)**: bench-gate / signal-logic mutual exclusion. The two bots' REGIME_SUITABILITY was `["SIDEWAYS", "VOLATILE"]` (bench-in-trends); their `_compute_signal` fires only at RSI<33/<35 (BUY) or RSI>67/>65 (SELL); per `cycle_service._detect_regime` those RSI ranges ARE the TRENDING regimes (RSI<40 → TRENDING_DOWN, RSI>60 → TRENDING_UP). Intersection of "unbenched" AND "signal can fire" is mathematically empty → 0 trades over 2,202 cycles each. Live evidence: 397 RSI-tagged trades from OTHER bots show 46% had RSI<33 (mean_rev BUY zone) and 42% had RSI>67 (SELL zone) — the bots had abundant fire opportunities, all blocked upstream of `_compute_signal`. Root cause: bench gate written from "traditional mean-reversion = sideways" model; signal logic written from "contrarian-trader = fire on extremes" model. Opposite regimes. Fix: aligned bench with signal — both bots now regime-agnostic (all 4 regimes), matching the pattern of other selective-signal-gated bots (liquidity_hunter / sentiment_surge / balanced_risk / macro_correlation). Synthetic 23/23 boundary cases pass; signal selectivity intact. volatility_arb stays SIDEWAYS+VOLATILE (its BB-position signal is gate-aligned, already firing 18 trades). Day 8 batting average: 3-for-3 on the code review queue. Round 2 (Task #2 regime architecture) and Round 1 (Task #1 RSI Wilder) remain intact — earlier in the session: Round 2 — **Regime architecture reconciled (Task #2 closed)**: `cycle_service._detect_regime` is now the single source of truth for the whole system; `agent_service._detect_regime` collapsed to a 3-line wrapper that calls the canonical detector and maps TRENDING_UP/TRENDING_DOWN→BULL/BEAR via the new `to_human_regime()` helper. The previous body had conflicting thresholds (BULL≥55 vs canonical TRENDING_UP>60), conflicting VOLATILE rules (RSI 32/68 vs Bollinger band width >8%), and — most dangerously — a fast-path that produced confident SIDEWAYS from just 2 prices and a flat trend. That fast-path was leaking into the bench gate via `get_current_regime()`'s step-3 fallback and was actively benching 5 momentum bots on phantom data while the CoinGecko price feed sat in 429-throttle. Same anti-pattern class as the `else: 50.0` killed in Task #1, one layer up. Live verification: regime flipped SIDEWAYS→UNKNOWN, benched_count flipped 5→0 across all three endpoints (`/fleet/regime/current`, `/agent/status`, `/fleet/bots` summary). Round 1 (Task #1, RSI Wilder smoothing + 28-tick warmup guard + false-50 fallback removal + fleet.py:463 latent crasher) closed earlier in the session and remains intact.)
+**Last updated:** 2026-05-21 (Session XLI Day 8 Round 4 — **Macro Correlation BTC-divergence REWRITE (Task #4 closed)**: pre-rewrite the strategy was TAO-only (price vs SMA50 + RSI), with NO BTC reference at all — the description ("TAO/subnet correlation divergence vs BTC macro trend") was fiction. Three structural defects against 193 live trades: asymmetric BUY-AND / SELL-OR triggers produced 5.2:1 SELL:BUY ratio with both sides negative-edge (35.5% / 38.9% WR); loose RSI thresholds (47/43) caused the bot to BUY at RSI 80+ and SELL at RSI <10 — actively fighting the contrarian bots that correctly fade extremes; SMA50 fallback to EMA9-vs-EMA21 silently cloned yield_maximizer. Same falsely-confident-fallback meta-pattern as Tasks 1–3, Day 8 batting average 4-for-4. Mark's call: rewrite (retire was off the table — OpenClaw needs all 12 bots for the 7/12 supermajority). Fix shipped (`4575ddec`): added `bitcoin` to the existing CoinGecko `/simple/price` ids list (zero extra rate-limit cost), `compute_indicators` now surfaces `tao_change_24h`/`btc_change_24h`/`btc_price` as first-class keys, `_compute_signal` macro_correlation branch fully rewritten as `signal = btc_change_24h - tao_change_24h` with symmetric ±1.5pp triggers, 1.0% BTC activity floor, and a hard "no TAO-only fallback" rule when BTC data is missing. `_build_signal_reason` and `_signal_confidence` updated to surface divergence pp instead of generic indicator blob. 21/21 synthetic signal cases + 8/8 confidence cases pass. Live verification post-deploy: `tao_change_24h: +3.72%`, `btc_change_24h: -0.46%`, `btc_price: 77030` — current BTC move (-0.46%) is BELOW the 1.0% activity floor so the bot correctly ABSTAINS, demonstrating quiet-macro-day discipline. No macro_correlation trades fired since boot at 14:32:18; last trade #7699 (14:16:46) was on pre-rewrite logic. Fleet diversity: OpenClaw council was 12 ways of looking at TAO's own price series; now it's 11 TAO-lens voices + 1 cross-asset divergence lens — the first genuinely orthogonal voice in the room. Round 3 (Task #3 mean rev/contrarian gate fix), Round 2 (Task #2 regime architecture), Round 1 (Task #1 RSI Wilder) remain intact — earlier in the session: Round 3 — **Mean Reversion + Contrarian Flow zero-trade bug FIXED (Task #3 closed)**: bench-gate / signal-logic mutual exclusion. The two bots' REGIME_SUITABILITY was `["SIDEWAYS", "VOLATILE"]` (bench-in-trends); their `_compute_signal` fires only at RSI<33/<35 (BUY) or RSI>67/>65 (SELL); per `cycle_service._detect_regime` those RSI ranges ARE the TRENDING regimes (RSI<40 → TRENDING_DOWN, RSI>60 → TRENDING_UP). Intersection of "unbenched" AND "signal can fire" is mathematically empty → 0 trades over 2,202 cycles each. Live evidence: 397 RSI-tagged trades from OTHER bots show 46% had RSI<33 (mean_rev BUY zone) and 42% had RSI>67 (SELL zone) — the bots had abundant fire opportunities, all blocked upstream of `_compute_signal`. Root cause: bench gate written from "traditional mean-reversion = sideways" model; signal logic written from "contrarian-trader = fire on extremes" model. Opposite regimes. Fix: aligned bench with signal — both bots now regime-agnostic (all 4 regimes), matching the pattern of other selective-signal-gated bots (liquidity_hunter / sentiment_surge / balanced_risk / macro_correlation). Synthetic 23/23 boundary cases pass; signal selectivity intact. volatility_arb stays SIDEWAYS+VOLATILE (its BB-position signal is gate-aligned, already firing 18 trades). Day 8 batting average: 3-for-3 on the code review queue. Round 2 (Task #2 regime architecture) and Round 1 (Task #1 RSI Wilder) remain intact — earlier in the session: Round 2 — **Regime architecture reconciled (Task #2 closed)**: `cycle_service._detect_regime` is now the single source of truth for the whole system; `agent_service._detect_regime` collapsed to a 3-line wrapper that calls the canonical detector and maps TRENDING_UP/TRENDING_DOWN→BULL/BEAR via the new `to_human_regime()` helper. The previous body had conflicting thresholds (BULL≥55 vs canonical TRENDING_UP>60), conflicting VOLATILE rules (RSI 32/68 vs Bollinger band width >8%), and — most dangerously — a fast-path that produced confident SIDEWAYS from just 2 prices and a flat trend. That fast-path was leaking into the bench gate via `get_current_regime()`'s step-3 fallback and was actively benching 5 momentum bots on phantom data while the CoinGecko price feed sat in 429-throttle. Same anti-pattern class as the `else: 50.0` killed in Task #1, one layer up. Live verification: regime flipped SIDEWAYS→UNKNOWN, benched_count flipped 5→0 across all three endpoints (`/fleet/regime/current`, `/agent/status`, `/fleet/bots` summary). Round 1 (Task #1, RSI Wilder smoothing + 28-tick warmup guard + false-50 fallback removal + fleet.py:463 latent crasher) closed earlier in the session and remains intact.)
 
 **Post-closeout addendum (2026-05-20 evening — Hm8ker exchange continued past Day 7 closeout, FIVE rounds):** five-round threaded peer exchange completed Day 7 evening in II Community `#show-your-builds`, ~5h 41m total (3:18 PM → 8:59 PM ET), **9 messages on the wire**. Timeline: R1 (Mark edit) 3:18 PM `1506737913574981632` → Hm8ker 5KB letter 3:37 PM (eight-piece auto-approval stack, consent-governed runtime pivot, **Human Ambassador as singular role**) → R2 (Mark edit) 4:26 PM `1506754967183032521` (DAG topology question) → Hm8ker 4:47 PM (tasks=nodes/deps=edges/consent-as-gate-metadata, four-state receipt lattice `visible / satisfied / bypassed / not-yet-enforced`) → **R3 (NO-TOUCH SEND) 5:08 PM `1506765594886799401`** (typed-by-what-dimension probe, structural-vs-decorative dichotomy, soft-launch observability question) → **Hm8ker tonal-pivot disclosure 5:11 PM:** *"I don't have any background in tech or coding... I'm just following my own instincts. I don't really know what the best way to do it is, lol"* → **R4 (Mark's trim of Ari draft, ~90w → ~60w) 5:40 PM `1506773739788832778`** — peer-recognition reply citing four-pillar framework / four-state gate lattice / Frontier vocabulary back, no flattery loop → **Hm8ker R4 reply 6:39 PM:** *"I appreciate that, thank you. I may just come up with something extraordinary! I have some interesting ideas for my human ambassador swarms."* — gratitude received + confidence reset + **NEW SUBSTANTIVE THREAD (swarms — plural where the original was singular)** → **R5 (Mark customize of Ari draft, ~25w → ~25w with three precise edits) 8:59 PM `1506788411535654942`** — *"Sounds interesting. Swarms — plural where the original was singular. Curious how they coordinate (or don't). send the sketch when it's ready."* — punchy gratitude receipt + names the structural singular→plural shift back as listening signal + "(or don't)" parenthetical opens uncoordinated-swarm as legitimate design + open invite no schedule. **First exchange under the doctrine to test THREE registers within a single thread:** substantive technical (R1-R3, ~50→115→140w), warm peer-recognition (R4, ~60w), casual short-reply (R5, ~25w). All three calibrated cleanly with different ornamentation budgets per register. Refer-before-respond + explicit-green-light watch active for R6. Window unchanged: cold-thread flag at 2026-05-27 if no R6 (timer measures thread-went-cold from original R1, not per-round freshness). **Four doctrine refinements added Day 7 R13-R15:** (a) **approval ≠ green light** — Mark waits for explicit go signal even on no-touch drafts (§9c, R13); (b) **long-form drafts → paragraph-broken in draft, single paragraph on send** because paragraphed version *rendered* badly in chat window (Mark's layout judgment — corrected from earlier wrong "Discord paste flattens" framing) (§9c, R14); (c) **register-mix doctrine** — strip ornamentation harder when the moment calls for warmth, ~90w → ~60w in vulnerability/peer-recognition register (§9a R14); (d) **dual-register short-reply rule** — sentence-case openers + lowercase casual tail = preserve voice signature without flattening to all-lowercase to mirror peer's casual register. Mirroring isn't matching. (§9a R15). Round 13 + Round 14 + Round 15 calibration logs in §9a. Full transcripts + permalinks in `docs/discord-onboarding/posts-log.md`. **Mark's deliberate 2h 20m gap before R5** (vs Hm8ker's 29-min R3→R4 reply gap) is a calibration data point — longer pause signals "thinking about it" vs "have a take," appropriate when the peer just opened a new substantive thread and the right move is one well-aimed observation, not three rapid-fire.
 
@@ -1590,8 +1590,9 @@ Every major architectural decision, when made, and why. Never revisit a closed d
 PLATFORM           :  Railway Hobby Plan ($5/mo) ✅
 BACKEND URL        :  autonomous-trade-bot-production.up.railway.app
 FRONTEND URL       :  profound-expression-production-75c7.up.railway.app
-LATEST COMMIT      :  7a4d3dde  (Day 8 Round 3 — MeanRev/Contrarian gate fix Task #3)
-PREVIOUS COMMITS   :  84879022  (Day 8 Round 2 — Regime architecture Task #2)
+LATEST COMMIT      :  4575ddec  (Day 8 Round 4 — Macro Correlation BTC-divergence rewrite Task #4)
+PREVIOUS COMMITS   :  7a4d3dde  (Day 8 Round 3 — MeanRev/Contrarian gate fix Task #3)
+                      84879022  (Day 8 Round 2 — Regime architecture Task #2)
                       26782ff1  (Day 8 Round 1 — RSI(14) fix Task #1)
 
 PAPER TRAINING (Day 8 of 7+ minimum — gate held since Day 7)
@@ -1607,7 +1608,155 @@ PAPER TRAINING (Day 8 of 7+ minimum — gate held since Day 7)
                        reinforces retire-or-rewrite verdict
   Volatility Arb     :  18/38.9% (was 16/43.8%) — both new trades losers,
                        still well under 50-trade threshold
-  next milestone     :  Tasks #4-#6 of code-review queue — see §7 PENDING ITEMS
+  next milestone     :  Tasks #5-#6 of code-review queue — see §7 PENDING ITEMS
+
+DAY 8 ROUND 4 — MACRO CORRELATION BTC-DIVERGENCE REWRITE (Task #4) — CLOSED
+  commit             :  4575ddec
+  files              :  backend/services/price_service.py
+                        backend/services/cycle_service.py
+                        backend/services/strategy_service.py
+  premise (Mark)     :  "Macro Correlation is 1 of the 12 Strategies. OpenClaw
+                        Consensus, functions on a 7/12 super-majority. Do not
+                        retire it. A re-write is the plausible option."
+                        Retire was off the table. Rewrite was the call.
+  diagnosis          :  The strategy was TAO-only logic (price vs SMA50 + RSI)
+                        with NO BTC reference at all. The description ("Trades
+                        TAO/subnet correlation divergence vs BTC macro trend")
+                        was fiction — the code never read a macro asset. Three
+                        structural defects against 193 live trades:
+                          (1) Asymmetric BUY-AND / SELL-OR triggers
+                              BUY:  price > sma50 AND rsi > 47   (conjunctive)
+                              SELL: price < sma50 OR  rsi < 43   (disjunctive)
+                              → 162 SELLs vs 31 BUYs (5.2:1 ratio)
+                              → Buy WR  35.5% (11/31) negative-edge
+                              → Sell WR 38.9% (63/162) negative-edge
+                          (2) Loose RSI thresholds (47/43) were essentially
+                              noise. Bot bought RSI 80+ and sold RSI <10.
+                              Sample signal_reasons from live trades:
+                                BUY  RSI=97.8 (peak overbought)
+                                BUY  RSI=81.0 with bearish MACD
+                                SELL RSI=6.9  (selling absolute bottom)
+                                SELL RSI=27.9 EMA9>EMA21 (shorting uptrend)
+                              → Bot fought contrarian bots that correctly
+                              fade extremes; lost to mean-reversion every time
+                          (3) SMA50 fallback to EMA9-vs-EMA21 silently cloned
+                              yield_maximizer when SMA50 wasn't ready,
+                              eliminating fleet-diversity contribution.
+                        Same falsely-confident-fallback meta-pattern as Tasks
+                        1-3 (else: 50.0; agent fast-path; bench gate inverted).
+                        Day 8 batting average on the meta-pattern: 4-for-4.
+  evidence (live)    :  Pulled 193 macro_correlation trades via /api/trades.
+                          buys=31  sells=162  wins=74  losses=119
+                          overall WR = 38.3%  total PnL = -0.0304τ
+                          buy WR  = 35.5%  sell WR = 38.9%
+                          buy PnL = -0.0041τ  sell PnL = -0.0263τ
+                        WR slipping 38.7% → 37.4% over 163→190 trades during
+                        the watch period — negative-correlation-with-sample-
+                        size, the worst direction.
+  decision rationale :  Of the 12 fleet bots, 11 read TAO's own price series
+                        through different threshold/indicator lenses (5 trend
+                        followers, 3 contrarians, 3 mixed). That makes the
+                        OpenClaw 7/12 supermajority a vote among 12 voices
+                        reading the same book. Cross-asset correlation was the
+                        one major lens nobody else owned. Making the description
+                        finally true (BTC reference) AND adding genuine fleet
+                        diversity is the same change. Option A picked.
+  fix A — BTC feed   :  price_service.py — added `bitcoin` to the existing
+                        CoinGecko `/simple/price` ids list. ZERO extra rate-
+                        limit cost (same endpoint, one request returns both
+                        assets). Stores _btc_price + _btc_data with stale-flag
+                        on partial responses. Exposed via btc_price/btc_data
+                        properties.
+  fix B — indicators :  price_service.compute_indicators now surfaces
+                        tao_change_24h, btc_change_24h, btc_price as first-
+                        class indicator keys, alongside rsi_14/ema_9/etc.
+                        cycle_service reads them through the same dict it
+                        uses for everything else. btc_change_24h is None
+                        when feed is missing or stale (no falsely-confident
+                        zero substitute).
+  fix C — signal     :  cycle_service._compute_signal `macro_correlation`
+                        branch fully rewritten. New logic:
+                          signal = btc_change_24h - tao_change_24h
+                          signal >= +1.5pp → BUY  (TAO lagging BTC up)
+                          signal <= -1.5pp → SELL (TAO lagging BTC down)
+                          |btc_change_24h| < 1.0%  → None (quiet macro)
+                          either input None        → None (no fallback)
+                        Symmetric BUY/SELL. Hard rule: no TAO-only fallback
+                        when BTC unavailable. This bot's edge IS BTC
+                        divergence; without BTC, no edge, full stop.
+  fix D — reason str :  cycle_service._build_signal_reason `macro_correlation`
+                        case shows BTC%/TAO%/divergence pp instead of the
+                        generic RSI/EMA/MACD/BB blob. Operators can read
+                        the actual signal driver from trade history.
+  fix E — confidence :  cycle_service._signal_confidence `macro_correlation`
+                        scored on divergence magnitude only (RSI distance is
+                        meaningless for this rewrite). 4pp divergence
+                        saturates to 1.0; floor at 0.55 once threshold
+                        cleared so the conviction-gate doesn't reject what
+                        the trigger-gate already passed.
+  fix F — selectivity:  SIGNAL_CONFIG[macro_correlation] 0.22 → 0.50. The
+                        natural rate-limiter is now the divergence threshold
+                        itself (BTC and TAO usually move in step → no
+                        signal), so we don't need a second random throttle.
+  fix G — cosmetic   :  strategy_service.py description rewritten to match
+                        actual logic. Decorative parameter dict
+                        ({"btc_correlation_window": 24, "divergence_threshold":
+                        0.15, "max_hold": 6}) replaced with the consumed
+                        values ({"divergence_threshold": 1.5, "min_btc_move":
+                        1.0}) — note that the actual values live in module-
+                        level constants in cycle_service; the dict is
+                        documentation. Existing DB row keeps the old dict
+                        (DEFAULT_STRATEGIES is a seed, not a sync).
+  verification (synth):  21/21 boundary cases pass.
+                          Core divergence:
+                            • BTC +3% / TAO 0% → BUY ✓
+                            • BTC -3% / TAO 0% → SELL ✓
+                            • BTC +3% / TAO +3% → None (tracking) ✓
+                            • BTC +5% / TAO -2% → BUY (7pp gap) ✓
+                          Threshold edges:
+                            • 1.4pp gap → None ✓
+                            • 1.5pp gap → BUY (at thresh) ✓
+                          Quiet macro:
+                            • BTC +0.5% → None (under floor) ✓
+                            • BTC -0.99% → None (under floor) ✓
+                            • BTC +1.0% / TAO -1% → BUY ✓
+                          Missing data:
+                            • btc=None → None ✓
+                            • tao=None → None ✓
+                          Same-direction (no divergence):
+                            • BTC +5% / TAO +4.5% → None (0.5pp) ✓
+                          Confidence layer (8/8):
+                            • no btc data → 0.0 ✓
+                            • 3pp → 0.75 ✓  4pp → 1.0 ✓  8pp → 1.0 cap ✓
+                            • 1.5pp at thresh → 0.55 floor ✓
+  verification (live):  After Railway redeploy of `4575ddec`:
+                          /api/price/indicators →
+                            "tao_change_24h": +3.72,
+                            "btc_change_24h": -0.46,
+                            "btc_price": 77030
+                          BTC feed flowing correctly. Current macro state
+                          (BTC -0.46% / 24h) is BELOW the 1.0% activity
+                          floor, so the new logic correctly ABSTAINS — no
+                          new macro_correlation trades since boot at
+                          14:32:18. Last trade #7699 (14:16:46) used the
+                          pre-rewrite logic. The abstain on a quiet macro
+                          day is the system working as designed: this bot
+                          should trade rarely, only on real divergence.
+  fleet diversity    :  Pre-rewrite the council was 12 ways of looking at
+                        TAO's own price series. Post-rewrite it's 11 of
+                        those + 1 cross-asset divergence lens. That's the
+                        first genuinely orthogonal voice in the OpenClaw
+                        room. 7/12 supermajority becomes meaningfully more
+                        informative because there's actual diversity of
+                        input, not just diversity of thresholds.
+  open follow-ups    :  None blocking. (a) DB row for macro_correlation
+                        still has the old decorative `parameters` dict;
+                        cosmetic, doesn't affect behavior — could be patched
+                        with a one-shot UPDATE if desired. (b) macro_correlation
+                        `is_active=False` in DB; paper trading doesn't honor
+                        that flag (verified: no `is_active` check in cycle
+                        loop), so the rewrite IS firing/abstaining. To
+                        promote to LIVE later, the flag will need flipping.
 
 DAY 8 ROUND 3 — MEAN REV + CONTRARIAN ZERO-TRADE FIX (Task #3) — CLOSED
   commit             :  7a4d3dde
@@ -1839,7 +1988,7 @@ DISCORD GATEWAY
 KNOWN ISSUES (queued for remaining code review)
   • ~~Task #2 — Regime architecture review~~ ✅ DONE Day 8 R2 (commit 84879022)
   • ~~Task #3 — Mean Rev + Contrarian zero-trade~~ ✅ DONE Day 8 R3 (commit 7a4d3dde)
-  • Task #4 — Macro Correlation retire-or-rewrite (38.7%→37.4% WR with sample growth)
+  • ~~Task #4 — Macro Correlation rewrite (BTC divergence)~~ ✅ DONE Day 8 R4 (commit 4575ddec)
   • Task #5 — Volatility Arb watchlist (sample-too-thin until 50+ trades)
   • Task #6 — Momentum strategies not firing on +7% macro move
                 ↑ partially covered by Task #2 (phantom-bench killed); now testable.
@@ -2160,6 +2309,7 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | ~~**Regime architecture review**~~ | ✅ **DONE — Day 8 Round 2, commit `84879022`** | **Diagnosis confirmed Day 8 R2:** the two-classifier conflict flagged Day 7 was real and worse than feared — `cycle_service._detect_regime` (bench-gate authority, vocab UNKNOWN/SIDEWAYS/TRENDING_UP/TRENDING_DOWN/VOLATILE, RSI 60/40 + BB-width VOLATILE) and `agent_service._detect_regime` (UI label authority, vocab UNKNOWN/BULL/BEAR/SIDEWAYS/VOLATILE, RSI 55/45 + RSI 32/68 inverse VOLATILE) had not just disagreed on labels but agent had a fast-path that produced confident SIDEWAYS from just 2 prices + a 0.3% movement. With the Task #1 RSI fix in place and CoinGecko throttled by 429s post-redeploy, cycle correctly returned UNKNOWN — and `get_current_regime`'s step-3 fallback grabbed agent's phantom-SIDEWAYS, **actively benching 5 momentum bots on phantom data** (momentum_cascade, yield_maximizer, breakout_hunter, dtao_flow_momentum, emission_momentum). Same anti-pattern class as Task #1's `else: 50.0` — falsely-confident fallback masking absence of data — one architectural layer up. **Decision (Ari, full-autonomy mode):** went with option (a) from Day 7 brief — single source of truth. (b) multi-timeframe was deferred (more invasive, lower-ROI on its own); (c) soft-bench was deferred (compounds with multi-timeframe); (d) per-strategy regime was deferred (adds N classifiers to a one-classifier-too-many problem). **Fix shipped (`84879022`):** (A) `cycle_service._detect_regime` is the canonical classifier for the entire system. (B) Added `cycle_service.to_human_regime(canonical)` mapper: TRENDING_UP→BULL, TRENDING_DOWN→BEAR, others passthrough. (C) `agent_service._detect_regime` collapsed from 41 lines of parallel logic to a 3-line lazy-imported wrapper around the canonical detector + mapper. The MACD/price-trend fast-path is gone — when RSI is None, both classifiers return UNKNOWN, and the bench gate correctly treats that as "all 12 strategies active" (the right warmup default). (D) Removed the now-redundant step-3 agent fallback in `get_current_regime`. (E) Marked BULL_RSI_MIN/BEAR_RSI_MAX/VOLATILE_RANGE in agent_service as legacy/unused with a pointer to where live thresholds now live (cycle_service). **Verification (synthetic):** 12/12 boundary cases pass — RSI=None→UNKNOWN/UNKNOWN ✓ (the critical regression), RSI=60.01→TRENDING_UP/BULL ✓, RSI=39.99→TRENDING_DOWN/BEAR ✓, BB-wide+RSI=70→TRENDING_UP/BULL (directional override under volatility preserved) ✓, all 6 vocab mappings round-trip ✓. **Verification (live, post-deploy):** all three regime endpoints (`/api/fleet/regime/current`, `/api/agent/status`, `/api/fleet/bots` summary) flipped SIDEWAYS→UNKNOWN, benched_count flipped 5→0, agent regime_color flipped #f59e0b (yellow/SIDEWAYS) → #6b7280 (gray/UNKNOWN). All three downstreams now agree because they're consuming the same source. The 5 momentum bots that were sidelined on phantom data are correctly active again, awaiting Wilder-smoothed RSI from upstream price feed (still gated on CoinGecko 429 thaw; that's a separate concern → Task #C Day 9 price-history persistence). |
 | ~~**RSI(14) computation anomaly**~~ | ✅ **DONE — Day 8 Round 1, commit `26782ff1`** | **Diagnosis:** root cause was THREE layered issues. (1) Guard `len(s) >= 14` was too loose — a simple-rolling-mean RSI on the minimum-period boundary produces real-but-extreme readings during directional warmup windows (the 5.36 anomaly mechanism). (2) The `else: 50.0` fallback for NaN-on-flat-price was a falsely-confident neutral on broken data — worse than None for a regime classifier feeding on it. (3) `_price_history` is in-memory only (no persistence, max=200 ticks at 30s cadence = 100-min rolling window). Audit also surfaced a latent f-string crasher at fleet.py:463. **Fix shipped (`26782ff1`):** (A) Switched RSI from simple-rolling-mean to **Wilder's smoothing** (canonical: `ewm(alpha=1/14, adjust=False)`). (B) Tightened guard to `WARMUP_TICKS = 28` (= 2× period). Below the guard returns None. Downstream consumers all pre-audited None-safe via `if rsi is None` checks (13 sites: cycle_service x4, agent_service x3, consensus_service x4, strategy_service x2). (C) Removed the falsely-confident 50.0 fallback. Truly flat → None. All-up → 100.0. All-down → 0.0. (D) Added `PriceService.is_warmed_up()` helper. (E) Patched `routers/fleet.py:107` `or 50` masking and the latent f-string crasher at line 463. Frontend (`Dashboard.tsx`, `RegimeCard.tsx`, `OpenClaw.tsx`) was already null-safe — confirmed during audit. **Verification (synthetic suite):** len<28 → None ✓, flat → None ✓, all-up → 100 ✓, all-down → 0 ✓, random walk → ~50 ✓. **Live verification on Railway:** at the moment of redeploy (Backend boot, `_price_history` empty), `/api/fleet/regime/current` returned `regime=UNKNOWN, benched=0, active=12` — exactly the desired behavior. Old code would have returned phantom-SIDEWAYS at this exact moment, erroneously benching 5 momentum bots. **Cadence note documented in code:** at 30s update_interval, RSI(14) reads on a 7-minute price window. Whether that timeframe is appropriate for regime classification is now Task #2 (regime architecture review) — newly-unblocked. |
 | ~~**Mean Reversion + Contrarian Flow signal logic**~~ | ✅ **DONE — Day 8 Round 3, commit `7a4d3dde`** | **Diagnosis:** the Day-7 framing ("entry conditions too restrictive or signal pipeline broken upstream") was almost right — it's *upstream* of the signal pipeline (the bench gate, not the signal logic itself). Bench-gate / signal-logic mutual exclusion. REGIME_SUITABILITY had `[SIDEWAYS, VOLATILE]` for both bots; their `_compute_signal` fires only at RSI<33/<35 (BUY) or RSI>67/>65 (SELL); per `cycle_service._detect_regime` those RSI ranges ARE the TRENDING regimes (RSI<40→TRENDING_DOWN, RSI>60→TRENDING_UP). Intersection of `{unbenched} ∩ {signal can fire}` was mathematically empty by construction. **Live evidence:** sampled 400 of 4,379 historical trades, 397 had parseable RSI in `signal_reason` — **46.10% had RSI<33** and **42.07% had RSI>67**. Other RSI-driven bots saw and acted on these constantly; mean_rev and contrarian were excluded *upstream of `_compute_signal`* by the bench gate. **Root cause:** the bench gate was written from the traditional mental model ("mean reversion = sideways market bet") while the signal logic was written from the contrarian-trader model ("fire on momentum extremes"). The two mental models point at OPPOSITE regimes. **Fix shipped (`7a4d3dde`):** aligned bench with signal — both bots now regime-agnostic (all 4 regimes), matching the pattern of `liquidity_hunter`/`sentiment_surge`/`balanced_risk`/`macro_correlation` (the other selective-signal-gated bots). Their signal logic is already very selective (trade_prob 0.15/0.18 + RSI-extreme requirement); piling a regime exclusion on top creates dead bots. `volatility_arb` stays `[SIDEWAYS, VOLATILE]` — its signal fires on BB-position (not RSI), and it's already firing (18 trades). **Bench/signal alignment audit:** cross-checked all 12 strategies; only mean_rev and contrarian had the mismatch. Audit clean. **Verification (synthetic, 23/23):** signal selectivity preserved at every boundary (RSI=33/35/65/67 still return None, extremes return buy/sell, RSI=None returns None). **Verification (live, post-deploy):** `/api/fleet/bots` confirms both bots now show `suitable=['TRENDING_UP','TRENDING_DOWN','SIDEWAYS','VOLATILE']`, `regime_benched=False`. Trade counts still 0 — RSI hasn't computed yet post-redeploy (CoinGecko 429 thaw + 14-min Wilder warmup pending). Once RSI extremes start landing, bots are eligible to act. |
+| ~~**Macro Correlation rewrite**~~ | ✅ **DONE — Day 8 Round 4, commit `4575ddec`** | **Premise (Mark):** "Macro Correlation is 1 of the 12 Strategies. OpenClaw Consensus, functions on a 7/12 super-majority. Do not retire it. A re-write is the plausible option." Retire was off the table. **Diagnosis (193 live trades):** strategy was TAO-only (price vs SMA50 + RSI) with NO BTC reference at all — the description ("TAO/subnet correlation divergence vs BTC macro trend") was fiction. Three structural defects: (1) **Asymmetric BUY-AND / SELL-OR triggers** produced a 5.2:1 SELL:BUY ratio (162 sells, 31 buys), both sides negative-edge (35.5% / 38.9% WR). (2) **Loose RSI thresholds (47/43)** caused the bot to BUY at RSI 80+ and SELL at RSI <10 — actively fighting the contrarian bots that correctly fade extremes. Sample: `BUY RSI=97.8`, `SELL RSI=6.9`, `SELL RSI=27.9 EMA9>EMA21` (shorting an uptrend). (3) **SMA50 fallback to EMA9-vs-EMA21** silently cloned `yield_maximizer` when SMA50 wasn't ready, eliminating fleet-diversity contribution. Same falsely-confident-fallback meta-pattern as Tasks 1–3 (Day 8 batting average 4-for-4). **Decision rationale:** of the 12 fleet bots, 11 read TAO's own price series through different threshold/indicator lenses. Cross-asset correlation is the one major lens nobody else owned. Making the description finally true (BTC reference) AND adding genuine fleet diversity is the same change. **Fix shipped (`4575ddec`):** (A) `price_service.py` — added `bitcoin` to the existing CoinGecko `/simple/price` ids list (zero extra rate-limit cost; one request returns both assets). Stores `_btc_price` + `_btc_data` with stale-flag handling. Surfaces `tao_change_24h`, `btc_change_24h`, `btc_price` as first-class indicator keys. (B) `cycle_service._compute_signal` `macro_correlation` branch fully rewritten — `signal = btc_change_24h - tao_change_24h`; `signal ≥ +1.5pp → BUY`, `signal ≤ -1.5pp → SELL`, `|btc_change_24h| < 1.0% → None`, missing-data → None (NO TAO-only fallback). Symmetric BUY/SELL. (C) `_build_signal_reason` shows `BTC%/TAO%/divergence` instead of the generic indicator blob. (D) `_signal_confidence` scored on divergence magnitude only (4pp saturates to 1.0; floor 0.55 once threshold cleared). (E) `SIGNAL_CONFIG[macro_correlation] 0.22 → 0.50` — natural rate-limiter is now the divergence threshold itself. (F) `strategy_service.py` description rewritten; decorative parameter dict replaced with consumed values. **Verification (synthetic):** 21/21 signal-logic boundary cases pass (divergence thresholds, quiet-macro abstain, missing-data abstain, same-direction tracking). 8/8 confidence cases pass. **Verification (live, post-deploy):** `/api/price/indicators` returns `tao_change_24h: +3.72`, `btc_change_24h: -0.46`, `btc_price: 77030`. Current macro state has BTC at -0.46% / 24h, BELOW the 1.0% activity floor → bot correctly ABSTAINING. No new macro_correlation trades since boot at 14:32:18. Last trade #7699 (14:16:46) was on pre-rewrite logic. Abstain on a quiet macro day is the system working as designed. **Fleet diversity gain:** OpenClaw 7/12 supermajority becomes meaningfully more informative because the council now has 11 TAO-lens voices + 1 cross-asset divergence lens, instead of 12 voices reading the same book. |
 | **Wallet balance verification** | Medium | Balance shows 0.0 (RPC async startup). Confirm 0.227τ still on-chain via Taostats. |
 | MANTIS API research | Medium | Is SN123 output queryable via API? If yes, direct signal feed into TaoBot. |
 | SN3 owner key resolution | Monitor | Const warned: do not buy SN3 alpha until resolved. Check each session. |
