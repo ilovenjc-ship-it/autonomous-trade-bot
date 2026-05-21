@@ -115,6 +115,20 @@ class PriceService:
             f"warmed_up={self.is_warmed_up()}"
         )
 
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ DAY 8 INVARIANT — INV-5 (hydrator half) — Commit bcd6d56b       ║
+    # ║ This method MUST be called from start() BEFORE the first        ║
+    # ║ _fetch_price. It seeds _price_history from the persisted        ║
+    # ║ price_history table so indicators are usable from tick 1 of a   ║
+    # ║ new process (instead of waiting 14 minutes for WARMUP_TICKS=28  ║
+    # ║ to climb from empty). Removing this call recreates the          ║
+    # ║ post-redeploy UNKNOWN window that benched 5 momentum bots after ║
+    # ║ every Railway boot. The writer (_persist_tick) and the reader   ║
+    # ║ (/api/price/history?source=local) are the other two legs of the ║
+    # ║ same loop; all three must remain. See STATE.md §0 INV-5 + §5a   ║
+    # ║ Day 8 R5 entry. Regression test:                                ║
+    # ║   backend/scripts/test_day8_invariants.py::test_inv5_persistence║
+    # ╚══════════════════════════════════════════════════════════════════╝
     async def _hydrate_from_db(self) -> None:
         """
         Seed the in-memory _price_history buffer from the persisted
@@ -288,6 +302,17 @@ class PriceService:
         s = pd.Series(prices, dtype=float)
         result: Dict[str, Optional[float]] = {}
 
+        # ╔══════════════════════════════════════════════════════════════════╗
+        # ║ DAY 8 INVARIANT — INV-1 — Commit 26782ff1                       ║
+        # ║ RSI(14) MUST use Wilder's smoothing (alpha=1/14) with the       ║
+        # ║ WARMUP_TICKS=28 guard. Below threshold returns None — never a   ║
+        # ║ neutral default. Reverting to simple-rolling-mean OR lowering   ║
+        # ║ the warmup OR re-adding `else: 50.0` reintroduces the           ║
+        # ║ phantom-RSI / phantom-regime cascade that benched 5 momentum    ║
+        # ║ bots after every Railway redeploy. See STATE.md §0 INV-1 +      ║
+        # ║ §5a Day 8 R1 entry. Regression test:                            ║
+        # ║   backend/scripts/test_day8_invariants.py::test_inv1_rsi        ║
+        # ╚══════════════════════════════════════════════════════════════════╝
         # RSI-14 — Wilder's smoothing with warmup guard (see module docstring).
         # Guard requires WARMUP_TICKS samples (= 2 × RSI_PERIOD) before any
         # value is reported. Below the guard, return None so downstream

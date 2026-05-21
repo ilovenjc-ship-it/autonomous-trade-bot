@@ -149,6 +149,21 @@ REGIME_SUITABILITY: Dict[str, List[str]] = {
     # volatility_arb stays SIDEWAYS+VOLATILE because its signal fires on
     # BB-position (not RSI), which can be extreme in non-trending regimes;
     # it's already firing (18 trades) — the gate works correctly there.
+    #
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ DAY 8 INVARIANT — INV-3 — Commit 7a4d3dde                       ║
+    # ║ mean_reversion AND contrarian_flow MUST stay regime-agnostic    ║
+    # ║ (all 4 regimes). Restricting them to [SIDEWAYS, VOLATILE] based ║
+    # ║ on the textbook "mean reversion = sideways" mental model        ║
+    # ║ recreates the bench/signal mutual exclusion that produced 0     ║
+    # ║ trades over 2,202 cycles. Their signal logic fires on RSI<33/35 ║
+    # ║ and RSI>65/67 — which by INV-2's canonical detector ARE the     ║
+    # ║ TRENDING regimes. Restrict them and the intersection is empty   ║
+    # ║ by construction. See STATE.md §0 INV-3 + §5a Day 8 R3 entry.    ║
+    # ║ Regression test:                                                ║
+    # ║   backend/scripts/test_day8_invariants.py::test_inv3_regime_    ║
+    # ║   agnostic                                                      ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     "mean_reversion":     ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"],
     "contrarian_flow":    ["TRENDING_UP", "TRENDING_DOWN", "SIDEWAYS", "VOLATILE"],
     "volatility_arb":     ["SIDEWAYS", "VOLATILE"],
@@ -160,6 +175,20 @@ REGIME_SUITABILITY: Dict[str, List[str]] = {
 }
 
 
+# ╔══════════════════════════════════════════════════════════════════════╗
+# ║ DAY 8 INVARIANT — INV-2 — Commit 84879022                           ║
+# ║ This function is the ONLY regime classifier. agent_service          ║
+# ║ ._detect_regime is a 3-line wrapper that calls this and runs the    ║
+# ║ result through to_human_regime() for UI labeling. Re-introducing a  ║
+# ║ second classifier in agent_service (the previous 41-line parallel   ║
+# ║ implementation with conflicting thresholds) recreates the           ║
+# ║ phantom-SIDEWAYS leak that benched 5 momentum bots on phantom data  ║
+# ║ via get_current_regime()'s step-3 fallback. The fast-path that      ║
+# ║ produced confident SIDEWAYS from 2 prices + 0.3% movement was the   ║
+# ║ specific defect — never re-add it. See STATE.md §0 INV-2 + §5a      ║
+# ║ Day 8 R2 entry. Regression test:                                    ║
+# ║   backend/scripts/test_day8_invariants.py::test_inv2_regime         ║
+# ╚══════════════════════════════════════════════════════════════════════╝
 def _detect_regime(indicators: Dict[str, Any]) -> str:
     """
     Canonical regime classifier — the single source of truth for the
@@ -888,6 +917,21 @@ def _compute_signal(strategy: str, indicators: Dict[str, Any], price: float) -> 
     # Hard rule: NO fallback to TAO-only logic when BTC data is missing.
     # This bot's edge is BTC divergence; without BTC, it has no edge.
     # Returning None lets the rest of the fleet handle the cycle.
+    #
+    # ╔══════════════════════════════════════════════════════════════════╗
+    # ║ DAY 8 INVARIANT — INV-4 — Commit 4575ddec                       ║
+    # ║ macro_correlation MUST stay BTC-vs-TAO divergence with          ║
+    # ║ symmetric ±1.5pp triggers and a 1.0% BTC activity floor. Do     ║
+    # ║ NOT re-add an SMA50-or-EMA fallback when BTC data is missing —  ║
+    # ║ the pre-Day-8 code did this and silently cloned                 ║
+    # ║ yield_maximizer's logic, destroying the only cross-asset voice  ║
+    # ║ in the OpenClaw 7/12 supermajority. Pre-rewrite the description ║
+    # ║ ("TAO/subnet correlation divergence vs BTC macro trend") was    ║
+    # ║ FICTION — there was no BTC reference in the code. Verify the    ║
+    # ║ description and the code agree before merging changes here.     ║
+    # ║ See STATE.md §0 INV-4 + §5a Day 8 R4 entry. Regression test:    ║
+    # ║   backend/scripts/test_day8_invariants.py::test_inv4_macro_corr ║
+    # ╚══════════════════════════════════════════════════════════════════╝
     elif strategy == "macro_correlation":
         btc_chg = indicators.get("btc_change_24h")
         tao_chg = indicators.get("tao_change_24h")
