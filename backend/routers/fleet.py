@@ -104,8 +104,12 @@ async def fleet_status(db: AsyncSession = Depends(get_db)):
             "approved": approved_count,
             "total_pnl": round(total_pnl, 4),
             "tao_price": round(price, 2),
-            "rsi": round(indicators.get("rsi_14") or 50, 1),
-            "ema9": round(indicators.get("ema_9") or price, 2),
+            # RSI / EMA9 may be None during the warmup window — preserve
+            # that as null in the JSON so the frontend can render `—`
+            # instead of a falsely-confident default. Frontend code that
+            # previously assumed a number must defend against null.
+            "rsi": round(indicators["rsi_14"], 1) if indicators.get("rsi_14") is not None else None,
+            "ema9": round(indicators["ema_9"], 2) if indicators.get("ema_9") is not None else None,
         },
         "timestamp": datetime.utcnow().isoformat() + "Z",
     }
@@ -247,6 +251,13 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
                 f"  · **{b['display_name']}**: {b[f'{forecast_dir.lower()}_prob']*100:.0f}% {forecast_dir}"
                 for b in top_leans
             )
+            _rsi_market = f['market'].get('rsi')
+            _macd_hist = f['market'].get('macd_hist')
+            _market_line = (
+                f"Market: RSI {_rsi_market:.1f}, MACD-hist {(_macd_hist or 0):+.5f}"
+                if _rsi_market is not None
+                else f"Market: RSI warming up, MACD-hist {(_macd_hist or 0):+.5f}"
+            )
             _forecast_response = (
                 f"**OpenClaw forecast — {forecast_dir} signal · {f['trials']:,} Monte Carlo trials:**\n"
                 f"\n"
@@ -259,9 +270,7 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
                 f"  · DEADLOCK:      {f['deadlock_prob']*100:5.1f}%\n"
                 f"  · REJECTED:      {f['rejected_prob']*100:5.1f}%\n"
                 f"\n"
-                f"Threshold: {f['supermajority']}/12 supermajority · "
-                f"Market: RSI {f['market']['rsi']:.1f}, MACD-hist "
-                f"{(f['market']['macd_hist'] or 0):+.5f}\n"
+                f"Threshold: {f['supermajority']}/12 supermajority · {_market_line}\n"
                 f"\n"
                 f"Top {forecast_dir} leans this round:\n{lean_lines}"
                 + (f"\n\n_⚠ {f['freshness_warning']}_" if f.get("freshness_warning") else "")
@@ -451,7 +460,7 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
         response = random.choice([
             (
                 f"Fleet at a glance: **{current_regime}** regime · TAO ${price:.2f} · "
-                f"RSI {rsi:.1f if rsi else 'warming'} · Cycle #{cycle_num} · "
+                f"RSI {f'{rsi:.1f}' if rsi is not None else 'warming'} · Cycle #{cycle_num} · "
                 f"Fleet PnL: {total_pnl:+.4f}τ ({fleet_wr:.1f}% WR across {total_trades} trades). "
                 f"Ask me about PnL, regime, consensus, risk, gate status, or any specific strategy."
             ),

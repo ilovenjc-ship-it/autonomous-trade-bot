@@ -1,6 +1,23 @@
 """
 Price feed service — polls CoinGecko for TAO/USD price and computes
 technical indicators (RSI, EMA, MACD, Bollinger Bands).
+
+RSI implementation note (Day 8, Session XLI — fixed 2026-05-21):
+- RSI(14) uses Wilder's smoothing (exponential moving average with
+  alpha=1/14), not simple rolling mean. Wilder's is the canonical formula
+  and is more stable during the warmup window.
+- A stable Wilder's RSI requires roughly 2× the period of price ticks
+  before its reading converges. Hence the WARMUP_TICKS=28 guard below:
+  RSI is reported as None until we have at least 28 prices in the buffer.
+- NaN-on-flat-price is now reported as None (was: 50.0). A confident
+  "neutral" reading on broken/flat data is worse than "unknown" — the
+  regime classifiers downstream can defend against None and treat it as
+  UNKNOWN; they can't defend against a falsely-neutral 50.
+
+Cadence note: update_interval=30s. RSI(14) at this cadence reads on a
+~7-minute price window, which is intrinsically noisy. Whether the regime
+classifier should be reading on this short a window is a separate
+architectural question (Task #2 — regime architecture review).
 """
 import asyncio
 import logging
@@ -15,6 +32,12 @@ logger = logging.getLogger(__name__)
 
 COINGECKO_BASE = "https://api.coingecko.com/api/v3"
 TAO_COINGECKO_ID = "bittensor"
+
+# RSI(14) needs approximately 2× the period of price ticks before its
+# Wilder-smoothed average stabilizes. Below this, RSI is reported as
+# None and downstream regime classifiers fall back to UNKNOWN.
+RSI_PERIOD = 14
+WARMUP_TICKS = 28          # 2 × RSI_PERIOD — minimum for a stable reading
 
 
 class PriceService:
@@ -42,6 +65,17 @@ class PriceService:
 
     def get_price_history_list(self) -> List[float]:
         return list(self._price_history)
+
+    def is_warmed_up(self) -> bool:
+        """
+        True when the price-history buffer contains enough ticks for
+        RSI(14) to produce a stable Wilder-smoothed reading.
+
+        Indicator panel + regime classifiers should treat False as
+        "indicators not yet available; regime UNKNOWN" rather than
+        substituting any neutral default.
+        """
+        return len(self._price_history) >= WARMUP_TICKS
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -139,17 +173,35 @@ class PriceService:
         s = pd.Series(prices, dtype=float)
         result: Dict[str, Optional[float]] = {}
 
-        # RSI-14
-        if len(s) >= 14:
+        # RSI-14 — Wilder's smoothing with warmup guard (see module docstring).
+        # Guard requires WARMUP_TICKS samples (= 2 × RSI_PERIOD) before any
+        # value is reported. Below the guard, return None so downstream
+        # regime classifiers fall back to UNKNOWN cleanly.
+        if len(s) >= WARMUP_TICKS:
             delta = s.diff()
-            gain = delta.clip(lower=0).rolling(14).mean()
-            loss = (-delta.clip(upper=0)).rolling(14).mean()
-            rs = gain / loss.replace(0, np.nan)
-            rsi = 100 - (100 / (1 + rs))
-            rsi_val = float(rsi.iloc[-1])
-            # When all deltas are zero (flat / rate-limited price), rsi is NaN.
-            # A perfectly flat price has no directional bias → RSI 50 (neutral/SIDEWAYS).
-            result["rsi_14"] = rsi_val if not np.isnan(rsi_val) else 50.0
+            gain = delta.clip(lower=0)
+            loss = -delta.clip(upper=0)
+            # Wilder's smoothing == EMA with alpha = 1/period
+            avg_gain = gain.ewm(alpha=1.0 / RSI_PERIOD, adjust=False).mean()
+            avg_loss = loss.ewm(alpha=1.0 / RSI_PERIOD, adjust=False).mean()
+            last_gain = float(avg_gain.iloc[-1])
+            last_loss = float(avg_loss.iloc[-1])
+
+            if last_gain == 0.0 and last_loss == 0.0:
+                # Truly flat price (e.g. CoinGecko 429 cache repeats or
+                # a stuck feed). No movement → no momentum signal.
+                # Return None rather than a falsely-confident 50.
+                result["rsi_14"] = None
+            elif last_loss == 0.0:
+                # All up-moves over the smoothed window → max bullish.
+                result["rsi_14"] = 100.0
+            elif last_gain == 0.0:
+                # All down-moves over the smoothed window → max bearish.
+                result["rsi_14"] = 0.0
+            else:
+                rs = last_gain / last_loss
+                rsi_val = 100.0 - (100.0 / (1.0 + rs))
+                result["rsi_14"] = float(rsi_val) if not np.isnan(rsi_val) else None
         else:
             result["rsi_14"] = None
 

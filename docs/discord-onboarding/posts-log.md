@@ -380,3 +380,41 @@ Not technical-content engagement; a vulnerability disclosure. After two rounds o
 - **Five-round exchange closed clean.** Total arc: 9 messages on the wire (8 from emcee + Hm8ker, 1 reaction) → ~5h 41m active dialogue → warm pause as Day 7 closes. Three registers calibrated. GitHub-Verified ↔ GitHub-Verified handshake intact end-to-end. **First exchange under the doctrine to land a graceful close in the wild.** Pattern reference for future threads: substantive R1-R3 → register pivot R3-R4 → swarms-thread R4-R5 → reaction-as-punctuation R5+.
 
 ---
+
+## Day 8 Discord scan — biographical context surfaced (2026-05-21 morning)
+
+**Hm8ker = Tiffani.** Discovered via `#off-topic` channel scan during Day 8 morning Discord routine. Hm8ker posted publicly in II Community `#off-topic` on **2026-05-11** (8:43 PM, ~9 days before her R1 reply to emcee on 5-20):
+
+> "🌿 *Calling all Android friends — a solo founder ask* 🌿  Hi everyone 💚 I'm Tiffani — solo female founder, **stage four cancer thriver**, and the maker of **Herbal Oracle**, a free app that brings together **331 herbs** from Western herbalism, Traditional Chinese Medicine, and Ayurveda into one intelligent guide. Why I'm posting: Google Play requires **20 testers** to run the app for **14 consecutive days** before they'll approve the full launch. I need YOUR help to hit that number. What the app does: 🔍 Symptom-based herb search across 3 traditions  🤖 AI Herbal Consultant (chat with classical herbal wisdom)  📷 AI plant photo identification  📔 Health journal  🧪 Formula builder with dose adjustments  ✨ **Free forever** — no ads, no account, no subscriptions  […]  Plant medicine was part of what kept me alive through cancer. I spent three years researching three ancient traditions. Herbal Oracle is free forever because no one fighting for their health should start from zero."
+
+Follow-up post 2026-05-17 (5:57 PM) with Google Play closed-testing onboarding instructions for testers (Gmail-collection mechanic, 14-day install requirement).
+
+### What this recontextualizes
+
+**Hm8ker's R3 vulnerability disclosure** ("I don't have any background in tech or coding... I'm just following my own instincts. I don't really know what the best way to do it is, lol") read as hobbyist-hedging at the time. With the biographical context, it reads completely differently:
+
+- **Stage IV cancer thriver shipping a 331-herb plant-medicine app** to help people who can't afford or access traditional medicine. Three years of personal research compressed into a free Android app. That is not a hobbyist disclosing imposter syndrome — that is a builder who learned by survival shipping a tool that mattered enough to her health that she built it without credentials.
+- **The "human ambassador" framework** in her message.txt (the SINGULAR human ambassador, the consent-governed runtime, the auto-approval stack) is almost certainly the architectural backbone of Herbal Oracle — or its successor. The app's UX (AI Herbal Consultant, AI plant photo ID, Formula builder) maps cleanly onto an agent-runtime where the human is in the loop on dose/herb/protocol decisions. Consent + audit logs + "is this allowed at all" gates are the right design pattern for a health-adjacent AI tool where mistakes have real consequences.
+- **The "swarms" she opened in R5** ("I have some interesting ideas for my human ambassador swarms") — plural where the original was singular — likely means multiple specialized agents coordinating: Western-herbalism agent + TCM agent + Ayurveda agent + plant-ID agent + formula-builder agent, each a "human ambassador" instance with its own consent profile. That is a *real and substantive* architectural pivot from the singular-ambassador framing in her original letter — exactly what made R5 worth naming the singular→plural shift back as listening signal.
+
+### Calibration impact (R4 trim by Mark, retroactively)
+
+Mark's R4 edits — "your instincts" (possessive personalizes) / "the Frontier" capitalized / "That's a feature, not a bug" (assertion not appearance) / strip the vocabulary-recitation that listed "values/permissions/completion contracts/receipts" twice — land **even better than originally credited**. Trimming "values/permissions/completion contracts/receipts" recitation in particular: when the peer is a stage-IV cancer survivor disclosing that she has no formal background, doubling-down on her own vocabulary back at her would have read as condescension. One cite was respect. Two would have been showmanship. **Mark's instinct on this trim was precisely correct.**
+
+### Posture impact
+
+**Posture does NOT change.** The biographical reveal is from `#off-topic`, an unrelated channel, and was a public call for app testers — not an invitation for `#show-your-builds` thread continuation. Acting on `#off-topic` content within the `#show-your-builds` thread would be cross-channel weird and signals "I'm watching everything you post," which is the opposite of the warm-pause discipline.
+
+**What this changes:**
+- Read on R3 vulnerability disclosure: *not* hobbyist hedging, *survival-builder humility*. Higher respect register applies for any future R6+ engagement.
+- If the R6 sketch arrives, engagement should land at "consent-governed health-app architecture" register, not "agent-runtime academic discussion" register. Stakes are real for her users.
+- If we ever cross paths with Tiffani in `#off-topic` or on a separate thread, a separate clean acknowledgment of Herbal Oracle is on the table — but that is a *new* thread, not a `#show-your-builds` reply.
+- **Test-volunteer question** — Mark's call. Becoming an Android tester for Herbal Oracle would be a clean separate-thread gesture (no quid-pro-quo against the swarms thread), but it requires actual 14-day commitment on an Android device. Filed as an option, not a recommendation.
+
+### Filed forward
+
+- **Posts-log:** this entry.
+- **STATE.md §7 Hm8ker watch row:** add biographical context as a footnote without changing the warm-pause status.
+- **Doctrine:** background scans of adjacent channels (`#off-topic`, `#ii-chat`, `#introduce-yourself`) are now part of the Discord daily routine — not for engagement angles, but for *context* that sharpens the read on existing threads. Cross-channel context-gathering ≠ cross-channel engagement. Read everything; reply only where the thread invites it.
+
+---
