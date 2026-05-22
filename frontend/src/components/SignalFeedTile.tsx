@@ -144,7 +144,13 @@ export default function SignalFeedTile() {
   }, [events])
 
   return (
-    <div className="rounded-xl border border-dark-600 bg-dark-800 p-4 h-full flex flex-col">
+    // Day 9 R5: dropped `h-full` from the card. With h-full the card was
+    // stretching to whatever the row's tallest sibling demanded, which let
+    // the events list grow unbounded and pushed Col 3 to render empty
+    // space below the Momentum Signal pill. Now the card sizes to its
+    // natural content (header + fixed-height events slider + KPI strip),
+    // matching Col 3's natural baseline so all three columns sit flush.
+    <div className="rounded-xl border border-dark-600 bg-dark-800 p-4 flex flex-col">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -211,20 +217,25 @@ export default function SignalFeedTile() {
       {/* Event list */}
       {!loading && events.length > 0 && (
         <>
-          {/* Day 9 R3: dropped the maxHeight: 560 cap. With the bottom row's
-              other columns stretching to a taller baseline (Live Indicators
-              gained 4 sentiment-input rows, Col 2 stack pulls full row
-              height), the cap was leaving an empty void between the last
-              event and the Events/Sources/Window KPI strip. flex-1 now
-              owns the height — the scroll list fills the column and the
-              KPI strip pins to the card's bottom edge naturally. */}
+          {/* Day 9 R5 — fixed-height slider per Mark's directive: 'Section
+              should have Section Slider, And be (Fixed - not able to
+              expand as data entries are added)'. The events list now has
+              a hard maxHeight of 450px; new entries scroll within the
+              fixed window rather than expanding the card. This anchors
+              Col 1's natural height to ≈ 574px (450 events + ~124px
+              chrome: header, mb-3 spacers, KPI strip, padding), matching
+              Col 3's natural baseline so the row sits flush.
+              History: R3 dropped the cap (events list grew unbounded
+              forcing Col 1 way taller than Col 3); R5 restores the cap
+              tuned to Col 3's height instead of the ad-hoc 560. */}
           <div
-            className="flex-1 min-h-0 space-y-1 mb-3 overflow-y-auto pr-1 -mr-1
+            className="space-y-1 mb-3 overflow-y-auto pr-1 -mr-1
                        [&::-webkit-scrollbar]:w-1.5
                        [&::-webkit-scrollbar-track]:bg-transparent
                        [&::-webkit-scrollbar-thumb]:bg-dark-600
                        [&::-webkit-scrollbar-thumb]:rounded-full
                        hover:[&::-webkit-scrollbar-thumb]:bg-dark-500"
+            style={{ maxHeight: 450 }}
           >
             {events.map((e) => {
               const src  = detectSource(e.detail, e.message)

@@ -322,19 +322,16 @@ function SentimentGauge({
         ))}
       </div>
 
-      {/* Gauge SVG — Day 9 R4: re-capped at maxHeight 200. R3 dropped the
-          cap to let the gauge breathe after the input table was removed,
-          but with no ceiling the SVG grew large enough that Col 2's stack
-          (Sentiment + Macro Reference) ballooned past Col 3's natural
-          baseline — pushing Macro Reference far down and leaving the
-          Signal Feed column with too much empty void. 200px is the
-          balanced read: gauge is comfortably visible (vs R1's condensed
-          125), and the card's total height now leaves Macro Reference
-          its natural ~280px slot below within the same row baseline as
-          Col 3 (Live Indicators). preserveAspectRatio xMidYMid meet
-          keeps the vector centered and proportional inside the cap. */}
+      {/* Gauge SVG — Day 9 R5: trimmed cap 200 → 175 to bring Col 2's
+          stack natural height closer to Col 3's natural baseline (574px).
+          With items-start on the grid (R5) the row no longer stretches
+          to the tallest sibling, so each column has to be sized close to
+          the same value or they sit unevenly. Sentiment 175 + 20 gap +
+          Macro ~322 = 597, ~23px taller than Col 3 — visually flush at
+          a glance. (R1 was 125 = "too condensed"; R3 was uncapped =
+          "too large"; R4 was 200 = stretched Col 2 too far.) */}
       <div className="flex-1 flex items-center justify-center min-h-0">
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 200 }} preserveAspectRatio="xMidYMid meet">
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 175 }} preserveAspectRatio="xMidYMid meet">
 
           {/* Shadow/background arc */}
           <path d={arcPath(180, 360, R)} fill="none" stroke="#1e293b" strokeWidth={16} />
@@ -1046,16 +1043,32 @@ export default function Dashboard() {
               not wired (paid API tier; we just removed Perplexity for the
               same reason — see signal_ingestor.py XXXIX comment).
           Three columns fit and read better than two on this row. */}
-      {/* Day 9 layout: Col 2 is now a VERTICAL STACK (Sentiment over Macro),
-          per Mark's clarification. Bottom-row sections are no longer same-
-          proportions siblings — Col 1 / Col 3 are full-height tiles, Col 2
-          stacks two cards.
-          Day 9 Round 2: dropped `items-start` so all three columns stretch
-          to a common baseline (the tallest sibling). Inside Col 2, the
-          Sentiment gauge takes its natural height and the Macro card flexes
-          to fill the remainder — so Macro now reaches the bottom of the row
-          alongside Signal Feed (Col 1) and Live Indicators (Col 3). */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+      {/* Day 9 R5 layout — anchored to Col 3's natural content height.
+          Mark's directive: "No space between Momentum Signal and the
+          Bottom of Page; Reduce the height of Macro Reference (BTC) in
+          Column 2 to be flush with bottom of Column 3; Reduce Signal
+          Feed in Column 1 to be flush with bottom of Column 2 + Column
+          3 — Signal Feed should have Section Slider, fixed (not able
+          to expand as data entries are added)."
+          Implementation:
+          • Re-introduced `items-start` on the grid so columns size to
+            their natural content (no stretch to a common baseline).
+          • Col 1: SignalFeedTile events list capped at maxHeight 450
+            via inline style; ~574px total card height (matches Col 3).
+          • Col 2: dropped `h-full` from the stack and `flex-1` from
+            the Macro card so the stack sizes to natural content. The
+            Macro Gate ballast wrapper drops its `mt-auto` (which only
+            mattered when stretching). Macro now ends right after the
+            ballast — no auto-pushed empty space.
+          • Col 3: dropped `h-full` from the Live Indicators card.
+            With Momentum Signal hoisted up after Consensus (R4) and
+            no h-full, the card ends right at the Momentum pill — no
+            empty void below it.
+          Net effect: each column sizes to its natural content
+          (574 / 597 / 574 px); since they're within ~25px of each
+          other and items-start places them at the row's top edge,
+          the bottom edges sit flush at a glance. */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
         {/* Column 1 — Signal Feed (new XXXIX Day 6) */}
         <SignalFeedTile />
 
@@ -1063,10 +1076,10 @@ export default function Dashboard() {
             Reference (BTC) + Divergence below in their own card.
             Macro/Divergence relocated FROM Live Indicators (Col 3) per Mark's
             Day 9 spec — sentiment-tier readings cluster together, ambient
-            technical indicators stay together in Col 3. `h-full` makes the
-            stack inherit the row's stretched height; the Macro card uses
-            `flex-1` to fill what Sentiment doesn't claim. */}
-        <div className="flex flex-col gap-5 h-full">
+            technical indicators stay together in Col 3. R5 drops `h-full`
+            here so the stack sizes to the natural sum of its children
+            (~597px), matching Col 3's natural baseline. */}
+        <div className="flex flex-col gap-5">
           <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
 
           {/* Macro Reference (BTC) + Divergence — relocated card.
@@ -1080,8 +1093,14 @@ export default function Dashboard() {
               column's bottom alongside Col 1 / Col 3. The Divergence row
               also got a typography bump for parity with the upgraded
               MacroRow. */}
+          {/* Macro Reference card — Day 9 R5: dropped `flex-1`. With Col 2
+              stack no longer stretching (items-start grid + no h-full on
+              parent), there's no parent constraint for flex-1 to fill, and
+              Mark wants Macro sized to its natural content so it doesn't
+              push past Col 3's baseline. The card now ends right after the
+              Macro Gate ballast — no auto-pushed empty space. */}
           {(ind.btc_price != null || ind.btc_change_24h != null) && (
-            <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 flex flex-col flex-1">
+            <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 flex flex-col">
               <h2 className="text-base font-semibold text-white flex items-center gap-2.5 mb-3">
                 <Radio size={15} className="text-orange-400" />
                 Macro Reference <span className="text-[13px] text-slate-500 font-mono font-normal">BTC · TAO</span>
@@ -1111,13 +1130,15 @@ export default function Dashboard() {
                 )
               })()}
 
-              {/* Day 9 R2 — visual filler note pinned to the card bottom.
-                  Carries the macro_correlation gate doctrine in plain
-                  language so the operator reads context, not just numbers,
-                  AND gives the card real ink to fill its stretched height
-                  without forcing an empty void. `mt-auto` floats it to the
-                  card's bottom edge. */}
-              <div className="mt-auto pt-4">
+              {/* Day 9 R2 (updated R5) — Macro Gate doctrine ballast. Carries
+                  the macro_correlation gate spec in plain language so the
+                  operator reads context, not just numbers. R2 used
+                  `mt-auto` to float it to the bottom of the stretched
+                  Macro card; R5 drops `mt-auto` because the card no longer
+                  stretches (items-start grid + no flex-1) — the ballast
+                  now sits naturally as the last block, with `pt-4` for
+                  visual separation from the Divergence row above. */}
+              <div className="pt-4">
                 <div className="p-3 rounded-lg bg-dark-700/50 border border-dark-600/60">
                   <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mb-1.5">
                     Macro Gate
@@ -1142,8 +1163,13 @@ export default function Dashboard() {
                 Moon Phase computes client-side via Conway's algorithm — no
                 backend dep, lights up immediately.
               · Momentum Signal block stays at the bottom (the live trigger
-                read-out, kept per Mark's brief). */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 h-full flex flex-col">
+                read-out, kept per Mark's brief).
+            Day 9 R5: dropped `h-full` so the card ends right at the
+            Momentum Signal pill — no empty void below it. With Momentum
+            hoisted up after Consensus (R4) and the card no longer
+            stretching, Col 3 has a tight natural content height (~574px)
+            that anchors the row baseline for Col 1 and Col 2 to match. */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 flex flex-col">
           <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
             <Radio size={14} className="text-accent-blue" /> Live Indicators
           </h2>
