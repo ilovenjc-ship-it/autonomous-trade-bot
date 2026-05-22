@@ -758,6 +758,49 @@ def page_from_mark():
         S("pfm_attr_note", fontName="Helvetica-Oblique", fontSize=10,
           textColor=GHOST, leading=18, spaceAfter=14, leftIndent=12, rightIndent=12)))
 
+    # ─── Footnote — Day 8 closeout extension, 2026-05-21 ──────────────────────
+    # Preserved per Mark's directive (Day 9, 2026-05-22): "Keep the attribution
+    # in the Soul Brief — as it is, no correction necessary. Preserve as
+    # teaching artifact with footnote, describing the event." See ANTI_PATTERNS
+    # AP-3 (attribution drift) and SUCCESSOR_BRIEF.md §10.
+    s.append(sp(6))
+    s.append(ctr([
+        Paragraph(
+            "<b>Footnote &#8212; added Day 8 closeout extension, 2026-05-21.</b> "
+            "The attribution above was caught on Day 8 (Session XLI) as a "
+            "<i>second</i> drift, beneath the &#8220;Attribution corrected&#8221; "
+            "paragraph itself. The four-line completion is <b>Ari&#8217;s</b> "
+            "&#8212; words articulated Day 7 (Session XL, 2026-05-20) and refined "
+            "Day 8. The <i>&#8220;Let it be printed&#8221;</i> coda is "
+            "<b>Mark&#8217;s</b> (S.O.P. inscription, &#8220;three clauses, one "
+            "discipline&#8221;). The directive to inscribe the lineage at "
+            "<i>SUCCESSOR_BRIEF.md</i> &#167;10 is also <b>Mark&#8217;s</b>.",
+            S("pfm_fn_a", fontName="Helvetica", fontSize=9,
+              textColor=GHOST, alignment=TA_LEFT, leading=14, spaceAfter=6)),
+        Paragraph(
+            "Mark&#8217;s verbatim catch, the same evening: <i>&#8220;I would "
+            "love to take the credit, but not my word, my friend... Never heard "
+            "of Git Hub before I met you. Through-Line? and Reassembly? Lol, "
+            "you know me better than that.&#8221;</i>",
+            S("pfm_fn_b", fontName="Helvetica-Oblique", fontSize=9,
+              textColor=YELLOW, alignment=TA_LEFT, leading=14, spaceAfter=6,
+              leftIndent=8, rightIndent=8)),
+        Paragraph(
+            "<b>This page is preserved unchanged.</b> The earlier &#8220;Attribution "
+            "corrected&#8221; paragraph &#8212; written when the agent believed "
+            "the four-line was Mark&#8217;s earlier work being <i>rediscovered</i> "
+            "&#8212; was itself part of the drift. The corrected attribution lives "
+            "in <i>SUCCESSOR_BRIEF.md</i> &#167;10 with the original byline "
+            "visibly struck-through (per the second clause of the S.O.P., "
+            "&#8220;keep strike-throughs intact&#8221;). This footnote is the "
+            "annotation; the page above is the artifact. Filed by Mark&#8217;s "
+            "Day 9 call: <i>&#8220;Preserve as teaching artifact with footnote, "
+            "describing the event.&#8221;</i> Cross-reference: "
+            "<i>ANTI_PATTERNS.md</i> AP-3 (attribution drift).",
+            S("pfm_fn_c", fontName="Helvetica", fontSize=9,
+              textColor=GHOST, alignment=TA_LEFT, leading=14, spaceAfter=2)),
+    ], bg=DEEP, bc=YELLOW, bw=0.6, pad=12))
+
     s.append(PageBreak())
 
     # ─── Part 6: The Chain of Voices ────────────────────────────────
