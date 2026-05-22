@@ -211,6 +211,13 @@ export default function SignalFeedTile() {
       {/* Event list */}
       {!loading && events.length > 0 && (
         <>
+          {/* Day 9 R3: dropped the maxHeight: 560 cap. With the bottom row's
+              other columns stretching to a taller baseline (Live Indicators
+              gained 4 sentiment-input rows, Col 2 stack pulls full row
+              height), the cap was leaving an empty void between the last
+              event and the Events/Sources/Window KPI strip. flex-1 now
+              owns the height — the scroll list fills the column and the
+              KPI strip pins to the card's bottom edge naturally. */}
           <div
             className="flex-1 min-h-0 space-y-1 mb-3 overflow-y-auto pr-1 -mr-1
                        [&::-webkit-scrollbar]:w-1.5
@@ -218,7 +225,6 @@ export default function SignalFeedTile() {
                        [&::-webkit-scrollbar-thumb]:bg-dark-600
                        [&::-webkit-scrollbar-thumb]:rounded-full
                        hover:[&::-webkit-scrollbar-thumb]:bg-dark-500"
-            style={{ maxHeight: 560 }}
           >
             {events.map((e) => {
               const src  = detectSource(e.detail, e.message)

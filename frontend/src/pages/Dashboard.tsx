@@ -254,37 +254,14 @@ function SentimentGauge({
     return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) }
   }
 
-  const fgColor = taoFearGreed == null ? '#64748b'
-    : taoFearGreed >= 60  ? '#00e5a0'
-    : taoFearGreed >= 25  ? '#86efac'
-    : taoFearGreed >= -25 ? '#f59e0b'
-    : taoFearGreed >= -60 ? '#f87171'
-    : '#ef4444'
-
-  const inputs: { label: string; value: string; color: string; weight: string; tag?: string; tip: string }[] = [
-    {
-      label: 'TAO F&G',  value: taoFearGreed != null ? `${taoFearGreed > 0 ? '+' : ''}${taoFearGreed.toFixed(0)}` : '—',
-      color: fgColor, weight: '25%', tag: 'live',
-      tip: 'TAO.app Fear & Greed Index. Scale: −100 (extreme fear) → +100 (extreme greed). Updates every 5 min from TAO.app live API.',
-    },
-    {
-      label: 'RSI-14',   value: rsi != null ? rsi.toFixed(1) : '—',
-      color: rsi == null ? '#64748b' : rsi < 35 ? '#00e5a0' : rsi > 65 ? '#f87171' : '#f59e0b',
-      weight: '30%',
-      tip: 'Relative Strength Index (14 periods). Below 35 = oversold (bullish signal). Above 65 = overbought (bearish signal). Normalised to −100…+100.',
-    },
-    {
-      label: 'MACD Hist', value: macdHist != null ? (macdHist > 0 ? '+' : '') + macdHist.toFixed(4) : '—',
-      color: macdHist == null ? '#64748b' : macdHist > 0 ? '#00e5a0' : '#f87171',
-      weight: '25%',
-      tip: 'MACD histogram (MACD line − Signal line). Positive = bullish momentum. Negative = bearish momentum. Clamped to −100…+100.',
-    },
-    {
-      label: 'Consensus', value: consensusStats ? `${consensusStats.approval_rate_pct.toFixed(1)}%` : '—',
-      color: '#818cf8', weight: '20%',
-      tip: 'OpenClaw BFT consensus approval rate. % of bot votes that are BUY vs SELL across recent rounds. Above 50% = net bullish.',
-    },
-  ]
+  // Day 9 R3: the per-input breakdown table (TAO F&G / RSI-14 / MACD Hist /
+  // Consensus) was relocated OUT of this card and into the Live Indicators
+  // column (between Moon Phase and Momentum Signal) per Mark's directive —
+  // the gauge was reading too condensed with the table eating the lower
+  // half of the card. The `inputs` array + `fgColor` helper that drove the
+  // table are gone with it. Score / needle math below still uses RSI,
+  // MACD, Consensus, and TAO F&G — those inputs still feed the gauge,
+  // they're just no longer rendered as a separate readout block here.
 
   return (
     <div className="bg-dark-800 border border-dark-600 rounded-xl p-4 flex flex-col h-full relative">
@@ -339,12 +316,17 @@ function SentimentGauge({
         ))}
       </div>
 
-      {/* Gauge SVG — Day 9: trimmed maxHeight 185 → 125 (≈⅓ reduction) so the
-          Sentiment card pulls in tight and leaves room beneath it for the new
-          Macro Reference + Divergence sub-card stacked below in Column 2.
-          Vector content unchanged; only the rendered ceiling shrinks. */}
+      {/* Gauge SVG — Day 9 R3: dropped the maxHeight cap entirely. With the
+          input-breakdown table relocated to Live Indicators, the gauge now
+          claims the full body of this card — fixing the "too condensed"
+          read Mark called out. flex-1 wrapper + width:100% + viewBox aspect
+          keeps the vector centered and proportional; preserveAspectRatio
+          xMidYMid meet ensures it scales without distortion as the column
+          width / freed vertical space change. Card outer dimensions stay
+          the same — the gauge simply grows into the space the table
+          vacated. */}
       <div className="flex-1 flex items-center justify-center min-h-0">
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 125 }} preserveAspectRatio="xMidYMid meet">
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
 
           {/* Shadow/background arc */}
           <path d={arcPath(180, 360, R)} fill="none" stroke="#1e293b" strokeWidth={16} />
@@ -421,40 +403,11 @@ function SentimentGauge({
         </svg>
       </div>
 
-      {/* Input breakdown */}
-      <div className="space-y-1 border-t border-dark-600 pt-2 mt-auto">
-        <div className="flex items-center justify-between mb-0.5">
-          <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Signal</span>
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider">Weight</span>
-            <span className="text-[10px] font-mono text-slate-500 uppercase tracking-wider w-14 text-right">Value</span>
-          </div>
-        </div>
-        {inputs.map(inp => (
-          <div key={inp.label} className="flex items-center justify-between group">
-            <span className="text-[12px] font-mono text-slate-400 flex items-center gap-1.5">
-              {inp.label}
-              {inp.tag === 'live' && (
-                <span className="text-[9px] font-bold px-1 py-0.5 rounded bg-emerald-900/60 text-emerald-400 tracking-wide">LIVE</span>
-              )}
-              {/* Per-signal info tooltip */}
-              <span className="relative inline-flex items-center">
-                <span
-                  className="w-3.5 h-3.5 rounded-full bg-slate-700/40 border border-slate-600/30 text-slate-500
-                             hover:bg-indigo-500/20 hover:border-indigo-400/40 hover:text-indigo-300
-                             transition-colors cursor-help text-[9px] font-bold select-none
-                             items-center justify-center hidden group-hover:inline-flex"
-                  title={inp.tip}
-                >i</span>
-              </span>
-            </span>
-            <div className="flex items-center gap-3">
-              <span className="text-[10px] font-mono text-slate-600">{inp.weight}</span>
-              <span className="text-[13px] font-mono font-bold w-14 text-right" style={{ color: inp.color }}>{inp.value}</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {/* Day 9 R3: input breakdown table removed from this card and
+          relocated to the Live Indicators column (between Moon Phase and
+          Momentum Signal). Comment retained so the layout history is
+          legible from the source — see Live Indicators block below for
+          the new home of the four sentiment inputs. */}
     </div>
   )
 }
@@ -1234,6 +1187,34 @@ export default function Dashboard() {
               </div>
             )
           })()}
+
+          {/* Day 9 R3 — sentiment input rows, relocated FROM the Market
+              Sentiment card per Mark's directive (no separate wrap). The
+              Sentiment gauge was reading too condensed with these four
+              rows eating the lower half of that card; moved here to
+              de-clutter the gauge while keeping the readouts visible.
+              RSI-14 not duplicated — already shown above as a Live
+              Indicator row, would be redundant. The remaining three are
+              the unique sentiment-tier inputs:
+                · TAO F&G  — TAO.app Fear & Greed Index (5-min cache),
+                  contrarian frame: ≤ −25 = fear/buy (green),
+                  ≥ +25 = greed/sell (red).
+                · MACD Hist — MACD line minus Signal line; positive =
+                  bullish momentum, negative = bearish.
+                · Consensus — OpenClaw BFT approval rate %; healthy band
+                  is 45–65%, mirrors the KPI grid card. */}
+          <IndRow label="TAO F&G"
+                  val={taoFearGreed}
+                  good={-25} bad={25}
+                  format={(v) => `${v > 0 ? '+' : ''}${v.toFixed(0)}`} />
+          <IndRow label="MACD Hist"
+                  val={(ind.macd != null && ind.macd_signal != null)
+                    ? (ind.macd as number) - (ind.macd_signal as number)
+                    : null}
+                  format={(v) => `${v > 0 ? '+' : ''}${v.toFixed(4)}`} />
+          <IndRow label="Consensus"
+                  val={consensusStats?.approval_rate_pct ?? null}
+                  format={(v) => `${v.toFixed(1)}%`} />
 
           {/* Momentum signal summary */}
           <div className="mt-auto pt-4">
