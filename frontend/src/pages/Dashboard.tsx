@@ -547,8 +547,13 @@ function KPI({ label, value, sub, color, icon: Icon }: {
   )
 }
 
-function IndRow({ label, val, good, bad }: {
-  label: string; val: number | null | undefined; good?: number; bad?: number
+function IndRow({ label, val, good, bad, format }: {
+  label: string; val: number | null | undefined
+  good?: number; bad?: number
+  /** Optional value formatter. Defaults to toFixed(4) for technical
+   *  indicator readings. Day 9 R2: Volume / Open Interest pass a
+   *  compact USD formatter so the row reads `$152M` not `152000000.0000`. */
+  format?: (v: number) => string
 }) {
   const color = val == null ? 'text-slate-300'
     : good != null && bad != null
@@ -558,22 +563,36 @@ function IndRow({ label, val, good, bad }: {
     <div className="flex justify-between items-center py-1.5 border-b border-dark-700 last:border-0">
       <span className="text-xs text-slate-300">{label}</span>
       <span className={clsx('text-xs font-mono font-semibold', color)}>
-        {val != null ? val.toFixed(4) : '—'}
+        {val != null ? (format ? format(val) : val.toFixed(4)) : '—'}
       </span>
     </div>
   )
 }
 
+// Day 9 R2 — compact USD formatter for Volume / Open Interest rows.
+// Picks a magnitude suffix (B / M / K) so the Live Indicators column
+// reads at-a-glance rather than as a long digit string.
+function fmtCompactUsd(v: number): string {
+  const abs = Math.abs(v)
+  if (abs >= 1e9) return `$${(v / 1e9).toFixed(2)}B`
+  if (abs >= 1e6) return `$${(v / 1e6).toFixed(2)}M`
+  if (abs >= 1e3) return `$${(v / 1e3).toFixed(1)}K`
+  return `$${v.toFixed(0)}`
+}
+
 /** MacroRow — row variant for pre-formatted string values (e.g. BTC price
- *  with currency symbol, percentage with sign and % suffix). Used by the
- *  Macro Reference card on the Dashboard Live Indicators column. */
+ *  with currency symbol, percentage with sign and % suffix). Day 9 Round 2:
+ *  bumped label 11→13px, value 12→15px so the Macro Reference card carries
+ *  more visual weight (Mark's call: "Enlarge the section just a bit");
+ *  vertical padding doubled so each row contributes more height as the card
+ *  stretches to fill the bottom of Column 2. */
 function MacroRow({ label, val, cls }: {
   label: string; val: string; cls?: string
 }) {
   return (
-    <div className="flex justify-between items-center py-1 last:border-0">
-      <span className="text-[11px] text-slate-400">{label}</span>
-      <span className={clsx('text-[12px] font-mono font-semibold', cls ?? 'text-white')}>
+    <div className="flex justify-between items-center py-2 last:border-0">
+      <span className="text-[13px] text-slate-400 font-mono">{label}</span>
+      <span className={clsx('text-[15px] font-mono font-semibold', cls ?? 'text-white')}>
         {val}
       </span>
     </div>
@@ -1069,9 +1088,13 @@ export default function Dashboard() {
       {/* Day 9 layout: Col 2 is now a VERTICAL STACK (Sentiment over Macro),
           per Mark's clarification. Bottom-row sections are no longer same-
           proportions siblings — Col 1 / Col 3 are full-height tiles, Col 2
-          stacks two cards. `items-start` keeps the stack from being stretched
-          to match the tallest sibling (so the Macro card hugs Sentiment). */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
+          stacks two cards.
+          Day 9 Round 2: dropped `items-start` so all three columns stretch
+          to a common baseline (the tallest sibling). Inside Col 2, the
+          Sentiment gauge takes its natural height and the Macro card flexes
+          to fill the remainder — so Macro now reaches the bottom of the row
+          alongside Signal Feed (Col 1) and Live Indicators (Col 3). */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
         {/* Column 1 — Signal Feed (new XXXIX Day 6) */}
         <SignalFeedTile />
 
@@ -1079,8 +1102,10 @@ export default function Dashboard() {
             Reference (BTC) + Divergence below in their own card.
             Macro/Divergence relocated FROM Live Indicators (Col 3) per Mark's
             Day 9 spec — sentiment-tier readings cluster together, ambient
-            technical indicators stay together in Col 3. */}
-        <div className="flex flex-col gap-5">
+            technical indicators stay together in Col 3. `h-full` makes the
+            stack inherit the row's stretched height; the Macro card uses
+            `flex-1` to fill what Sentiment doesn't claim. */}
+        <div className="flex flex-col gap-5 h-full">
           <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
 
           {/* Macro Reference (BTC) + Divergence — relocated card.
@@ -1089,12 +1114,16 @@ export default function Dashboard() {
               live values here gives the operator situational awareness on
               macro days without hunting through logs. Renders only when
               hydrator has populated btc_price / btc_change_24h on /bot/status
-              indicators (Day 8 R5 wiring). */}
+              indicators (Day 8 R5 wiring).
+              Day 9 R2: padding 4→5, header 14→15px+gap, flex-1 to fill the
+              column's bottom alongside Col 1 / Col 3. The Divergence row
+              also got a typography bump for parity with the upgraded
+              MacroRow. */}
           {(ind.btc_price != null || ind.btc_change_24h != null) && (
-            <div className="bg-dark-800 border border-dark-600 rounded-xl p-4 flex flex-col">
-              <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
-                <Radio size={14} className="text-orange-400" />
-                Macro Reference <span className="text-[12px] text-slate-500 font-mono font-normal">BTC · TAO</span>
+            <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 flex flex-col flex-1">
+              <h2 className="text-base font-semibold text-white flex items-center gap-2.5 mb-3">
+                <Radio size={15} className="text-orange-400" />
+                Macro Reference <span className="text-[13px] text-slate-500 font-mono font-normal">BTC · TAO</span>
               </h2>
               <MacroRow label="BTC Price"
                         val={ind.btc_price != null ? `$${ind.btc_price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'} />
@@ -1112,14 +1141,31 @@ export default function Dashboard() {
                   ? (div > 0 ? ' • TAO lagging' : ' • TAO leading')
                   : ' • neutral'
                 return (
-                  <div className="flex items-center justify-between text-[12px] font-mono mt-2 pt-2 border-t border-dark-700">
-                    <span className="text-slate-400">Divergence</span>
-                    <span className={cls}>
+                  <div className="flex items-center justify-between font-mono mt-3 pt-3 border-t border-dark-700">
+                    <span className="text-[13px] text-slate-400">Divergence</span>
+                    <span className={clsx('text-[15px] font-semibold', cls)}>
                       {div > 0 ? '+' : ''}{div.toFixed(2)}pp{note}
                     </span>
                   </div>
                 )
               })()}
+
+              {/* Day 9 R2 — visual filler note pinned to the card bottom.
+                  Carries the macro_correlation gate doctrine in plain
+                  language so the operator reads context, not just numbers,
+                  AND gives the card real ink to fill its stretched height
+                  without forcing an empty void. `mt-auto` floats it to the
+                  card's bottom edge. */}
+              <div className="mt-auto pt-4">
+                <div className="p-3 rounded-lg bg-dark-700/50 border border-dark-600/60">
+                  <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest mb-1.5">
+                    Macro Gate
+                  </p>
+                  <p className="text-[12px] text-slate-300 font-mono leading-relaxed">
+                    Macro Correlation fires on BTC↔TAO divergence ≥ <span className="text-slate-200">±1.5pp</span> with a <span className="text-slate-200">1.0%</span> BTC activity floor. Quiet macro days → bot abstains.
+                  </p>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -1149,19 +1195,29 @@ export default function Dashboard() {
           <IndRow label="BB Lower"     val={ind.bb_lower} />
           <IndRow label="SMA 50"       val={ind.sma_50} />
 
-          {/* Day 9 — new ambient rows.
-              Volume / MFI / OI are wired to indicator keys the backend may
-              already expose under several common names; we read with
-              fallbacks so whichever the hydrator publishes will populate.
-              All render '—' until present (same behaviour as RSI/EMA on a
-              cold boot). */}
+          {/* Day 9 R2 — new ambient rows, now backend-wired.
+              · volume_24h: passthrough of CoinGecko's `usd_24h_vol` (rolling
+                24h volume in USD). Compact-USD formatter.
+              · mfi_14:     Wilder-smoothed Money Flow Index from price +
+                volume buffers. ≤20 oversold (BUY), ≥80 overbought (SELL),
+                mirrors RSI band semantics. Caveat documented backend-side:
+                per-tick volume is rolling-24h not per-period candle, so the
+                signal is degraded vs OHLCV-MFI — observability tier, not a
+                strategy gate.
+              · open_interest: USD-denominated OI from OKX TAO-USDT-SWAP.
+                Polled on the 30s price loop. Renders '—' on stale fetch
+                (e.g. if OKX is geo-blocked from Railway's edge).
+              All three null-degrade to '—' just like RSI/EMA before
+              warmup, same pattern. */}
           <IndRow label="Volume 24h"
-                  val={(ind.volume_24h ?? ind.volume ?? null) as number | null} />
+                  val={(ind.volume_24h ?? null) as number | null}
+                  format={fmtCompactUsd} />
           <IndRow label="MFI (14)"
-                  val={(ind.mfi_14 ?? ind.mfi ?? null) as number | null}
+                  val={(ind.mfi_14 ?? null) as number | null}
                   good={20} bad={80} />
           <IndRow label="Open Interest"
-                  val={(ind.open_interest ?? ind.oi ?? null) as number | null} />
+                  val={(ind.open_interest ?? null) as number | null}
+                  format={fmtCompactUsd} />
 
           {/* Moon Phase — computed client-side, always live */}
           {(() => {

@@ -40,12 +40,41 @@ BTC_COINGECKO_ID = "bitcoin"
 RSI_PERIOD = 14
 WARMUP_TICKS = 28          # 2 × RSI_PERIOD — minimum for a stable reading
 
+# Day 9 Round 2 — Open Interest source.
+# OKX exposes a free, no-auth OI endpoint for TAO-USDT perpetual swaps.
+# (Binance Futures was the natural first choice but is geo-blocked from
+# Railway's US edge — same response on the dev sandbox: "restricted
+# location" with a Terms-of-Service link. OKX answered cleanly:
+#   {"data":[{"oiUsd":"17010678.4", ...}]}
+# `oiUsd` is the operator-meaningful read; keeping it as our headline OI
+# value. If OKX itself goes geo-blocked on Railway, the field nulls out
+# and the frontend's IndRow renders '—' — same graceful degrade pattern
+# as the rest of the indicator dict.)
+OKX_OI_URL = "https://www.okx.com/api/v5/public/open-interest"
+OKX_TAO_INST_ID = "TAO-USDT-SWAP"
+
+# Day 9 Round 2 — MFI(14) period.
+# Money Flow Index is RSI's volume-weighted cousin. We reuse the same
+# WARMUP_TICKS=28 floor for symmetry with RSI; below that, MFI is None.
+# Caveat documented in compute_indicators(): per-tick "volume" here is
+# CoinGecko's `usd_24h_vol` snapshot (rolling 24h), not per-period
+# candle volume. The signal is degraded vs an OHLCV-based MFI but still
+# carries directional information from the close-vs-close price series.
+# A follow-up could swap in CoinGecko market_chart 5m candles for a
+# clean MFI; documented as a known limitation, not a defect.
+MFI_PERIOD = 14
+
 
 class PriceService:
     def __init__(self):
         self._current_price: Optional[float] = None
         self._price_data: Dict[str, Any] = {}
         self._price_history: List[float] = []   # rolling window for indicators
+        # Day 9 Round 2 — parallel volume buffer, written paired with each
+        # price tick. Used by MFI(14). Same cap as _price_history so the
+        # two series stay aligned index-by-index. Stores Optional[float]
+        # because CoinGecko occasionally returns price without volume.
+        self._volume_history: List[Optional[float]] = []
         self._max_history = 200
         # BTC reference feed (Day 8 Round 4 — macro_correlation rewrite).
         # CoinGecko's /simple/price endpoint accepts a comma-separated
@@ -54,6 +83,12 @@ class PriceService:
         # alongside the TAO 24h change to detect cross-asset divergence.
         self._btc_price: Optional[float] = None
         self._btc_data: Dict[str, Any] = {}
+        # Day 9 Round 2 — Open Interest snapshot from OKX TAO-USDT-SWAP.
+        # Polled on the same 30s loop as the CoinGecko price call. Stale
+        # flag carries forward the last good reading rather than nulling
+        # on a transient blip; compute_indicators() respects the flag.
+        self._open_interest: Optional[float] = None
+        self._oi_data: Dict[str, Any] = {}
         self._lock = asyncio.Lock()
         self._running = False
         self._task: Optional[asyncio.Task] = None
@@ -152,29 +187,49 @@ class PriceService:
             from sqlalchemy import select, desc
 
             async with AsyncSessionLocal() as db:
+                # Day 9 Round 2: pull volume_24h alongside price_usd so
+                # the volume buffer hydrates in lockstep. Without this,
+                # MFI(14) would face a 14-min cold window after every
+                # redeploy even though the price buffer is hot — exactly
+                # the post-redeploy-UNKNOWN class of bug Day 8 R5 fixed
+                # for RSI/regime. Same loop, same fix, broader scope.
                 stmt = (
-                    select(PriceHistory.price_usd)
+                    select(PriceHistory.price_usd, PriceHistory.volume_24h)
                     .where(PriceHistory.symbol == "TAO")
                     .order_by(desc(PriceHistory.recorded_at))
                     .limit(self._max_history)
                 )
-                rows = (await db.execute(stmt)).scalars().all()
+                rows = (await db.execute(stmt)).all()
 
             if not rows:
                 logger.info("PriceService hydrate: no persisted ticks (cold start)")
                 return
 
             # rows are most-recent-first; reverse into chronological order
-            seeded = [float(p) for p in reversed(rows) if p is not None]
+            chrono = list(reversed(rows))
+            seeded_prices = [float(r[0]) for r in chrono if r[0] is not None]
+            seeded_volumes: List[Optional[float]] = []
+            for r in chrono:
+                if r[0] is None:
+                    continue
+                v = r[1]
+                seeded_volumes.append(float(v) if v is not None else None)
+
             async with self._lock:
-                self._price_history.extend(seeded)
+                self._price_history.extend(seeded_prices)
+                self._volume_history.extend(seeded_volumes)
                 # In case start() is called twice or a stale loop wrote
-                # ticks before hydrate landed, clip to the cap.
+                # ticks before hydrate landed, clip both buffers to the
+                # cap. They hydrate in lockstep so a single trim covers
+                # both, but trim independently to be defensive.
                 if len(self._price_history) > self._max_history:
                     self._price_history = self._price_history[-self._max_history:]
+                if len(self._volume_history) > self._max_history:
+                    self._volume_history = self._volume_history[-self._max_history:]
 
             logger.info(
-                f"PriceService hydrate: seeded {len(seeded)} ticks "
+                f"PriceService hydrate: seeded {len(seeded_prices)} ticks "
+                f"({sum(1 for v in seeded_volumes if v is not None)} with volume) "
                 f"from price_history (warmed_up={self.is_warmed_up()})"
             )
         except Exception as e:
@@ -238,8 +293,15 @@ class PriceService:
                 }
                 if self._current_price:
                     self._price_history.append(self._current_price)
+                    # Day 9 Round 2 — paired write into the volume buffer.
+                    # Whatever volume_24h came back this tick (possibly
+                    # None on a partial response) is stored at the same
+                    # index as the price. MFI(14) reads both series.
+                    self._volume_history.append(data.get("usd_24h_vol"))
                     if len(self._price_history) > self._max_history:
                         self._price_history.pop(0)
+                    if len(self._volume_history) > self._max_history:
+                        self._volume_history.pop(0)
 
                 # ── BTC reference (Day 8 Round 4 — macro_correlation) ──
                 # If the BTC slice came back, refresh the cached reference.
@@ -266,6 +328,14 @@ class PriceService:
                 f"BTC=${self._btc_price}"
             )
 
+            # ── Open Interest (Day 9 Round 2 — OKX TAO-USDT-SWAP) ───────
+            # Independent fetch. Failure here cannot stall the price loop
+            # or affect indicator publication — OI is observability-tier,
+            # not load-bearing for any current strategy gate. If OKX is
+            # geo-blocked from Railway's edge, this nulls out and the
+            # frontend renders '—' (graceful degrade pattern).
+            await self._fetch_open_interest()
+
             # ── Persist tick (Day 9 — Task #C) ──────────────────────────
             # Fire-and-forget so DB latency cannot stall the price loop.
             # Writes the same tick that just landed in _price_history,
@@ -289,6 +359,68 @@ class PriceService:
                 )
             except Exception:
                 pass
+
+    # ------------------------------------------------------------------
+    # Open Interest fetcher (Day 9 Round 2)
+    # ------------------------------------------------------------------
+
+    async def _fetch_open_interest(self) -> None:
+        """
+        Poll OKX for TAO-USDT-SWAP open interest. Fire-and-quiet: any
+        failure (network, geo-block, schema drift) marks the cached value
+        stale rather than raising — OI is an ambient observability
+        indicator, not a load-bearing signal. compute_indicators() reads
+        the staleness flag and returns None when set, which the frontend
+        IndRow renders as '—'.
+
+        Response shape:
+            {"code":"0","data":[{"oiUsd":"17010678.4", ...}],"msg":""}
+        We pull `oiUsd` because that's the operator-meaningful read
+        (USD-denominated, comparable across exchanges if we ever add a
+        second source).
+        """
+        try:
+            async with httpx.AsyncClient(timeout=8.0) as client:
+                resp = await client.get(
+                    OKX_OI_URL,
+                    params={"instType": "SWAP", "instId": OKX_TAO_INST_ID},
+                )
+                resp.raise_for_status()
+                payload = resp.json()
+            data_list = payload.get("data") or []
+            if not data_list:
+                # Legitimate empty response — mark stale, keep last good.
+                async with self._lock:
+                    if self._oi_data:
+                        self._oi_data["stale"] = True
+                return
+            row = data_list[0]
+            oi_usd = row.get("oiUsd")
+            oi_ccy = row.get("oiCcy")        # in TAO units
+            oi_contracts = row.get("oi")     # in contracts
+            if oi_usd is None:
+                async with self._lock:
+                    if self._oi_data:
+                        self._oi_data["stale"] = True
+                return
+            async with self._lock:
+                self._open_interest = float(oi_usd)
+                self._oi_data = {
+                    "oi_usd": float(oi_usd),
+                    "oi_tao": float(oi_ccy) if oi_ccy is not None else None,
+                    "oi_contracts": float(oi_contracts) if oi_contracts is not None else None,
+                    "source": "okx_swap",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "stale": False,
+                }
+            logger.debug(f"OI updated (OKX TAO-USDT-SWAP): ${self._open_interest:,.0f}")
+        except Exception as e:
+            # Mark stale; preserve last good value. compute_indicators
+            # will null the field out so the frontend shows '—'.
+            logger.debug(f"OI fetch failed (non-fatal): {e}")
+            async with self._lock:
+                if self._oi_data:
+                    self._oi_data["stale"] = True
 
     # ------------------------------------------------------------------
     # Technical indicators
@@ -377,6 +509,92 @@ class PriceService:
             result["bb_upper"] = None
             result["bb_mid"] = None
             result["bb_lower"] = None
+
+        # ── Volume (Day 9 Round 2) ────────────────────────────────────────
+        # Direct passthrough of CoinGecko's `usd_24h_vol` for the current
+        # tick. This is the rolling 24h volume in USD, NOT a per-period
+        # candle volume — useful as an ambient liquidity reading on the
+        # Live Indicators panel; not used as a strategy gate.
+        vol_24h = self._price_data.get("volume_24h")
+        result["volume_24h"] = float(vol_24h) if vol_24h is not None else None
+
+        # ── MFI(14) — Money Flow Index (Day 9 Round 2) ────────────────────
+        # ╔══════════════════════════════════════════════════════════════════╗
+        # ║ Caveat: per-tick "volume" here is `usd_24h_vol` (rolling 24h),  ║
+        # ║ not per-period candle volume. The signal is degraded vs an      ║
+        # ║ OHLCV-based MFI — most of the volume value is unchanged from    ║
+        # ║ tick to tick, so the volume weighting carries less signal than  ║
+        # ║ on candle-derived MFI. This is OBSERVABILITY-TIER, not a        ║
+        # ║ strategy gate. Documented as a known limitation; future work    ║
+        # ║ could pull CoinGecko market_chart 5m candles for clean OHLCV    ║
+        # ║ MFI on a slower cadence. WARMUP_TICKS=28 floor mirrors RSI for  ║
+        # ║ symmetry. Below that, MFI is None (frontend renders '—').       ║
+        # ╚══════════════════════════════════════════════════════════════════╝
+        if (
+            len(self._price_history) >= WARMUP_TICKS
+            and len(self._volume_history) >= WARMUP_TICKS
+        ):
+            try:
+                # Align lengths defensively (paired writes should keep
+                # them in lockstep, but a hydrate-only path may differ).
+                n = min(len(self._price_history), len(self._volume_history))
+                prices_arr = self._price_history[-n:]
+                vols_arr = self._volume_history[-n:]
+                # Drop any tick where volume is None (None-safe pairing).
+                paired = [
+                    (p, v) for p, v in zip(prices_arr, vols_arr)
+                    if v is not None and p is not None
+                ]
+                if len(paired) >= MFI_PERIOD + 1:
+                    p_series = pd.Series([p for p, _ in paired], dtype=float)
+                    v_series = pd.Series([v for _, v in paired], dtype=float)
+                    # Typical price = close (no OHLC available).
+                    typical = p_series
+                    raw_money_flow = typical * v_series
+                    # Direction: +1 when typical price rose vs prior tick.
+                    delta = typical.diff()
+                    pos_mf = raw_money_flow.where(delta > 0, 0.0)
+                    neg_mf = raw_money_flow.where(delta < 0, 0.0)
+                    # Wilder-smoothed sums over MFI_PERIOD for stability —
+                    # mirrors RSI(14) treatment, less choppy than the
+                    # textbook simple-rolling-sum.
+                    pos_smooth = pos_mf.ewm(alpha=1.0 / MFI_PERIOD, adjust=False).mean()
+                    neg_smooth = neg_mf.ewm(alpha=1.0 / MFI_PERIOD, adjust=False).mean()
+                    last_pos = float(pos_smooth.iloc[-1])
+                    last_neg = float(neg_smooth.iloc[-1])
+                    if last_pos == 0.0 and last_neg == 0.0:
+                        result["mfi_14"] = None
+                    elif last_neg == 0.0:
+                        result["mfi_14"] = 100.0
+                    elif last_pos == 0.0:
+                        result["mfi_14"] = 0.0
+                    else:
+                        money_ratio = last_pos / last_neg
+                        mfi_val = 100.0 - (100.0 / (1.0 + money_ratio))
+                        result["mfi_14"] = (
+                            float(mfi_val) if not np.isnan(mfi_val) else None
+                        )
+                else:
+                    result["mfi_14"] = None
+            except Exception:
+                # Don't let an MFI math hiccup poison the indicator dict —
+                # the rest of the indicators are independent of this block.
+                result["mfi_14"] = None
+        else:
+            result["mfi_14"] = None
+
+        # ── Open Interest (Day 9 Round 2 — OKX TAO-USDT-SWAP) ────────────
+        # USD-denominated OI from OKX perpetual swap. None when the OKX
+        # call has never succeeded OR the most recent fetch marked the
+        # cache stale. Stale handling mirrors the BTC reference pattern:
+        # don't fabricate a number we don't have, but don't drop the
+        # whole indicator dict either.
+        oi_stale = self._oi_data.get("stale", True)
+        result["open_interest"] = (
+            float(self._open_interest)
+            if self._open_interest is not None and not oi_stale
+            else None
+        )
 
         # ── Macro reference (Day 8 Round 4 — macro_correlation rewrite) ──
         # Surface TAO/BTC 24h % changes as first-class indicators so
