@@ -112,8 +112,12 @@ export default function SignalFeedTile() {
       // Pull a generous page so we still have ≥ N signal events after
       // filtering out trades / system / gate / alert kinds. The activity
       // endpoint sorts newest-first.
-      const r = await api.get<ActivityResp>('/fleet/activity', { params: { limit: 80 } })
-      const sigs = (r.data.events ?? []).filter(e => e.kind === 'signal').slice(0, 24)
+      // Day 9: pulled cap 24 → 60 and the activity-page fetch 80 → 200 so the
+      // tile fills the bottom-row column height (column now stacks taller next
+      // to the new Sentiment-over-Macro middle column). Internal scroll
+      // remains; this just gives more room before scrolling kicks in.
+      const r = await api.get<ActivityResp>('/fleet/activity', { params: { limit: 200 } })
+      const sigs = (r.data.events ?? []).filter(e => e.kind === 'signal').slice(0, 60)
       setEvents(sigs)
       setStale(false)
     } catch {
@@ -214,7 +218,7 @@ export default function SignalFeedTile() {
                        [&::-webkit-scrollbar-thumb]:bg-dark-600
                        [&::-webkit-scrollbar-thumb]:rounded-full
                        hover:[&::-webkit-scrollbar-thumb]:bg-dark-500"
-            style={{ maxHeight: 360 }}
+            style={{ maxHeight: 560 }}
           >
             {events.map((e) => {
               const src  = detectSource(e.detail, e.message)

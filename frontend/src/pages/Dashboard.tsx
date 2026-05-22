@@ -91,6 +91,37 @@ function fmt(n: number, d = 4) {
   return n >= 0 ? `+${s}` : `-${s}`
 }
 
+// Day 9 — Moon phase (computed client-side, no backend dep).
+// Conway's algorithm: returns phase index 0..7 + label + emoji + illumination%.
+//   0 New · 1 Waxing Crescent · 2 First Quarter · 3 Waxing Gibbous
+//   4 Full · 5 Waning Gibbous · 6 Last Quarter · 7 Waning Crescent
+// Mark's brief listed Moon Phases alongside Volume / MFI / OI as ambient
+// context indicators; this is the one we can light up immediately without a
+// backend pipe. Volume/MFI/OI render '—' until the indicator service exposes
+// them (mirrors how the existing IndRow rows behave on null inputs).
+function moonPhase(date = new Date()): { idx: number; label: string; emoji: string; illum: number } {
+  let y = date.getUTCFullYear()
+  let m = date.getUTCMonth() + 1
+  const d = date.getUTCDate()
+  if (m < 3) { y -= 1; m += 12 }
+  const a = Math.floor(y / 100)
+  const b = Math.floor(a / 4)
+  const c = 2 - a + b
+  const e = Math.floor(365.25 * (y + 4716))
+  const f = Math.floor(30.6001 * (m + 1))
+  const jd = c + d + e + f - 1524.5
+  const daysSinceNew = (jd - 2451549.5) % 29.53058867
+  const norm = (daysSinceNew < 0 ? daysSinceNew + 29.53058867 : daysSinceNew) / 29.53058867
+  const idx = Math.floor(norm * 8 + 0.5) % 8
+  const labels = ['New Moon','Waxing Crescent','First Quarter','Waxing Gibbous',
+                  'Full Moon','Waning Gibbous','Last Quarter','Waning Crescent']
+  const emojis = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘']
+  // illumination % approximation: cosine of phase angle, normalized 0..100
+  const phaseAngle = norm * 2 * Math.PI
+  const illum = Math.round((1 - Math.cos(phaseAngle)) / 2 * 100)
+  return { idx, label: labels[idx], emoji: emojis[idx], illum }
+}
+
 
 // ── TradingView TAO Chart ─────────────────────────────────────────────────────
 // Session XXVIII: switched height contract from Tailwind class → inline style
@@ -308,9 +339,12 @@ function SentimentGauge({
         ))}
       </div>
 
-      {/* Gauge SVG */}
+      {/* Gauge SVG — Day 9: trimmed maxHeight 185 → 125 (≈⅓ reduction) so the
+          Sentiment card pulls in tight and leaves room beneath it for the new
+          Macro Reference + Divergence sub-card stacked below in Column 2.
+          Vector content unchanged; only the rendered ceiling shrinks. */}
       <div className="flex-1 flex items-center justify-center min-h-0">
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 185 }} preserveAspectRatio="xMidYMid meet">
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 125 }} preserveAspectRatio="xMidYMid meet">
 
           {/* Shadow/background arc */}
           <path d={arcPath(180, 360, R)} fill="none" stroke="#1e293b" strokeWidth={16} />
@@ -1032,37 +1066,36 @@ export default function Dashboard() {
               not wired (paid API tier; we just removed Perplexity for the
               same reason — see signal_ingestor.py XXXIX comment).
           Three columns fit and read better than two on this row. */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+      {/* Day 9 layout: Col 2 is now a VERTICAL STACK (Sentiment over Macro),
+          per Mark's clarification. Bottom-row sections are no longer same-
+          proportions siblings — Col 1 / Col 3 are full-height tiles, Col 2
+          stacks two cards. `items-start` keeps the stack from being stretched
+          to match the tallest sibling (so the Macro card hugs Sentiment). */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
         {/* Column 1 — Signal Feed (new XXXIX Day 6) */}
         <SignalFeedTile />
 
-        {/* Column 2 — Market Sentiment */}
-        <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
+        {/* Column 2 — vertical stack: Market Sentiment on top, Macro
+            Reference (BTC) + Divergence below in their own card.
+            Macro/Divergence relocated FROM Live Indicators (Col 3) per Mark's
+            Day 9 spec — sentiment-tier readings cluster together, ambient
+            technical indicators stay together in Col 3. */}
+        <div className="flex flex-col gap-5">
+          <SentimentGauge ind={ind} consensusStats={consensusStats} taoFearGreed={taoFearGreed} />
 
-        {/* Column 3 — Live Indicators (relocated from working-data row) */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 h-full flex flex-col">
-          <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
-            <Radio size={14} className="text-accent-blue" /> Live Indicators
-          </h2>
-          <IndRow label="RSI (14)"     val={ind.rsi_14}      good={30} bad={70} />
-          <IndRow label="EMA 9"        val={ind.ema_9} />
-          <IndRow label="EMA 21"       val={ind.ema_21} />
-          <IndRow label="MACD"         val={ind.macd} />
-          <IndRow label="MACD Signal"  val={ind.macd_signal} />
-          <IndRow label="BB Upper"     val={ind.bb_upper} />
-          <IndRow label="BB Lower"     val={ind.bb_lower} />
-          <IndRow label="SMA 50"       val={ind.sma_50} />
-
-          {/* Macro Reference — BTC divergence (Day 9, Task #C).
+          {/* Macro Reference (BTC) + Divergence — relocated card.
               The macro_correlation strategy fires on BTC-vs-TAO 24h
               divergence (±1.5pp + 1.0% BTC activity floor). Surfacing
-              the live values here gives the operator situational
-              awareness on macro days without hunting through logs. */}
+              live values here gives the operator situational awareness on
+              macro days without hunting through logs. Renders only when
+              hydrator has populated btc_price / btc_change_24h on /bot/status
+              indicators (Day 8 R5 wiring). */}
           {(ind.btc_price != null || ind.btc_change_24h != null) && (
-            <div className="mt-3 pt-3 border-t border-dark-600">
-              <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mb-2">
-                Macro Reference (BTC)
-              </p>
+            <div className="bg-dark-800 border border-dark-600 rounded-xl p-4 flex flex-col">
+              <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-2">
+                <Radio size={14} className="text-orange-400" />
+                Macro Reference <span className="text-[12px] text-slate-500 font-mono font-normal">BTC · TAO</span>
+              </h2>
               <MacroRow label="BTC Price"
                         val={ind.btc_price != null ? `$${ind.btc_price.toLocaleString(undefined, { maximumFractionDigits: 0 })}` : '—'} />
               <MacroRow label="BTC 24h"
@@ -1089,6 +1122,62 @@ export default function Dashboard() {
               })()}
             </div>
           )}
+        </div>
+
+        {/* Column 3 — Live Indicators.
+            Day 9 changes:
+              · Macro Reference + Divergence relocated OUT (now lives in Col 2
+                under Market Sentiment).
+              · New ambient rows added per Mark's brief: Volume, MFI,
+                Open Interest, Moon Phase. Volume/MFI/OI render '—' until the
+                indicator service exposes them on /bot/status (mirrors how the
+                existing rows behave on null — same nullable IndRow pattern).
+                Moon Phase computes client-side via Conway's algorithm — no
+                backend dep, lights up immediately.
+              · Momentum Signal block stays at the bottom (the live trigger
+                read-out, kept per Mark's brief). */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl p-5 h-full flex flex-col">
+          <h2 className="text-sm font-semibold text-white flex items-center gap-2 mb-3">
+            <Radio size={14} className="text-accent-blue" /> Live Indicators
+          </h2>
+          <IndRow label="RSI (14)"     val={ind.rsi_14}      good={30} bad={70} />
+          <IndRow label="EMA 9"        val={ind.ema_9} />
+          <IndRow label="EMA 21"       val={ind.ema_21} />
+          <IndRow label="MACD"         val={ind.macd} />
+          <IndRow label="MACD Signal"  val={ind.macd_signal} />
+          <IndRow label="BB Upper"     val={ind.bb_upper} />
+          <IndRow label="BB Lower"     val={ind.bb_lower} />
+          <IndRow label="SMA 50"       val={ind.sma_50} />
+
+          {/* Day 9 — new ambient rows.
+              Volume / MFI / OI are wired to indicator keys the backend may
+              already expose under several common names; we read with
+              fallbacks so whichever the hydrator publishes will populate.
+              All render '—' until present (same behaviour as RSI/EMA on a
+              cold boot). */}
+          <IndRow label="Volume 24h"
+                  val={(ind.volume_24h ?? ind.volume ?? null) as number | null} />
+          <IndRow label="MFI (14)"
+                  val={(ind.mfi_14 ?? ind.mfi ?? null) as number | null}
+                  good={20} bad={80} />
+          <IndRow label="Open Interest"
+                  val={(ind.open_interest ?? ind.oi ?? null) as number | null} />
+
+          {/* Moon Phase — computed client-side, always live */}
+          {(() => {
+            const mp = moonPhase()
+            return (
+              <div className="flex justify-between items-center py-1.5 border-b border-dark-700 last:border-0">
+                <span className="text-xs text-slate-300">Moon Phase</span>
+                <span className="text-xs font-mono font-semibold text-slate-200 flex items-center gap-1.5"
+                      title={`${mp.label} · ~${mp.illum}% illuminated`}>
+                  <span className="text-base leading-none">{mp.emoji}</span>
+                  <span className="text-slate-400 text-[11px]">{mp.label}</span>
+                  <span className="text-slate-500 text-[11px]">{mp.illum}%</span>
+                </span>
+              </div>
+            )
+          })()}
 
           {/* Momentum signal summary */}
           <div className="mt-auto pt-4">

@@ -1,9 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
 import {
-  TrendingUp, TrendingDown, Activity, BarChart2,
+  TrendingUp, TrendingDown,
   Award, RefreshCw, ChevronUp, ChevronDown, Clock,
-  ArrowUp, ArrowDown, Minus, ExternalLink,
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
@@ -14,80 +12,50 @@ import { useBotStore } from '@/store/botStore'
 // PnL Summary. Network Analytics now serves as subnet + strategy metrics
 // only, no on-page chart rendering (hence no recharts dependency).
 
-// ── Top Subnets (relocated from Agent Fleet) ──────────────────────────────────
-interface Subnet {
-  uid: number; name: string; ticker: string
-  stake_tao: number; stake_usd: number
-  emission: number; apy: number; miners: number
-  trend: 'up' | 'down' | 'neutral'; score: number
+// Day 9 (Session XLI): Top Subnets card relocated from this page → Subnet
+// Market Data (where it sits above the search/filter row, alongside the
+// table that drills into the same subnet roster). Subnet/SubnetCard/
+// SubnetTrendIcon/useNavigate import all left with it. In their place, the
+// KPI Row was relocated FROM Subnet Market Data → here, sitting above the
+// Network Heat Map so the page leads with TAO price + total stake + active
+// subnet count + up/down breakdown before the heatmap visualisation.
+
+// ── KPI Row types (relocated from Subnet Market Data, Day 9) ──────────────────
+interface Overview {
+  tao_price: number
+  total_subnets: number
+  total_stake_tao: number
+  total_stake_usd: number
+  avg_apy: number
+  top_subnet: { uid?: number; name?: string; stake_tao?: number } | null
+  up_subnets: number
+  down_subnets: number
 }
-function SubnetTrendIcon({ trend }: { trend: string }) {
-  if (trend === 'up')   return <ArrowUp   size={10} className="text-emerald-400" />
-  if (trend === 'down') return <ArrowDown size={10} className="text-red-400" />
-  return <Minus size={10} className="text-slate-500" />
+
+// ── Helpers (relocated alongside the KPI Row) ─────────────────────────────────
+function fmtTAO(n: number | null | undefined) {
+  const v = n ?? 0
+  if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M τ`
+  if (v >= 1_000)     return `${(v / 1_000).toFixed(1)}K τ`
+  return `${v.toFixed(0)} τ`
 }
-// Session XXXV: Top Subnet card enlarged + clickable per Mav's spec.
-//   - card width:    160px → 200px (more room, easier to read)
-//   - name text:     12px → 14px
-//   - ticker text:   10px → 12px
-//   - stat tile body: 11px → 13px
-//   - stat tile labels: 9px → 11px
-//   - score row:     10/12px → 12/14px
-//   - whole card now navigates to /market/subnet/:uid (the SubnetDetail page —
-//     Mav's note "Strategy Detail Page" was a near-miss; subnets get the
-//     SubnetDetail page, strategies get the StrategyDetail page).
-function SubnetCard({ s, maxStake }: { s: Subnet; maxStake: number }) {
-  const navigate = useNavigate()
-  const stakePct   = maxStake ? (s.stake_tao / maxStake) * 100 : 0
-  const trendColor = s.trend === 'up' ? 'text-emerald-400' : s.trend === 'down' ? 'text-red-400' : 'text-slate-500'
-  const scoreColor = s.score >= 90 ? '#34d399' : s.score >= 70 ? '#60a5fa' : s.score >= 50 ? '#fbbf24' : '#f87171'
+function fmtUSD(n: number | null | undefined) {
+  const v = n ?? 0
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`
+  if (v >= 1_000)     return `$${(v / 1_000).toFixed(0)}K`
+  return `$${v.toFixed(0)}`
+}
+
+// Compact KPI tile — matches the look the row had on Subnet Market Data.
+function KpiTile({ label, value, sub, color }: {
+  label: string; value: string; sub?: string; color?: string
+}) {
   return (
-    <button
-      type="button"
-      onClick={() => navigate(`/market/subnet/${s.uid}`)}
-      title={`Open SN${s.uid} (${s.name}) detail page`}
-      className="group flex-shrink-0 w-[200px] bg-dark-900 border border-dark-600 rounded-xl p-3.5 hover:border-accent-blue/50 hover:bg-dark-800 transition-all text-left"
-    >
-      <div className="flex items-start justify-between mb-2.5">
-        <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-white truncate group-hover:text-accent-blue transition-colors">{s.name}</p>
-          <p className="text-[12px] text-slate-500 font-mono uppercase">SN{s.uid} · {s.ticker}</p>
-        </div>
-        <div className="flex items-center gap-1 flex-shrink-0 ml-1">
-          <SubnetTrendIcon trend={s.trend} />
-          <span className={clsx('text-[11px] font-mono font-bold', trendColor)}>{s.trend.toUpperCase()}</span>
-          <ExternalLink size={11} className="text-slate-600 group-hover:text-accent-blue transition-colors ml-0.5" />
-        </div>
-      </div>
-      <div className="mb-2">
-        <div className="flex justify-between text-[12px] font-mono mb-0.5">
-          <span className="text-slate-500">Stake</span>
-          <span className="text-slate-300">{((s.stake_tao ?? 0) / 1e6).toFixed(2)}M τ</span>
-        </div>
-        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
-          <div className="h-full bg-blue-500/60 rounded-full" style={{ width: `${stakePct}%` }} />
-        </div>
-      </div>
-      <div className="grid grid-cols-2 gap-1.5 mb-2">
-        <div className="bg-dark-800 rounded px-2 py-1 text-center">
-          <p className="text-[11px] text-slate-500 font-mono">APY</p>
-          <p className="text-[13px] font-bold text-emerald-400 font-mono">{(s.apy ?? 0).toFixed(1)}%</p>
-        </div>
-        <div className="bg-dark-800 rounded px-2 py-1 text-center">
-          <p className="text-[11px] text-slate-500 font-mono">Emit</p>
-          <p className="text-[13px] font-bold text-yellow-400 font-mono">{((s.emission ?? 0) * 100).toFixed(2)}%</p>
-        </div>
-      </div>
-      <div>
-        <div className="flex justify-between text-[12px] font-mono mb-0.5">
-          <span className="text-slate-500">Score</span>
-          <span className="font-bold text-[14px]" style={{ color: scoreColor }}>{(s.score ?? 0).toFixed(1)}</span>
-        </div>
-        <div className="h-1 bg-dark-700 rounded-full overflow-hidden">
-          <div className="h-full rounded-full" style={{ width: `${Math.min(100, s.score ?? 0)}%`, background: scoreColor }} />
-        </div>
-      </div>
-    </button>
+    <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex flex-col gap-1 min-w-0">
+      <p className="text-[13px] text-slate-300 uppercase tracking-widest font-mono truncate">{label}</p>
+      <p className={clsx('text-xl font-bold font-mono truncate', color ?? 'text-white')}>{value}</p>
+      {sub && <p className="text-[13px] text-slate-300 truncate">{sub}</p>}
+    </div>
   )
 }
 
@@ -175,7 +143,7 @@ export default function Analytics() {
   const [sortKey,    setSortKey]    = useState<SortKey>('total_pnl')
   const [sortAsc,    setSortAsc]    = useState(false)
   const [timeRange,  setTimeRange]  = useState<TimeRange>('all')
-  const [subnets,    setSubnets]    = useState<Subnet[]>([])
+  const [overview,   setOverview]   = useState<Overview | null>(null)
 
   const setAnalyticsStats = useBotStore(s => s.setAnalyticsStats)
 
@@ -208,16 +176,18 @@ export default function Analytics() {
 
   useEffect(() => { load() }, [load])
 
-  // Top Subnets — 60s refresh (relocated from Agent Fleet)
+  // KPI Row — /market/overview, 30s refresh (relocated from Subnet Market
+  // Data, Day 9). Quiet on errors — overview is decorative; the heatmap
+  // below is the load-bearing surface on this page.
   useEffect(() => {
-    const fetchSubnets = async () => {
+    const fetchOverview = async () => {
       try {
-        const r = await api.get('/market/subnets?limit=20&sort=stake')
-        setSubnets(r.data.subnets ?? [])
+        const r = await api.get('/market/overview')
+        setOverview(r.data)
       } catch { /* silent — non-critical */ }
     }
-    fetchSubnets()
-    const t = setInterval(fetchSubnets, 60_000)
+    fetchOverview()
+    const t = setInterval(fetchOverview, 30_000)
     return () => clearInterval(t)
   }, [])
 
@@ -279,32 +249,31 @@ export default function Analytics() {
         </div>
       )}
 
-      {/* ── Top Subnets by Stake ── TOP OF PAGE ──────────────────────────── */}
-      <div className="card overflow-hidden">
-        <div className="flex items-center gap-2 px-4 py-2.5 border-b border-dark-600">
-          <BarChart2 size={13} className="text-accent-blue" />
-          <span className="text-[12px] font-bold tracking-widest text-slate-300 uppercase">Top Subnets</span>
-          <span className="text-[11px] text-slate-600 font-mono ml-1">by stake · live</span>
-          <span className="ml-auto text-[11px] text-slate-600 font-mono">{subnets.length} loaded</span>
+      {/* ── KPI Row (relocated from Subnet Market Data, Day 9) ──────────────
+          Renders above the Network Heat Map. Stays decorative — the heatmap
+          is the load-bearing surface on Subnet Analytics; KPIs lead the page
+          with at-a-glance market context (TAO price, total stake, avg APY,
+          active subnet count, top subnet) before the heatmap. */}
+      {overview && (
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          <KpiTile label="TAO Price"      value={`$${(overview.tao_price ?? 0).toFixed(2)}`}        color="text-accent-blue" />
+          <KpiTile label="Total Staked"   value={fmtTAO(overview.total_stake_tao)}                   sub={fmtUSD(overview.total_stake_usd)} />
+          <KpiTile label="Avg APY"        value={`${(overview.avg_apy ?? 0).toFixed(1)}%`}           color="text-accent-green" />
+          <KpiTile label="Active Subnets" value={`${overview.total_subnets ?? 0}`}                   sub={`${overview.up_subnets ?? 0}↑ / ${overview.down_subnets ?? 0}↓`} />
+          <KpiTile label="Top Subnet"     value={overview.top_subnet?.name?.slice(0, 12) ?? '—'}     sub={overview.top_subnet?.uid != null ? `SN${overview.top_subnet.uid}` : '—'} />
+          <KpiTile label="Top Stake"      value={fmtTAO(overview.top_subnet?.stake_tao)}             color="text-yellow-400" />
         </div>
-        <div className="flex gap-3 overflow-x-auto px-4 py-3">
-          {subnets.length === 0 ? (
-            <div className="text-[11px] text-slate-600 font-mono py-2 flex items-center gap-2">
-              <Activity size={11} className="animate-pulse" /> Loading subnets…
-            </div>
-          ) : (() => {
-            const maxStake = Math.max(...subnets.map(s => s.stake_tao), 1)
-            return subnets.map(s => <SubnetCard key={s.uid} s={s} maxStake={maxStake} />)
-          })()}
-        </div>
-      </div>
+      )}
 
       {/* ── Chart area ─────────────────────────────────────────────────────────
           Session XXVI: Drawdown relocated to Dashboard.
           Session XXVII: Rolling Win Rate relocated to PnL Summary (below
           Cumulative PnL) per partner request. Chart area removed entirely
           from Network Analytics — this page now focuses on subnet + strategy
-          metrics only. ─────────────────────────────────────────────────── */}
+          metrics only.
+          Day 9 (XLI): Top Subnets card relocated OUT of this page → Subnet
+          Market Data (sits above its search/filter row). KPI Row relocated
+          IN from Subnet Market Data → above the heatmap (see above). */}
 
       {/* Strategy table legend relocated to Strategies page (Session XXXV) —
           Mav: this Rank/WR/W-L key belongs next to the actual strategy cards,
