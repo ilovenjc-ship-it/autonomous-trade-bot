@@ -322,16 +322,19 @@ function SentimentGauge({
         ))}
       </div>
 
-      {/* Gauge SVG — Day 9 R5: trimmed cap 200 → 175 to bring Col 2's
-          stack natural height closer to Col 3's natural baseline (574px).
-          With items-start on the grid (R5) the row no longer stretches
-          to the tallest sibling, so each column has to be sized close to
-          the same value or they sit unevenly. Sentiment 175 + 20 gap +
-          Macro ~322 = 597, ~23px taller than Col 3 — visually flush at
-          a glance. (R1 was 125 = "too condensed"; R3 was uncapped =
-          "too large"; R4 was 200 = stretched Col 2 too far.) */}
+      {/* Gauge SVG — Day 9 R6: bumped cap 175 → 220 (one notch up per
+          Mark's R6 walkthrough). R5 estimated Col 3's natural height at
+          ~574px and tuned to match — but Col 3 actually renders at ~738px
+          once all live data (Volume / MFI / OI / Sentiment Inputs) is
+          populated and rows hit their full vertical rhythm. The 175 cap
+          left Col 2's stack ~44px short of Col 3's bottom edge.
+          R6 closes that gap by giving the gauge another ~45px of vertical
+          room (Sentiment card: 255 → 300; stack: 695 → 740 ≈ Col 3 738).
+          Cap history: R1=125 (too condensed) → R3=uncapped (too large) →
+          R4=200 (Col 2 too tall when row stretched) → R5=175 (too short
+          when row didn't stretch) → R6=220 (matched to live Col 3). */}
       <div className="flex-1 flex items-center justify-center min-h-0">
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 175 }} preserveAspectRatio="xMidYMid meet">
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 220 }} preserveAspectRatio="xMidYMid meet">
 
           {/* Shadow/background arc */}
           <path d={arcPath(180, 360, R)} fill="none" stroke="#1e293b" strokeWidth={16} />

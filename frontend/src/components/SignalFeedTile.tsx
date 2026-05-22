@@ -217,17 +217,19 @@ export default function SignalFeedTile() {
       {/* Event list */}
       {!loading && events.length > 0 && (
         <>
-          {/* Day 9 R5 — fixed-height slider per Mark's directive: 'Section
-              should have Section Slider, And be (Fixed - not able to
-              expand as data entries are added)'. The events list now has
-              a hard maxHeight of 450px; new entries scroll within the
-              fixed window rather than expanding the card. This anchors
-              Col 1's natural height to ≈ 574px (450 events + ~124px
-              chrome: header, mb-3 spacers, KPI strip, padding), matching
-              Col 3's natural baseline so the row sits flush.
-              History: R3 dropped the cap (events list grew unbounded
-              forcing Col 1 way taller than Col 3); R5 restores the cap
-              tuned to Col 3's height instead of the ad-hoc 560. */}
+          {/* Day 9 R6 — fixed slider extended 450 → 605 to match Col 3's
+              actual live-rendered baseline (~738px, not the R5 estimate
+              of 574). Slider is still FIXED per Mark's directive ('Section
+              Slider, And be (Fixed - not able to expand as data entries
+              are added)') — the bump just gives the slider a taller fixed
+              window so Col 1's bottom edge lines up flush with Col 2 +
+              Col 3 bottoms. New events still scroll within this window;
+              card never grows past 605 + chrome. Slider mechanics
+              unchanged.
+              History: Day 6 = 360, R3 = removed cap (events list grew
+              unbounded), R5 = 450 (anchored to Col 3 natural ~574 — but
+              Col 3 actually renders ~738 with live data), R6 = 605
+              (anchored to live Col 3). */}
           <div
             className="space-y-1 mb-3 overflow-y-auto pr-1 -mr-1
                        [&::-webkit-scrollbar]:w-1.5
@@ -235,7 +237,7 @@ export default function SignalFeedTile() {
                        [&::-webkit-scrollbar-thumb]:bg-dark-600
                        [&::-webkit-scrollbar-thumb]:rounded-full
                        hover:[&::-webkit-scrollbar-thumb]:bg-dark-500"
-            style={{ maxHeight: 450 }}
+            style={{ maxHeight: 605 }}
           >
             {events.map((e) => {
               const src  = detectSource(e.detail, e.message)
