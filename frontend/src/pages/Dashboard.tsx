@@ -263,8 +263,14 @@ function SentimentGauge({
   // MACD, Consensus, and TAO F&G — those inputs still feed the gauge,
   // they're just no longer rendered as a separate readout block here.
 
+  // Day 9 R4: dropped `h-full` from this card. With h-full the Sentiment
+  // card was claiming 100% of Col 2's stretched stack height, fighting
+  // Macro Reference's `flex-1` for space and pushing Macro down past the
+  // row baseline. Now Sentiment sizes to its natural content (header +
+  // zone band + capped 200px gauge ≈ 280px) and Macro absorbs the rest
+  // of Col 2 cleanly via flex-1.
   return (
-    <div className="bg-dark-800 border border-dark-600 rounded-xl p-4 flex flex-col h-full relative">
+    <div className="bg-dark-800 border border-dark-600 rounded-xl p-4 flex flex-col relative">
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
@@ -316,17 +322,19 @@ function SentimentGauge({
         ))}
       </div>
 
-      {/* Gauge SVG — Day 9 R3: dropped the maxHeight cap entirely. With the
-          input-breakdown table relocated to Live Indicators, the gauge now
-          claims the full body of this card — fixing the "too condensed"
-          read Mark called out. flex-1 wrapper + width:100% + viewBox aspect
-          keeps the vector centered and proportional; preserveAspectRatio
-          xMidYMid meet ensures it scales without distortion as the column
-          width / freed vertical space change. Card outer dimensions stay
-          the same — the gauge simply grows into the space the table
-          vacated. */}
+      {/* Gauge SVG — Day 9 R4: re-capped at maxHeight 200. R3 dropped the
+          cap to let the gauge breathe after the input table was removed,
+          but with no ceiling the SVG grew large enough that Col 2's stack
+          (Sentiment + Macro Reference) ballooned past Col 3's natural
+          baseline — pushing Macro Reference far down and leaving the
+          Signal Feed column with too much empty void. 200px is the
+          balanced read: gauge is comfortably visible (vs R1's condensed
+          125), and the card's total height now leaves Macro Reference
+          its natural ~280px slot below within the same row baseline as
+          Col 3 (Live Indicators). preserveAspectRatio xMidYMid meet
+          keeps the vector centered and proportional inside the cap. */}
       <div className="flex-1 flex items-center justify-center min-h-0">
-        <svg width="100%" viewBox={`0 0 ${W} ${H}`} preserveAspectRatio="xMidYMid meet">
+        <svg width="100%" viewBox={`0 0 ${W} ${H}`} style={{ maxHeight: 200 }} preserveAspectRatio="xMidYMid meet">
 
           {/* Shadow/background arc */}
           <path d={arcPath(180, 360, R)} fill="none" stroke="#1e293b" strokeWidth={16} />
@@ -1216,8 +1224,17 @@ export default function Dashboard() {
                   val={consensusStats?.approval_rate_pct ?? null}
                   format={(v) => `${v.toFixed(1)}%`} />
 
-          {/* Momentum signal summary */}
-          <div className="mt-auto pt-4">
+          {/* Momentum signal summary — Day 9 R4: relocated UP to sit just
+              below Consensus (was floating at the column bottom via
+              `mt-auto`). With Momentum hugging the sentiment cluster, Col 3
+              now has a tight natural content height — which becomes the
+              row's baseline. Col 2's Sentiment+Macro stack and Col 1's
+              Signal Feed both flush to that baseline cleanly, no more
+              empty void below the last row in any column. The summary
+              block keeps its dark callout pill styling for the visual
+              break from the indicator rows above; just `mt-3` spacing
+              instead of an mt-auto floor. */}
+          <div className="mt-3">
             <div className="p-3 rounded-lg bg-dark-700 border border-dark-600">
               <p className="text-[13px] text-slate-300 font-mono uppercase tracking-widest mb-1">Momentum Signal</p>
               {ind.rsi_14 != null ? (
