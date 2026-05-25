@@ -301,6 +301,11 @@ export default function Trades() {
           value={tradeStats?.total_trades ?? 0}
           icon={ArrowUpDown}
           sub={isLive ? 'Live + paper combined' : 'Paper only'}
+          info={<>
+            <p className="text-white font-bold mb-1">Total Trades</p>
+            <p>Total trade events (entries + exits) since Zero Day. In Paper mode this is simulated trades only; in Live mode it sums live + paper.</p>
+            <p className="mt-1 text-slate-400">Filtered by the same <span className="font-mono">stats_reset_at</span> anchor as the Dashboard, so the two surfaces never disagree.</p>
+          </>}
         />
         <StatCard
           label="Win Rate"
@@ -312,6 +317,11 @@ export default function Trades() {
               ? 'No trades yet'
               : `${tradeStats?.wins ?? 0}W · ${tradeStats?.losses ?? 0}L`
           }
+          info={<>
+            <p className="text-white font-bold mb-1">Win Rate</p>
+            <p>Fraction of trades closing with positive PnL. Promotion gates: 55% to graduate PAPER → APPROVED, 65% to earn LIVE.</p>
+            <p className="mt-1 text-slate-400">Below 40% turns red — a clear underperformance signal that the strategy is fighting the regime.</p>
+          </>}
         />
         <StatCard
           label={isLive ? 'Total Volume' : 'Total Volume'}
@@ -319,6 +329,11 @@ export default function Trades() {
           icon={DollarSign}
           color="blue"
           sub={isLive ? 'all trades' : 'Simulated USD · paper only'}
+          info={<>
+            <p className="text-white font-bold mb-1">Total Volume</p>
+            <p>Cumulative notional traded (USD value of all entries + exits). Useful for sizing-vs-frequency calibration: high volume + low PnL means tight margins.</p>
+            <p className="mt-1 text-slate-400">In Paper mode this is simulated USD using the prevailing TAO price at each fill.</p>
+          </>}
         />
         <StatCard
           label={isLive ? 'Total P&L' : 'Total P&L'}
@@ -326,6 +341,11 @@ export default function Trades() {
           icon={(tradeStats?.total_pnl_tau ?? 0) >= 0 ? TrendingUp : TrendingDown}
           color={(tradeStats?.total_pnl_tau ?? 0) >= 0 ? 'green' : 'red'}
           sub={`≈ $${(tradeStats?.total_pnl_usd ?? 0).toFixed(2)} ${isLive ? 'realized' : 'simulated'}`}
+          info={<>
+            <p className="text-white font-bold mb-1">Total P&L</p>
+            <p>Cumulative realized profit/loss in TAO across the trade window. Negative is expected during paper training — gates are designed to keep losses in PAPER and profits in LIVE.</p>
+            <p className="mt-1 text-slate-400">USD figure converts at the trade-time TAO price; it is not marked-to-market on the current spot.</p>
+          </>}
         />
       </div>
 

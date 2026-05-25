@@ -6,6 +6,7 @@ import {
 import clsx from 'clsx'
 import api from '@/api/client'
 import SubnetHeatMap from '@/components/SubnetHeatMap'
+import { InfoBubble } from '@/components/Tooltip'
 import { useBotStore } from '@/store/botStore'
 
 // Session XXVII: Recharts imports removed — Rolling Win Rate chart moved to
@@ -47,12 +48,17 @@ function fmtUSD(n: number | null | undefined) {
 }
 
 // Compact KPI tile — matches the look the row had on Subnet Market Data.
-function KpiTile({ label, value, sub, color }: {
-  label: string; value: string; sub?: string; color?: string
+// Day 12 (Session XLII): added optional `info` slot for the (i) tooltip per
+// Mark's spec — every Subnet Analytics KPI now carries an explainer bubble.
+function KpiTile({ label, value, sub, color, info }: {
+  label: string; value: string; sub?: string; color?: string; info?: React.ReactNode
 }) {
   return (
     <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3 flex flex-col gap-1 min-w-0">
-      <p className="text-[13px] text-slate-300 uppercase tracking-widest font-mono truncate">{label}</p>
+      <div className="flex items-center gap-1.5 min-w-0">
+        <p className="text-[13px] text-slate-300 uppercase tracking-widest font-mono truncate">{label}</p>
+        {info && <InfoBubble content={info} side="right" maxWidth={300} />}
+      </div>
       <p className={clsx('text-xl font-bold font-mono truncate', color ?? 'text-white')}>{value}</p>
       {sub && <p className="text-[13px] text-slate-300 truncate">{sub}</p>}
     </div>
@@ -256,12 +262,62 @@ export default function Analytics() {
           active subnet count, top subnet) before the heatmap. */}
       {overview && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-2">
-          <KpiTile label="TAO Price"      value={`$${(overview.tao_price ?? 0).toFixed(2)}`}        color="text-accent-blue" />
-          <KpiTile label="Total Staked"   value={fmtTAO(overview.total_stake_tao)}                   sub={fmtUSD(overview.total_stake_usd)} />
-          <KpiTile label="Avg APY"        value={`${(overview.avg_apy ?? 0).toFixed(1)}%`}           color="text-accent-green" />
-          <KpiTile label="Active Subnets" value={`${overview.total_subnets ?? 0}`}                   sub={`${overview.up_subnets ?? 0}↑ / ${overview.down_subnets ?? 0}↓`} />
-          <KpiTile label="Top Subnet"     value={overview.top_subnet?.name?.slice(0, 12) ?? '—'}     sub={overview.top_subnet?.uid != null ? `SN${overview.top_subnet.uid}` : '—'} />
-          <KpiTile label="Top Stake"      value={fmtTAO(overview.top_subnet?.stake_tao)}             color="text-yellow-400" />
+          <KpiTile
+            label="TAO Price"
+            value={`$${(overview.tao_price ?? 0).toFixed(2)}`}
+            color="text-accent-blue"
+            info={<>
+              <p className="text-white font-bold mb-1">TAO Price</p>
+              <p>Spot price of TAO in USD, refreshed every 60 seconds from CoinGecko. Same feed every strategy reads when generating signals.</p>
+            </>}
+          />
+          <KpiTile
+            label="Total Staked"
+            value={fmtTAO(overview.total_stake_tao)}
+            sub={fmtUSD(overview.total_stake_usd)}
+            info={<>
+              <p className="text-white font-bold mb-1">Total Staked</p>
+              <p>Aggregate TAO staked across every subnet on Finney mainnet. The sub-line shows the USD equivalent at the current spot.</p>
+              <p className="mt-1 text-slate-400">Tracks network conviction — rising stake = capital inflows, falling stake = unwinds.</p>
+            </>}
+          />
+          <KpiTile
+            label="Avg APY"
+            value={`${(overview.avg_apy ?? 0).toFixed(1)}%`}
+            color="text-accent-green"
+            info={<>
+              <p className="text-white font-bold mb-1">Average APY</p>
+              <p>Mean annualised emission yield across all subnets, computed from on-chain emission rates.</p>
+              <p className="mt-1 text-slate-400">Note: this is a simple mean — top subnets emit far more than the long tail. The heat map shows the per-subnet distribution.</p>
+            </>}
+          />
+          <KpiTile
+            label="Active Subnets"
+            value={`${overview.total_subnets ?? 0}`}
+            sub={`${overview.up_subnets ?? 0}↑ / ${overview.down_subnets ?? 0}↓`}
+            info={<>
+              <p className="text-white font-bold mb-1">Active Subnets</p>
+              <p>Number of subnets currently registered and emitting on mainnet. Sub-line: subnets trending up vs down based on recent stake-flow direction.</p>
+            </>}
+          />
+          <KpiTile
+            label="Top Subnet"
+            value={overview.top_subnet?.name?.slice(0, 12) ?? '—'}
+            sub={overview.top_subnet?.uid != null ? `SN${overview.top_subnet.uid}` : '—'}
+            info={<>
+              <p className="text-white font-bold mb-1">Top Subnet</p>
+              <p>Subnet ranked #1 by total staked TAO. The leaderboard shifts as whales rotate; large name changes here are a meaningful flow signal.</p>
+            </>}
+          />
+          <KpiTile
+            label="Top Stake"
+            value={fmtTAO(overview.top_subnet?.stake_tao)}
+            color="text-yellow-400"
+            info={<>
+              <p className="text-white font-bold mb-1">Top Stake</p>
+              <p>Total TAO staked on the #1 subnet. Concentration ratio — when this number balloons relative to Total Staked, network conviction is narrowing into one subnet.</p>
+            </>}
+          />
         </div>
       )}
 

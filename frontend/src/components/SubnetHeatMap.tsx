@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Flame } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import api from '@/api/client'
 import { InfoBubble } from '@/components/Tooltip'
 
@@ -94,6 +95,7 @@ function heatText(norm: number): string {
 }
 
 export default function SubnetHeatMap() {
+  const navigate = useNavigate()
   const [subnets,  setSubnets]  = useState<SubnetRow[]>([])
   const [loading,  setLoading]  = useState(true)
   const [hovered,  setHovered]  = useState<SubnetRow | null>(null)
@@ -298,10 +300,20 @@ export default function SubnetHeatMap() {
                       setHoverPos({ x, y })
                     }}
                     onMouseLeave={() => setHovered(null)}
-                    className="relative cursor-default select-none rounded flex flex-col items-center justify-center transition-transform hover:scale-105 hover:z-10"
+                    onClick={() => navigate(`/market/subnet/${s.uid}`)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={e => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault()
+                        navigate(`/market/subnet/${s.uid}`)
+                      }
+                    }}
+                    title={`Open ${s.name} (SN${s.uid}) detail page`}
+                    className="relative cursor-pointer select-none rounded flex flex-col items-center justify-center transition-transform hover:scale-105 hover:z-10 focus:outline-none focus:ring-2 focus:ring-accent-blue/70"
                     style={{
                       background:   bg,
-                      outline:      isTaoBot ? '2px solid #00e5a0' : 'none',
+                      outline:      isTaoBot ? '2px solid #00e5a0' : undefined,
                       outlineOffset: '1px',
                       boxShadow:    isTaoBot ? '0 0 10px rgba(0,229,160,0.40)' : undefined,
                     }}

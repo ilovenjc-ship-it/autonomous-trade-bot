@@ -9,7 +9,10 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, Cell, ReferenceLine,
 } from 'recharts'
-import { TrendingUp, Activity, Trophy, ArrowUp, ArrowDown, Target, Edit3, BarChart2 } from 'lucide-react'
+// Day 12 (Session XLII): ArrowUp/ArrowDown removed — only used by the
+// "Best / Worst / By Trade Type" block, which has been relocated to the
+// Trade Log page. Activity icon kept (still used elsewhere on this page).
+import { TrendingUp, Activity, Trophy, Target, Edit3, BarChart2 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 import toast from 'react-hot-toast'
@@ -372,7 +375,10 @@ export default function PnLSummary() {
     )
   }
 
-  const { fleet, by_strategy, by_type, by_day, by_week } = data
+  // Day 12 (Session XLII): by_type destructured-out — the "By Trade Type"
+  // block now lives on the Trade Log page. Field still arrives on the
+  // /pnl/summary payload (consumed by TradeLog.tsx), just not used here.
+  const { fleet, by_strategy, by_day, by_week } = data
   const barData = view === 'day' ? by_day : (by_week ?? by_day)
   const maxPnl  = Math.max(...by_strategy.map(s => Math.abs(s.total_pnl)), 0.001)
   const topStrategy = by_strategy[0]
@@ -551,61 +557,13 @@ export default function PnLSummary() {
           component reads /api/analytics/drawdown directly. */}
       <DrawdownChart />
 
-      {/* ── Top / Worst Trade ── */}
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-dark-800 border border-emerald-500/20 rounded-2xl p-4">
-          <p className="text-[13px] text-emerald-400 uppercase tracking-wider font-mono mb-2">Best Single Trade</p>
-          <p className="text-2xl font-bold font-mono text-emerald-400">{fmtTau(fleet.best_trade)}</p>
-          <p className="text-xs text-slate-500 font-mono mt-1">{fmtUSD(fleet.best_trade * (data.tao_price_usd ?? 259.31))}</p>
-        </div>
-        <div className="bg-dark-800 border border-red-500/20 rounded-2xl p-4">
-          <p className="text-[13px] text-red-400 uppercase tracking-wider font-mono mb-2">Worst Single Trade</p>
-          <p className="text-2xl font-bold font-mono text-red-400">{fmtTau(fleet.worst_trade)}</p>
-          <p className="text-xs text-slate-500 font-mono mt-1">{fmtUSD(fleet.worst_trade * (data.tao_price_usd ?? 259.31))}</p>
-        </div>
-      </div>
-
-      {/* ── By Trade Type (relocated from leaderboard row, per Session XXV spec) ── */}
-      <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
-        <div className="px-5 py-3 border-b border-dark-700 flex items-center gap-2">
-          <Activity size={13} className="text-indigo-400" />
-          <span className="text-xs font-semibold text-white uppercase tracking-wider">By Trade Type</span>
-          <span className="ml-auto text-[13px] text-slate-500 font-mono">BUY vs SELL · aggregated fleet</span>
-        </div>
-        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-6">
-          {by_type.map(t => (
-            <div key={t.type}>
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  {t.type === 'BUY'
-                    ? <ArrowUp size={14} className="text-emerald-400" />
-                    : <ArrowDown size={14} className="text-red-400" />
-                  }
-                  <span className="text-sm font-bold text-white">{t.type}</span>
-                </div>
-                <span className={clsx('text-sm font-bold font-mono',
-                  t.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400'
-                )}>
-                  {fmtTau(t.total_pnl)}
-                </span>
-              </div>
-              <div className="space-y-1.5 text-[14px] font-mono">
-                {[
-                  { label: 'Trades',   val: t.total_trades.toLocaleString() },
-                  { label: 'Win Rate', val: `${t.win_rate}%` },
-                  { label: 'Avg PnL',  val: fmtTau(t.avg_pnl) },
-                  { label: 'Volume',   val: fmtUSD(t.volume_usd) },
-                ].map(({ label, val }) => (
-                  <div key={label} className="flex justify-between">
-                    <span className="text-slate-500">{label}</span>
-                    <span className="text-slate-300">{val}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* ── Best / Worst / By Trade Type — Day 12 (Session XLII) RELOCATED to
+            Trade Log page (top of page, above the All-Types filter row), per
+            Mark's spec. The PnL Summary page now ends at Drawdown so the
+            chart flow stays uninterrupted; the trade-level statistics sit
+            on the page that surfaces the actual trade history. The relocated
+            UI lives in pages/TradeLog.tsx and reads the same /pnl/summary
+            payload (no backend change). */}
 
       {/* (Section order: PnL Over Time → Strategy PnL Distribution →
            Cumulative PnL → Drawdown. Established Session XXXVI per Mav

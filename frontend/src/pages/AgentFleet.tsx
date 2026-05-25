@@ -236,6 +236,30 @@ export default function AgentFleet() {
     }
   }, [fetchBots])
 
+  // ── Day 12 (Session XLII): Controls toggle live-update fix ────────────────
+  // Original bug: api.post('/fleet/bots/{name}/{activate|deactivate}') was
+  // fire-and-forget on the OFF/ON buttons (no await, no refetch). The button
+  // colours read `bot.is_active`, which only updates when the 60-s polling
+  // interval ticks or the operator navigates back to the page — exactly the
+  // "delayed response" Mark flagged. Fix: optimistic local mutation for
+  // instant visual feedback, then await the POST + refetch to reconcile, and
+  // roll back the optimistic change on failure with a toast.
+  const handleToggleBot = useCallback(async (botName: string, activate: boolean) => {
+    // Optimistic — flip the row colour immediately so the operator sees
+    // the click register without a 60-s wait.
+    setBots(prev => prev.map(b => b.name === botName ? { ...b, is_active: activate } : b))
+    try {
+      await api.post(`/fleet/bots/${botName}/${activate ? 'activate' : 'deactivate'}`)
+      // Reconcile against backend truth (in case of regime-bench overrides
+      // or other server-side state we don't model client-side).
+      await fetchBots()
+    } catch {
+      // Rollback the optimistic change.
+      setBots(prev => prev.map(b => b.name === botName ? { ...b, is_active: !activate } : b))
+      toast.error(`Could not ${activate ? 'activate' : 'pause'} ${botName.replace(/_/g, ' ')}`)
+    }
+  }, [fetchBots])
+
   useEffect(() => {
     fetchBots()
     const t = setInterval(fetchBots, 60_000)
@@ -476,18 +500,18 @@ export default function AgentFleet() {
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-center gap-1.5">
-                      {/* OFF button */}
+                      {/* OFF button — Day 12: optimistic toggle, await + refetch (was fire-and-forget) */}
                       <Tooltip content="Pause this bot — stops it from generating signals" side="top">
                         <button
-                          onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/deactivate`) }}
+                          onClick={e => { e.stopPropagation(); handleToggleBot(bot.name, false) }}
                           className={clsx('px-2 py-0.5 rounded text-[12px] font-bold transition-all', !bot.is_active ? 'bg-red-500/20 text-red-400 border border-red-500/40 shadow-[0_0_6px_rgba(239,68,68,0.2)]' : 'text-slate-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/30')}>
                           OFF
                         </button>
                       </Tooltip>
-                      {/* ON button */}
+                      {/* ON button — Day 12: optimistic toggle, await + refetch (was fire-and-forget) */}
                       <Tooltip content="Activate this bot — resumes signal generation cycle" side="top">
                         <button
-                          onClick={e => { e.stopPropagation(); api.post(`/fleet/bots/${bot.name}/activate`) }}
+                          onClick={e => { e.stopPropagation(); handleToggleBot(bot.name, true) }}
                           className={clsx('px-2 py-0.5 rounded text-[12px] font-bold transition-all', bot.is_active ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 shadow-[0_0_6px_rgba(52,211,153,0.2)]' : 'text-slate-500 hover:text-emerald-400 hover:bg-emerald-500/10 border border-transparent hover:border-emerald-500/30')}>
                           ON
                         </button>

@@ -725,9 +725,12 @@ export default function Dashboard() {
       {/* OpenClaw page (below the BFT explainer) and at the top of Strategies. */}
 
       {/* ══════════════════════════════════════════════════════════════════════
-          OPERATOR STATIC CARDS — Session XXXVIII order (Mav spec):
-          Row 1:  II Agent · Win Rate · Total PnL · Total Trades · Paper Day
+          OPERATOR STATIC CARDS — Day 12 (Session XLII) order (Mark spec):
+          Row 1:  II Agent · Paper Day · Total Trades · Win Rate · Total PnL
           Row 2:  TAO/USD · 24h Change · Alerts · Approval Rate · Hot Strategies
+          (Day 12 reshuffle moved Paper Day + Total Trades up so the day-counter
+          and trade-volume context lead the row, with WR + PnL closing it as
+          the bottom-line scoring metrics. Slot 1 unchanged.)
                                                                   └─ replaced
                                                                      Daily Cap
                                                                      (relocated
@@ -760,7 +763,47 @@ export default function Dashboard() {
           <ChevronRight size={11} className="text-slate-600 group-hover:text-indigo-400 transition-colors mt-1 flex-shrink-0" />
         </button>
 
-        {/* 2 — Win Rate */}
+        {/* 2 — Paper Day  (Day 12 reshuffle: hoisted from slot 5) */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
+            paperDay >= 7 ? 'bg-emerald-500/10' : 'bg-amber-500/10'
+          )}>
+            <CalendarDays size={14} className={paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'} />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Paper Day</p>
+              <InfoBubble content="Days elapsed since Zero Day. Day 7 is the gate-open milestone — strategies need at least 7 days of paper history before they can pass the WR/PnL gates and earn promotion to LIVE. Until Day 7, the fleet is in pure observation mode." side="right" maxWidth={300} />
+            </div>
+            <p className={clsx('text-base font-black font-mono mt-0.5',
+              paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'
+            )}>
+              Day {paperDay}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
+              {gateLabel}
+            </p>
+          </div>
+        </div>
+
+        {/* 3 — Total Trades  (Day 12 reshuffle: hoisted from slot 4) */}
+        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
+          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
+            <Hash size={14} className="text-slate-300" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
+              <InfoBubble content="Total trade count across the fleet since Zero Day (formal restart 2026-05-13 16:39:39 UTC, when 8,552 fossil paper trades were wiped). Counts every entry/exit event from every strategy — paper and live combined." side="right" maxWidth={300} />
+            </div>
+            <p className="text-base font-black font-mono text-white mt-0.5">
+              {summary ? totalTrades.toLocaleString() : '—'}
+            </p>
+            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
+          </div>
+        </div>
+
+        {/* 4 — Win Rate  (Day 12 reshuffle: dropped from slot 2) */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
           <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
             winRate >= 55 ? 'bg-emerald-500/10' : winRate >= 40 ? 'bg-amber-500/10' : 'bg-red-500/10'
@@ -783,7 +826,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* 3 — Total PnL  (Session XXXVIII: tooltip merged with retired Fleet PnL definition) */}
+        {/* 5 — Total PnL  (Day 12 reshuffle: dropped from slot 3, now closes the row) */}
         <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
           <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
             totalPnl >= 0 ? 'bg-emerald-500/10' : 'bg-red-500/10'
@@ -801,46 +844,6 @@ export default function Dashboard() {
               {summary ? `${fmt(totalPnl, 4)} τ` : '—'}
             </p>
             <p className="text-[11px] font-mono text-slate-500 mt-0.5">fleet cumulative</p>
-          </div>
-        </div>
-
-        {/* 4 — Total Trades */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className="w-8 h-8 rounded-lg bg-slate-700/50 flex items-center justify-center flex-shrink-0">
-            <Hash size={14} className="text-slate-300" />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Total Trades</p>
-              <InfoBubble content="Total trade count across the fleet since Zero Day (formal restart 2026-05-13 16:39:39 UTC, when 8,552 fossil paper trades were wiped). Counts every entry/exit event from every strategy — paper and live combined." side="right" maxWidth={300} />
-            </div>
-            <p className="text-base font-black font-mono text-white mt-0.5">
-              {summary ? totalTrades.toLocaleString() : '—'}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">since Zero Day</p>
-          </div>
-        </div>
-
-        {/* 5 — Paper Day */}
-        <div className="bg-dark-800 border border-dark-600 rounded-xl px-4 py-3.5 flex items-start gap-3">
-          <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0',
-            paperDay >= 7 ? 'bg-emerald-500/10' : 'bg-amber-500/10'
-          )}>
-            <CalendarDays size={14} className={paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Paper Day</p>
-              <InfoBubble content="Days elapsed since Zero Day. Day 7 is the gate-open milestone — strategies need at least 7 days of paper history before they can pass the WR/PnL gates and earn promotion to LIVE. Until Day 7, the fleet is in pure observation mode." side="right" maxWidth={300} />
-            </div>
-            <p className={clsx('text-base font-black font-mono mt-0.5',
-              paperDay >= 7 ? 'text-emerald-400' : 'text-amber-400'
-            )}>
-              Day {paperDay}
-            </p>
-            <p className="text-[11px] font-mono text-slate-500 mt-0.5">
-              {gateLabel}
-            </p>
           </div>
         </div>
 
@@ -1072,8 +1075,23 @@ export default function Dashboard() {
           other and items-start places them at the row's top edge,
           the bottom edges sit flush at a glance. */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-5 items-start">
-        {/* Column 1 — Signal Feed (new XXXIX Day 6) */}
-        <SignalFeedTile />
+        {/* Column 1 — Signal Feed (new XXXIX Day 6).
+            Day 12 (Session XLII): wrapped in a `self-stretch` div to
+            override the grid's items-start sizing for THIS column only.
+            The wrapper pulls Col 1 to the height of the row's tallest
+            sibling (in practice Col 3 — Live Indicators — which sets the
+            baseline). Inside SignalFeedTile, the card is now h-full +
+            flex flex-col so the KPI strip can be `mt-auto`-pushed to the
+            bottom regardless of slider data depth. Net effect: bottom of
+            Col 1 always sits flush with Col 2 + Col 3 — no more pixel
+            math, no more re-tuning the maxHeight cap when Col 3's
+            natural height shifts as indicator data evolves. The R-series
+            §9c-candidate lesson (anchor to live measurement, not row
+            counting) is replaced with the structural answer: don't
+            measure — let CSS do it. */}
+        <div className="self-stretch flex flex-col xl:min-h-0">
+          <SignalFeedTile />
+        </div>
 
         {/* Column 2 — vertical stack: Market Sentiment on top, Macro
             Reference (BTC) + Divergence below in their own card.

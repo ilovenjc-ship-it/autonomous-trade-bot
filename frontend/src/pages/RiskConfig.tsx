@@ -167,9 +167,12 @@ function RiskSlider({ label, description, value, min, max, step, riskDir, format
 
 // ── status card ───────────────────────────────────────────────────────────────
 function StatusCard({
-  icon: Icon, label, value, sub, danger, warn,
+  icon: Icon, label, value, sub, danger, warn, info,
 }: {
   icon: React.ElementType; label: string; value: string; sub?: string; danger?: boolean; warn?: boolean
+  // Day 12 (Session XLII): optional "(i)" tooltip per Mark's spec —
+  // every Risk Config KPI card now carries an explainer bubble.
+  info?: React.ReactNode
 }) {
   return (
     <div className={clsx(
@@ -183,7 +186,10 @@ function StatusCard({
         <Icon size={14} className={danger ? 'text-red-400' : warn ? 'text-amber-400' : 'text-slate-300'} />
       </div>
       <div className="min-w-0">
-        <p className="text-[13px] text-slate-500 uppercase tracking-widest font-mono">{label}</p>
+        <div className="flex items-center gap-1.5">
+          <p className="text-[13px] text-slate-500 uppercase tracking-widest font-mono">{label}</p>
+          {info && <InfoBubble content={info} side="right" maxWidth={320} />}
+        </div>
         <p className={clsx('text-sm font-bold font-mono',
           danger ? 'text-red-400' : warn ? 'text-amber-400' : 'text-emerald-400')}>
           {value}
@@ -382,6 +388,11 @@ export default function RiskConfig() {
           value={isHalted ? 'ACTIVE' : 'CLEAR'}
           sub={isHalted ? 'All bots suspended' : 'No halt active'}
           danger={isHalted}
+          info={<>
+            <p className="text-white font-bold mb-1">Global HALT</p>
+            <p>The kill-switch for the entire fleet. When ACTIVE, every strategy is suspended — no signals fire, no orders submit, on-chain execution is blocked.</p>
+            <p className="mt-1 text-slate-400">Triggered manually from the Danger Zone, or automatically when the Circuit Breaker trips. Operator must clear it to resume trading.</p>
+          </>}
         />
         <StatusCard
           icon={Zap}
@@ -389,6 +400,11 @@ export default function RiskConfig() {
           value={isCBTripped ? 'TRIGGERED' : 'CLEAR'}
           sub={isCBTripped ? 'Daily limit hit' : 'Daily loss within range'}
           danger={isCBTripped}
+          info={<>
+            <p className="text-white font-bold mb-1">Circuit Breaker</p>
+            <p>Trips automatically when intraday cumulative loss exceeds the configured daily-loss threshold ({config.daily_loss_circuit_breaker_pct}% of equity).</p>
+            <p className="mt-1 text-slate-400">When TRIGGERED, the breaker forces a Global HALT until UTC midnight reset or manual clear.</p>
+          </>}
         />
         <StatusCard
           icon={TrendingDown}
@@ -397,6 +413,11 @@ export default function RiskConfig() {
           sub={drawdown === 0 ? 'Live trades only · 0% used' : `${Math.min(drawdownPct ?? 0, 100).toFixed(0)}% of ${config.max_drawdown_pct}% limit`}
           danger={drawdownPct >= 80}
           warn={drawdownPct >= 50}
+          info={<>
+            <p className="text-white font-bold mb-1">Drawdown from Peak</p>
+            <p>Current equity decline from the all-time high water mark, on LIVE trades only (paper trades excluded). Configured ceiling: <span className="text-amber-300 font-mono">{config.max_drawdown_pct}%</span>.</p>
+            <p className="mt-1 text-slate-400">≥50% of limit warns amber; ≥80% turns red. Full breach triggers a HALT.</p>
+          </>}
         />
         <StatusCard
           icon={BarChart2}
@@ -405,6 +426,11 @@ export default function RiskConfig() {
           sub={`Limit: ${config.daily_loss_circuit_breaker_pct}%`}
           danger={dailyLoss >= config.daily_loss_circuit_breaker_pct * 0.85}
           warn={dailyLoss >= config.daily_loss_circuit_breaker_pct * 0.5}
+          info={<>
+            <p className="text-white font-bold mb-1">Daily Loss</p>
+            <p>Cumulative loss for the current UTC day as a percentage of equity. Resets at UTC midnight.</p>
+            <p className="mt-1 text-slate-400">Crossing <span className="text-amber-300 font-mono">{config.daily_loss_circuit_breaker_pct}%</span> trips the Circuit Breaker. ≥50% of limit warns amber, ≥85% red.</p>
+          </>}
         />
         <StatusCard
           icon={Layers}
@@ -412,6 +438,11 @@ export default function RiskConfig() {
           value={`${openPos} / ${maxPos}`}
           sub={openPos === 0 ? 'No active trades' : `${maxPos - openPos} slots remaining`}
           warn={openPos >= maxPos}
+          info={<>
+            <p className="text-white font-bold mb-1">Open Positions</p>
+            <p>Live positions currently held against the configured maximum concurrent slot count ({maxPos}). New BUY signals are rejected when the slot count is full.</p>
+            <p className="mt-1 text-slate-400">Slot count is sized so a single drawdown event doesn't compound across too many simultaneous bets.</p>
+          </>}
         />
         {/* Session XXXIX (Day 6): Daily Cap KPI relocated here from
             Wallet/Transactions per Mav's call — natural home alongside the

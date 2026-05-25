@@ -383,7 +383,12 @@ export default function Layout() {
   return (
     <div className="flex h-screen overflow-hidden bg-dark-900">
       {/* Sidebar */}
-      <aside className="w-56 flex-shrink-0 bg-dark-800 border-r border-dark-600 flex flex-col">
+      {/* Day 12 (Session XLII): sidebar widened 56→64 (224→256px) and font
+          sizes bumped per Mark's spec — group headings 10→12px, nav items
+          14→15px, icons 16→17. The width bump is a hard prerequisite of
+          the larger nav-item font; otherwise long labels like "Wallet
+          Transactions" wrap onto a second line. */}
+      <aside className="w-64 flex-shrink-0 bg-dark-800 border-r border-dark-600 flex flex-col">
         {/* Brand — upper left corner */}
         <div className="px-4 py-4 border-b border-dark-600">
           <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">Powered by</p>
@@ -460,7 +465,7 @@ export default function Layout() {
                     ? <ChevronDown  size={11} className="text-slate-500 group-hover:text-slate-300 transition-colors" />
                     : <ChevronRight size={11} className="text-slate-500 group-hover:text-slate-300 transition-colors" />
                   }
-                  <span className="text-[10px] font-semibold tracking-[0.18em] text-slate-500 group-hover:text-slate-300 uppercase flex-1 text-left">
+                  <span className="text-[12px] font-semibold tracking-[0.16em] text-slate-500 group-hover:text-slate-300 uppercase flex-1 text-left">
                     {group.heading}
                   </span>
                   {/* collapsed-group badge hint — show a dot when something in the hidden group needs attention */}
@@ -477,7 +482,7 @@ export default function Layout() {
                         end={to === '/'}
                         className={({ isActive }) =>
                           clsx(
-                            'flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors',
+                            'flex items-center gap-3 px-3 py-2 rounded-lg text-[15px] transition-colors',
                             isActive
                               ? danger
                                 ? 'bg-red-500/15 text-red-400 font-medium border border-red-500/20'
@@ -488,7 +493,7 @@ export default function Layout() {
                           )
                         }
                       >
-                        <Icon size={16} />
+                        <Icon size={17} />
                         <span className="flex-1">{label}</span>
                         {badge && criticalUnreadCount > 0 && (
                           <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[13px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
@@ -516,7 +521,7 @@ export default function Layout() {
 
           {/* ── Floating chat panel — HAL-red theme ── */}
           {orbOpen && (
-            <div className="fixed bottom-6 left-[232px] w-[460px] z-50
+            <div className="fixed bottom-6 left-[264px] w-[460px] z-50
               bg-[#0d1526] border border-red-500/30 rounded-xl shadow-[0_0_50px_rgba(220,38,38,0.20)]
               flex flex-col overflow-hidden"
               style={{ height: 540 }}>

@@ -120,10 +120,14 @@ export default function WhaleFlowTile() {
       {/* h-full + flex column → tile stretches to match the Sentiment tile's
           height (CSS Grid items-stretch default), and the events list grows
           to fill whatever vertical space remains after header/KPI-strip.
-          Session XXXIX (Day 6) follow-up: Mark — 'extend the data entries
-          to fill the section'. List has max-h cap to prevent runaway growth
-          (h-full + flex-1 + tall list = circular height cascade if both
-          siblings use h-full, which Sentiment does). 360px ≈ 16 rows, plenty. */}
+          List slider cap evolution:
+          • XXXIX (Day 6, Mark): 'extend the data entries to fill the
+            section'. Cap held the list short of runaway growth — h-full +
+            flex-1 + tall list = circular height cascade if both siblings
+            use h-full, which Sentiment does. 360px ≈ 12 rows.
+          • Day 12 (Session XLII, Mark): 'add an additional data entry line
+            to the Whale Flow section' — bumped 360 → 392 (one extra row
+            at ~28px line-height). */}
       <div className="rounded-xl border border-dark-600 bg-dark-800 p-4 h-full flex flex-col">
         {/* Header */}
         <div className="flex items-start justify-between mb-3">
@@ -198,7 +202,7 @@ export default function WhaleFlowTile() {
                          [&::-webkit-scrollbar-thumb]:bg-dark-600
                          [&::-webkit-scrollbar-thumb]:rounded-full
                          hover:[&::-webkit-scrollbar-thumb]:bg-dark-500"
-              style={{ maxHeight: 360 }}
+              style={{ maxHeight: 392 }}
             >
               {events.map((e) => (
                 <button

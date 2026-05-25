@@ -3,12 +3,43 @@ import {
   ArrowLeftRight, RefreshCw, Filter, ChevronLeft,
   ChevronRight, TrendingUp, TrendingDown, CheckCircle2, XCircle,
   Search, Zap,
+  // Day 12 (Session XLII): icons for the relocated Best/Worst/By-Type
+  // section that now lives at the top of this page.
+  Activity, ArrowUp, ArrowDown,
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
 import TransactionDetailModal, { type TradeRecord } from '@/components/TransactionDetailModal'
 import { InfoBubble } from '@/components/Tooltip'
+
+// ── Day 12 (Session XLII) ────────────────────────────────────────────────────
+// Best Single / Worst Single / By Trade Type relocated FROM PnL Summary.
+// Pulls the same /pnl/summary payload (fleet.best_trade, fleet.worst_trade,
+// by_type[]). No backend change. Type defs duplicated from PnLSummary.tsx
+// rather than importing to keep the page self-contained.
+interface PnLTypeRow {
+  type: 'BUY' | 'SELL'
+  total_trades: number
+  win_rate: number
+  total_pnl: number
+  avg_pnl: number
+  volume_usd: number
+}
+interface PnLSummaryFleet {
+  best_trade:  number
+  worst_trade: number
+}
+interface PnLSummaryPayload {
+  fleet:         PnLSummaryFleet
+  by_type:       PnLTypeRow[]
+  tao_price_usd: number
+}
+
+const fmtTau = (n: number | null | undefined) =>
+  `${(n ?? 0) >= 0 ? '+' : ''}${(n ?? 0).toFixed(6)} τ`
+const fmtPnLUSD = (n: number) =>
+  `$${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Trade {
@@ -184,6 +215,9 @@ export default function TradeLog() {
   const [strategyModes, setStrategyModes] = useState<Record<string, string>>({})
   // Transaction detail modal
   const [selectedTrade, setSelectedTrade] = useState<TradeRecord | null>(null)
+  // Day 12 (Session XLII): /pnl/summary payload for the relocated
+  // Best/Worst/By-Type section at the top of the page.
+  const [pnlSummary, setPnlSummary] = useState<PnLSummaryPayload | null>(null)
   const PAGE_SIZE = 25
 
   const load = useCallback(async () => {
@@ -224,7 +258,16 @@ export default function TradeLog() {
       }).catch(() => {})
     loadModes()
     const t = setInterval(loadModes, 30_000)
-    return () => clearInterval(t)
+    // Day 12 (Session XLII): poll /pnl/summary for the relocated
+    // Best/Worst/By-Type strip. 60-s cadence — these are aggregate
+    // statistics, no need for real-time refresh.
+    const loadPnL = () =>
+      api.get<PnLSummaryPayload>('/pnl/summary')
+        .then(r => setPnlSummary(r.data))
+        .catch(() => {/* soft-fail — strip will not render */})
+    loadPnL()
+    const t2 = setInterval(loadPnL, 60_000)
+    return () => { clearInterval(t); clearInterval(t2) }
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -252,6 +295,99 @@ export default function TradeLog() {
             small pill button left of the Search box, with the explainer
             text behind an "(i)" InfoBubble. The pill itself sits in the
             filter row below — see end of that flex group. */}
+
+      {/* ── Best / Worst / By Trade Type — Day 12 (Session XLII) RELOCATED
+            FROM PnL Summary per Mark's spec ('relocate Best Single Trade +
+            Worst Single Trade + Trade By Type from Bottom of Page to
+            Trade Log Page > to sit at Top of Page (first line) > Above
+            All Types...'). Renders only when /pnl/summary has loaded;
+            soft-fails to nothing if the endpoint hiccups. */}
+      {pnlSummary && (
+        <div className="flex-shrink-0 px-6 pt-4 pb-2 space-y-3 border-b border-dark-700/40 bg-dark-900">
+          {/* Top row — Best + Worst single-trade cards */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <div className="bg-dark-800 border border-emerald-500/20 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <p className="text-[12px] text-emerald-400 uppercase tracking-wider font-mono">Best Single Trade</p>
+                <InfoBubble side="right" maxWidth={300} content={<>
+                  <p className="text-white font-bold mb-1">Best Single Trade</p>
+                  <p>The single most profitable trade across the entire fleet, paper + live combined. The fleet-wide ceiling.</p>
+                </>} />
+              </div>
+              <p className="text-xl font-bold font-mono text-emerald-400">{fmtTau(pnlSummary.fleet.best_trade)}</p>
+              <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                {fmtPnLUSD(pnlSummary.fleet.best_trade * (pnlSummary.tao_price_usd ?? 259.31))}
+              </p>
+            </div>
+            <div className="bg-dark-800 border border-red-500/20 rounded-xl px-4 py-3">
+              <div className="flex items-center gap-1.5 mb-1.5">
+                <p className="text-[12px] text-red-400 uppercase tracking-wider font-mono">Worst Single Trade</p>
+                <InfoBubble side="right" maxWidth={300} content={<>
+                  <p className="text-white font-bold mb-1">Worst Single Trade</p>
+                  <p>The single largest loss across the fleet. Watch for outliers — one large red number can drag a strategy below its WR/PnL gate even when the strategy is otherwise sound.</p>
+                </>} />
+              </div>
+              <p className="text-xl font-bold font-mono text-red-400">{fmtTau(pnlSummary.fleet.worst_trade)}</p>
+              <p className="text-[11px] text-slate-500 font-mono mt-0.5">
+                {fmtPnLUSD(pnlSummary.fleet.worst_trade * (pnlSummary.tao_price_usd ?? 259.31))}
+              </p>
+            </div>
+          </div>
+
+          {/* By Trade Type — BUY vs SELL aggregated */}
+          {pnlSummary.by_type?.length > 0 && (
+            <div className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden">
+              <div className="px-4 py-2 border-b border-dark-700 flex items-center gap-2">
+                <Activity size={12} className="text-indigo-400" />
+                <span className="text-[12px] font-semibold text-white uppercase tracking-wider">By Trade Type</span>
+                <InfoBubble side="right" maxWidth={300} content={<>
+                  <p className="text-white font-bold mb-1">By Trade Type</p>
+                  <p>Aggregated fleet performance split by entry direction (BUY vs SELL). Asymmetric WR or PnL between the two sides is a meaningful signal — most often it means a strategy's directional gates are mis-calibrated for the current regime.</p>
+                </>} />
+                <span className="ml-auto text-[11px] text-slate-500 font-mono">aggregated fleet</span>
+              </div>
+              <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+                {pnlSummary.by_type.map(t => (
+                  <div key={t.type}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <div className="flex items-center gap-1.5">
+                        {t.type === 'BUY'
+                          ? <ArrowUp size={13} className="text-emerald-400" />
+                          : <ArrowDown size={13} className="text-red-400" />
+                        }
+                        <span className="text-[13px] font-bold text-white">{t.type}</span>
+                      </div>
+                      <span className={clsx('text-[13px] font-bold font-mono',
+                        t.total_pnl >= 0 ? 'text-emerald-400' : 'text-red-400'
+                      )}>
+                        {fmtTau(t.total_pnl)}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-4 gap-2 text-[12px] font-mono">
+                      <div>
+                        <div className="text-slate-500">Trades</div>
+                        <div className="text-slate-300">{t.total_trades.toLocaleString()}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500">Win Rate</div>
+                        <div className="text-slate-300">{t.win_rate}%</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500">Avg PnL</div>
+                        <div className="text-slate-300">{fmtTau(t.avg_pnl)}</div>
+                      </div>
+                      <div>
+                        <div className="text-slate-500">Volume</div>
+                        <div className="text-slate-300">{fmtPnLUSD(t.volume_usd)}</div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Filters ─────────────────────────────────────────────────────────── */}
       <div className="flex-shrink-0 px-6 pt-3 pb-4 border-b border-dark-600">

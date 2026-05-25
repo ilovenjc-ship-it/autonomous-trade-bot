@@ -144,13 +144,19 @@ export default function SignalFeedTile() {
   }, [events])
 
   return (
-    // Day 9 R5: dropped `h-full` from the card. With h-full the card was
-    // stretching to whatever the row's tallest sibling demanded, which let
-    // the events list grow unbounded and pushed Col 3 to render empty
-    // space below the Momentum Signal pill. Now the card sizes to its
-    // natural content (header + fixed-height events slider + KPI strip),
-    // matching Col 3's natural baseline so all three columns sit flush.
-    <div className="rounded-xl border border-dark-600 bg-dark-800 p-4 flex flex-col">
+    // Day 12 (Session XLII): h-full reinstated, but ONLY because the
+    // Dashboard now wraps this tile in a `self-stretch` div that pulls
+    // Col 1 to the row's actual rendered height (whatever Col 3 ends up
+    // being once indicator data populates). The events slider keeps its
+    // fixed maxHeight cap (Mark's R6 directive: 'Section Slider, And be
+    // Fixed - not able to expand as data entries are added'), and the
+    // bottom KPI strip is `mt-auto`-pushed so it pins to the card's
+    // bottom edge regardless of how short the slider's content is.
+    // History — R5 dropped h-full to stop the slider growing unbounded,
+    // R6 replaced that with a measured maxHeight=605 cap, Day 12 makes
+    // the wrapper the size authority and lets the slider stay capped
+    // while the card fills the column.
+    <div className="rounded-xl border border-dark-600 bg-dark-800 p-4 flex flex-col h-full">
       {/* Header */}
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-2">
@@ -279,8 +285,13 @@ export default function SignalFeedTile() {
             })}
           </div>
 
-          {/* KPI strip — events + active sources */}
-          <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono">
+          {/* KPI strip — events + active sources.
+              Day 12 (Session XLII): `mt-auto` pins this strip to the
+              card's bottom edge so Col 1 sits flush with Col 2 + Col 3
+              regardless of how tall the row's tallest sibling renders.
+              Empty space (if any) sits between the slider's bottom and
+              this strip, never below it. */}
+          <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono mt-auto">
             <div className="rounded-md bg-slate-800/40 px-2 py-1.5 text-center">
               <div className="text-slate-500">Events</div>
               <div className="text-slate-200 font-bold">{events.length}</div>
