@@ -141,6 +141,7 @@ Mark's Day 12 (cont.) batch — four items:
 | 4b | UI polish R2 — borders bumped dark-700/60 → dark-500 + Session XLII archive | `374a7af1` |
 | 4c | UI polish R3 — borders bumped 1px dark-500 → **2px slate-600** (drop redundant border-l on main) | `0be22aef` |
 | 4d | UI polish R4 — borders bumped to **3px slate-500** (#64748B, ~75% diff) for guaranteed visibility | `98e42356` |
+| 4e | UI polish R5 — root cause: Sim page bg was dark-800; slate-500 borders blended.  Wrapped Pre-Trade Simulator in Risk-Config-style frame (`bg-[#080d18]` + p-6) and bumped top bar border-b to 3px slate-500 to match L/R | `07ac7700` |
 
 ### Verification ledger
 
