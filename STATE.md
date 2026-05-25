@@ -140,6 +140,7 @@ Mark's Day 12 (cont.) batch — four items:
 | 4a | UI polish R1 — borders + back-nav + X/Reddit pivots | `7cb4ce70` |
 | 4b | UI polish R2 — borders bumped dark-700/60 → dark-500 + Session XLII archive | `374a7af1` |
 | 4c | UI polish R3 — borders bumped 1px dark-500 → **2px slate-600** (drop redundant border-l on main) | `0be22aef` |
+| 4d | UI polish R4 — borders bumped to **3px slate-500** (#64748B, ~75% diff) for guaranteed visibility | `98e42356` |
 
 ### Verification ledger
 
