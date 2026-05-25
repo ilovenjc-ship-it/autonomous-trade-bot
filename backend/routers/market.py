@@ -370,17 +370,38 @@ def _live_subnet(uid: int, tao_price: float) -> dict:
 @router.get("/subnets/list")
 async def get_subnets_list():
     """
-    Lightweight endpoint: ALL tradable subnets as `[{uid, name, ticker}]`.
+    Lightweight endpoint: full subnet selector as `[{uid, name, ticker, tradable}]`.
     Day 12 (cont.) R6 — Mark caught the Pre-Trade Simulator dropdown was
     hardcoded to 6 sample uids.  Frontend now fetches this on mount to
     populate the full subnet selector (SN0 Root + SN1-SN128).
+    R7 — Mark caught the next layer: dropdown shows 129 subnets but the
+    pool-reserve cache only covers `TRADING_NETUIDS` (currently {0,8,9,18,64,96}).
+    Selecting any other uid 404s.  Each entry now carries `tradable: bool`
+    so the frontend can mark non-tradable rows as disabled and show a clean
+    "reserves not yet cached" message instead of a red 404.  Expanding
+    `TRADING_NETUIDS` is a separate decision (more chain calls per cycle).
     Cheap to compute: pure metadata, no chain calls, no pricing.
     """
-    items = [{"uid": 0, "name": "Root", "ticker": "root"}]
+    items = [{
+        "uid": 0,
+        "name": "Root",
+        "ticker": "root",
+        "tradable": 0 in TRADING_NETUIDS,
+    }]
     for uid in _DISPLAY_UIDS:
         name, ticker = SUBNET_META.get(uid, (f"Subnet {uid}", f"sn{uid}"))
-        items.append({"uid": uid, "name": name, "ticker": ticker})
-    return {"subnets": items, "count": len(items)}
+        items.append({
+            "uid": uid,
+            "name": name,
+            "ticker": ticker,
+            "tradable": uid in TRADING_NETUIDS,
+        })
+    return {
+        "subnets": items,
+        "count": len(items),
+        "tradable_count": sum(1 for s in items if s["tradable"]),
+        "tradable_uids":  sorted(TRADING_NETUIDS),
+    }
 
 
 @router.get("/subnets")

@@ -85,14 +85,28 @@ interface SimResponse {
 
 // Day 12 R6 (cont.): subnet list now fetched dynamically from
 // /api/market/subnets/list — full SN0 Root + SN1-SN128 (vs hardcoded 6).
-// Fallback used only if the network call fails before first render so the
-// page never renders an empty selector.
-type SubnetEntry = { uid: number; name: string }
+// R7: each entry carries `tradable: bool`.  Backend pool-reserve cache only
+// covers TRADING_NETUIDS (currently 6 uids); non-tradable subnets render
+// as disabled options with a "(reserves coming)" annotation, and selecting
+// one shows a clean info card instead of a red 404.
+type SubnetEntry = { uid: number; name: string; tradable: boolean }
 const FALLBACK_SUBNETS: SubnetEntry[] = [
-  { uid: 0, name: 'SN0  · Root' },
+  { uid: 0, name: 'SN0  · Root', tradable: true },
 ]
-const fmtSubnetLabel = (uid: number, name: string) =>
-  uid === 0 ? `SN0  · Root` : `SN${uid}  · ${name}`
+const fmtSubnetLabel = (uid: number, name: string, tradable: boolean) => {
+  const base = uid === 0 ? `SN0  · Root` : `SN${uid}  · ${name}`
+  return tradable ? base : `${base}  · (reserves coming)`
+}
+
+// R7: defensive coercion — FastAPI sometimes returns `detail` as an object
+// or array (validation errors).  Direct `${err}` then renders "[object Object]".
+const errToString = (e: any): string => {
+  const detail = e?.response?.data?.detail
+  if (typeof detail === 'string') return detail
+  if (Array.isArray(detail))     return detail.map((d: any) => d?.msg ?? JSON.stringify(d)).join('; ')
+  if (detail && typeof detail === 'object') return detail.msg ?? JSON.stringify(detail)
+  return e?.message ?? 'Request failed'
+}
 
 const DEPTH_TIER_COLOR: Record<string, string> = {
   deep:     'text-accent-green',
@@ -138,27 +152,42 @@ export default function PreTradeSimulator() {
   // Fetch full subnet list once on mount
   useEffect(() => {
     let cancelled = false
-    api.get<{ subnets: { uid: number; name: string }[] }>('/market/subnets/list')
+    api.get<{ subnets: { uid: number; name: string; tradable: boolean }[] }>('/market/subnets/list')
       .then(r => {
         if (cancelled) return
         const list = r.data?.subnets ?? []
         if (list.length > 0) {
-          setSubnets(list.map(s => ({ uid: s.uid, name: fmtSubnetLabel(s.uid, s.name) })))
+          setSubnets(list.map(s => ({
+            uid: s.uid,
+            name: fmtSubnetLabel(s.uid, s.name, s.tradable),
+            tradable: s.tradable,
+          })))
         }
       })
       .catch(() => { /* keep fallback so the selector still renders */ })
     return () => { cancelled = true }
   }, [])
 
+  // Look up tradability for the currently-selected uid
+  const selectedSubnet  = subnets.find(s => s.uid === netuid)
+  const isTradable      = selectedSubnet?.tradable ?? true  // assume tradable until list loads
+
   // ── Fetchers ────────────────────────────────────────────────────────────────
 
-  const fetchPool = useCallback(async (uid: number) => {
+  const fetchPool = useCallback(async (uid: number, tradable: boolean) => {
+    // R7 guard: skip the network call entirely for non-tradable subnets and
+    // surface a clean "reserves not yet cached" message instead of a red 404.
+    if (!tradable) {
+      setPool(null); setSim(null)
+      setPoolErr(null); setSimErr(null)
+      return
+    }
     setLoadingPool(true); setPoolErr(null)
     try {
       const { data } = await api.get<PoolResponse>(`/market/pool/${uid}`)
       setPool(data)
     } catch (e: any) {
-      setPoolErr(e?.response?.data?.detail ?? e?.message ?? 'Pool fetch failed')
+      setPoolErr(errToString(e))
       setPool(null)
     } finally {
       setLoadingPool(false)
@@ -174,25 +203,27 @@ export default function PreTradeSimulator() {
       })
       setSim(data)
     } catch (e: any) {
-      setSimErr(e?.response?.data?.detail ?? e?.message ?? 'Simulate failed')
+      setSimErr(errToString(e))
       setSim(null)
     } finally {
       setLoadingSim(false)
     }
   }, [])
 
-  // Pool — refetch on subnet change + 30s poll
+  // Pool — refetch on subnet change + 30s poll (skipped for non-tradable subnets)
   useEffect(() => {
-    fetchPool(netuid)
-    const t = window.setInterval(() => fetchPool(netuid), 30_000)
+    fetchPool(netuid, isTradable)
+    if (!isTradable) return
+    const t = window.setInterval(() => fetchPool(netuid, isTradable), 30_000)
     return () => window.clearInterval(t)
-  }, [netuid, fetchPool])
+  }, [netuid, isTradable, fetchPool])
 
-  // Sim — debounced re-run on any input change
+  // Sim — debounced re-run on any input change (skipped for non-tradable)
   useEffect(() => {
+    if (!isTradable) { setSim(null); setSimErr(null); return }
     const handle = window.setTimeout(() => runSim(netuid, side, amount), 250)
     return () => window.clearTimeout(handle)
-  }, [netuid, side, amount, runSim])
+  }, [netuid, side, amount, isTradable, runSim])
 
   // ── Derived: max slider value = 25% of pool depth (or 100τ floor) ──────────
   const sliderMax = useMemo(() => {
@@ -263,9 +294,20 @@ export default function PreTradeSimulator() {
               onChange={e => setNetuid(parseInt(e.target.value, 10))}
               className="w-full bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-accent-blue"
             >
-              {subnets.map(s => (
-                <option key={s.uid} value={s.uid}>{s.name}</option>
-              ))}
+              {/* R7: split into two opt-groups — tradable first (live reserves),
+                  non-tradable second (annotated, still selectable so user can
+                  see the full Bittensor surface; selection surfaces a clean
+                  "reserves coming" panel rather than triggering a 404). */}
+              <optgroup label="Tradable — live pool reserves">
+                {subnets.filter(s => s.tradable).map(s => (
+                  <option key={s.uid} value={s.uid}>{s.name}</option>
+                ))}
+              </optgroup>
+              <optgroup label="Reserves not yet cached — math unavailable">
+                {subnets.filter(s => !s.tradable).map(s => (
+                  <option key={s.uid} value={s.uid}>{s.name}</option>
+                ))}
+              </optgroup>
             </select>
           </div>
 
@@ -318,12 +360,37 @@ export default function PreTradeSimulator() {
             <span>{Math.floor(sliderMax * 0.25)}τ</span>
             <span>{Math.floor(sliderMax * 0.5)}τ</span>
             <span>{Math.floor(sliderMax * 0.75)}τ</span>
-            <span>{sliderMax}τ ({Math.round(sliderMax / Math.max(pool?.reserves?.tao_in ?? 1, 1) * 100)}% pool)</span>
+            {/* R7 guard: when pool reserves missing/0, show "—% pool" instead
+                of the divide-by-zero artefact "10000% pool". */}
+            <span>
+              {sliderMax}τ (
+              {(() => {
+                const tau = pool?.reserves?.tao_in ?? 0
+                return tau > 0
+                  ? `${Math.round((sliderMax / tau) * 100)}% pool`
+                  : '—% pool'
+              })()}
+              )
+            </span>
           </div>
         </div>
 
         {/* Status banners */}
-        {(poolErr || pool?.warming_up) && (
+        {/* R7: non-tradable selection — clean info panel, not a red error.
+            Backend's pool-reserve cache only covers TRADING_NETUIDS; the
+            other 123 subnets in the dropdown render this card instead of a
+            404 storm. */}
+        {!isTradable && selectedSubnet && (
+          <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-800/60 border border-slate-600/40 text-slate-300 text-[13px]">
+            <AlertTriangle size={14} className="mt-0.5 shrink-0 text-slate-400" />
+            <div>
+              <span className="text-slate-200 font-mono">{selectedSubnet.name.replace(/  · \(reserves coming\)$/, '')}</span> — pool reserves not yet cached.
+              The simulator math runs against `(τ_in, α_in)` snapshots; those are populated for the trading-active subnets only.
+              Reserve-coverage expansion is queued for a separate decision (more chain calls per 5-min cycle).
+            </div>
+          </div>
+        )}
+        {isTradable && (poolErr || pool?.warming_up) && (
           <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-[13px]">
             <AlertTriangle size={14} className="mt-0.5 shrink-0" />
             <div>
@@ -334,7 +401,7 @@ export default function PreTradeSimulator() {
             </div>
           </div>
         )}
-        {simErr && !pool?.warming_up && (
+        {isTradable && simErr && !pool?.warming_up && (
           <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-[13px]">
             <AlertTriangle size={14} className="mt-0.5 shrink-0" />
             <span>Simulator error — <span className="font-mono">{simErr}</span></span>
