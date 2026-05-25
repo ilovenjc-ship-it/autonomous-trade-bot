@@ -70,7 +70,7 @@ async def init_db():
     """
     # Import every model module so SQLAlchemy's metadata knows about them.
     # Any model NOT imported here will NOT be created by create_all.
-    from models import bot_config, trade, price_history, strategy, wallet_funding  # noqa: F401
+    from models import bot_config, trade, price_history, strategy, wallet_funding, pool_snapshot  # noqa: F401
 
     async with async_engine.begin() as conn:
         # checkfirst=True (default) — skips tables that already exist

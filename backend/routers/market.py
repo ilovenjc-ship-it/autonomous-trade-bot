@@ -737,3 +737,286 @@ async def cex_listings(force: bool = Query(False, description="Force feed refres
     """
     from services.cex_listing_service import cex_listing_service
     return await cex_listing_service.snapshot(force=force)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Day 12 — Pre-Trade Simulator endpoints
+#
+# Two routes power the new /pre-trade page:
+#
+#   GET  /api/market/pool/{netuid}        — latest reserves + sparkline + 24h
+#                                            turnover + depth tier + 14d flow
+#   POST /api/market/simulate             — run the constant-product math for
+#                                            a proposed (netuid, side, amount)
+#
+# Math lives in services.simulator_service so execution_guard and any future
+# manual-trade preflight share the exact same formulas. Reserves come from
+# pool_reserves_service (in-memory cache, 5-min refresh via metagraph loop).
+# ─────────────────────────────────────────────────────────────────────────────
+
+from datetime import timedelta as _timedelta
+from pydantic import BaseModel, Field
+from sqlalchemy import select as _select, and_ as _and_, func as _sa_func
+from db.database import AsyncSessionLocal as _AsyncSessionLocal
+from models.pool_snapshot import PoolSnapshot as _PoolSnapshot
+from services.pool_reserves_service import pool_reserves_service as _pool_svc
+from services import simulator_service as _sim
+
+
+# ── /pool/{netuid} ─────────────────────────────────────────────────────────
+
+
+@router.get("/pool/{netuid}")
+async def get_pool_snapshot(netuid: int):
+    """
+    Pool state for the simulator UI. Returns latest reserves, 30-day price
+    sparkline (downsampled to ≤200 points), 7-day depth sparkline, 24h
+    turnover swing, depth-tier classification, and 14-day directional flow
+    aggregates from the whale_flow_events table (if available).
+    """
+    if netuid not in TRADING_NETUIDS:
+        raise HTTPException(
+            status_code=404,
+            detail=f"SN{netuid} is not a tradable subnet. Tradable: {sorted(TRADING_NETUIDS)}",
+        )
+
+    latest = _pool_svc.latest(netuid)
+    if latest is None:
+        # Cold-start case: chain reader hasn't written yet. UI should show
+        # "warming up" — give it a 200 so the page doesn't blow up.
+        return {
+            "netuid":    netuid,
+            "warming_up": True,
+            "message":   "Pool reserves not yet snapshotted — first metagraph cycle pending.",
+        }
+
+    # Sparklines
+    sparkline_30d = await _pool_svc.history(netuid, _timedelta(days=30), max_points=200)
+    sparkline_7d  = await _pool_svc.history(netuid, _timedelta(days=7),  max_points=120)
+    turnover      = await _pool_svc.turnover_24h(netuid)
+    tier          = _sim.depth_tier(latest.tao_in)
+
+    # 14-day buy/sell flow aggregates from whale_flow_events. Best-effort —
+    # if the table is empty or the import fails the UI still gets reserves.
+    flow_14d = await _flow_14d(netuid)
+
+    return {
+        "netuid":         netuid,
+        "warming_up":     False,
+        "reserves":       latest.to_dict(),
+        "depth_tier":     tier,
+        "sparkline_30d":  sparkline_30d,
+        "sparkline_7d":   sparkline_7d,
+        "turnover_24h":   turnover,
+        "flow_14d":       flow_14d,
+        "tradable":       True,
+        "fetched_at":     latest.fetched_at.isoformat(timespec="seconds"),
+    }
+
+
+async def _flow_14d(netuid: int) -> dict:
+    """
+    14-day stacked buy/sell flow aggregate. Reads whale_flow_events grouped
+    by day + direction. If the table doesn't exist (older deployments) or
+    the query fails, returns an empty structure rather than 500-ing the
+    pool endpoint.
+    """
+    from datetime import datetime, timezone
+    cutoff = datetime.now(timezone.utc) - _timedelta(days=14)
+    try:
+        # whale_flow_events.direction ∈ {'in', 'out'}; netuid + amount_tao + ts
+        from sqlalchemy import text as _text
+        async with _AsyncSessionLocal() as session:
+            # Use raw SQL — whale_flow_events is owned by the whale-flow
+            # module and we don't want a cross-module ORM dep here.
+            rows = (await session.execute(_text("""
+                SELECT
+                    DATE(timestamp) AS day,
+                    direction,
+                    COALESCE(SUM(amount_tao), 0)   AS tao_total,
+                    COUNT(*)                       AS n
+                FROM whale_flow_events
+                WHERE netuid = :uid AND timestamp >= :cutoff
+                GROUP BY DATE(timestamp), direction
+                ORDER BY day ASC
+            """), {"uid": int(netuid), "cutoff": cutoff})).all()
+        days: dict[str, dict] = {}
+        for day, direction, tao_total, n in rows:
+            d = str(day)
+            entry = days.setdefault(d, {"day": d, "in_tao": 0.0, "out_tao": 0.0, "events": 0})
+            if direction == "in":
+                entry["in_tao"]  = float(tao_total or 0)
+            elif direction == "out":
+                entry["out_tao"] = float(tao_total or 0)
+            entry["events"] += int(n or 0)
+        return {"days": list(days.values()), "lookback_days": 14}
+    except Exception as exc:
+        logger.debug(f"flow_14d({netuid}) skipped: {exc}")
+        return {"days": [], "lookback_days": 14, "unavailable": True}
+
+
+# ── /simulate (POST) ────────────────────────────────────────────────────────
+
+
+class SimulateRequest(BaseModel):
+    netuid:     int = Field(..., description="Tradable subnet UID")
+    side:       str = Field("stake", description="'stake' (TAO→α) or 'unstake' (α→TAO)")
+    amount_tao: float = Field(..., gt=0, le=100_000.0, description="Trade size in TAO")
+
+
+@router.post("/simulate")
+async def simulate_trade(req: SimulateRequest):
+    """
+    Run the constant-product simulator for a proposed trade. Returns:
+
+        - filled (alpha or TAO depending on side)
+        - slippage_pct
+        - price_before / price_after (alpha price in TAO)
+        - liquidity_cliffs at 1%, 2%, 5%
+        - exit scenarios at +50% and -50% alpha price moves
+        - hodl_opportunity_cost (USD) over 30d
+        - slippage_curve (64-point log-spaced, for chart)
+        - depth_tier
+    """
+    if req.netuid not in TRADING_NETUIDS:
+        raise HTTPException(404, detail=f"SN{req.netuid} not tradable.")
+    if req.side not in ("stake", "unstake"):
+        raise HTTPException(422, detail="side must be 'stake' or 'unstake'")
+
+    snap = _pool_svc.latest(req.netuid)
+    if snap is None:
+        raise HTTPException(503, detail="Pool reserves warming up — try again in 5 minutes.")
+
+    tao_in, alpha_in = snap.tao_in, snap.alpha_in
+    price_before = _sim.spot_price(tao_in, alpha_in)
+
+    # ── Core fill math ────────────────────────────────────────────────────
+    if req.side == "stake":
+        # cost is TAO in; receive alpha
+        filled_alpha = _sim.stake_received(tao_in, alpha_in, req.amount_tao)
+        slippage     = _sim.slippage_pct(tao_in, alpha_in, req.amount_tao)
+        new_tao      = tao_in   + req.amount_tao
+        new_alpha    = alpha_in - filled_alpha
+        filled       = filled_alpha
+        filled_unit  = "alpha"
+    else:
+        # unstake: amount_tao is interpreted as the TAO-equivalent at spot the
+        # operator wants to unwind, converted to alpha to keep the API simple.
+        alpha_to_unstake = req.amount_tao / price_before if price_before > 0 else 0.0
+        filled_tao       = _sim.tao_received(tao_in, alpha_in, alpha_to_unstake)
+        # Slippage definition for unstake: ideal would be alpha_to_unstake · price_before
+        ideal = alpha_to_unstake * price_before
+        slippage = max(0.0, (ideal - filled_tao) / ideal * 100.0) if ideal > 0 else 0.0
+        new_tao   = tao_in   - filled_tao
+        new_alpha = alpha_in + alpha_to_unstake
+        filled    = filled_tao
+        filled_unit = "tao"
+        # For exit/HODL math below we still need an entry_alpha — for an
+        # unstake leg the operator already holds the alpha, so set entry =
+        # alpha_to_unstake.
+        filled_alpha = alpha_to_unstake
+
+    price_after = _sim.spot_price(new_tao, new_alpha)
+
+    # ── Liquidity cliffs ───────────────────────────────────────────────────
+    cliffs = [c.to_dict() for c in _sim.liquidity_cliffs(tao_in, alpha_in)]
+
+    # ── Exit scenarios at ±50% alpha price moves ───────────────────────────
+    # Only meaningful for stake (operator now holds filled_alpha); for unstake
+    # the position is already closed, so we omit.
+    exits = []
+    if req.side == "stake":
+        for move in (50.0, -50.0):
+            exits.append(_sim.exit_scenario(
+                tao_in, alpha_in, req.amount_tao, filled_alpha, move,
+            ).to_dict())
+
+    # ── HODL opportunity cost ──────────────────────────────────────────────
+    hodl = await _hodl_block(
+        netuid=req.netuid, cost_tao=req.amount_tao, entry_alpha=filled_alpha,
+        alpha_price_now_tao=price_before,
+    )
+
+    # ── Slippage curve for the chart ───────────────────────────────────────
+    # Sample up to 5× the requested cost or 50% of pool, whichever larger.
+    curve_max = max(req.amount_tao * 5.0, tao_in * 0.5)
+    curve = _sim.slippage_curve(tao_in, alpha_in, max_cost_tao=curve_max, points=64)
+    curve_points = [{"cost_tao": c, "slippage_pct": s} for c, s in curve]
+
+    return {
+        "netuid":          req.netuid,
+        "side":            req.side,
+        "amount_tao":      req.amount_tao,
+        "reserves_before": {"tao_in": round(tao_in, 4), "alpha_in": round(alpha_in, 4)},
+        "reserves_after":  {"tao_in": round(new_tao, 4), "alpha_in": round(new_alpha, 4)},
+        "price_before":    round(price_before, 8),
+        "price_after":     round(price_after,  8),
+        "filled":          round(filled, 6),
+        "filled_unit":     filled_unit,
+        "slippage_pct":    round(slippage, 4),
+        "depth_tier":      _sim.depth_tier(tao_in),
+        "liquidity_cliffs": cliffs,
+        "exit_scenarios":   exits,
+        "hodl_opportunity": hodl,
+        "slippage_curve":   curve_points,
+        "fetched_at":       snap.fetched_at.isoformat(timespec="seconds"),
+    }
+
+
+async def _hodl_block(
+    *, netuid: int, cost_tao: float, entry_alpha: float, alpha_price_now_tao: float,
+) -> dict:
+    """
+    Build the HODL opportunity-cost block. Pulls 30-day-ago TAO/USD price from
+    price_history and 30-day-ago alpha price from pool_snapshots. Falls back
+    to "warming up" markers when we don't have 30 days of history yet.
+    """
+    from datetime import datetime, timezone
+    cutoff = datetime.now(timezone.utc) - _timedelta(days=30)
+    tao_now_usd = price_service.current_price or 0.0
+
+    async with _AsyncSessionLocal() as session:
+        # Oldest TAO/USD sample within the last 30 days. If we don't have a
+        # 30d-old sample yet, pick the oldest available — surfaces a warning
+        # in the response.
+        try:
+            from models.price_history import PriceHistory as _PH
+            row = (await session.execute(
+                _select(_PH.price_usd, _PH.recorded_at)
+                .where(_PH.symbol == "TAO")
+                .order_by(_PH.recorded_at.asc())
+                .limit(1)
+            )).first()
+            tao_30d_usd = float(row[0]) if row else tao_now_usd
+            tao_30d_at  = row[1] if row else None
+        except Exception:
+            tao_30d_usd, tao_30d_at = tao_now_usd, None
+
+        # Oldest alpha price for this netuid in the last 30 days
+        snap_row = (await session.execute(
+            _select(_PoolSnapshot.price_tao, _PoolSnapshot.recorded_at)
+            .where(_and_(
+                _PoolSnapshot.netuid == int(netuid),
+                _PoolSnapshot.recorded_at >= cutoff,
+            ))
+            .order_by(_PoolSnapshot.recorded_at.asc())
+            .limit(1)
+        )).first()
+        alpha_30d_tao = float(snap_row[0]) if snap_row else alpha_price_now_tao
+        alpha_30d_at  = snap_row[1] if snap_row else None
+
+    block = _sim.hodl_opportunity_cost_usd(
+        cost_tao            = cost_tao,
+        entry_alpha         = entry_alpha,
+        tao_price_now_usd   = tao_now_usd,
+        tao_price_30d_usd   = tao_30d_usd,
+        alpha_price_30d_tao = alpha_30d_tao,
+        alpha_price_now_tao = alpha_price_now_tao,
+    )
+    block["lookback_days"] = 30
+    block["warming_up"]    = (snap_row is None or tao_30d_at is None)
+    block["tao_now_usd"]   = round(tao_now_usd, 4)
+    block["tao_30d_usd"]   = round(tao_30d_usd, 4)
+    block["alpha_now_tao"] = round(alpha_price_now_tao, 8)
+    block["alpha_30d_tao"] = round(alpha_30d_tao, 8)
+    return block

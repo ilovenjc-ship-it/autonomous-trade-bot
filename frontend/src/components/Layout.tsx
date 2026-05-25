@@ -10,6 +10,7 @@ import {
   Calculator,                                       // Session XXXIII: Operator Tools (Whales + Calc)
   Heart,                                            // Session XXXIV: System Health page
   ScrollText,                                       // Session XXXIV: Audit Trail page
+  TestTube2,                                        // Day 12: Pre-Trade Simulator
   Trash2,                                           // Session XXXV: Reset chat history button
 } from 'lucide-react'
 import { useBotStore } from '@/store/botStore'
@@ -40,6 +41,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/wallet-transactions':  'Transactions',
   '/override':             'Manual Override',
   '/research':             'Subnet Scorecard',
+  '/pre-trade':            'Pre-Trade Simulator',
   // '/tools' route deleted in Session XXXV — Whale Tracker briefly lived as a
   // Dashboard tile, then retired in XXXIX (Day 6) when Whale Flow superseded
   // it. /calculator (TAO Calculator) still served by Tools component with
@@ -102,6 +104,8 @@ const navGroups: NavGroup[] = [
       { to: '/market',    icon: Globe,     label: 'Subnet Market Data' },
       // Session XXXII: Const 6-Filter scorecard + Owner Watch + Conviction-Era heuristics
       { to: '/research',  icon: Sparkles,  label: 'Subnet Scorecard' },
+      // Day 12: Pre-Trade Simulator — constant-product AMM math, slippage curves, ±50% exits
+      { to: '/pre-trade', icon: TestTube2, label: 'Pre-Trade Simulator' },
       // Session XXXV: Whale Tracker page deleted — moved to a Dashboard tile.
       // Session XXXIX (Day 6): Tile retired. Whale Flow (live Finney RPC) is
       // the canonical whale surface now. Calculator stays under ADMIN.

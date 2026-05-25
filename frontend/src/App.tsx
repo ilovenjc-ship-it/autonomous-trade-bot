@@ -44,6 +44,7 @@ const Research           = lazy(() => import('./pages/Research'))
 const Tools              = lazy(() => import('./pages/Tools'))
 const SystemHealth       = lazy(() => import('./pages/SystemHealth'))
 const AuditTrail         = lazy(() => import('./pages/AuditTrail'))
+const PreTradeSimulator  = lazy(() => import('./pages/PreTradeSimulator'))
 
 export default function App() {
   return (
@@ -83,6 +84,7 @@ export default function App() {
           <Route path="/market"               element={<Suspense fallback={<PageLoader />}><MarketData /></Suspense>} />
           <Route path="/market/subnet/:uid"   element={<Suspense fallback={<PageLoader />}><SubnetDetail /></Suspense>} />
           <Route path="/research"             element={<Suspense fallback={<PageLoader />}><Research /></Suspense>} />
+          <Route path="/pre-trade"            element={<Suspense fallback={<PageLoader />}><PreTradeSimulator /></Suspense>} />
           {/* Session XXXV: /tools (Whale Tracker page) deleted — Mav: 'Give
               Whale Tracker its own Section, Not its own Page'. Briefly lived
               as a Dashboard tile, then retired in XXXIX (Day 6) — Whale Flow

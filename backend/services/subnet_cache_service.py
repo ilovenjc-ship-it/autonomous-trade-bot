@@ -350,6 +350,21 @@ class SubnetCacheService:
                     except Exception as exc:
                         logger.warning(f"SN{netuid} metagraph fetch error: {exc}")
 
+                # ── Day 12: Pool-reserve snapshot (Pre-Trade Simulator) ───────────
+                # Piggyback on the open AsyncSubtensor context — saves a separate
+                # connection setup cost. Reserves are pulled for trading subnets
+                # only since those are the ones the simulator will be invoked on
+                # and the ones execution_guard will eventually consult for live
+                # slippage estimates.
+                try:
+                    from services.pool_reserves_service import pool_reserves_service
+                    snaps = await pool_reserves_service.fetch_for(sub, TRADING_NETUIDS)
+                    if snaps:
+                        wrote = await pool_reserves_service.persist(snaps)
+                        logger.info(f"pool_reserves: persisted {wrote} snapshots")
+                except Exception as exc:
+                    logger.warning(f"pool_reserves snapshot pass failed: {exc}")
+
             # ── Owner-change + Conviction-unlock detection ────────────────────────
             # Only run detection if we got at least one valid snapshot this pass —
             # avoids false positives when the chain is unreachable for a cycle.
