@@ -136,6 +136,12 @@ class LiquidityCliff:
     """The exact TAO size at which a stake crosses a slippage threshold."""
     threshold_pct: float
     cost_tao:      Optional[float]   # None if pool is degenerate
+    # R9 (Mark caught — bare τ figures read as off without an anchor):
+    # cost_tao expressed as a fraction of pool depth.  E.g., the 1%-slippage
+    # cliff sits at ~1.01% of pool, the 2%-cliff at ~2.04%, the 5%-cliff
+    # at ~5.26%.  Surfaces the "size vs pool" relationship inline so the
+    # UI doesn't have to recompute it.
+    pool_pct:      Optional[float]   # None if pool is degenerate
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -144,10 +150,12 @@ class LiquidityCliff:
 def liquidity_cliffs(
     tao_in: float, alpha_in: float, thresholds: Tuple[float, ...] = (1.0, 2.0, 5.0)
 ) -> List[LiquidityCliff]:
-    return [
-        LiquidityCliff(t, cost_for_target_slippage(tao_in, alpha_in, t))
-        for t in thresholds
-    ]
+    out: List[LiquidityCliff] = []
+    for t in thresholds:
+        cost = cost_for_target_slippage(tao_in, alpha_in, t)
+        pool_pct = (cost / tao_in * 100.0) if (cost is not None and tao_in > 0) else None
+        out.append(LiquidityCliff(t, cost, pool_pct))
+    return out
 
 
 # ── Exit scenarios (alpha price ±50%) ────────────────────────────────────────

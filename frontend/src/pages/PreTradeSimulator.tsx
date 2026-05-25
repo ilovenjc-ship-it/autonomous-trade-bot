@@ -62,11 +62,17 @@ interface PoolResponse {
   message?: string
 }
 
-interface CliffEntry { threshold_pct: number; cost_tao: number | null }
+// R9: cliffs gain a `pool_pct` anchor so a bare "53,580τ" reads with
+// "≈1.01% of pool" beside it.
+interface CliffEntry { threshold_pct: number; cost_tao: number | null; pool_pct?: number | null }
 interface ExitEntry  { move_pct: number; new_price_tao: number; tao_out: number; pnl_tao: number; pnl_pct: number }
+// R9: HODL block gains `actual_lookback_days` so the UI can honestly
+// surface "comparing against ~12h of history (need 30d)" rather than
+// rendering a confident $0.00 verdict.
 interface HodlBlock {
   tao_path_usd: number; alpha_path_usd: number; delta_usd: number; winner: string
   lookback_days: number; warming_up: boolean
+  actual_lookback_days?: number
   tao_now_usd: number; tao_30d_usd: number; alpha_now_tao: number; alpha_30d_tao: number
 }
 interface SimResponse {
@@ -582,14 +588,36 @@ export default function PreTradeSimulator() {
                     </div>
                   </div>
                 </div>
-                <div className="font-mono text-sm text-white">
-                  {c.cost_tao != null ? fmtTao(c.cost_tao, 2) : '—'}
+                {/* R9: cost_tao on top, pool_pct below as an anchor.  Bare
+                    "53,580τ" can read as off without context — "≈1.01% of
+                    pool" makes the size relationship explicit. */}
+                <div className="text-right">
+                  <div className="font-mono text-sm text-white">
+                    {c.cost_tao != null ? fmtTao(c.cost_tao, 2) : '—'}
+                  </div>
+                  {c.pool_pct != null && (
+                    <div className="font-mono text-[10px] text-slate-500 mt-0.5">
+                      ≈{c.pool_pct.toFixed(2)}% of pool
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
             {(!sim || !sim.liquidity_cliffs?.length) && (
               <div className="text-[12px] text-slate-500 italic">awaiting simulation…</div>
             )}
+            {/* R9: contextual footer — how far the current probe sits below
+                the 1% cliff.  Helps sanity-check "is my trade size
+                reasonable?". */}
+            {sim?.liquidity_cliffs?.[0]?.cost_tao != null && sim.amount_tao > 0 && (() => {
+              const cliff1 = sim.liquidity_cliffs[0].cost_tao!
+              const headroom = cliff1 / sim.amount_tao
+              return (
+                <div className="text-[10px] font-mono text-slate-500 italic pt-1 px-1">
+                  current probe {fmtTao(sim.amount_tao, 4)} · headroom to 1% cliff: {headroom >= 1000 ? `${(headroom/1000).toFixed(1)}k×` : `${headroom.toFixed(1)}×`}
+                </div>
+              )
+            })()}
           </div>
         </div>
 
@@ -607,6 +635,19 @@ export default function PreTradeSimulator() {
             </div>
           ) : (
             <div className="space-y-2">
+              {/* R9: when the probe is microscopic vs pool depth (≪0.1%),
+                  the rebalanced-pool unwind is essentially price·entry_α
+                  — i.e., a pure linear ±50% mapping.  Surface this so the
+                  "exactly +50% / −50%" numbers don't read as fake.  At
+                  larger sizes the unwind shows real curvature (the entry
+                  α moves the rebalanced pool when redeemed). */}
+              {sim && pool?.reserves && sim.amount_tao / pool.reserves.tao_in < 0.001 && (
+                <div className="text-[10px] font-mono text-slate-500 italic px-1 pb-1 leading-snug">
+                  probe is {((sim.amount_tao / pool.reserves.tao_in) * 100).toFixed(4)}% of pool — linear regime, the
+                  rebalanced-pool math collapses to <span className="text-slate-400">price·entry_α</span> so ±50% maps cleanly to ±50% P&L.
+                  Increase trade size to see curvature.
+                </div>
+              )}
               {sim?.exit_scenarios?.map(e => (
                 <div key={e.move_pct} className="px-3 py-3 rounded-lg bg-dark-800/60 border border-dark-700">
                   <div className="flex items-center justify-between mb-1.5">
@@ -651,11 +692,25 @@ export default function PreTradeSimulator() {
         </h2>
         {sim?.hodl_opportunity ? (
           <div>
-            {sim.hodl_opportunity.warming_up && (
-              <div className="mb-3 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-[12px]">
-                Warming up — using oldest available history (need 30d of pool snapshots for the canonical comparison).
-              </div>
-            )}
+            {/* R9 (Mark caught): the prior `warming_up` flag was true ONLY
+                when there were zero rows.  As soon as we had one snapshot
+                (which we always do post-Day-12-launch), it returned a
+                confident $0.00 verdict comparing against minutes-old data.
+                Backend now also flags warming_up when actual_lookback_days
+                < 25; UI surfaces the real window honestly. */}
+            {sim.hodl_opportunity.warming_up && (() => {
+              const days = sim.hodl_opportunity.actual_lookback_days ?? 0
+              const human =
+                days < 1 ? `${(days * 24).toFixed(1)}h` :
+                days < 7 ? `${days.toFixed(1)}d` :
+                          `${Math.round(days)}d`
+              return (
+                <div className="mb-3 px-3 py-2 rounded-lg bg-yellow-500/10 border border-yellow-500/30 text-yellow-300 text-[12px]">
+                  <span className="font-semibold">Warming up</span> — comparing against {human} of history (need 30d for the canonical verdict).
+                  The numbers below reflect that shorter window; treat the delta as indicative only until the pool snapshotter has banked a full month of data.
+                </div>
+              )
+            })()}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div className="p-4 rounded-lg bg-dark-800/60 border border-dark-700">
                 <div className="text-[11px] uppercase tracking-wider text-slate-400 mb-1">Plain TAO held</div>
@@ -665,23 +720,33 @@ export default function PreTradeSimulator() {
                 </div>
               </div>
               <div className="p-4 rounded-lg bg-dark-800/60 border border-dark-700">
-                <div className="text-[11px] uppercase tracking-wider text-slate-400 mb-1">Bought alpha 30d ago</div>
+                <div className="text-[11px] uppercase tracking-wider text-slate-400 mb-1">
+                  Bought alpha {sim.hodl_opportunity.warming_up
+                    ? <span className="lowercase text-slate-500">(short window)</span>
+                    : '30d ago'}
+                </div>
                 <div className="text-lg font-mono font-semibold text-white">{fmtUsd(sim.hodl_opportunity.alpha_path_usd)}</div>
                 <div className="text-[10px] text-slate-500 font-mono mt-1">
                   α @ {sim.hodl_opportunity.alpha_30d_tao.toFixed(6)}τ → {sim.hodl_opportunity.alpha_now_tao.toFixed(6)}τ
                 </div>
               </div>
               <div className={clsx('p-4 rounded-lg border',
-                sim.hodl_opportunity.delta_usd >= 0
-                  ? 'bg-emerald-500/10 border-emerald-500/30'
-                  : 'bg-red-500/10 border-red-500/30')}>
+                sim.hodl_opportunity.warming_up
+                  ? 'bg-slate-800/60 border-slate-600/40'
+                  : (sim.hodl_opportunity.delta_usd >= 0
+                       ? 'bg-emerald-500/10 border-emerald-500/30'
+                       : 'bg-red-500/10 border-red-500/30'))}>
                 <div className="text-[11px] uppercase tracking-wider text-slate-400 mb-1">Delta (alpha − TAO)</div>
                 <div className={clsx('text-lg font-mono font-semibold',
-                  sim.hodl_opportunity.delta_usd >= 0 ? 'text-accent-green' : 'text-accent-red')}>
+                  sim.hodl_opportunity.warming_up
+                    ? 'text-slate-300'
+                    : (sim.hodl_opportunity.delta_usd >= 0 ? 'text-accent-green' : 'text-accent-red'))}>
                   {sim.hodl_opportunity.delta_usd >= 0 ? '+' : ''}{fmtUsd(sim.hodl_opportunity.delta_usd)}
                 </div>
                 <div className="text-[10px] text-slate-500 font-mono mt-1 uppercase">
-                  Winner · {sim.hodl_opportunity.winner}
+                  {sim.hodl_opportunity.warming_up
+                    ? 'verdict · pending 30d window'
+                    : <>Winner · {sim.hodl_opportunity.winner}</>}
                 </div>
               </div>
             </div>

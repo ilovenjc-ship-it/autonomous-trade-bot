@@ -1075,8 +1075,47 @@ async def _hodl_block(
         alpha_price_30d_tao = alpha_30d_tao,
         alpha_price_now_tao = alpha_price_now_tao,
     )
-    block["lookback_days"] = 30
-    block["warming_up"]    = (snap_row is None or tao_30d_at is None)
+    # ── R9 BUG FIX (Mark caught) ─────────────────────────────────────────────
+    # Old logic: `warming_up = (snap_row is None or tao_30d_at is None)` only
+    # fired when there were ZERO rows. As soon as we had ONE pool snapshot
+    # (which we always do post-Day-12-launch since the simulator writes a
+    # snapshot every 5 min), the endpoint confidently returned a 30-day
+    # comparison built on a sample that was actually MINUTES old — yielding
+    # a delta of $0.00 and "winner: tao" framed as a real verdict.
+    #
+    # Real check: the SQL query pulls the oldest row >= (now - 30d). If
+    # pool_snapshots only started writing today, that "oldest" row is from
+    # this morning, not 30 days ago. Compute the actual age of the oldest
+    # samples and gate warming_up on having ≥25 days of history.
+    now = datetime.now(timezone.utc)
+
+    def _age_days(dt) -> float:
+        if dt is None:
+            return 0.0
+        # asyncpg can return naive datetimes — coerce to UTC for the diff.
+        if dt.tzinfo is None:
+            dt = dt.replace(tzinfo=timezone.utc)
+        return (now - dt).total_seconds() / 86400.0
+
+    tao_age_days   = _age_days(tao_30d_at)
+    alpha_age_days = _age_days(alpha_30d_at)
+    # Bottleneck: the comparison is only as old as the YOUNGEST oldest
+    # sample (we need both feeds to reach 30 days for a real verdict).
+    if tao_30d_at and alpha_30d_at:
+        actual_lookback_days = min(tao_age_days, alpha_age_days)
+    else:
+        actual_lookback_days = 0.0
+
+    _MIN_LOOKBACK_DAYS = 25.0  # tolerate ~5 days short of the nominal 30
+    is_warming = (
+        snap_row is None
+        or tao_30d_at is None
+        or actual_lookback_days < _MIN_LOOKBACK_DAYS
+    )
+
+    block["lookback_days"]        = 30
+    block["actual_lookback_days"] = round(actual_lookback_days, 2)
+    block["warming_up"]           = is_warming
     block["tao_now_usd"]   = round(tao_now_usd, 4)
     block["tao_30d_usd"]   = round(tao_30d_usd, 4)
     block["alpha_now_tao"] = round(alpha_price_now_tao, 8)
