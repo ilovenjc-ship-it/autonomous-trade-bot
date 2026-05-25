@@ -392,7 +392,7 @@ export default function Layout() {
           14→15px, icons 16→17. The width bump is a hard prerequisite of
           the larger nav-item font; otherwise long labels like "Wallet
           Transactions" wrap onto a second line. */}
-      <aside className="w-64 flex-shrink-0 bg-dark-800 border-r border-dark-600 flex flex-col">
+      <aside className="w-64 flex-shrink-0 bg-dark-800 border-r-2 border-slate-600 flex flex-col">
         {/* Brand — upper left corner */}
         <div className="px-4 py-4 border-b border-dark-600">
           <p className="text-[11px] font-mono text-slate-500 uppercase tracking-widest leading-none mb-1">Powered by</p>
@@ -846,13 +846,16 @@ export default function Layout() {
           distinct surface from the side menu (left) and viewport edge (right).
           R1: dark-700/60 was too subtle against the dark-900 page bg
               (#0d1525 vs #1c2b42 @ 60% — basically invisible).
-          R2: bumped to dark-500 (#2d3f60) — same tone as the inner-card
-              dividers used across Dashboard / Fleet / Strategies cards, so
-              it reads as a deliberate frame instead of a faint shadow.
-              Aside still owns its own border-r dark-600; doubling them up
-              creates a clean visible gutter.  Right edge — previously bare
-              against the viewport — now carries the matching dark-500 line. */}
-      <main className="flex-1 flex flex-col overflow-hidden border-l border-r border-dark-500">
+          R2: dark-500 (#2d3f60) at 1px — Mark's verification screenshots
+              showed it still wasn't reading; ~30% lightness diff from page
+              bg gets lost at 1px and on the left edge it doubled up with
+              aside's own border-r dark-600 which made BOTH lines blur.
+          R3: 2px slate-600 (#475569) — significantly brighter than the
+              dark-* scale, paired with 2px width.  The aside owns the LEFT
+              gutter (border-r-2 slate-600) so we drop main's redundant
+              border-l; main keeps a matching border-r-2 slate-600 for the
+              right viewport edge.  One crisp 2px line per side. */}
+      <main className="flex-1 flex flex-col overflow-hidden border-r-2 border-slate-600">
 
         {/* ── Global top bar ─────────────────────────────────────────────── */}
         <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 bg-dark-800 border-b border-dark-700/60">
