@@ -83,14 +83,16 @@ interface SimResponse {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const TRADING_UIDS: { uid: number; name: string }[] = [
-  { uid: 0,  name: 'SN0  · Root' },
-  { uid: 8,  name: 'SN8  · Vanta (PTN)' },
-  { uid: 9,  name: 'SN9  · Pretraining' },
-  { uid: 18, name: 'SN18 · Cortext' },
-  { uid: 64, name: 'SN64 · Chutes' },
-  { uid: 96, name: 'SN96 · Targon' },
+// Day 12 R6 (cont.): subnet list now fetched dynamically from
+// /api/market/subnets/list — full SN0 Root + SN1-SN128 (vs hardcoded 6).
+// Fallback used only if the network call fails before first render so the
+// page never renders an empty selector.
+type SubnetEntry = { uid: number; name: string }
+const FALLBACK_SUBNETS: SubnetEntry[] = [
+  { uid: 0, name: 'SN0  · Root' },
 ]
+const fmtSubnetLabel = (uid: number, name: string) =>
+  uid === 0 ? `SN0  · Root` : `SN${uid}  · ${name}`
 
 const DEPTH_TIER_COLOR: Record<string, string> = {
   deep:     'text-accent-green',
@@ -129,6 +131,24 @@ export default function PreTradeSimulator() {
   const [simErr,  setSimErr]  = useState<string | null>(null)
   const [loadingPool, setLoadingPool] = useState(false)
   const [loadingSim,  setLoadingSim]  = useState(false)
+
+  // Day 12 R6: dynamic full subnet list (Root + SN1-SN128)
+  const [subnets, setSubnets] = useState<SubnetEntry[]>(FALLBACK_SUBNETS)
+
+  // Fetch full subnet list once on mount
+  useEffect(() => {
+    let cancelled = false
+    api.get<{ subnets: { uid: number; name: string }[] }>('/market/subnets/list')
+      .then(r => {
+        if (cancelled) return
+        const list = r.data?.subnets ?? []
+        if (list.length > 0) {
+          setSubnets(list.map(s => ({ uid: s.uid, name: fmtSubnetLabel(s.uid, s.name) })))
+        }
+      })
+      .catch(() => { /* keep fallback so the selector still renders */ })
+    return () => { cancelled = true }
+  }, [])
 
   // ── Fetchers ────────────────────────────────────────────────────────────────
 
@@ -243,7 +263,7 @@ export default function PreTradeSimulator() {
               onChange={e => setNetuid(parseInt(e.target.value, 10))}
               className="w-full bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-accent-blue"
             >
-              {TRADING_UIDS.map(s => (
+              {subnets.map(s => (
                 <option key={s.uid} value={s.uid}>{s.name}</option>
               ))}
             </select>

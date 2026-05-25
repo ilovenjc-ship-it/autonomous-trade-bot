@@ -367,6 +367,22 @@ def _live_subnet(uid: int, tao_price: float) -> dict:
     }
 
 
+@router.get("/subnets/list")
+async def get_subnets_list():
+    """
+    Lightweight endpoint: ALL tradable subnets as `[{uid, name, ticker}]`.
+    Day 12 (cont.) R6 — Mark caught the Pre-Trade Simulator dropdown was
+    hardcoded to 6 sample uids.  Frontend now fetches this on mount to
+    populate the full subnet selector (SN0 Root + SN1-SN128).
+    Cheap to compute: pure metadata, no chain calls, no pricing.
+    """
+    items = [{"uid": 0, "name": "Root", "ticker": "root"}]
+    for uid in _DISPLAY_UIDS:
+        name, ticker = SUBNET_META.get(uid, (f"Subnet {uid}", f"sn{uid}"))
+        items.append({"uid": uid, "name": name, "ticker": ticker})
+    return {"subnets": items, "count": len(items)}
+
+
 @router.get("/subnets")
 async def get_subnets(
     sort: str = Query("stake_tao", description="Field to sort by"),
