@@ -861,7 +861,11 @@ export default function Layout() {
       <main className="flex-1 flex flex-col overflow-hidden border-r-[3px] border-slate-500">
 
         {/* ── Global top bar ─────────────────────────────────────────────── */}
-        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 bg-dark-800 border-b border-dark-700/60">
+        {/* R5 (Day 12): border-b bumped 1px dark-700/60 → 3px slate-500 to match
+            the L/R page borders.  Together they form a visible frame on three
+            sides of the work area (top, left, right).  Bottom is bounded by
+            the TickerTape's own border-t. */}
+        <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 bg-dark-800 border-b-[3px] border-slate-500">
 
           {/* Left anchor — page-aware context label */}
           {pathname === '/openclaw' ? (

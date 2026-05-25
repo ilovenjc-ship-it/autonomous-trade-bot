@@ -202,7 +202,13 @@ export default function PreTradeSimulator() {
   // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <div className="space-y-5 pb-8">
+    /* R5 (Day 12): page wrapped in the same dark-frame pattern Risk Config /
+       Agent Fleet use — bg-[#080d18] (near-black) + p-6 padding.  The dark
+       bg gives the slate-500 frame borders (top/left/right from Layout.tsx)
+       the high contrast they need to read clearly; the p-6 inset the content
+       so it doesn't butt up against the frame edges. */
+    <div className="flex flex-col h-full overflow-hidden">
+      <div className="flex-1 overflow-y-auto p-6 space-y-5 pb-8 bg-[#080d18] text-slate-100 font-mono">
 
       {/* ── Page header ────────────────────────────────────────────────────── */}
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -592,6 +598,7 @@ export default function PreTradeSimulator() {
             Each subnet operates as <span className="text-accent-blue">τ_in · α_in = k</span>. A stake of cost <span className="font-mono">c</span> yields <span className="font-mono">α_in − τ_in·α_in / (τ_in + c)</span> alpha. Reserves snapshotted every 5 min from Finney via the metagraph loop. <span className="text-slate-500">Reference: docs.learnbittensor.org/learn/slippage</span>
           </div>
         </div>
+      </div>
       </div>
     </div>
   )
