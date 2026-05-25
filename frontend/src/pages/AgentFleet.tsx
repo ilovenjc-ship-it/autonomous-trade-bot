@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
 import Tooltip, { InfoBubble } from '@/components/Tooltip'
+import { fmtETTime } from '@/lib/time'
 
 // ── (Top Subnets relocated to Analytics page) ────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
@@ -202,7 +203,7 @@ export default function AgentFleet() {
       const list: Bot[] = data.bots || []
       setBots(list)
       setSummary(data.summary || null)
-      setLastUpdated(new Date().toLocaleTimeString())
+      setLastUpdated(fmtETTime(new Date()))
       // Session XXXIV: preselect the first strategy on initial load so the
       // Operator immediately sees the Spider Graph on the right side of the
       // page. Subsequent fetches keep the existing selection (or fall back

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
+import { fmtETDateTime } from '@/lib/time'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 export interface SignalEvent {
@@ -72,13 +73,9 @@ function detectSource(detail?: string, message?: string): Source {
 }
 
 // ── helpers ──────────────────────────────────────────────────────────────────
-function fmtUtc(raw: string): string {
-  if (!raw) return '—'
-  try {
-    const d = new Date(raw)
-    if (isNaN(d.getTime())) return raw
-    return d.toUTCString()
-  } catch { return raw }
+// Day 12: timestamps render in Eastern Time (America/New_York).
+function fmtEt(raw: string): string {
+  return fmtETDateTime(raw, { seconds: true, year: true })
 }
 
 function fmtRelative(raw: string): string {
@@ -292,7 +289,7 @@ export default function SignalEventDetailModal({ event, onClose }: Props) {
           <Section icon={<Clock size={12} />} title="Timestamp">
             <div className="rounded-lg border border-dark-600 bg-dark-900/60 px-3 py-2.5">
               <div className="text-sm font-mono text-slate-200 break-all">
-                {fmtUtc(event.timestamp)}
+                {fmtEt(event.timestamp)}
               </div>
               <div className="text-[10.5px] font-mono text-slate-500 mt-0.5">
                 {fmtRelative(event.timestamp)}

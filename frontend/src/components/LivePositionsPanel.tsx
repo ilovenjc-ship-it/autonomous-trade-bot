@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
+import { fmtETDate } from '@/lib/time'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -286,7 +287,7 @@ export default function LivePositionsPanel() {
                       </span>
                     )}
                     <span className="text-slate-600 ml-2">
-                      {pos.closed_at ? new Date(pos.closed_at).toLocaleDateString() : '—'}
+                      {pos.closed_at ? fmtETDate(pos.closed_at) : '—'}
                     </span>
                   </div>
                 </div>

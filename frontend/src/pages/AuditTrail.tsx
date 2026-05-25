@@ -21,6 +21,7 @@ import {
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
+import { fmtETDateTime } from '@/lib/time'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -64,13 +65,8 @@ function categoryMeta(cat: string) {
 }
 
 function fmtTimestamp(iso: string): string {
-  if (!iso) return '—'
-  const d = new Date(iso)
-  if (isNaN(d.getTime())) return iso
-  return d.toLocaleString(undefined, {
-    year: '2-digit', month: '2-digit', day: '2-digit',
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
-  })
+  // Day 12: render in Eastern Time (America/New_York).
+  return fmtETDateTime(iso, { seconds: true, year: true })
 }
 
 function actionPretty(action: string): string {

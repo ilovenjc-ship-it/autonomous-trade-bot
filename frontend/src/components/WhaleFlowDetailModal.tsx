@@ -28,6 +28,7 @@ import {
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import { Link } from 'react-router-dom'
+import { fmtETDateTime } from '@/lib/time'
 
 export interface WhaleFlowEvent {
   id:               string
@@ -52,13 +53,9 @@ interface Props {
 }
 
 // ── helpers ───────────────────────────────────────────────────────────────────
-function fmtUtc(raw: string): string {
-  if (!raw) return '—'
-  try {
-    const d = new Date(raw)
-    if (isNaN(d.getTime())) return raw
-    return d.toUTCString()
-  } catch { return raw }
+// Day 12: timestamps render in Eastern Time (America/New_York).
+function fmtEt(raw: string): string {
+  return fmtETDateTime(raw, { seconds: true, year: true })
 }
 
 function fmtRelative(raw: string): string {
@@ -220,7 +217,7 @@ export default function WhaleFlowDetailModal({ event, onClose }: Props) {
             <DetailRow
               icon={<Clock size={13} />}
               label="Timestamp"
-              value={fmtUtc(event.timestamp)}
+              value={fmtEt(event.timestamp)}
               hint={fmtRelative(event.timestamp)}
             />
           </div>

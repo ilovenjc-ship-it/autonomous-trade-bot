@@ -18,6 +18,7 @@ import api from '@/api/client'
 import toast from 'react-hot-toast'
 import RollingWinRateChart from '@/components/RollingWinRateChart'
 import DrawdownChart from '@/components/DrawdownChart'
+import { fmtETDate, fmtETDateTime } from '@/lib/time'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -530,13 +531,13 @@ export default function PnLSummary() {
               </defs>
               <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
               <XAxis dataKey="ts" tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
-                tickFormatter={(v: string) => v ? new Date(v).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : ''} />
+                tickFormatter={(v: string) => v ? fmtETDate(v) : ''} />
               <YAxis width={72} tick={{ fontSize: 10, fill: '#64748b', fontFamily: 'monospace' }}
                 tickFormatter={(v: number) => `${v.toFixed(3)}τ`} />
               <Tooltip
                 contentStyle={{ background: '#0d1117', border: '1px solid #1e293b', borderRadius: 8, fontSize: 12, fontFamily: 'monospace' }}
                 formatter={(v: any) => [`${(v as number).toFixed(4)}τ`, 'Cumulative']}
-                labelFormatter={(v: string) => v ? new Date(v).toLocaleString() : ''}
+                labelFormatter={(v: string) => v ? fmtETDateTime(v, { seconds: true }) : ''}
               />
               <ReferenceLine y={0} stroke="#334155" strokeDasharray="4 2" />
               <Area dataKey="cumulative" stroke="#10b981" strokeWidth={2} fill="url(#cumGr)" />

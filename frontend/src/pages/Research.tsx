@@ -26,6 +26,7 @@ import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import api from '@/api/client'
 import { InfoBubble } from '@/components/Tooltip'
+import { fmtETTime } from '@/lib/time'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -498,9 +499,7 @@ export default function Research() {
                     )}
                   </td>
                   <td className="px-3 py-2 text-right text-xs text-slate-500">
-                    {o.fetched_at
-                      ? new Date(o.fetched_at).toLocaleTimeString()
-                      : '—'}
+                    {o.fetched_at ? fmtETTime(o.fetched_at) : '—'}
                   </td>
                 </tr>
               ))}
