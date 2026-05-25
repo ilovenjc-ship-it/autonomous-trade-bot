@@ -352,16 +352,30 @@ class SubnetCacheService:
 
                 # ── Day 12: Pool-reserve snapshot (Pre-Trade Simulator) ───────────
                 # Piggyback on the open AsyncSubtensor context — saves a separate
-                # connection setup cost. Reserves are pulled for trading subnets
-                # only since those are the ones the simulator will be invoked on
-                # and the ones execution_guard will eventually consult for live
-                # slippage estimates.
+                # connection setup cost.
+                #
+                # Day 12 R8 (Mark green-lit "All subnets wired"): the universe
+                # is now derived from the latest price scan (`_cur_prices`),
+                # which holds ALL active dTAO subnets returned by the bulk
+                # `get_subnet_prices()` call.  This decouples reserve coverage
+                # from `TRADING_NETUIDS` (the bot's actual staking scope).
+                # Cold start (price scan hasn't run yet) → fall back to
+                # TRADING_NETUIDS so we still snapshot the bot-relevant subset
+                # on first cycle.
+                #
+                # Concurrency is bounded inside pool_reserves_service.fetch_for
+                # (default 8 in flight, env-tunable) so this is safe to call
+                # with a large netuid set without blowing the 5-min budget.
                 try:
                     from services.pool_reserves_service import pool_reserves_service
-                    snaps = await pool_reserves_service.fetch_for(sub, TRADING_NETUIDS)
+                    universe = self.get_pool_reserve_universe()
+                    snaps = await pool_reserves_service.fetch_for(sub, universe)
                     if snaps:
                         wrote = await pool_reserves_service.persist(snaps)
-                        logger.info(f"pool_reserves: persisted {wrote} snapshots")
+                        logger.info(
+                            f"pool_reserves: persisted {wrote} snapshots "
+                            f"(universe={len(universe)} subnets)"
+                        )
                 except Exception as exc:
                     logger.warning(f"pool_reserves snapshot pass failed: {exc}")
 
@@ -675,6 +689,16 @@ class SubnetCacheService:
         Returns None for non-trading subnets or before first poll completes.
         """
         return self._meta.get(netuid)
+
+    # Day 12 R8: simulator universe.  Returns the set of netuids we want
+    # pool-reserve snapshots for. Sourced from the latest bulk price scan
+    # (covers ALL active dTAO subnets in a single chain call); falls back
+    # to TRADING_NETUIDS on cold start so bot-relevant pools are still
+    # populated on cycle 1.
+    def get_pool_reserve_universe(self) -> set:
+        if self._cur_prices:
+            return set(self._cur_prices.keys())
+        return set(TRADING_NETUIDS)
 
     def get_owner_meta(self, netuid: int) -> Optional[dict]:
         """

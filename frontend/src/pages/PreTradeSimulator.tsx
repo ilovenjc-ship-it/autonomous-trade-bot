@@ -4,7 +4,10 @@
  *
  * Single-page surface for "what does this trade actually look like before
  * I sign it?". Inputs:
- *   • Subnet (one of TRADING_NETUIDS — 0, 8, 9, 18, 64, 96)
+ *   • Subnet — full active dTAO universe (Day 12 R8: reserve cache spans
+ *     all subnets returned by the price scan, not just TRADING_NETUIDS).
+ *     Subnets without a fresh reserve snapshot show as disabled in the
+ *     dropdown until the backend's 5-min metagraph cycle populates them.
  *   • Side  — stake (TAO → α) or unstake (α → TAO)
  *   • Amount in TAO (slider + numeric input)
  *
@@ -83,19 +86,22 @@ interface SimResponse {
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-// Day 12 R6 (cont.): subnet list now fetched dynamically from
-// /api/market/subnets/list — full SN0 Root + SN1-SN128 (vs hardcoded 6).
-// R7: each entry carries `tradable: bool`.  Backend pool-reserve cache only
-// covers TRADING_NETUIDS (currently 6 uids); non-tradable subnets render
-// as disabled options with a "(reserves coming)" annotation, and selecting
-// one shows a clean info card instead of a red 404.
+// Day 12 R6: subnet list fetched dynamically from /api/market/subnets/list
+// — full SN0 Root + SN1-SN128 (vs hardcoded 6).
+// R7: each entry carries `tradable: bool` so non-tradable rows render
+// as disabled and selecting one shows a clean info card, not a 404.
+// R8 (Mark green-lit "All subnets wired"): `tradable` semantic shifted
+// from "in TRADING_NETUIDS" to "has cached reserves right now".  The
+// "warming up" group shrinks organically each 5-min cycle as reserves
+// populate; first cold-start cycle covers the bot's TRADING_NETUIDS as
+// fallback so the UI is never empty.
 type SubnetEntry = { uid: number; name: string; tradable: boolean }
 const FALLBACK_SUBNETS: SubnetEntry[] = [
   { uid: 0, name: 'SN0  · Root', tradable: true },
 ]
 const fmtSubnetLabel = (uid: number, name: string, tradable: boolean) => {
   const base = uid === 0 ? `SN0  · Root` : `SN${uid}  · ${name}`
-  return tradable ? base : `${base}  · (reserves coming)`
+  return tradable ? base : `${base}  · (warming up)`
 }
 
 // R7: defensive coercion — FastAPI sometimes returns `detail` as an object
@@ -136,7 +142,12 @@ export default function PreTradeSimulator() {
   // Inputs
   const [netuid, setNetuid]    = useState<number>(0)
   const [side, setSide]        = useState<'stake' | 'unstake'>('stake')
-  const [amount, setAmount]    = useState<number>(10.0)
+  // Day 12 R8: Mark dropped default trade size from 10τ → 0.1τ.  More
+  // realistic for the typical paper-trade probe size; avoids landing
+  // first-time users on a slippage figure that looks alarming for tiny
+  // pools (a 10τ probe on a 5,000τ pool reads as ~0.4% — nothing wrong
+  // with the math, just bad first impression).
+  const [amount, setAmount]    = useState<number>(0.1)
 
   // Server state
   const [pool,    setPool]    = useState<PoolResponse | null>(null)
@@ -175,8 +186,10 @@ export default function PreTradeSimulator() {
   // ── Fetchers ────────────────────────────────────────────────────────────────
 
   const fetchPool = useCallback(async (uid: number, tradable: boolean) => {
-    // R7 guard: skip the network call entirely for non-tradable subnets and
-    // surface a clean "reserves not yet cached" message instead of a red 404.
+    // R7 guard (R8 update): skip the network call entirely when reserves
+    // aren't cached yet. With reserve coverage now spanning all active
+    // subnets, this is a temporal state ("warming up on the metagraph
+    // loop") rather than a categorical "not in TRADING_NETUIDS".
     if (!tradable) {
       setPool(null); setSim(null)
       setPoolErr(null); setSimErr(null)
@@ -266,7 +279,7 @@ export default function PreTradeSimulator() {
         <div>
           <h1 className="text-xl font-semibold text-white flex items-center gap-2">
             <Sparkles size={18} className="text-accent-blue" />
-            Pre-Trade Simulator
+            Subnet Pool Simulator
           </h1>
           <p className="text-[13px] text-slate-400 mt-1">
             Live constant-product AMM math — see slippage, fill, and exit P&L <span className="text-accent-yellow">before</span> you sign.
@@ -294,16 +307,17 @@ export default function PreTradeSimulator() {
               onChange={e => setNetuid(parseInt(e.target.value, 10))}
               className="w-full bg-dark-800 border border-dark-600 rounded-lg px-3 py-2 text-white font-mono text-sm focus:outline-none focus:border-accent-blue"
             >
-              {/* R7: split into two opt-groups — tradable first (live reserves),
-                  non-tradable second (annotated, still selectable so user can
-                  see the full Bittensor surface; selection surfaces a clean
-                  "reserves coming" panel rather than triggering a 404). */}
-              <optgroup label="Tradable — live pool reserves">
+              {/* R7/R8: split into two opt-groups — live reserves first,
+                  warming-up second (selectable, surfaces an info panel
+                  instead of a 404). The warming-up group shrinks every
+                  5-min cycle as the backend's pool snapshotter populates
+                  the rest of the active-subnet universe. */}
+              <optgroup label={`Live reserves (${subnets.filter(s => s.tradable).length})`}>
                 {subnets.filter(s => s.tradable).map(s => (
                   <option key={s.uid} value={s.uid}>{s.name}</option>
                 ))}
               </optgroup>
-              <optgroup label="Reserves not yet cached — math unavailable">
+              <optgroup label={`Warming up — reserves on next cycle (${subnets.filter(s => !s.tradable).length})`}>
                 {subnets.filter(s => !s.tradable).map(s => (
                   <option key={s.uid} value={s.uid}>{s.name}</option>
                 ))}
@@ -376,17 +390,18 @@ export default function PreTradeSimulator() {
         </div>
 
         {/* Status banners */}
-        {/* R7: non-tradable selection — clean info panel, not a red error.
-            Backend's pool-reserve cache only covers TRADING_NETUIDS; the
-            other 123 subnets in the dropdown render this card instead of a
-            404 storm. */}
+        {/* R7/R8: warming-up selection — clean info panel, not a red error.
+            Reserve coverage spans all active subnets; this card reflects
+            the temporal "next-cycle" state rather than a categorical
+            "not tradable". The set shrinks every 5-min cycle. */}
         {!isTradable && selectedSubnet && (
           <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-slate-800/60 border border-slate-600/40 text-slate-300 text-[13px]">
             <AlertTriangle size={14} className="mt-0.5 shrink-0 text-slate-400" />
             <div>
-              <span className="text-slate-200 font-mono">{selectedSubnet.name.replace(/  · \(reserves coming\)$/, '')}</span> — pool reserves not yet cached.
-              The simulator math runs against `(τ_in, α_in)` snapshots; those are populated for the trading-active subnets only.
-              Reserve-coverage expansion is queued for a separate decision (more chain calls per 5-min cycle).
+              <span className="text-slate-200 font-mono">{selectedSubnet.name.replace(/  · \(warming up\)$/, '')}</span> — reserves warming up.
+              The simulator math runs against on-chain <span className="font-mono">(τ_in, α_in)</span> snapshots; the backend metagraph loop
+              writes a fresh batch every 5 minutes and walks the full active-subnet universe. Try again in a moment, or pick
+              a subnet from the <span className="text-slate-200">Live reserves</span> group above.
             </div>
           </div>
         )}

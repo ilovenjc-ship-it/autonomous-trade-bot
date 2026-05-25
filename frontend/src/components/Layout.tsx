@@ -41,7 +41,11 @@ const PAGE_TITLES: Record<string, string> = {
   '/wallet-transactions':  'Transactions',
   '/override':             'Manual Override',
   '/research':             'Subnet Scorecard',
-  '/pre-trade':            'Pre-Trade Simulator',
+  // Day 12 R8: Mark requested rename. Topbar pill (next to "Paper Trading")
+  // takes the all-caps short form "POOL SIMULATOR"; sidebar uses the
+  // polite long form "Subnet Pool Simulator" (line 108).  Route stays
+  // /pre-trade — URL-stable across the rename.
+  '/pre-trade':            'POOL SIMULATOR',
   // '/tools' route deleted in Session XXXV — Whale Tracker briefly lived as a
   // Dashboard tile, then retired in XXXIX (Day 6) when Whale Flow superseded
   // it. /calculator (TAO Calculator) still served by Tools component with
@@ -104,8 +108,9 @@ const navGroups: NavGroup[] = [
       { to: '/market',    icon: Globe,     label: 'Subnet Market Data' },
       // Session XXXII: Const 6-Filter scorecard + Owner Watch + Conviction-Era heuristics
       { to: '/research',  icon: Sparkles,  label: 'Subnet Scorecard' },
-      // Day 12: Pre-Trade Simulator — constant-product AMM math, slippage curves, ±50% exits
-      { to: '/pre-trade', icon: TestTube2, label: 'Pre-Trade Simulator' },
+      // Day 12: Subnet Pool Simulator — constant-product AMM math, slippage curves, ±50% exits.
+      // R8 rename: "Pre-Trade Simulator" → "Subnet Pool Simulator" per Mark.
+      { to: '/pre-trade', icon: TestTube2, label: 'Subnet Pool Simulator' },
       // Session XXXV: Whale Tracker page deleted — moved to a Dashboard tile.
       // Session XXXIX (Day 6): Tile retired. Whale Flow (live Finney RPC) is
       // the canonical whale surface now. Calculator stays under ADMIN.

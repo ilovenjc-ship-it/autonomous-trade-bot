@@ -27,6 +27,7 @@ the field name is historical and just means "human-readable whole units".
 from __future__ import annotations
 import asyncio
 import logging
+import os
 from datetime import datetime, timezone, timedelta
 from typing import Dict, List, Optional, Iterable
 
@@ -43,6 +44,15 @@ logger = logging.getLogger(__name__)
 # We cap each individual subnet.subnet() call so one bad subnet can't poison
 # the whole cycle. Matches the per-subnet metagraph timeout philosophy.
 _PER_SUBNET_TIMEOUT_S = 8.0
+
+# Concurrency cap for pool-reserve scans.  Day 12 R8 (Mark green-lit
+# "All subnets wired"): the universe expanded from 6 trading subnets to
+# the full active-subnet set returned by the price scan (~80–128 uids).
+# Sequential @ ~1.5 s/subnet would burn 120–200 s of the 300 s metagraph
+# cycle; bounded concurrency drops the wall time to ~15 s while keeping
+# RPC pressure mild (8 in flight is well below subtensor's hot-path
+# tolerance).  Tunable from env so we can dial back if Finney throttles.
+_FETCH_CONCURRENCY = int(os.getenv("POOL_RESERVE_CONCURRENCY", "8"))
 
 
 class _Reserves:
@@ -96,43 +106,66 @@ class PoolReservesService:
 
         Robust to per-subnet RPC failures — bad subnets are skipped with a
         warning and the rest of the batch proceeds.
-        """
-        results: List[_Reserves] = []
-        now = datetime.now(timezone.utc)
 
-        for netuid in sorted(set(int(u) for u in netuids)):
-            try:
-                info = await asyncio.wait_for(
-                    sub.subnet(netuid=netuid),
-                    timeout=_PER_SUBNET_TIMEOUT_S,
-                )
-                if info is None:
-                    logger.warning(f"pool_reserves: SN{netuid} returned no DynamicInfo")
-                    continue
-                # Bittensor Balance → float TAO/alpha. Defensive: accept either
-                # a Balance object or a raw float.
-                tao_in   = _balance_to_float(getattr(info, "tao_in",   None))
-                alpha_in = _balance_to_float(getattr(info, "alpha_in", None))
-                if tao_in <= 0 or alpha_in <= 0:
-                    logger.debug(
-                        f"pool_reserves: SN{netuid} degenerate pool "
-                        f"(τ={tao_in}, α={alpha_in}) — skipping"
+        Day 12 R8: bounded concurrency (semaphore-gated, default 8 in flight)
+        replaces the old sequential loop.  Critical now that the universe
+        expanded from 6 to ~80–128 subnets.  Per-subnet failure is still
+        isolated — semaphore just controls how many `sub.subnet(...)` calls
+        we hold open simultaneously.
+        """
+        netuid_list = sorted(set(int(u) for u in netuids))
+        if not netuid_list:
+            return []
+
+        now = datetime.now(timezone.utc)
+        sem = asyncio.Semaphore(_FETCH_CONCURRENCY)
+
+        # Local accumulator — bare list + lock-free since asyncio is
+        # single-threaded; the gather() below collects each task's
+        # individual return value and we filter Nones.
+        async def _one(netuid: int) -> Optional[_Reserves]:
+            async with sem:
+                try:
+                    info = await asyncio.wait_for(
+                        sub.subnet(netuid=netuid),
+                        timeout=_PER_SUBNET_TIMEOUT_S,
                     )
-                    continue
-                snap = _Reserves(netuid, tao_in, alpha_in, now)
-                self._latest[netuid] = snap
-                results.append(snap)
-                logger.info(
-                    f"pool_reserves: SN{netuid} τ_in={tao_in:,.2f}  "
-                    f"α_in={alpha_in:,.2f}  price={snap.price_tao:.6f}"
-                )
-            except asyncio.TimeoutError:
-                logger.warning(
-                    f"pool_reserves: SN{netuid} sub.subnet() timeout "
-                    f"after {_PER_SUBNET_TIMEOUT_S}s — skipping"
-                )
-            except Exception as e:
-                logger.warning(f"pool_reserves: SN{netuid} fetch failed: {e}")
+                    if info is None:
+                        logger.warning(f"pool_reserves: SN{netuid} returned no DynamicInfo")
+                        return None
+                    # Bittensor Balance → float TAO/alpha. Defensive: accept
+                    # either a Balance object or a raw float.
+                    tao_in   = _balance_to_float(getattr(info, "tao_in",   None))
+                    alpha_in = _balance_to_float(getattr(info, "alpha_in", None))
+                    if tao_in <= 0 or alpha_in <= 0:
+                        logger.debug(
+                            f"pool_reserves: SN{netuid} degenerate pool "
+                            f"(τ={tao_in}, α={alpha_in}) — skipping"
+                        )
+                        return None
+                    snap = _Reserves(netuid, tao_in, alpha_in, now)
+                    self._latest[netuid] = snap
+                    return snap
+                except asyncio.TimeoutError:
+                    logger.warning(
+                        f"pool_reserves: SN{netuid} sub.subnet() timeout "
+                        f"after {_PER_SUBNET_TIMEOUT_S}s — skipping"
+                    )
+                except Exception as e:
+                    logger.warning(f"pool_reserves: SN{netuid} fetch failed: {e}")
+                return None
+
+        gathered = await asyncio.gather(*(_one(u) for u in netuid_list))
+        results = [r for r in gathered if r is not None]
+
+        # Single aggregate log line at INFO so we don't spam ~80 lines per
+        # 5-min cycle. Per-subnet success stays at DEBUG (toggle via log
+        # level) — drop to one batch summary instead.
+        if results:
+            logger.info(
+                f"pool_reserves: cycle complete — {len(results)}/{len(netuid_list)} "
+                f"subnets snapshotted (concurrency={_FETCH_CONCURRENCY})"
+            )
 
         return results
 

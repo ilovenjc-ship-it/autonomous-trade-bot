@@ -376,17 +376,29 @@ async def get_subnets_list():
     populate the full subnet selector (SN0 Root + SN1-SN128).
     R7 — Mark caught the next layer: dropdown shows 129 subnets but the
     pool-reserve cache only covers `TRADING_NETUIDS` (currently {0,8,9,18,64,96}).
-    Selecting any other uid 404s.  Each entry now carries `tradable: bool`
-    so the frontend can mark non-tradable rows as disabled and show a clean
-    "reserves not yet cached" message instead of a red 404.  Expanding
-    `TRADING_NETUIDS` is a separate decision (more chain calls per cycle).
-    Cheap to compute: pure metadata, no chain calls, no pricing.
+    Each entry carries `tradable: bool` so the frontend can disable
+    non-tradable rows and show a clean info card instead of a red 404.
+
+    Day 12 R8 (Mark green-lit "All subnets wired"): the simulator's
+    "tradable" semantic is now decoupled from `TRADING_NETUIDS` (the bot's
+    actual staking scope).  Reserve fetching expanded to ALL active dTAO
+    subnets returned by the price scan; the dropdown's `tradable` flag
+    now means "we have a cached pool reserve for this uid right now".
+    The set fills out organically as reserves come in (5-min cycle on the
+    metagraph loop).  `tradable_uids` reflects the live cache snapshot,
+    not a hardcoded constant — clients should not treat it as static.
     """
+    # Local import — the module-level alias `_pool_svc` is defined further
+    # down the file (it lives near the simulator endpoints).  Importing
+    # here keeps this endpoint independent of file ordering.
+    from services.pool_reserves_service import pool_reserves_service as _ps
+    cached_uids = set(_ps.all_latest().keys())
+
     items = [{
         "uid": 0,
         "name": "Root",
         "ticker": "root",
-        "tradable": 0 in TRADING_NETUIDS,
+        "tradable": 0 in cached_uids,
     }]
     for uid in _DISPLAY_UIDS:
         name, ticker = SUBNET_META.get(uid, (f"Subnet {uid}", f"sn{uid}"))
@@ -394,13 +406,16 @@ async def get_subnets_list():
             "uid": uid,
             "name": name,
             "ticker": ticker,
-            "tradable": uid in TRADING_NETUIDS,
+            "tradable": uid in cached_uids,
         })
     return {
         "subnets": items,
         "count": len(items),
         "tradable_count": sum(1 for s in items if s["tradable"]),
-        "tradable_uids":  sorted(TRADING_NETUIDS),
+        "tradable_uids":  sorted(cached_uids),
+        # Bot's actual staking scope — separate from simulator coverage.
+        # Frontend doesn't need this today, surfaced for transparency.
+        "bot_trading_netuids": sorted(TRADING_NETUIDS),
     }
 
 
@@ -811,20 +826,22 @@ async def get_pool_snapshot(netuid: int):
     turnover swing, depth-tier classification, and 14-day directional flow
     aggregates from the whale_flow_events table (if available).
     """
-    if netuid not in TRADING_NETUIDS:
-        raise HTTPException(
-            status_code=404,
-            detail=f"SN{netuid} is not a tradable subnet. Tradable: {sorted(TRADING_NETUIDS)}",
-        )
-
+    # Day 12 R8: simulator coverage now spans the full active-subnet
+    # universe (not just TRADING_NETUIDS).  We no longer 404 on uids
+    # outside the bot's staking scope — the only failure mode is "no
+    # cached reserves yet", which we surface as a 200 + warming_up so
+    # the UI can render a calm info panel instead of a red error.
     latest = _pool_svc.latest(netuid)
     if latest is None:
-        # Cold-start case: chain reader hasn't written yet. UI should show
-        # "warming up" — give it a 200 so the page doesn't blow up.
         return {
-            "netuid":    netuid,
+            "netuid":     netuid,
             "warming_up": True,
-            "message":   "Pool reserves not yet snapshotted — first metagraph cycle pending.",
+            "message":    (
+                f"SN{netuid} pool reserves not yet snapshotted — "
+                "the metagraph loop refreshes every 5 minutes; "
+                "freshly-listed or low-liquidity subnets may take a "
+                "cycle or two to populate."
+            ),
         }
 
     # Sparklines
@@ -915,14 +932,22 @@ async def simulate_trade(req: SimulateRequest):
         - slippage_curve (64-point log-spaced, for chart)
         - depth_tier
     """
-    if req.netuid not in TRADING_NETUIDS:
-        raise HTTPException(404, detail=f"SN{req.netuid} not tradable.")
+    # Day 12 R8: gate on actual reserves availability, not the bot's
+    # staking-scope set.  Simulator covers the full active-subnet
+    # universe; the only block is "no cached reserves yet" → 503.
     if req.side not in ("stake", "unstake"):
         raise HTTPException(422, detail="side must be 'stake' or 'unstake'")
 
     snap = _pool_svc.latest(req.netuid)
     if snap is None:
-        raise HTTPException(503, detail="Pool reserves warming up — try again in 5 minutes.")
+        raise HTTPException(
+            503,
+            detail=(
+                f"SN{req.netuid} pool reserves not yet cached — "
+                "the metagraph loop refreshes every 5 minutes; "
+                "try again in a moment."
+            ),
+        )
 
     tao_in, alpha_in = snap.tao_in, snap.alpha_in
     price_before = _sim.spot_price(tao_in, alpha_in)
