@@ -122,7 +122,7 @@ Mark's call after we reverse-engineered the TaoDX taodaily.io article: **"Yes, G
 **4. Polish pass — page borders, back-nav context, X+Reddit pivots (`7cb4ce70` → `<this commit>`).**
 Mark's Day 12 (cont.) batch — four items:
 
-(a) **Page-content frame** (Layout.tsx). `<main>` carries `border-l + border-r border-dark-500` (#2d3f60). R1 used `dark-700/60` — Mark caught it, invisible against `dark-900` (#0d1525) page bg. R2 bumped to `dark-500` matching the inner-card divider tone. Visible vertical lines on both edges of the work area.
+(a) **Page-content frame** (Layout.tsx). Aside owns left gutter (`border-r-2 border-slate-600`); main carries the right viewport edge (`border-r-2 border-slate-600`). Three rounds: R1 `dark-700/60` invisible. R2 `dark-500` (1px, ~30% diff) — Mark's verification screenshots showed it still wasn't reading; left edge doubled with aside's own `border-r dark-600` so both lines blurred. R3 dropped main's redundant `border-l`, bumped both surviving lines to **2px slate-600** (#475569, ~55% diff vs page bg) — one crisp line per side.
 
 (b) **Subnet-Detail back-nav context.** Hard-coded `/market` back link is gone. SubnetDetail reads `location.state {from, label}`; SubnetHeatMap (Subnet Analytics) navigates with `state: { from: '/analytics', label: 'Subnet Analytics' }`; MarketData passes `state: { from: '/market', label: 'Market Data' }`. Direct URL hits fall back to `/market`. **Net effect:** clicking a subnet on Subnet Analytics now correctly returns to Subnet Analytics (was bouncing to Market Data). Confirmed by Mark on Railway.
 
@@ -138,7 +138,8 @@ Mark's Day 12 (cont.) batch — four items:
 | 2 | App-wide ET (America/New_York) clock conversion (7 sites + shared helper) | `f63f39b0` |
 | 3 | Pre-Trade Simulator (TaoDX-equivalent — backend ~700 LOC + frontend ~600 LOC) | `da1711a4` |
 | 4a | UI polish R1 — borders + back-nav + X/Reddit pivots | `7cb4ce70` |
-| 4b | UI polish R2 — borders bumped dark-700/60 → dark-500 (visible) + this STATE.md archive | `<this commit>` |
+| 4b | UI polish R2 — borders bumped dark-700/60 → dark-500 + Session XLII archive | `374a7af1` |
+| 4c | UI polish R3 — borders bumped 1px dark-500 → **2px slate-600** (drop redundant border-l on main) | `0be22aef` |
 
 ### Verification ledger
 
