@@ -27,7 +27,7 @@
  */
 import { useEffect, useMemo, useState } from 'react'
 import {
-  Radio, Newspaper, MessageCircle, Coins, Link2, RefreshCw,
+  Radio, Newspaper, MessageCircle, Coins, Link2, RefreshCw, ExternalLink,
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
@@ -175,17 +175,22 @@ export default function SignalFeedTile() {
                   gauge and Live Indicators.
                 </p>
                 <p className="text-slate-300 text-[11px]">
-                  Sources: <span className="text-amber-400">CoinGecko</span> ·{' '}
+                  Live sources: <span className="text-amber-400">CoinGecko</span> ·{' '}
                   <span className="text-orange-400">Reddit</span> ·{' '}
                   <span className="text-sky-400">TaoDaily</span> ·{' '}
                   <span className="text-purple-400">Taostats</span> ·{' '}
                   <span className="text-indigo-400">Discord</span>{' '}
                   (when OTF invite lands)
                 </p>
+                <p className="text-slate-300 text-[11px]">
+                  Pivot links (link-only, $0): <span className="text-white">X · #bittensor</span> ·{' '}
+                  <span className="text-orange-400">Reddit · r/bittensor_</span>
+                </p>
                 <p className="text-slate-400 text-[10.5px] border-t border-slate-700/50 pt-1">
-                  Configure feeds + API keys on the Activity Log page →
-                  Signal Feeds drawer. Twitter/X intentionally not wired
-                  (paid API tier).
+                  Configure live feeds + API keys on the Activity Log page →
+                  Signal Feeds drawer. X has no free API tier, so it ships
+                  here as a one-click search pivot rather than an ingested
+                  stream.
                 </p>
               </div>
             }
@@ -204,6 +209,59 @@ export default function SignalFeedTile() {
             </span>
           )}
         </div>
+      </div>
+
+      {/* ── Social pivot row — Day 12 (cont.) ────────────────────────────────
+          Mark, Day 12 polish: "Can we connect the signals from X + Reddit
+          to the Signal Feed link on the Dashboard Page". Reddit RSS already
+          flows into the live event list above (5-min poll, sourced from
+          r/bittensor_).  X has no free API tier, so we use the same
+          link-pivot pattern the Subnet Detail "Community" card uses:
+          one click opens an X #bittensor search in a new tab.  Reddit
+          has a sibling pivot for symmetry — operator can jump straight
+          to the live subreddit when an event headline catches their eye.
+          Cost: $0.  Both buttons are aria-labelled and open in new tab. */}
+      <div className="flex items-center gap-1.5 mb-3">
+        <span className="text-[10px] font-mono uppercase tracking-widest text-slate-500 mr-0.5">
+          Pivot
+        </span>
+        <a
+          href="https://x.com/search?q=%23bittensor&f=live"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Search #bittensor on X (live tab) — opens in new tab"
+          aria-label="Open X search for #bittensor in a new tab"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800/60 border border-dark-600 hover:border-slate-400/40 hover:bg-slate-800 text-[10.5px] font-mono text-slate-200 transition-colors group"
+        >
+          {/* X glyph — small SVG (lucide has no official X mark) */}
+          <svg
+            viewBox="0 0 24 24"
+            width={10}
+            height={10}
+            className="text-slate-300 group-hover:text-white flex-shrink-0"
+            aria-hidden="true"
+            focusable="false"
+          >
+            <path
+              fill="currentColor"
+              d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.16 17.52h1.833L7.084 4.126H5.117z"
+            />
+          </svg>
+          <span>X · #bittensor</span>
+          <ExternalLink size={9} className="text-slate-500 group-hover:text-slate-300" />
+        </a>
+        <a
+          href="https://www.reddit.com/r/bittensor_/"
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Open r/bittensor_ on Reddit — opens in new tab"
+          aria-label="Open r/bittensor_ on Reddit in a new tab"
+          className="flex items-center gap-1.5 px-2 py-1 rounded-md bg-slate-800/60 border border-dark-600 hover:border-orange-400/40 hover:bg-slate-800 text-[10.5px] font-mono text-slate-200 transition-colors group"
+        >
+          <MessageCircle size={10} className="text-orange-400 flex-shrink-0" />
+          <span>Reddit · r/bittensor_</span>
+          <ExternalLink size={9} className="text-slate-500 group-hover:text-slate-300" />
+        </a>
       </div>
 
       {/* Loading */}

@@ -543,7 +543,10 @@ export default function MarketData() {
             ) : (() => {
               const maxStake = Math.max(...topSubnets.map(s => s.stake_tao), 1)
               return topSubnets.map(s => (
-                <SubnetCard key={s.uid} s={s} maxStake={maxStake} onOpen={(uid) => navigate(`/market/subnet/${uid}`)} />
+                <SubnetCard key={s.uid} s={s} maxStake={maxStake} onOpen={(uid) => navigate(
+                  `/market/subnet/${uid}`,
+                  { state: { from: '/market', label: 'Market Data' } },
+                )} />
               ))
             })()}
           </div>
@@ -631,7 +634,10 @@ export default function MarketData() {
             {subnets.map((s, idx) => (
               <tr
                 key={s.uid}
-                onClick={() => navigate(`/market/subnet/${s.uid}`)}
+                onClick={() => navigate(
+                  `/market/subnet/${s.uid}`,
+                  { state: { from: '/market', label: 'Market Data' } },
+                )}
                 className={clsx(
                   'border-b border-dark-700/40 hover:bg-dark-800/60 transition-colors cursor-pointer group',
                   idx % 2 === 0 ? '' : 'bg-dark-800/20',

@@ -129,6 +129,32 @@ _FEEDS: dict = {
         "events_total":   0,
         "config":         {"bot_token": "", "channel_ids": ""},
     },
+    # Day 12 (cont.) — Mark, "connect signals from X + Reddit to the
+    # Signal Feed link on the Dashboard". X has no free API tier (basic
+    # is $100+/mo; we deferred Desearch + every other paid feed until
+    # the App is self-sustainable), so X ships as a link-only pivot:
+    # the registry entry advertises the connection, the Dashboard
+    # SignalFeedTile and Subnet Detail "Community" card both render
+    # one-click search-pivots into x.com/search?q=%23bittensor.  When a
+    # free-tier path opens up (Nitter RSS bridge, Bluesky cross-post
+    # firehose, etc.) we swap auth from "link_only" to "none"/"api_key"
+    # and add a poller — same registry entry, same UI surface.
+    "x_search": {
+        "id":             "x_search",
+        "name":           "X · #bittensor",
+        "description":    "X (Twitter) hashtag search — link-only pivot ($0). Live tweets via x.com/search.",
+        "icon":           "x",
+        "auth":           "link_only",
+        "interval_label": "Pivot link",
+        "interval_s":     0,
+        "enabled":        True,
+        "status":         "connected",
+        "last_fetch":     None,
+        "last_value":     "Pivot · https://x.com/search?q=%23bittensor",
+        "error":          None,
+        "events_total":   0,
+        "config":         {"url": "https://x.com/search?q=%23bittensor&f=live"},
+    },
     # Session XXXIX (Day 6, post-redo): Vanta SN8 entry retired from the
     # Signal Feed registry per Mav — paid-subscription feed (request.taoshi.io,
     # no public pricing).  Stays on the Watch List in the Bittensor research

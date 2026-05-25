@@ -840,8 +840,14 @@ export default function Layout() {
         </div>
       </aside>
 
-      {/* Main content */}
-      <main className="flex-1 flex flex-col overflow-hidden">
+      {/* Main content
+          Day 12 (cont.) — Mark's polish pass: page content now framed with a
+          subtle vertical border on both edges so the work area reads as a
+          distinct surface from the side menu (left) and viewport edge (right).
+          The aside already owns its own border-r; doubling them up creates
+          a clean 1px gutter that matches the horizontal top-bar / ticker
+          dividers in tone. */}
+      <main className="flex-1 flex flex-col overflow-hidden border-l border-r border-dark-700/60">
 
         {/* ── Global top bar ─────────────────────────────────────────────── */}
         <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 bg-dark-800 border-b border-dark-700/60">

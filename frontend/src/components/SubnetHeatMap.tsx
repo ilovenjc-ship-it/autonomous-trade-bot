@@ -300,13 +300,19 @@ export default function SubnetHeatMap() {
                       setHoverPos({ x, y })
                     }}
                     onMouseLeave={() => setHovered(null)}
-                    onClick={() => navigate(`/market/subnet/${s.uid}`)}
+                    onClick={() => navigate(
+                      `/market/subnet/${s.uid}`,
+                      { state: { from: '/analytics', label: 'Subnet Analytics' } },
+                    )}
                     role="button"
                     tabIndex={0}
                     onKeyDown={e => {
                       if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault()
-                        navigate(`/market/subnet/${s.uid}`)
+                        navigate(
+                          `/market/subnet/${s.uid}`,
+                          { state: { from: '/analytics', label: 'Subnet Analytics' } },
+                        )
                       }
                     }}
                     title={`Open ${s.name} (SN${s.uid}) detail page`}

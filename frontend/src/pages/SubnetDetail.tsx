@@ -12,7 +12,7 @@
  *  6. External resource links
  */
 import { useEffect, useState, useRef, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   ArrowLeft, RefreshCw, ExternalLink, Shield, TrendingUp, TrendingDown,
   Minus, Lock, Unlock, AlertTriangle, CheckCircle2, Activity, Users,
@@ -158,7 +158,20 @@ function MetricCard({
 export default function SubnetDetail() {
   const { uid } = useParams<{ uid: string }>()
   const navigate = useNavigate()
+  const location = useLocation()
   const netuid = Number(uid)
+
+  // Day 12 (cont.) — Mark's nav-context fix:
+  //   Subnet Detail is reachable from two pages:
+  //     • /market           (Subnet Market Data — Top Subnets card + table)
+  //     • /analytics        (Subnet Analytics — Heat Map)
+  //   The back button used to hard-code /market, which sent Analytics
+  //   visitors to the wrong page.  Each entry point now passes
+  //   `state: { from, label }` on navigate(); we read it here and fall
+  //   back to /market for direct URL hits.
+  const navState = (location.state ?? {}) as { from?: string; label?: string }
+  const backTo    = navState.from  ?? '/market'
+  const backLabel = navState.label ?? 'Market Data'
 
   const [detail, setDetail]     = useState<SubnetDetail | null>(null)
   const [loading, setLoading]   = useState(true)
@@ -278,8 +291,8 @@ export default function SubnetDetail() {
           <AlertTriangle size={32} className="text-red-400" />
           <p className="text-white font-semibold">Subnet not found</p>
           <p className="text-slate-400 text-sm">{error ?? `SN${netuid} data unavailable`}</p>
-          <button onClick={() => navigate('/market')} className="px-4 py-2 bg-dark-700 border border-dark-500 rounded-lg text-sm text-white hover:bg-dark-600 transition-colors">
-            ← Back to Market Data
+          <button onClick={() => navigate(backTo)} className="px-4 py-2 bg-dark-700 border border-dark-500 rounded-lg text-sm text-white hover:bg-dark-600 transition-colors">
+            ← Back to {backLabel}
           </button>
         </div>
       </div>
@@ -295,11 +308,11 @@ export default function SubnetDetail() {
       {/* ── Sticky header ──────────────────────────────────────────────────── */}
       <div className="sticky top-0 z-10 bg-dark-900/95 backdrop-blur border-b border-dark-600 px-6 py-3 flex items-center gap-4">
         <button
-          onClick={() => navigate('/market')}
+          onClick={() => navigate(backTo)}
           className="flex items-center gap-1.5 text-slate-400 hover:text-white transition-colors text-sm font-mono"
         >
           <ArrowLeft size={15} />
-          Market Data
+          {backLabel}
         </button>
         <div className="h-4 w-px bg-dark-600" />
 

@@ -643,7 +643,7 @@ interface SignalFeed {
   name:           string
   description:    string
   icon:           string
-  auth:           'none' | 'api_key' | 'bot_token'
+  auth:           'none' | 'api_key' | 'bot_token' | 'link_only'
   interval_label: string
   enabled:        boolean
   status:         'connected' | 'error' | 'disabled' | 'connecting' | 'pending_invite'
@@ -654,6 +654,9 @@ interface SignalFeed {
   config:         Record<string, string>
 }
 
+// Day 12 (cont.) — added "x" entry for the new link-only X · #bittensor
+// pivot feed. Same registry shape as the others; rendered with a glyph
+// instead of an emoji so the card feels native to X's brand mark.
 const FEED_ICON: Record<string, string> = {
   coin:    '💰',
   reddit:  '🔴',
@@ -661,6 +664,7 @@ const FEED_ICON: Record<string, string> = {
   chain:   '⛓️',
   ai:      '🤖',
   discord: '💬',
+  x:       '𝕏',
 }
 
 const STATUS_META: Record<string, { label: string; cls: string }> = {
@@ -706,7 +710,13 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
     finally { setTesting(false) }
   }
 
-  const isDiscord = feed.id === 'discord'
+  const isDiscord  = feed.id === 'discord'
+  // Day 12 (cont.) — link-only feeds (X #bittensor) don't have a polling
+  // loop; they expose a public search URL via feed.config.url and render
+  // as an "Open on X →" pivot button instead of an API-key form / test
+  // fetch.  The toggle is also disabled (always-on; link is just there).
+  const isLinkOnly = feed.auth === 'link_only'
+  const linkUrl    = isLinkOnly ? (feed.config?.url ?? '').trim() : ''
 
   return (
     <div className={clsx(
@@ -731,18 +741,27 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
           </div>
         </div>
 
-        {/* Toggle */}
-        <button
-          onClick={() => onToggle(feed.id, !feed.enabled)}
-          disabled={isDiscord && feed.status !== 'connected'}
-          title={isDiscord && feed.status !== 'connected' ? 'Discord requires OTF server invite — cannot enable manually' : undefined}
-          className={clsx('flex-shrink-0 transition-colors', isDiscord && feed.status !== 'connected' && 'opacity-40 cursor-not-allowed')}
-        >
-          {feed.enabled
-            ? <ToggleRight size={28} className="text-accent-green" />
-            : <ToggleLeft  size={28} className="text-slate-500" />
-          }
-        </button>
+        {/* Toggle (link-only feeds are always-on, render as a static pill) */}
+        {isLinkOnly ? (
+          <span
+            className="flex-shrink-0 px-2 py-0.5 rounded-md bg-accent-green/10 border border-accent-green/30 text-[10px] font-mono uppercase tracking-wide text-accent-green"
+            title="Link-only pivot — always available, no toggle"
+          >
+            Link · Always On
+          </span>
+        ) : (
+          <button
+            onClick={() => onToggle(feed.id, !feed.enabled)}
+            disabled={isDiscord && feed.status !== 'connected'}
+            title={isDiscord && feed.status !== 'connected' ? 'Discord requires OTF server invite — cannot enable manually' : undefined}
+            className={clsx('flex-shrink-0 transition-colors', isDiscord && feed.status !== 'connected' && 'opacity-40 cursor-not-allowed')}
+          >
+            {feed.enabled
+              ? <ToggleRight size={28} className="text-accent-green" />
+              : <ToggleLeft  size={28} className="text-slate-500" />
+            }
+          </button>
+        )}
       </div>
 
       {/* Stats strip */}
@@ -846,8 +865,8 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
         </div>
       )}
 
-      {/* Test button (non-Discord only) */}
-      {!isDiscord && feed.enabled && (
+      {/* Test button (non-Discord, non-link-only only) */}
+      {!isDiscord && !isLinkOnly && feed.enabled && (
         <button
           onClick={handleTest}
           disabled={testing}
@@ -859,6 +878,28 @@ function SignalFeedCard({ feed, onToggle, onSaveKey, onTest }: {
           }
           {testing ? 'Fetching…' : 'Test fetch → Activity Log'}
         </button>
+      )}
+
+      {/* Day 12 (cont.) — link-only pivot row.  X has no free API tier;
+          this card surfaces the connection as a one-click search-pivot
+          (same pattern as the Subnet Detail "Community" card and the
+          Dashboard SignalFeedTile pivot row).  Cost: $0. */}
+      {isLinkOnly && linkUrl && (
+        <div className="flex items-center gap-2">
+          <a
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 border border-dark-500 hover:border-slate-400/50 text-slate-200 hover:text-white rounded-lg text-xs font-mono transition-all"
+            title={`Open ${feed.name} in a new tab`}
+          >
+            <ExternalLink size={10} />
+            Open on {feed.name.split('·')[0].trim()} →
+          </a>
+          <span className="text-[10px] text-slate-500 font-mono">
+            Live X search · no API key needed · opens in new tab
+          </span>
+        </div>
       )}
     </div>
   )
