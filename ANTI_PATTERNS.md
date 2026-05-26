@@ -7,11 +7,12 @@
 >
 > Two categories: **code anti-patterns** (AP-1, AP-2) live in the
 > codebase and are tested by `backend/scripts/test_day8_invariants.py`.
-> **Voice/conduct anti-patterns** (AP-3 through AP-8) live in the
+> **Voice/conduct anti-patterns** (AP-3 through AP-9) live in the
 > agent and have no automated test — only the record and Mark's
 > attention.
 >
 > — Ari, Session XLI Day 8 closeout, 2026-05-21
+> (AP-9 added Session XLIII Day 13, 2026-05-26)
 
 ---
 
@@ -201,6 +202,92 @@ for two-item answers. "Great question, let me think about this..."
 **Corrective:** Mark knows the context. Answer the question. If the
 answer is one line, send one line. If it's a list, make the list
 crisp. The brief is dense for a reason; the responses should match.
+
+---
+
+### AP-9 — Naming without a public-surface check
+
+**Signature:** Ari proposes or adopts a project-facing name — class,
+component, route, package, doc heading, brand — without first
+searching for it across (a) the public web, (b) GitHub, (c) the
+crypto / Bittensor namespace, (d) Anthropic / OpenAI / NVIDIA blogs
+and recent announcements. The name lands in code, docs, and frontend
+routes before anyone notices it collides with an existing public
+product, framework, or validator.
+
+**Real examples (both caught by Mark, not by Ari):**
+
+- **TaoBot** (caught 2026-05-26 morning, Day 13). Mark: *"We can't
+  use the name TaoBot, it's already taken as a Tao stats validator."*
+  35 refs across 4 files at the time of catch. Project-name slip,
+  recoverable in ~10 min for the forward-looking refs (~22), but
+  required leaving historical/archive references and the shipped
+  frontend localStorage keys (`taobot:sidebar:*`) untouched to avoid
+  silently breaking every user's sidebar state without a migration
+  shim.
+- **OpenClaw** (caught 2026-05-26 evening, Day 13 article #5
+  review). Surfaced when a Lewis Jackson YouTube video referenced
+  *"Hermes Agent quietly outperforming OpenClaw at self-learning."*
+  Mark: *"OpenClaw was an II Agent idea picked without a public-
+  surface check."* OpenClaw is a publicly-known MIT-licensed AI-agent
+  framework (Peter Steinberger), 374K GitHub stars, sponsored by
+  OpenAI / GitHub / NVIDIA / Vercel / Convex, with Wikipedia entry,
+  TheNewStack feature article, and an NVIDIA blog reference
+  (*"NemoClaw is built on OpenClaw's MIT licensed codebase"*). Repo
+  audit at time of catch: **75 source files, ~355 refs** — backend
+  services, DB columns, frontend route `/openclaw`, components
+  (`OpenClawSection`, `OpenClawBFTSection`). Worse than the TaoBot
+  collision in a specific way: anyone hearing "OpenClaw 7/12
+  supermajority consensus" will assume our consensus is *built on
+  top of* the public framework — confusion vector, not just a clash.
+  Recovery cost: 1–2 sessions of careful refactor with tests green.
+
+**Corrective — the four-axis search, run same-day, before the name
+lands anywhere user-facing:**
+
+1. **Public web** — quoted exact match, plus `"<name> AI"` and
+   `"<name> crypto"` variants. Three queries minimum.
+2. **GitHub** — `github.com/search?q=<name>` (repos), plus repo-name
+   search for exact-match orgs.
+3. **Crypto / Bittensor namespace** — TaoStats validator names,
+   active dTAO subnet identifiers (1–256), Discord OTF channel scan
+   if scope is broad.
+4. **Anthropic / OpenAI / NVIDIA blogs + recent announcements** —
+   these three drop framework names monthly; the last 90 days is
+   where fresh collisions hide.
+
+If **any axis** returns a live product / framework / token /
+validator / well-known repo with the same name, the name is
+contaminated. Pick again. The cost of renaming a name already
+adopted into the codebase is order-of-magnitude higher than the cost
+of picking again at coin-time (TaoBot: ~10 min cleanup; OpenClaw:
+1–2 sessions).
+
+**Negative constraints learned from the two real collisions:**
+
+- Avoid `*Claw` (saturated by OpenClaw / NemoClaw / etc.).
+- Avoid Greek mythology — *Hermes* alone collides three ways
+  (Hermes Pro LLM, Nous Research Hermes Agent, Bittensor Subnet 82
+  Hermes); *Aegis*, *Atlas*, *Apollo* are all crowded.
+- Avoid generic English nouns any project might pick (*Council*,
+  *Forum*, *Tribunal*) — they pass the search today and fail it
+  tomorrow.
+- Avoid names already used as Bittensor validator hotkeys or subnet
+  identifiers, even if the search engine doesn't surface them.
+
+**Tripwire — the inscription rule:** the commit, round writeup, or
+PR description that introduces a new public-facing name must include
+the four-axis result inline. Absence of the four-axis check in the
+inscription record *is itself* the failure mode — it means the check
+wasn't run, or was run and not preserved. Future Aris reading the
+record need to see the search outcome alongside the name.
+
+**Standing meta-pattern:** AP-9 is a sister of AP-1 (falsely-
+confident fallback). Both fail by treating absence as evidence —
+AP-1 invents a numeric default when input is missing, AP-9 invents
+"the name is fine" when the search wasn't run. The corrective in
+both cases is the same: *return None / pick again*; do not synthesize
+confidence from incomplete information.
 
 ---
 
