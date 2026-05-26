@@ -26,7 +26,8 @@ import TickerTape from '@/components/TickerTape'
 const PAGE_TITLES: Record<string, string> = {
   '/':                     'Dashboard',
   '/ii-agent':             'II Agent',
-  '/openclaw':             'OpenClaw BFT',
+  '/fleet-consensus':      'Fleet Consensus BFT',
+  '/openclaw':             'Fleet Consensus BFT',  // legacy alias — redirected via App.tsx
   '/fleet':                'Agent Fleet',
   '/alerts':               'Alerts Log',
   '/trades':               'Manual Trades',
@@ -59,7 +60,8 @@ const PAGE_TITLES: Record<string, string> = {
 // Session XXVI: Collapsible groups (all collapsed by default on first load),
 // state persisted in localStorage. New grouping:
 //   OVERVIEW / INTELLIGENCE / EXECUTION / PERFORMANCE / SUBNETS / ACTIVITIES
-//   / ADMIN / ACTION. Settings removed entirely. OpenClaw moved to EXECUTION.
+//   / ADMIN / ACTION. Settings removed entirely. Fleet Consensus (renamed
+//   from OpenClaw Day 13 2026-05-26) moved to EXECUTION.
 type NavItem = { to: string; icon: any; label: string; badge?: boolean; danger?: boolean }
 type NavGroup = { heading: string; items: NavItem[] }
 
@@ -79,7 +81,7 @@ const navGroups: NavGroup[] = [
   {
     heading: 'EXECUTION',
     items: [
-      { to: '/openclaw',   icon: Vote,       label: 'OpenClaw BFT' },
+      { to: '/fleet-consensus', icon: Vote, label: 'Fleet Consensus' },
       { to: '/fleet',      icon: Bot,        label: 'Agent Fleet'  },
       { to: '/strategies', icon: TrendingUp, label: 'Strategies'   },
     ],
@@ -873,14 +875,14 @@ export default function Layout() {
         <div className="flex-shrink-0 flex items-center gap-3 px-4 py-2.5 bg-dark-800 border-b-[3px] border-slate-500">
 
           {/* Left anchor — page-aware context label */}
-          {pathname === '/openclaw' ? (
-            /* OpenClaw page: show BFT identity instead of network status */
+          {(pathname === '/fleet-consensus' || pathname === '/openclaw') ? (
+            /* Fleet Consensus page: show BFT identity instead of network status */
             <div className="flex items-center gap-2 flex-shrink-0">
               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow shadow-indigo-500/20">
                 <Vote size={12} className="text-white" />
               </div>
               <span className="text-sm font-bold font-mono text-white leading-none tracking-tight">
-                OpenClaw BFT Consensus
+                Fleet Consensus BFT
               </span>
               <span className="text-slate-600 select-none">·</span>
               <span className="text-xs font-mono text-slate-400 leading-none">

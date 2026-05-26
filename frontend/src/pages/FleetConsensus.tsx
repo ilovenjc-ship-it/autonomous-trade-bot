@@ -1,5 +1,5 @@
 /**
- * OpenClaw BFT Consensus Engine
+ * Fleet Consensus BFT Engine
  * Real-time visualization of the 12-bot voting council.
  */
 import React, { useState, useEffect, useCallback } from 'react'
@@ -147,7 +147,7 @@ function StatCard({ icon: Icon, label, value, sub, accent, tip }: {
 }
 
 // ─── Forecast Panel (Session XXXIV — Phase C) ───────────────────────────────
-// Surfaces the Monte Carlo prediction of what an OpenClaw round would yield
+// Surfaces the Monte Carlo prediction of what a Fleet Consensus round would yield
 // right now if the operator hypothetically fired BUY/SELL. Sits next to the
 // live vote bar so the comparison is one glance away.
 
@@ -533,9 +533,9 @@ function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
   )
 }
 
-// ── OpenClaw BFT Explanation Component ────────────────────────────────────────
+// ── Fleet Consensus BFT Explanation Component ────────────────────────────────────────
 
-function OpenClawBFTSection() {
+function FleetConsensusBFTSection() {
   // Session XXV: collapse by default — user requested no auto-expand
   const [expanded, setExpanded] = useState(false)
 
@@ -574,7 +574,7 @@ function OpenClawBFTSection() {
           <span className="text-lg">⚡</span>
         </div>
         <div>
-          <p className="text-sm font-bold text-white font-mono tracking-wide">OpenClaw — Byzantine Fault Tolerant Consensus</p>
+          <p className="text-sm font-bold text-white font-mono tracking-wide">Fleet Consensus — Byzantine Fault Tolerant Consensus</p>
           <p className="text-[12px] text-purple-300/70 font-mono">The mathematical firewall between every strategy and the blockchain · Lamport, Shostak &amp; Pease, 1982</p>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -615,7 +615,7 @@ function OpenClawBFTSection() {
 
             {/* Math Box */}
             <div className="bg-[#0a0e1e]/80 border border-indigo-500/20 rounded-xl p-4 space-y-3">
-              <p className="text-[11px] font-mono text-indigo-400 uppercase tracking-[0.15em] font-bold">The OpenClaw Numbers</p>
+              <p className="text-[11px] font-mono text-indigo-400 uppercase tracking-[0.15em] font-bold">The Fleet Consensus Numbers</p>
               <div className="space-y-2.5 font-mono">
                 {[
                   { label: 'Total voting bots',         val: 'N = 12',                  color: 'text-white',      desc: 'One per strategy personality' },
@@ -698,7 +698,7 @@ function OpenClawBFTSection() {
             </div>
           </div>
 
-          {/* ── Row 4: Why this matters for OpenClaw ── */}
+          {/* ── Row 4: Why this matters for Fleet Consensus ── */}
           <div className="bg-purple-950/30 border border-purple-500/20 rounded-xl p-4">
             <p className="text-[11px] font-mono text-purple-400 uppercase tracking-[0.15em] font-bold mb-2">
               Why this matters for your TAO
@@ -735,7 +735,7 @@ function OpenClawBFTSection() {
   )
 }
 
-// ── OpenClaw Council Sidebar (relocated from Mission Control) ─────────────────
+// ── Fleet Consensus Council Sidebar (relocated from Mission Control) ─────────────────
 
 const VOTE_COLORS = {
   BUY:     { bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', text: 'text-emerald-400' },
@@ -761,7 +761,7 @@ function CouncilPanel({
         <div className="p-1 rounded bg-purple-500/15">
           <Users size={12} className="text-purple-400" />
         </div>
-        <span className="text-[13px] font-bold tracking-widest text-slate-200 uppercase">OpenClaw Council</span>
+        <span className="text-[13px] font-bold tracking-widest text-slate-200 uppercase">Fleet Consensus</span>
         <span className="ml-auto text-[11px] font-mono text-purple-400/70 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">
           BFT · 7/12
         </span>
@@ -854,7 +854,7 @@ function CouncilPanel({
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
-export default function OpenClaw() {
+export default function FleetConsensus() {
   const [latestRound,   setLatestRound]   = useState<ConsensusRound | null>(null)
   const [history,       setHistory]       = useState<ConsensusRound[]>([])
   const [stats,         setStats]         = useState<ConsensusStats | null>(null)
@@ -926,11 +926,11 @@ export default function OpenClaw() {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
-      {/* ── How OpenClaw Works (Session XXIX: relocated to TOP of page, top-line)
+      {/* ── How Fleet Consensus Works (Session XXIX: relocated to TOP of page, top-line)
             Was below Stat Cards / BFT Explainer; now leads the page so a fresh
             visitor sees the four-step process before any data. */}
       <div className="bg-dark-800/60 border border-dark-700 rounded-xl p-4">
-        <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">How OpenClaw Works</p>
+        <p className="text-xs text-slate-300 uppercase tracking-wider font-mono mb-3">How Fleet Consensus Works</p>
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-xs text-slate-300">
           <div className="flex gap-2">
             <span className="text-indigo-400 font-bold font-mono">01</span>
@@ -966,7 +966,7 @@ export default function OpenClaw() {
           value={stats?.total_rounds ?? 0}
           sub="consensus rounds run"
           accent="bg-indigo-500/15 text-indigo-400"
-          tip="Total number of OpenClaw consensus rounds that have completed since boot. Each round is a 12-bot vote on a proposed BUY or SELL — counted regardless of whether it cleared the 7-of-12 supermajority."
+          tip="Total number of Fleet Consensus rounds that have completed since boot. Each round is a 12-bot vote on a proposed BUY or SELL — counted regardless of whether it cleared the 7-of-12 supermajority."
         />
         <StatCard
           icon={Activity}
@@ -1011,17 +1011,17 @@ export default function OpenClaw() {
       </div>
 
       {/* ── BFT Explainer (relocated from II Agent page) ── */}
-      <OpenClawBFTSection />
+      <FleetConsensusBFTSection />
 
       {/* ── Cycle Status Bar (Session XXXV: relocated FROM Dashboard) ──────────
-          Mav requested this anchor sit on the OpenClaw page directly below
+          Mav requested this anchor sit on the Fleet Consensus page directly below
           the BFT explainer so the operator can see "RUNNING — Cycle #N ·
           Next cycle in Xs · Y strategies active" right where consensus
           activity is being watched. Self-contained component subscribes to
           the bot store + analytics summary. */}
       <CycleStatusBar />
 
-      {/* Session XXIX: 'How OpenClaw Works' was here — now relocated to TOP of
+      {/* Session XXIX: 'How Fleet Consensus Works' was here — now relocated to TOP of
           the page (above Stat Cards). Promotion Gate already sits above
           Consensus History (XXVI placement). */}
 

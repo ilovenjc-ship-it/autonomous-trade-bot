@@ -6,14 +6,14 @@
  *     it adds a chunk-load flash on first paint with no benefit).
  *   • Every other page is wrapped in React.lazy().  Vite emits one chunk per
  *     dynamic import, which drops the initial bundle from ~1.2 MB to a thin
- *     shell + Dashboard slice.  Heavy pages (OpenClaw, Wallet, IIAgent,
+ *     shell + Dashboard slice.  Heavy pages (FleetConsensus, Wallet, IIAgent,
  *     ActivityLog) download only when navigated to.
  *   • Suspense fallback uses a tasteful PageLoader (delayed 120ms so cached
  *     chunks don't flash).
  *   • Vendor splitting (react / recharts / lucide-react / etc.) is configured
  *     in vite.config.ts via manualChunks.
  */
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Suspense, lazy } from 'react'
 import { Toaster } from 'react-hot-toast'
 import Layout from './components/Layout'
@@ -34,7 +34,7 @@ const TradeLog           = lazy(() => import('./pages/TradeLog'))
 const MarketData         = lazy(() => import('./pages/MarketData'))
 const SubnetDetail       = lazy(() => import('./pages/SubnetDetail'))
 const StrategyDetail     = lazy(() => import('./pages/StrategyDetail'))
-const OpenClaw           = lazy(() => import('./pages/OpenClaw'))
+const FleetConsensus     = lazy(() => import('./pages/FleetConsensus'))
 const IIAgent            = lazy(() => import('./pages/IIAgent'))
 const AlertInbox         = lazy(() => import('./pages/AlertInbox'))
 const PnLSummary         = lazy(() => import('./pages/PnLSummary'))
@@ -94,7 +94,11 @@ export default function App() {
           <Route path="/system-health"        element={<Suspense fallback={<PageLoader />}><SystemHealth /></Suspense>} />
           <Route path="/audit"                element={<Suspense fallback={<PageLoader />}><AuditTrail /></Suspense>} />
           <Route path="/strategy/:name"       element={<Suspense fallback={<PageLoader />}><StrategyDetail /></Suspense>} />
-          <Route path="/openclaw"             element={<Suspense fallback={<PageLoader />}><OpenClaw /></Suspense>} />
+          <Route path="/fleet-consensus"      element={<Suspense fallback={<PageLoader />}><FleetConsensus /></Suspense>} />
+          {/* Day 13 rename — OpenClaw → Fleet Consensus. Preserve old URL
+              for any browser bookmarks / external links by 308-redirecting
+              via React Router Navigate (replaces history entry, no flash). */}
+          <Route path="/openclaw"             element={<Navigate to="/fleet-consensus" replace />} />
           <Route path="/ii-agent"             element={<Suspense fallback={<PageLoader />}><IIAgent /></Suspense>} />
           <Route path="/alerts"               element={<Suspense fallback={<PageLoader />}><AlertInbox /></Suspense>} />
           <Route path="/trades"               element={<Suspense fallback={<PageLoader />}><Trades /></Suspense>} />
