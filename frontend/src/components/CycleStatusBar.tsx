@@ -2,7 +2,7 @@
  * CycleStatusBar — Session XXXV
  * =============================
  * The "RUNNING — Cycle #N · Next cycle in Xs · Y strategies active" pill
- * that used to live on the Dashboard. Mav relocated it to the OpenClaw
+ * that used to live on the Dashboard. Mav relocated it to the Fleet Consensus
  * page (below the BFT explainer) and to the top of the Strategies page.
  *
  * Self-contained: subscribes to the bot store (already polled globally
@@ -59,7 +59,7 @@ export default function CycleStatusBar({ chainSlot }: Props) {
   const chainConnected = (status as any)?.network_connected ?? false
   const defaultChain = chainConnected
     ? <span className="text-indigo-400">⛓ CHAIN CONNECTED · Finney mainnet</span>
-    : <span>⚠ Paper trading — OpenClaw gates LIVE execution</span>
+    : <span>⚠ Paper trading — Fleet Consensus gates LIVE execution</span>
 
   return (
     <div className={clsx(

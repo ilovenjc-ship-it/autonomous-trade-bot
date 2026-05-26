@@ -229,7 +229,7 @@ export default function TradingModeBanner() {
           {/* What happens next */}
           {isLive ? (
             <p className="mt-3 text-[13px] text-emerald-400/60 font-mono">
-              Next LIVE strategy signal + 7/12 OpenClaw votes → stake() fires on Finney → tx_hash recorded
+              Next LIVE strategy signal + 7/12 Fleet Consensus votes → stake() fires on Finney → tx_hash recorded
             </p>
           ) : (
             <p className="mt-3 text-[13px] text-amber-400/60 font-mono">

@@ -3,19 +3,19 @@
  * ================================
  * Orchestration architecture banner. Originally lived on the II Agent
  * page; Mav relocated it to the top of the Dashboard so visitors see
- * the four-stage pipeline (II Agent → OpenClaw → 12 Bots → Trades)
+ * the four-stage pipeline (II Agent → Fleet Consensus → 12 Bots → Trades)
  * before diving into KPI cards.
  *
  * Color swap from the original IIAgent placement:
  *   - II Agent  : indigo  →  GREEN (it IS the Intelligent Internet's
  *                 emerald-themed orchestrator, not just any planner)
  *   - 12 Bots   : emerald →  PURPLE (Session XXXV) → ROSE (Session XXXVIII)
- *                 OpenClaw and 12 Bots both rendered as side-by-side
+ *                 Fleet Consensus and 12 Bots both rendered as side-by-side
  *                 purples (purple-500 + fuchsia-500). Mav flagged the
  *                 monotony; rose-400 keeps a warm hue at the strategy-
- *                 fleet (workhorse) layer while letting OpenClaw retain
+ *                 fleet (workhorse) layer while letting Fleet Consensus retain
  *                 its consensus-purple identity untouched.
- *   - OpenClaw  : purple  →  PURPLE (unchanged — keeps consensus identity)
+ *   - Fleet Consensus  : purple  →  PURPLE (unchanged — keeps consensus identity)
  *   - Trades    : sky     →  SKY (unchanged — chain execution layer)
  *
  * Self-contained: pulls its own live data from /agent/status, /consensus/
@@ -122,11 +122,11 @@ export default function HowItAllConnects() {
           </div>
         </div>
 
-        {/* Node 2 — OpenClaw ── PURPLE (unchanged) */}
+        {/* Node 2 — Fleet Consensus ── PURPLE (unchanged) */}
         <div className="group relative flex-1 rounded-xl border border-purple-500/30 bg-purple-500/10 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-purple-400/60 hover:bg-purple-500/15 hover:shadow-lg hover:shadow-purple-500/10">
           <div className="transition-opacity duration-300 group-hover:opacity-0">
             <p className="text-lg mb-1">⚡</p>
-            <p className="text-sm font-bold text-purple-400 font-mono">OpenClaw</p>
+            <p className="text-sm font-bold text-purple-400 font-mono">Fleet Consensus</p>
             <p className="text-[13px] text-slate-400 uppercase tracking-wider mb-2">BFT Consensus</p>
             <p className="text-xs font-mono font-semibold text-slate-200">
               {cStats?.total_rounds ?? 0} rounds · {cStats?.approval_rate_pct?.toFixed(1) ?? 0}% approved
@@ -134,7 +134,7 @@ export default function HowItAllConnects() {
             <p className="text-[13px] text-slate-400 font-mono">7 of 12 supermajority required</p>
           </div>
           <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
-            <p className="text-xs font-bold text-purple-300 mb-2">⚡ OpenClaw — BFT Consensus Engine</p>
+            <p className="text-xs font-bold text-purple-300 mb-2">⚡ Fleet Consensus — BFT Engine</p>
             <p className="text-[14px] text-slate-300 leading-relaxed">
               Every LIVE trade must pass a 7-of-12 supermajority vote before executing.
               12 bot personalities vote BUY / SELL / HOLD based on their own signal weights.
@@ -152,7 +152,7 @@ export default function HowItAllConnects() {
         </div>
 
         {/* Node 3 — 12 Bots  ── ROSE (Session XXXVIII colour swap; previously
-            fuchsia which read as a second shade of purple next to OpenClaw) */}
+            fuchsia which read as a second shade of purple next to Fleet Consensus) */}
         <div className="group relative flex-1 rounded-xl border border-rose-400/30 bg-rose-400/10 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-rose-300/60 hover:bg-rose-400/15 hover:shadow-lg hover:shadow-rose-400/10">
           <div className="transition-opacity duration-300 group-hover:opacity-0">
             <p className="text-lg mb-1">🤖</p>

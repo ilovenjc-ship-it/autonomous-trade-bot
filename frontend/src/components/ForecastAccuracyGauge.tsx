@@ -1,5 +1,5 @@
 /**
- * ForecastAccuracyGauge — model-drift indicator for OpenClaw.
+ * ForecastAccuracyGauge — model-drift indicator for Fleet Consensus.
  *
  * Session XXXVII — Phase F.  Closes the loop on Phase C (vote
  * forecasting): every consensus round records (forecast, actual);
