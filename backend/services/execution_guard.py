@@ -92,6 +92,59 @@ SUBNET_POOL_DEPTH: dict[int, float] = {
 }
 
 
+# ── Live pool-depth resolver (Day 13, 2026-05-26) ──────────────────────────────
+# Day 12 R8 expanded `pool_reserves_service` coverage from 6 trading subnets to
+# all ~80–128 active dTAO subnets, snapshotted every 5 min via the metagraph
+# cycle.  After the ~24 h warm-up window all six TRADING_NETUIDS reserves
+# carry live `tao_in` figures, so we now prefer live data over the static
+# tier-bucket table above.  The static table stays as defensive fallback —
+# if `pool_reserves_service` is empty (cold start, RPC blip, test harness)
+# we degrade gracefully instead of crashing the slippage path.
+#
+# Lazy import dodges a circular dep: pool_reserves_service is read-only here
+# and gets populated from subnet_cache_service which itself doesn't touch
+# execution_guard.  The import is local, fast on subsequent calls (Python
+# caches in sys.modules), and tolerant of import-time failures.
+
+def _pool_depth(netuid: int) -> float:
+    """
+    Resolve τ_in pool depth for a subnet.
+
+    Priority:
+      1. Live reserves from `pool_reserves_service.latest(netuid).tao_in`
+         (populated every 5 min for ALL active subnets — Day 12 R8).
+      2. Static `SUBNET_POOL_DEPTH` tier-bucket fallback (Day 9 estimates).
+      3. `DEFAULT_POOL_DEPTH_TAO` ultimate fallback (200 τ — conservative).
+
+    Returns τ as a float.  Always > 0 on the static-fallback path; only
+    returns 0 if a future caller passes a netuid that's not in the table
+    and the service is unreachable, which is a programming error.
+    """
+    try:
+        from services.pool_reserves_service import pool_reserves_service  # lazy
+        r = pool_reserves_service.latest(int(netuid))
+        if r is not None and r.tao_in and r.tao_in > 0:
+            return float(r.tao_in)
+    except Exception:
+        # Reserves service unavailable — fall through to static table.
+        pass
+    return SUBNET_POOL_DEPTH.get(int(netuid), DEFAULT_POOL_DEPTH_TAO)
+
+
+def _pool_depth_source(netuid: int) -> str:
+    """Tag the source ('live' | 'static' | 'default') for telemetry / status surfaces."""
+    try:
+        from services.pool_reserves_service import pool_reserves_service  # lazy
+        r = pool_reserves_service.latest(int(netuid))
+        if r is not None and r.tao_in and r.tao_in > 0:
+            return "live"
+    except Exception:
+        pass
+    if int(netuid) in SUBNET_POOL_DEPTH:
+        return "static"
+    return "default"
+
+
 # ── Jitter table ──────────────────────────────────────────────────────────────
 # Deterministic execution offset per strategy.
 # Computed once from md5(strategy_name) % 46 — consistent across restarts.
@@ -161,7 +214,7 @@ def slippage_for_trade(amount_tao: float, netuid: int = 1) -> float:
 
     Returns fraction (not percent), e.g. 0.001 = 0.1 % slippage.
     """
-    pool = SUBNET_POOL_DEPTH.get(netuid, DEFAULT_POOL_DEPTH_TAO)
+    pool = _pool_depth(netuid)
     per_leg = amount_tao / (pool + amount_tao)
     return round(per_leg * 2, 6)
 
@@ -232,7 +285,7 @@ def pre_flight_check(
     Status: SCAFFOLDED — not enforced until SLIPPAGE_GUARD_ENABLED = True.
     """
     label  = strategy or "unknown"
-    pool   = SUBNET_POOL_DEPTH.get(netuid, DEFAULT_POOL_DEPTH_TAO)
+    pool   = _pool_depth(netuid)
     fee    = fee_for_trade(amount_tao)
     slip   = slippage_tao(amount_tao, netuid)
     total  = round(fee + slip, 6)
@@ -284,7 +337,8 @@ def guard_status() -> dict:
             "model":                "AMM constant-product (Uniswap v2 style)",
             "formula":              "impact = amount / (pool_depth + amount) per leg × 2 legs",
             "default_pool_depth":   DEFAULT_POOL_DEPTH_TAO,
-            "pool_depth_source":    "estimated — live SDK data planned",
+            "pool_depth_source":    "live (pool_reserves_service.latest.tao_in) → static tier-bucket fallback → DEFAULT_POOL_DEPTH_TAO",
+            "live_source":          "pool_reserves_service · 5-min metagraph cycle · all active dTAO subnets",
         },
         "jitter": {
             "enabled":              True,
