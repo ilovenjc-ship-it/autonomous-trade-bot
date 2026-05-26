@@ -657,7 +657,7 @@ async def get_subnet_detail(uid: int):
         "taostats_url":  f"https://taostats.io/subnets/{uid}",
         "tao_app_url":   f"https://tao.app/subnet/{uid}",
         # NOTE: JSON field name preserved for API/UI compatibility — value updated to "II Agent Active"
-        "taobot_label":  "II Agent Active" if is_monitored else "Monitor Only",
+        "signal_candidate_label":  "II Agent Active" if is_monitored else "Monitor Only",
     }
 
 
@@ -731,7 +731,7 @@ async def subnet_owners():
             "scorecard_score":   sc_entry.get("score") if sc_entry else None,
             "scorecard_max":     6 if sc_entry else None,
             "is_signal_candidate": (
-                sc_entry.get("is_taobot_signal_candidate", False)
+                sc_entry.get("is_signal_candidate", False)
                 if sc_entry else False
             ),
             # Takeover risk enrichment (None if denominator data isn't cached yet)

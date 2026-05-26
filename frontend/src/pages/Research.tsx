@@ -52,7 +52,7 @@ interface SubnetEntry {
   filters_passed: string[]
   score: number
   callouts: string[]
-  is_taobot_signal_candidate: boolean
+  is_signal_candidate: boolean
 }
 interface ScorecardResp {
   framework: FrameworkMeta
@@ -234,7 +234,7 @@ export default function Research() {
   // ── Derived ─────────────────────────────────────────────────────────────
   const filters = scorecard?.framework.filters ?? []
   const subnets = scorecard?.subnets ?? []
-  const candidates = subnets.filter((s) => s.is_taobot_signal_candidate)
+  const candidates = subnets.filter((s) => s.is_signal_candidate)
 
   const visibleSubnets = subnets.filter((s) => {
     if (!search) return true
@@ -783,7 +783,7 @@ export default function Research() {
                       key={s.netuid}
                       className={clsx(
                         'cursor-pointer border-t border-slate-800/70 hover:bg-slate-800/40',
-                        s.is_taobot_signal_candidate && 'bg-amber-500/5',
+                        s.is_signal_candidate && 'bg-amber-500/5',
                       )}
                       onClick={() =>
                         setExpandedRow(isOpen ? null : s.netuid)
@@ -792,7 +792,7 @@ export default function Research() {
                       <td className="px-3 py-2 text-slate-400">{s.rank}</td>
                       <td className="px-3 py-2">
                         <div className="flex items-center gap-2">
-                          {s.is_taobot_signal_candidate && (
+                          {s.is_signal_candidate && (
                             <Star size={12} className="text-amber-400" />
                           )}
                           <span className="font-mono text-xs text-slate-400">

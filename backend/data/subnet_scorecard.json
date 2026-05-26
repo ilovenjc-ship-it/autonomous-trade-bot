@@ -50,7 +50,7 @@
       "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
       "score": 6,
       "callouts": [],
-      "is_taobot_signal_candidate": false
+      "is_signal_candidate": false
     },
     {
       "rank": 2,
@@ -60,7 +60,7 @@
       "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
       "score": 6,
       "callouts": ["SN3 owner-key monitor target", "high-quality watch (Templar)"],
-      "is_taobot_signal_candidate": true
+      "is_signal_candidate": true
     },
     {
       "rank": 3,
@@ -70,7 +70,7 @@
       "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
       "score": 6,
       "callouts": [],
-      "is_taobot_signal_candidate": false
+      "is_signal_candidate": false
     },
     {
       "rank": 4,
@@ -80,7 +80,7 @@
       "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
       "score": 6,
       "callouts": [],
-      "is_taobot_signal_candidate": false
+      "is_signal_candidate": false
     },
     {
       "rank": 5,
@@ -90,7 +90,7 @@
       "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
       "score": 6,
       "callouts": [],
-      "is_taobot_signal_candidate": false
+      "is_signal_candidate": false
     },
     {
       "rank": 6,
@@ -100,7 +100,7 @@
       "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
       "score": 6,
       "callouts": ["AI Trading Signals — tradable alpha signals", "profit-driven buybacks, not emission farming", "highest-leverage signal integration target after Synth"],
-      "is_taobot_signal_candidate": true
+      "is_signal_candidate": true
     },
     {
       "rank": 7,
@@ -110,7 +110,7 @@
       "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
       "score": 6,
       "callouts": [],
-      "is_taobot_signal_candidate": false
+      "is_signal_candidate": false
     },
     {
       "rank": 8,
@@ -120,7 +120,7 @@
       "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
       "score": 6,
       "callouts": [],
-      "is_taobot_signal_candidate": false
+      "is_signal_candidate": false
     },
     {
       "rank": 9,
@@ -130,7 +130,7 @@
       "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
       "score": 6,
       "callouts": [],
-      "is_taobot_signal_candidate": false
+      "is_signal_candidate": false
     },
     {
       "rank": 10,
@@ -140,7 +140,7 @@
       "filters_passed": ["f1_commodity", "f2_productive", "f3_intelligent", "f4_hard", "f5_not_ponzi", "f6_ai_native"],
       "score": 6,
       "callouts": [],
-      "is_taobot_signal_candidate": false
+      "is_signal_candidate": false
     }
   ]
 }

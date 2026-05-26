@@ -42,7 +42,7 @@ interface SubnetDetail {
   is_monitored: boolean
   taostats_url: string
   tao_app_url: string
-  taobot_label: string
+  signal_candidate_label: string
   data_source: string
 }
 

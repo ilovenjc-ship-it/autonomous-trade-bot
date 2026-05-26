@@ -20,7 +20,7 @@ POST /api/research/subnet-scorecard/refresh
         without a full container redeploy.
 
 GET  /api/research/signal-candidates
-        Subset of scorecard flagged is_taobot_signal_candidate=true —
+        Subset of scorecard flagged is_signal_candidate=true —
         the subnets we're actively researching for live signal integration.
 
 The quality gate itself (`passes_quality_gate`) is consumed internally by
@@ -65,7 +65,7 @@ async def refresh_subnet_scorecard():
 @router.get("/signal-candidates")
 async def get_signal_candidates():
     """Subnets flagged as active research targets for live signal integration."""
-    candidates = subnet_scorecard_service.taobot_signal_candidates()
+    candidates = subnet_scorecard_service.signal_candidates()
     return {"candidates": candidates, "count": len(candidates)}
 
 
@@ -95,7 +95,7 @@ async def quality_gate_check(netuid: int):
         "passes":         passes,
         "on_scorecard":   entry is not None,
         "is_signal_candidate": (
-            entry.get("is_taobot_signal_candidate", False) if entry else False
+            entry.get("is_signal_candidate", False) if entry else False
         ),
     }
 
@@ -132,7 +132,7 @@ async def takeover_risk_all():
             "subnet_category":   sc.get("category") if sc else None,
             "scorecard_score":   sc.get("score") if sc else None,
             "is_signal_candidate": (
-                sc.get("is_taobot_signal_candidate", False) if sc else False
+                sc.get("is_signal_candidate", False) if sc else False
             ),
         })
         band_counts[r["risk_band"]] = band_counts.get(r["risk_band"], 0) + 1
@@ -176,7 +176,7 @@ async def quality_gate_status():
         s for s in subnets
         if int(s.get("score", 0)) >= threshold
     ]
-    candidates = subnet_scorecard_service.taobot_signal_candidates()
+    candidates = subnet_scorecard_service.signal_candidates()
 
     return {
         "threshold":            threshold,

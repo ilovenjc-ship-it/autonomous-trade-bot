@@ -192,7 +192,7 @@ def _render_subnet_detail(netuid: int) -> str:
     score_max = 6
     rank = (sc or {}).get("rank")
     callouts = (sc or {}).get("callouts") or []
-    is_candidate = bool((sc or {}).get("is_taobot_signal_candidate"))
+    is_candidate = bool((sc or {}).get("is_signal_candidate"))
 
     header = f"**SN{netuid} — {name}** · {cat}"
     if rank:
@@ -298,7 +298,7 @@ def _handle_quality_gate(msg: str) -> Optional[str]:
         out.append(
             f"{live} **SN{s['netuid']} {s.get('name','?')}** · {s.get('category','—')} · "
             f"{s.get('score','?')}/6"
-            + (" · ⭐ candidate" if s.get("is_taobot_signal_candidate") else "")
+            + (" · ⭐ candidate" if s.get("is_signal_candidate") else "")
         )
     if len(passing) > 12:
         out.append(f"\n…+{len(passing) - 12} more.")

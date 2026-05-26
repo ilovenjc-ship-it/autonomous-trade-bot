@@ -29,7 +29,7 @@ Public API
     subnet_scorecard_service.get_subnet(netuid)    → dict | None
     subnet_scorecard_service.passes_quality_gate(netuid, min_filters=None)
                                                    → bool
-    subnet_scorecard_service.taobot_signal_candidates() → list[dict]
+    subnet_scorecard_service.signal_candidates() → list[dict]
     subnet_scorecard_service.refresh_from_disk()   → int   (subnet count)
 
 The service is a stateless singleton. It loads on first access and holds
@@ -185,16 +185,16 @@ class SubnetScorecardService:
             return False
         return int(entry.get("score", 0)) >= threshold
 
-    def taobot_signal_candidates(self) -> List[Dict[str, Any]]:
+    def signal_candidates(self) -> List[Dict[str, Any]]:
         """
-        Subset of scorecard flagged is_taobot_signal_candidate=true.
+        Subset of scorecard flagged is_signal_candidate=true.
         These are the subnets we're actively researching for live signal
         integration (currently SN3 Templar + SN8 Vanta).
         """
         self._ensure_loaded()
         return [
             s for s in self._raw.get("subnets", [])
-            if s.get("is_taobot_signal_candidate") is True
+            if s.get("is_signal_candidate") is True
         ]
 
 

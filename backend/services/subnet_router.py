@@ -79,7 +79,7 @@ STRATEGY_SUBNET_PREFS: Dict[str, List[Tuple[int, float]]] = {
 VALIDATOR_CACHE_TTL = 300   # seconds — refresh every 5 minutes
 _validator_cache:    Dict[int, Optional[str]] = {}   # netuid → best hotkey
 _cache_ts:           float = 0.0
-_taobot_subnets:     set   = set()   # subnets where the II Agent hotkey is confirmed present
+_signal_candidate_subnets: set   = set()   # subnets where the II Agent hotkey is confirmed present
 
 
 def set_primary_validator(hotkey: str) -> None:
@@ -95,7 +95,7 @@ async def _refresh_validator_cache(netuids: List[int]) -> None:
     Prefers PRIMARY_VALIDATOR if they have permit; otherwise picks
     the top-staked permitted validator.
     """
-    global _validator_cache, _cache_ts, _taobot_subnets
+    global _validator_cache, _cache_ts, _signal_candidate_subnets
 
     try:
         import bittensor as bt
@@ -109,15 +109,15 @@ async def _refresh_validator_cache(netuids: List[int]) -> None:
                         mg.validator_permit.tolist(),
                     ))
                     # Check if the II Agent hotkey is present and permitted on this subnet
-                    taobot_here = False
+                    ii_agent_present = False
                     if PRIMARY_VALIDATOR:
                         for hk, stake, permit in validators:
                             if hk == PRIMARY_VALIDATOR and permit:
-                                taobot_here = True
+                                ii_agent_present = True
                                 break
-                    if taobot_here:
+                    if ii_agent_present:
                         _validator_cache[netuid] = PRIMARY_VALIDATOR
-                        _taobot_subnets.add(netuid)
+                        _signal_candidate_subnets.add(netuid)
                         logger.info(f"SN{netuid}: II Agent present — using primary validator")
                     else:
                         # Pick top-staked permitted validator
@@ -201,7 +201,7 @@ def get_router_status() -> dict:
     """Snapshot for API / debugging."""
     return {
         "primary_validator":    PRIMARY_VALIDATOR,
-        "taobot_subnets":       sorted(_taobot_subnets),
+        "signal_candidate_subnets":   sorted(_signal_candidate_subnets),
         "cached_validators":    {
             f"SN{k}": (v[:16] + "…" if v else None)
             for k, v in _validator_cache.items()
