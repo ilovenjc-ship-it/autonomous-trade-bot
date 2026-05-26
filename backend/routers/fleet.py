@@ -931,6 +931,16 @@ _RISK_CONFIG_DEFAULTS = {
     # subnets currently pass all 6). Lower if you want to admit a 5/6 source;
     # set to 0 to disable the gate entirely (open-mode for dev / backtest).
     "subnet_quality_min_filters":       6,
+    # Day 14 Session XLIV — Sharpe Score Target.
+    # Operator-set 0–100 target on the Sharpe Ratio Scale (see SHARPE_SPEC.md
+    # §3.5). Maps to a raw Sharpe ratio via Sharpe = (Score − 50) / 25 — so
+    # 75 ≈ Sharpe +1 ("good"), 100 ≈ Sharpe +2 ("excellent"), 50 ≈ Sharpe 0
+    # ("matches HODL"). Default 75 = the "good" band — demand the fleet
+    # measurably beat the HODL baseline by ~1 σ per trade. Surfaces as a
+    # target line on the future Sharpe display (v1 read-only) and as an
+    # advisory hint against the existing guardrail sliders. Pure preference;
+    # does not alter trading behavior in v1.
+    "sharpe_target_score":             75,
 }
 
 # Persist to a JSON file so Railway redeploys don't reset user settings.

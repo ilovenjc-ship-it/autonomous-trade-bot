@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { CheckCircle2, RefreshCw, ShieldAlert, Zap, BarChart2, TrendingDown, Layers, Gauge } from 'lucide-react'
+import { CheckCircle2, RefreshCw, ShieldAlert, Zap, BarChart2, TrendingDown, Layers, Gauge, Target, Lock } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
 import toast from 'react-hot-toast'
@@ -22,6 +22,8 @@ interface Config {
   strategy_demote_min_cycles: number    // min cycles before drawdown demotion can fire
   // Session XXXII: Const 6-Filter Test gate for external signal sources
   subnet_quality_min_filters: number    // min filters a SOURCE subnet must pass (0-6)
+  // Day 14 Session XLIV: Sharpe Score target (operator-set, 0–100 on Scale §3.5)
+  sharpe_target_score: number            // target Sharpe Score 0–100; default 75 = "good" (Sharpe +1)
 }
 
 interface RiskStatus {
@@ -53,6 +55,7 @@ const DEFAULTS: Config = {
   strategy_demote_drawdown_tao:    -0.15, // Session XXXI: WR-independent cumulative PnL floor
   strategy_demote_min_cycles:        10,  // Session XXXI: noise gate before drawdown demote
   subnet_quality_min_filters:         6,  // Session XXXII: Const 6-Filter Test gate — default 6/6
+  sharpe_target_score:               75,  // Day 14 Session XLIV: target Sharpe Score (75 = "good", Sharpe +1)
 }
 
 // ── risk colour helpers ────────────────────────────────────────────────────────
@@ -289,6 +292,401 @@ function DailyCapStatusCard() {
 }
 
 // ═════════════════════════════════════════════════════════════════════════════
+// ── Sharpe Score — Risk-Adjusted Return Contract ─────────────────────────────
+//
+// Day 14 Session XLIV (Mark directive 2026-05-26):
+//   "Add a Sharpe Score / Ratio Scale (composed of the 5 questions) to the
+//    Risk Configuration Page... documents what risk-adjusted return means
+//    to this fleet."
+//
+// Three-part panel:
+//   (A) Sharpe Contract  — the 5 questions Mark answered Day 13 to lock
+//                          SHARPE_SPEC.md, rendered read-only with a small
+//                          "🔒" badge per row to signal "settled, do not
+//                          drift."  Plus a bonus row for the Score-vs-Ratio
+//                          surface decision.
+//   (B) Scale Legend      — the −2 / −1 / 0 / +1 / +2  →  0 / 25 / 50 / 75 / 100
+//                          mapping from §3.5, color-coded so the Target
+//                          Score slider thumb reads against the same palette.
+//   (C) Target Score slider — operator picks a target on 0–100; persisted to
+//                          risk config; future Sharpe display will render
+//                          this as a target line.  Inline "implied target"
+//                          hint computed from the existing guardrail values
+//                          (DD / position size / min confidence).
+//
+// Why on Risk Config:  Sharpe is the risk-adjusted-return contract.  This
+// panel sits at the head of the page so the operator reads the contract
+// first, picks the target, then tunes the guardrail knobs to match.
+//
+// Why locked Q&A (read-only):  per Mark Day 13, these five answers ARE the
+// spec.  Rewriting them mid-flight would silently re-define the metric
+// behind the operator's back — the same shape of mistake the spec's
+// warmup-gate exists to prevent.  Future change requires a new
+// SHARPE_SPEC version + an explicit Mark green-light, not a slider drag.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface SharpeQA {
+  num: string
+  dim: string
+  question: string
+  answer: string
+  rationale: string
+}
+
+const SHARPE_CONTRACT: SharpeQA[] = [
+  {
+    num: '1',
+    dim: 'Numeraire',
+    question: 'TAO-denominated returns, USD-denominated, or both?',
+    answer: 'Both — displayed side-by-side, never blended.',
+    rationale: 'TAO is native; USD is operator-legible. Blending them would smuggle TAO/USD volatility into the Sharpe σ and conflate two different questions. Keep them separate so the operator sees both lenses honestly.',
+  },
+  {
+    num: '2',
+    dim: 'Risk-free Floor (Rf)',
+    question: 'What\'s the floor we\'re beating?',
+    answer: 'HODL-input baseline — did the trade flow beat just sitting on the τ?',
+    rationale: 'Mirrors Pool Simulator §HODL Opportunity Cost (Day 12 R9). Rf = "what would `position_τ` have done if simply held over the same window?" Operator-meaningful, no external yield assumption smuggled in.',
+  },
+  {
+    num: '3',
+    dim: 'Time Unit',
+    question: 'Per-trade, daily, weekly, annualized?',
+    answer: 'Per-trade primary · daily secondary · annualize headline only with √N footnoted.',
+    rationale: 'N is fat (~4,400 paper trades) — per-trade preserves trade-count semantics. Daily is the time-dimension-aware sibling for series UI. Annualization factor and trade-count basis footnoted on every public mention; never bare.',
+  },
+  {
+    num: '4',
+    dim: 'Cohorts & Track',
+    question: 'Where do we compute it?',
+    answer: '12 per-strategy + 1 fleet aggregate · paper and live tracked separately, never blended.',
+    rationale: 'Per-strategy feeds bench-or-keep; fleet is the headline. Paper and live have different cost basis (slippage real on live, modeled on paper), so live Sharpe will run lower than paper Sharpe by construction — that asymmetry is the point.',
+  },
+  {
+    num: '5',
+    dim: 'Display vs Gate',
+    question: 'Read-only display, or also a gate?',
+    answer: 'Display first · soft gate after live volume · hard gate needs explicit green-light.',
+    rationale: 'Hard-gating Sharpe on small samples is the same shape of mistake as the Day 12 R9 _hodl_block warming-up bug — confident-looking decision on insufficient data. INV-5 territory. v2 soft yellow-flag only after N_LIVE_MIN; v3 auto-bench requires Mark sign-off.',
+  },
+]
+
+const SHARPE_BONUS: SharpeQA = {
+  num: '★',
+  dim: 'Surface',
+  question: '"Sharpe Score" vs "Sharpe Ratio" — which do we expose?',
+  answer: 'Both — raw ratio (truth) plus 0–100 normalized Score (UX legibility).',
+  rationale: '"The raw ratio is the truth, the score is the UX affordance." Score = clip(50 + 25 × Sharpe, 0, 100). −2→0, −1→25, 0→50, +1→75, +2→100.',
+}
+
+// Score → Sharpe band lookup (mirrors §3.5 of SHARPE_SPEC.md).
+function sharpeBand(score: number): {
+  label: string; sharpe: string; color: string; bgClass: string; ringClass: string
+} {
+  if (score < 13)  return { label: 'BROKEN',    sharpe: '≤ −2', color: '#ef4444', bgClass: 'bg-red-500/15',     ringClass: 'ring-red-500/40' }
+  if (score < 38)  return { label: 'BAD',       sharpe: '−1',   color: '#f97316', bgClass: 'bg-orange-500/15',  ringClass: 'ring-orange-500/40' }
+  if (score < 63)  return { label: 'NEUTRAL',   sharpe: '0',    color: '#94a3b8', bgClass: 'bg-slate-500/15',   ringClass: 'ring-slate-500/40' }
+  if (score < 88)  return { label: 'GOOD',      sharpe: '+1',   color: '#10b981', bgClass: 'bg-emerald-500/15', ringClass: 'ring-emerald-500/40' }
+  return             { label: 'EXCELLENT', sharpe: '+2',   color: '#06b6d4', bgClass: 'bg-cyan-500/15',    ringClass: 'ring-cyan-500/40' }
+}
+
+// Implied-target heuristic — soft advisory only.
+//
+// The intuition: tighter guardrails (smaller drawdown ceiling, smaller
+// position size, higher confidence floor) mean the operator is asking
+// the fleet to perform better-per-unit-risk, which is what a higher
+// Sharpe target encodes.  Conversely, looser guardrails mean the
+// operator is willing to accept more variance per τ deployed — a lower
+// Sharpe ceiling is congruent.  This is a hint, not a constraint:
+// future Sharpe v2 may calibrate the formula against live data.
+function impliedTarget(maxDrawdown: number, maxPosition: number, minConfidence: number): number {
+  // Each component contributes 0–100; lower-risk params push higher.
+  const ddScore   = Math.max(30, Math.min(100, 100 - (maxDrawdown - 5)  * 2.5))   // 5%→100, 33%→30
+  const posScore  = Math.max(30, Math.min(100, 100 - (maxPosition - 1)  * 2.5))   // 1%→100, 29%→30
+  const confScore = Math.max(30, Math.min(100, minConfidence * 100))               // 0.30→30, 1.00→100
+  return Math.round((ddScore + posScore + confScore) / 3)
+}
+
+function SharpeContractPanel({
+  targetScore,
+  onTargetChange,
+  maxDrawdown,
+  maxPosition,
+  minConfidence,
+}: {
+  targetScore: number
+  onTargetChange: (v: number) => void
+  maxDrawdown: number
+  maxPosition: number
+  minConfidence: number
+}) {
+  const band    = sharpeBand(targetScore)
+  const implied = impliedTarget(maxDrawdown, maxPosition, minConfidence)
+  const impBand = sharpeBand(implied)
+  const drift   = targetScore - implied
+  const driftLabel =
+    Math.abs(drift) <= 5 ? 'aligned'
+    : drift > 0          ? `${drift} pts above implied`
+    :                      `${Math.abs(drift)} pts below implied`
+  const driftTone =
+    Math.abs(drift) <= 5 ? 'text-emerald-400'
+    : Math.abs(drift) <= 15 ? 'text-amber-400'
+    :                         'text-red-400'
+
+  return (
+    <div className="bg-gradient-to-br from-violet-500/[0.04] via-dark-800/80 to-cyan-500/[0.04] border border-violet-500/20 rounded-2xl p-8 space-y-7">
+      {/* Header */}
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 rounded-xl bg-violet-500/10 border border-violet-500/20">
+          <Target size={20} className="text-violet-300" />
+        </div>
+        <div className="min-w-0">
+          <h2 className="text-lg font-black text-white tracking-wider uppercase">
+            Sharpe Score — Risk-Adjusted Return Contract
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            What "risk-adjusted return" means for this fleet · 5 dimensions locked Day&nbsp;13 ·
+            target informs the future Sharpe display & guardrail recommendations
+          </p>
+        </div>
+      </div>
+
+      {/* (A) The 5-question contract — read-only locked rows */}
+      <div>
+        <div className="flex items-center gap-2 mb-3">
+          <Lock size={11} className="text-violet-400" />
+          <span className="text-[11px] uppercase tracking-widest font-mono text-violet-300">
+            The Sharpe Contract · 5 Questions Settled
+          </span>
+          <InfoBubble
+            content={
+              <>
+                <p className="text-white font-bold mb-1">Why these five are locked</p>
+                <p>The five answers below define what "Sharpe" means for this fleet — numeraire, risk-free floor, time unit, cohort, and gate-or-display. Per the Day 13 spec session, they are settled.</p>
+                <p className="mt-1 text-slate-400">Changing them mid-flight would silently re-define the metric behind the operator's back — the same shape of mistake the warmup gate exists to prevent. A future change requires a new <span className="font-mono text-amber-300">SHARPE_SPEC</span> version + explicit green-light, not a slider drag.</p>
+              </>
+            }
+            side="right"
+            maxWidth={360}
+          />
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+          {SHARPE_CONTRACT.map((qa) => (
+            <div
+              key={qa.num}
+              className="group relative bg-dark-800/60 border border-dark-600/80 rounded-xl px-4 py-3 hover:border-violet-500/40 transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <div className="flex flex-col items-center flex-shrink-0 mt-0.5">
+                  <span className="text-[10px] font-mono text-violet-400 font-bold tracking-wider">Q{qa.num}</span>
+                  <Lock size={9} className="text-slate-600 mt-1" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline gap-2 flex-wrap">
+                    <span className="text-[11px] uppercase tracking-widest font-mono text-violet-300 font-bold">
+                      {qa.dim}
+                    </span>
+                    <InfoBubble
+                      content={
+                        <>
+                          <p className="text-white font-bold mb-1">{qa.dim}</p>
+                          <p className="text-slate-300 italic mb-2">"{qa.question}"</p>
+                          <p>{qa.rationale}</p>
+                        </>
+                      }
+                      side="top"
+                      maxWidth={340}
+                    />
+                  </div>
+                  <p className="text-[12px] text-slate-400 italic leading-snug mt-1">
+                    "{qa.question}"
+                  </p>
+                  <p className="text-[13px] text-slate-100 font-mono mt-1.5 leading-snug">
+                    {qa.answer}
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+        {/* Bonus row — Score vs Ratio surface decision */}
+        <div className="mt-3 bg-dark-800/40 border border-dark-700/60 rounded-xl px-4 py-2.5 flex items-center gap-3">
+          <span className="text-[10px] font-mono text-amber-300 font-bold tracking-wider flex-shrink-0">
+            BONUS ★
+          </span>
+          <span className="text-[11px] uppercase tracking-widest font-mono text-amber-200/80 flex-shrink-0">
+            {SHARPE_BONUS.dim}
+          </span>
+          <span className="text-[12px] text-slate-400 italic">"{SHARPE_BONUS.question}"</span>
+          <span className="text-[13px] text-slate-100 font-mono ml-auto">{SHARPE_BONUS.answer}</span>
+        </div>
+      </div>
+
+      {/* (B) Scale legend — −2/−1/0/+1/+2 → 0/25/50/75/100 */}
+      <div>
+        <div className="text-[11px] uppercase tracking-widest font-mono text-slate-400 mb-3 flex items-center gap-2">
+          <span>Sharpe Ratio → Score Scale</span>
+          <span className="text-slate-600 font-normal normal-case tracking-normal">
+            Score = clip(50 + 25 × Sharpe, 0, 100) · §3.5
+          </span>
+        </div>
+        <div className="grid grid-cols-5 gap-1.5 rounded-xl overflow-hidden">
+          {[
+            { lo: 0,  hi: 13,  label: 'BROKEN',    sharpe: '≤ −2', desc: 'Worse than HODL by 2σ', bg: 'bg-red-500/20',     border: 'border-red-500/40',     text: 'text-red-300' },
+            { lo: 13, hi: 38,  label: 'BAD',       sharpe: '−1',   desc: 'Underperforms HODL',     bg: 'bg-orange-500/20',  border: 'border-orange-500/40',  text: 'text-orange-300' },
+            { lo: 38, hi: 63,  label: 'NEUTRAL',   sharpe: '0',    desc: 'Matches HODL',           bg: 'bg-slate-500/20',   border: 'border-slate-500/40',   text: 'text-slate-200' },
+            { lo: 63, hi: 88,  label: 'GOOD',      sharpe: '+1',   desc: 'Beats HODL by 1σ',       bg: 'bg-emerald-500/20', border: 'border-emerald-500/40', text: 'text-emerald-300' },
+            { lo: 88, hi: 101, label: 'EXCELLENT', sharpe: '+2',   desc: 'Beats HODL by 2σ',       bg: 'bg-cyan-500/20',    border: 'border-cyan-500/40',    text: 'text-cyan-300' },
+          ].map((zone) => {
+            const inZone = targetScore >= zone.lo && targetScore < zone.hi
+            return (
+              <div
+                key={zone.label}
+                className={clsx(
+                  'relative px-3 py-3 border rounded-lg transition-all duration-300',
+                  zone.bg,
+                  zone.border,
+                  inZone && 'ring-2 ring-offset-2 ring-offset-dark-900 scale-[1.02]',
+                  inZone && zone.label === 'BROKEN' && 'ring-red-400',
+                  inZone && zone.label === 'BAD' && 'ring-orange-400',
+                  inZone && zone.label === 'NEUTRAL' && 'ring-slate-400',
+                  inZone && zone.label === 'GOOD' && 'ring-emerald-400',
+                  inZone && zone.label === 'EXCELLENT' && 'ring-cyan-400',
+                )}
+              >
+                <div className="flex items-baseline justify-between">
+                  <span className={clsx('text-[10px] font-mono font-bold tracking-widest', zone.text)}>
+                    {zone.label}
+                  </span>
+                  <span className={clsx('text-[10px] font-mono', zone.text, 'opacity-60')}>
+                    Sharpe {zone.sharpe}
+                  </span>
+                </div>
+                <div className="mt-1.5 flex items-baseline justify-between">
+                  <span className={clsx('text-base font-black font-mono', zone.text)}>
+                    {zone.lo === 0 ? '0' : zone.lo}–{zone.hi === 101 ? '100' : zone.hi - 1}
+                  </span>
+                  {inZone && (
+                    <span className={clsx('text-[10px] font-mono font-bold animate-pulse', zone.text)}>
+                      ◀ TARGET
+                    </span>
+                  )}
+                </div>
+                <p className="text-[10px] text-slate-500 mt-1 leading-tight">
+                  {zone.desc}
+                </p>
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      {/* (C) Operator Target slider */}
+      <div>
+        <div className="flex items-baseline justify-between gap-4 mb-2">
+          <div className="flex items-baseline gap-3 min-w-0">
+            <span className="text-sm font-bold text-white tracking-wide">Sharpe Target Score</span>
+            <span
+              className="text-2xl font-black font-mono transition-colors duration-300"
+              style={{ color: band.color, textShadow: `0 0 12px ${band.color}80` }}
+            >
+              {targetScore}
+            </span>
+            <span
+              className="text-xs font-mono font-bold px-2 py-0.5 rounded-full border"
+              style={{ color: band.color, borderColor: `${band.color}60`, background: `${band.color}15` }}
+            >
+              {band.label} · Sharpe {band.sharpe}
+            </span>
+          </div>
+          <span className="text-[13px] text-slate-500 font-mono flex-shrink-0">
+            0 (broken) — 100 (excellent)
+          </span>
+        </div>
+        <p className="text-xs text-slate-400 leading-snug mb-3">
+          Where on the scale we want the fleet to land. Surfaces as a target line on the
+          (forthcoming) Sharpe ratio display, and feeds the recommended-preset hint below.
+          Default <span className="text-emerald-400 font-mono">75</span> = "good" — demand the
+          fleet measurably beat the HODL baseline by ~1σ per trade.
+        </p>
+
+        {/* Slider — color-shifts to band as it moves */}
+        <div className="relative pt-1 pb-2">
+          <input
+            type="range"
+            min={0} max={100} step={5} value={targetScore}
+            onChange={e => onTargetChange(parseInt(e.target.value, 10))}
+            className="w-full h-2 rounded-full appearance-none cursor-pointer transition-all duration-300
+              [&::-webkit-slider-thumb]:appearance-none
+              [&::-webkit-slider-thumb]:w-5 [&::-webkit-slider-thumb]:h-5
+              [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:cursor-pointer
+              [&::-webkit-slider-thumb]:border-2 [&::-webkit-slider-thumb]:border-dark-900"
+            style={{
+              background: `linear-gradient(to right,
+                #ef4444 0%, #ef4444 13%,
+                #f97316 13%, #f97316 38%,
+                #94a3b8 38%, #94a3b8 63%,
+                #10b981 63%, #10b981 88%,
+                #06b6d4 88%, #06b6d4 100%
+              )`,
+            }}
+          />
+          {/* Tick marks at boundaries */}
+          <div className="relative h-3 mt-1">
+            {[0, 25, 50, 75, 100].map((tick) => (
+              <div
+                key={tick}
+                className="absolute -translate-x-1/2 flex flex-col items-center"
+                style={{ left: `${tick}%` }}
+              >
+                <div className="w-px h-1.5 bg-slate-600" />
+                <span className="text-[10px] font-mono text-slate-500 mt-0.5">{tick}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Recommended-preset advisory */}
+      <div className={clsx(
+        'rounded-xl border px-4 py-3 flex items-start gap-3',
+        impBand.bgClass,
+        Math.abs(drift) <= 5  ? 'border-emerald-500/30' :
+        Math.abs(drift) <= 15 ? 'border-amber-500/30'   : 'border-red-500/30',
+      )}>
+        <div className="flex-shrink-0 mt-0.5">
+          <Target size={14} style={{ color: impBand.color }} />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="text-[11px] uppercase tracking-widest font-mono text-slate-300 font-bold">
+              Implied target from current guardrails
+            </span>
+            <span className="text-sm font-mono font-bold" style={{ color: impBand.color }}>
+              ≈ {implied} ({impBand.label})
+            </span>
+            <span className={clsx('text-[11px] font-mono ml-auto', driftTone)}>
+              your target {targetScore} · {driftLabel}
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-400 mt-1.5 leading-snug">
+            Heuristic from <span className="font-mono text-amber-300">max_drawdown {maxDrawdown}%</span> ·
+            <span className="font-mono text-amber-300"> max_position {maxPosition}%</span> ·
+            <span className="font-mono text-amber-300"> min_confidence {minConfidence.toFixed(2)}</span>.
+            Tighter guardrails ↔ higher Sharpe expectation. {Math.abs(drift) > 15 && (
+              <span className="text-red-300">
+                {' '}Large divergence — consider whether your guardrails and your Sharpe target are
+                describing the same fleet.
+              </span>
+            )}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ═════════════════════════════════════════════════════════════════════════════
 export default function RiskConfig() {
   const [config,   setConfig]   = useState<Config>(DEFAULTS)
   const [status,   setStatus]   = useState<RiskStatus | null>(null)
@@ -449,6 +847,23 @@ export default function RiskConfig() {
             other autonomous-fleet guardrails. */}
         <DailyCapStatusCard />
       </div>
+
+      {/* ── Sharpe Score — Risk-Adjusted Return Contract ─────────────────────
+          Day 14 Session XLIV: 5-question Sharpe contract (locked, read-only) +
+          0–100 Score scale legend (§3.5) + operator-tunable Target slider.
+          Sits ABOVE Autonomous Guardrails so the operator reads the
+          risk-adjusted-return contract first, picks a target, then tunes the
+          guardrail knobs to match.  Implementation of the Sharpe metric
+          itself remains gated on `SHARPE_SPEC.md` warmup criteria; this
+          panel ships the philosophy + target now so the metric has a target
+          line to render against on arrival. */}
+      <SharpeContractPanel
+        targetScore={config.sharpe_target_score ?? 75}
+        onTargetChange={v => { setIsDirty(true); setConfig(c => ({ ...c, sharpe_target_score: v })) }}
+        maxDrawdown={config.max_drawdown_pct}
+        maxPosition={config.max_position_size_pct}
+        minConfidence={config.min_confidence_score}
+      />
 
       {/* ── Autonomous Guardrails ───────────────────────────────────────────── */}
       <div className="bg-dark-800/80 border border-dark-600 rounded-2xl p-8">
