@@ -88,11 +88,15 @@ async def init_db():
         # Added in Session XV: tracks when FORCE_PAPER_MODE wiped stats.
         # Required by analytics router and cycle service.
         ("strategies", "stats_reset_at", "DATETIME"),
-        # Added in Session XV: OpenClaw BFT round counters persisted across
-        # redeployments so the all-time consensus record survives restarts.
-        ("bot_config", "openclaw_total_rounds",    "INTEGER DEFAULT 0"),
-        ("bot_config", "openclaw_approved_rounds", "INTEGER DEFAULT 0"),
-        ("bot_config", "openclaw_rejected_rounds", "INTEGER DEFAULT 0"),
+        # Added Session XV (originally as openclaw_*): Fleet Consensus BFT
+        # round counters persisted across redeployments. Renamed Day 13
+        # 2026-05-26 — see _column_renames below for the in-place rename
+        # against Railway prod. These ADD entries are defensive — they catch
+        # fresh-DB cases where create_all bypassed creating these columns
+        # (and they're no-op idempotent when the columns already exist).
+        ("bot_config", "fleet_consensus_total_rounds",    "INTEGER DEFAULT 0"),
+        ("bot_config", "fleet_consensus_approved_rounds", "INTEGER DEFAULT 0"),
+        ("bot_config", "fleet_consensus_rejected_rounds", "INTEGER DEFAULT 0"),
         # Added in Session XIX: Execution Guard — AMM slippage estimate per trade.
         # Populated by cycle_service for all paper and live trades going forward.
         ("trades", "slippage_est", "REAL DEFAULT 0.0"),
@@ -106,7 +110,39 @@ async def init_db():
         ("price_history", "btc_price_change_pct_24h", "REAL"),
     ]
 
+    # ── Column renames — Day 13 2026-05-26 (OpenClaw → Fleet Consensus) ──
+    # Run BEFORE the ADD list so Railway prod data is preserved (the rename
+    # moves the existing values onto the new column names). On fresh DBs,
+    # the rename fails harmlessly (old column doesn't exist) and the ADD
+    # list above creates the new columns. On second-and-later boots the
+    # rename also fails harmlessly (old columns no longer exist).
+    # Idempotent across (a) Railway prod existing DB, (b) fresh dev DB,
+    # (c) every subsequent boot. Same try/except discipline as ADD.
+    # Both Postgres and SQLite 3.25+ accept this RENAME COLUMN syntax.
+    _column_renames = [
+        ("bot_config", "openclaw_total_rounds",    "fleet_consensus_total_rounds"),
+        ("bot_config", "openclaw_approved_rounds", "fleet_consensus_approved_rounds"),
+        ("bot_config", "openclaw_rejected_rounds", "fleet_consensus_rejected_rounds"),
+    ]
+
     async with async_engine.begin() as conn:
+        # Renames first — preserves data on existing DBs.
+        for table, old_col, new_col in _column_renames:
+            try:
+                await conn.execute(
+                    _text(f"ALTER TABLE {table} RENAME COLUMN {old_col} TO {new_col}")
+                )
+                _log.warning(
+                    f"DB migration: renamed {table}.{old_col} → {new_col} "
+                    f"(OpenClaw → Fleet Consensus rename Day 13 2026-05-26)"
+                )
+            except Exception:
+                # Old column doesn't exist (fresh DB) or new column already
+                # exists (post-rename boot) — both are no-op cases.
+                pass
+
+        # Adds second — defensive for fresh DBs (create_all should already
+        # have made these, but if not, the ADD catches it).
         for table, column, col_type in _column_migrations:
             try:
                 await conn.execute(

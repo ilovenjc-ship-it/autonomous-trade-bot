@@ -4,7 +4,8 @@ Fleet Consensus BFT Engine
 (Renamed from OpenClaw — Day 13 wrap-up 2026-05-26 — public-name collision
 with the OpenClaw MIT-licensed AI-agent framework, see
 RENAME_FLEET_CONSENSUS.md for the AP-9 inscription. Behaviour unchanged;
-DB columns retain `openclaw_*` for now — see Commit 2 of the rename arc.)
+DB columns renamed in Commit 2 via idempotent RENAME COLUMN migration
+that preserves Railway production data.)
 
 Before any LIVE strategy executes a real trade, the full 12-bot fleet votes.
 A 7/12 supermajority (58.3%) of agreeing votes is required to APPROVE.
@@ -726,10 +727,10 @@ class ConsensusService:
                 result = await db.execute(select(BotConfig).where(BotConfig.id == 1))
                 cfg = result.scalar_one_or_none()
                 if cfg:
-                    self._round_counter              = cfg.openclaw_total_rounds    or 0
-                    self._stats["total_rounds"]      = cfg.openclaw_total_rounds    or 0
-                    self._stats["approved_rounds"]   = cfg.openclaw_approved_rounds or 0
-                    self._stats["rejected_rounds"]   = cfg.openclaw_rejected_rounds or 0
+                    self._round_counter              = cfg.fleet_consensus_total_rounds    or 0
+                    self._stats["total_rounds"]      = cfg.fleet_consensus_total_rounds    or 0
+                    self._stats["approved_rounds"]   = cfg.fleet_consensus_approved_rounds or 0
+                    self._stats["rejected_rounds"]   = cfg.fleet_consensus_rejected_rounds or 0
                     logger.info(
                         f"Fleet Consensus loaded from DB — "
                         f"total={self._round_counter} "
@@ -754,9 +755,9 @@ class ConsensusService:
                     _update(BotConfig)
                     .where(BotConfig.id == 1)
                     .values(
-                        openclaw_total_rounds    = self._stats["total_rounds"],
-                        openclaw_approved_rounds = self._stats["approved_rounds"],
-                        openclaw_rejected_rounds = self._stats["rejected_rounds"],
+                        fleet_consensus_total_rounds    = self._stats["total_rounds"],
+                        fleet_consensus_approved_rounds = self._stats["approved_rounds"],
+                        fleet_consensus_rejected_rounds = self._stats["rejected_rounds"],
                     )
                 )
                 await db.commit()

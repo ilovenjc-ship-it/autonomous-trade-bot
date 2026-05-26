@@ -244,9 +244,9 @@ async def reset_paper_stats(db: AsyncSession = Depends(get_db)):
         successful_trades        = 0,
         total_pnl                = 0.0,
         daily_trades             = 0,
-        openclaw_total_rounds    = 0,
-        openclaw_approved_rounds = 0,
-        openclaw_rejected_rounds = 0,
+        fleet_consensus_total_rounds    = 0,
+        fleet_consensus_approved_rounds = 0,
+        fleet_consensus_rejected_rounds = 0,
     ))
     await db.commit()
 
