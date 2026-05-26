@@ -38,7 +38,7 @@ reading this end-to-end, read **STATE.md** end-to-end. Both are required.
 
 ## 2. What the project is, in one breath
 
-Autonomous TAO/Bittensor trading bot. 12 strategies. OpenClaw Consensus
+Autonomous TAO/Bittensor trading bot. 12 strategies. Fleet Consensus
 (7/12 supermajority) gates trade execution. Currently in **Day 8+ of paper
 training** — no real execution while we accumulate evidence. Goal: paper-prove
 the fleet, then promote strategies one by one to live execution. Mark funds it

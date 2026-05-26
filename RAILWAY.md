@@ -111,7 +111,7 @@ will append `whale_cache.json` automatically).
 | URL | Random, changes every restart | Permanent |
 | Tunnel | Cloudflare free (unstable) | None needed |
 | Bot running when offline | ❌ | ✅ |
-| OpenClaw voting | Only when sandbox active | Always |
+| Fleet Consensus voting | Only when sandbox active | Always |
 
 ---
 

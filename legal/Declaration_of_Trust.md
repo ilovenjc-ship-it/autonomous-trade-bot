@@ -119,7 +119,7 @@ concurrently with this Declaration, including:
 
 - The autonomous trading platform known as the Autonomous Trade Bot
 - All source code, algorithms, and trading strategies
-- OpenClaw BFT consensus governance engine
+- Fleet Consensus BFT consensus governance engine (formerly OpenClaw BFT, renamed 2026-05-26 to resolve a public-name collision with the OpenClaw MIT-licensed AI-agent framework — see RENAME_FLEET_CONSENSUS.md)
 - II Agent market regime detection system
 - Autonomous Promotion Engine
 - All related systems, documentation, and derivative works

@@ -81,7 +81,7 @@ Yuma Consensus is Bittensor's mechanism for determining how TAO emissions flow t
 - Validators who diverge too far from consensus earn less
 
 **Why it matters for trading:**
-- Yuma consensus is what makes OpenClaw BFT conceptually similar to the real Bittensor consensus mechanism
+- Yuma consensus is what makes Fleet Consensus BFT conceptually similar to the real Bittensor consensus mechanism
 - Our bot's 7/12 supermajority threshold mirrors the spirit of Yuma — requiring substantial agreement before acting
 
 ---

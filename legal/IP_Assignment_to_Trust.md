@@ -76,7 +76,7 @@ All proprietary trading strategies, signal logic, and execution algorithms, incl
 - All future strategies developed under the platform
 
 ### 1.3 Proprietary Systems
-- **OpenClaw BFT** — Byzantine Fault Tolerant consensus governance engine
+- **Fleet Consensus BFT** (formerly **OpenClaw BFT**, renamed 2026-05-26 — see RENAME_FLEET_CONSENSUS.md in repo root for the AP-9 inscription) — Byzantine Fault Tolerant consensus governance engine
 - **II Agent** — Autonomous market regime detection and classification system
 - **Autonomous Promotion Engine** — Gate-based strategy promotion framework
 - **Score-Weighted Capital Allocation System**
