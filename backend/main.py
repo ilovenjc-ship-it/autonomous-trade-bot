@@ -61,11 +61,11 @@ async def lifespan(app: FastAPI):
     except Exception as _e:
         logger.error(f"DB init failed: {_e} — continuing with degraded mode")
 
-    # ── OpenClaw round counter restore is DEFERRED ──────────────────────────
+    # ── Fleet Consensus round counter restore is DEFERRED ──────────────────────────
     # Session XXVII (2026-05-12): moved to AFTER the FORCE_PAPER_MODE wipe
     # block. Previously loaded BEFORE the wipe, which caused a race:
     #   1. load_from_db() pulls old round counter into consensus_service
-    #   2. wipe zeroes BotConfig.openclaw_* columns in DB
+    #   2. wipe zeroes the BotConfig round-counter columns in DB
     #   3. next consensus round _persist_to_db() writes in-memory (pre-wipe)
     #      counter back to DB, obliterating the wipe.
     # Loading after the wipe ensures consensus_service reads the zeroed row.
@@ -112,7 +112,7 @@ async def lifespan(app: FastAPI):
     # nested inside `if FORCE_PAPER_MODE == "1"`, but that env var is "0" in
     # production (cleared in Session XVIII). Three sessions of "wipe fixes"
     # were dead code from Railway's perspective. Smoking gun from May 12
-    # deploy log:  `OpenClaw loaded from DB — total=13651 approved=7611`.
+    # deploy log:  `Fleet Consensus loaded from DB — total=13651 approved=7611`.
     #
     # New architecture — two independent concerns, two independent blocks:
     #
@@ -197,7 +197,7 @@ async def lifespan(app: FastAPI):
                     Trade.__table__.delete().where(Trade.tx_hash.is_(None))
                 )
                 # Reset BotConfig singleton — fleet-wide aggregates AND
-                # OpenClaw round counters (XXVII added these to the wipe set;
+                # Fleet Consensus round counters (XXVII added these to the wipe set;
                 # XXVIII makes the wipe actually run).
                 _bot_reset = await db.execute(update(BotConfig).values(
                     total_trades             = 0,
@@ -214,7 +214,7 @@ async def lifespan(app: FastAPI):
                     f"(stats only, mode preserved), deleted "
                     f"{_del_result.rowcount} paper trades, reset "
                     f"{_bot_reset.rowcount} BotConfig singleton (incl. "
-                    f"OpenClaw round counters). "
+                    f"Fleet Consensus round counters). "
                     f"New Zero Day: {_reset_ts.isoformat()}."
                 )
             else:
@@ -249,7 +249,7 @@ async def lifespan(app: FastAPI):
         except Exception as _e:
             logger.error(f"Force paper mode override failed: {_e}")
 
-    # ── Restore OpenClaw round counter from DB (DEFERRED) ────────────────────
+    # ── Restore Fleet Consensus round counter from DB (DEFERRED) ────────────────────
     # Runs AFTER the fossil cleanup block so that when a wipe happens, the
     # consensus_service loads zeroed counters into memory instead of the
     # pre-wipe values (which would otherwise be persisted back and undo the
@@ -258,7 +258,7 @@ async def lifespan(app: FastAPI):
         from services.consensus_service import consensus_service as _cs
         await _cs.load_from_db()
     except Exception as _e:
-        logger.warning(f"OpenClaw round counter restore failed: {_e}")
+        logger.warning(f"Fleet Consensus round counter restore failed: {_e}")
 
     # ── Register all background services with the system_health registry ────
     # (Session XXXIV) so the /api/system/health endpoint knows what should
@@ -288,7 +288,7 @@ async def lifespan(app: FastAPI):
         # round (~5 min cadence in steady state).  Stale after 30 min so a
         # paused cycle engine surfaces visibly on the health page.
         system_health.register("forecast_accuracy_service", "Forecast Accuracy",
-            "Forecast vs actual calibration tracker for OpenClaw", stale_after_s=1800)
+            "Forecast vs actual calibration tracker for Fleet Consensus", stale_after_s=1800)
         # Phase 1 (Session XXXVIII) — direct Finney WS subscribe to
         # SubtensorModule.StakeAdded/StakeRemoved. Per-block heartbeat
         # (~12 s cadence). Stale after 120 s ≈ 10 missed finalized

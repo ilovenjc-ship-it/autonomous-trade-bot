@@ -17,8 +17,8 @@ Alert lifecycle:
 
 Alert types:
   GATE_PROMOTION     — strategy promoted to APPROVED_FOR_LIVE or LIVE
-  CONSENSUS_APPROVED — OpenClaw approved a LIVE trade
-  CONSENSUS_VETOED   — OpenClaw vetoed a LIVE trade
+  CONSENSUS_APPROVED — Fleet Consensus approved a LIVE trade
+  CONSENSUS_VETOED   — Fleet Consensus vetoed a LIVE trade
   REGIME_SHIFT       — II Agent detected market regime change
   STRATEGY_HOT       — strategy classified HOT (≥68% WR)
   STRATEGY_STRUGGLING— strategy flagged as underperformer
@@ -191,7 +191,7 @@ class AlertService:
                 type     = TYPE_GATE_PROMOTION,
                 level    = LEVEL_WARNING,
                 title    = f"🎯 {display_name} approved for LIVE",
-                message  = f"{display_name} has met all gate requirements and is now APPROVED_FOR_LIVE. OpenClaw consensus required before execution.",
+                message  = f"{display_name} has met all gate requirements and is now APPROVED_FOR_LIVE. Fleet Consensus required before execution.",
                 strategy = strategy_name,
                 detail   = stats,
             )
@@ -200,7 +200,7 @@ class AlertService:
         self.push_alert(
             type     = TYPE_CONSENSUS_APPROVED,
             level    = LEVEL_INFO,
-            title    = f"✅ OpenClaw APPROVED {direction}",
+            title    = f"✅ Fleet Consensus APPROVED {direction}",
             message  = f"Round #{round_id}: Council approved a {direction} signal from {strategy_name} with {max(buy, sell)}/12 votes.",
             strategy = strategy_name,
             detail   = f"{buy}B / {sell}S / {hold}H",
@@ -210,7 +210,7 @@ class AlertService:
         self.push_alert(
             type     = TYPE_CONSENSUS_VETOED,
             level    = LEVEL_WARNING,
-            title    = f"🚫 OpenClaw VETOED {direction}",
+            title    = f"🚫 Fleet Consensus VETOED {direction}",
             message  = f"Round #{round_id}: Council blocked {strategy_name}'s {direction} — {result}. No supermajority reached.",
             strategy = strategy_name,
             detail   = f"{buy}B / {sell}S / {hold}H",

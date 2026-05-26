@@ -37,8 +37,8 @@ from services.execution_guard import (
 logger = logging.getLogger(__name__)
 
 # Build tag — bumped to force Railway redeploy and confirm version in logs
-CYCLE_SERVICE_VERSION = "2.1.0-openclaw-all-modes"
-logger.info(f"cycle_service loaded — version {CYCLE_SERVICE_VERSION} (OpenClaw active for ALL modes)")
+CYCLE_SERVICE_VERSION = "2.1.0-fleet-consensus-all-modes"
+logger.info(f"cycle_service loaded — version {CYCLE_SERVICE_VERSION} (Fleet Consensus active for ALL modes)")
 
 # ── Global paper-mode override ────────────────────────────────────────────────
 # When True, ALL live on-chain execution is blocked regardless of strategy mode.
@@ -516,7 +516,7 @@ async def _evaluate_circuit_breaker(db: AsyncSession) -> bool:
 # ── Stop-loss / Take-profit monitor ──────────────────────────────────────────
 # Runs at the TOP of every cycle, before strategy signals fire.
 # Checks all open LIVE positions against current α-price.
-# Stop-loss exits BYPASS OpenClaw consensus — they are unconditional.
+# Stop-loss exits BYPASS Fleet Consensus — they are unconditional.
 # Take-profit exits also bypass consensus (a gain is never vetoed).
 #
 # Design rationale: consensus is for entry signals where bots debate direction.
@@ -600,7 +600,7 @@ async def _check_stop_loss(db: AsyncSession) -> None:
             title   = f"{emoji} {label} triggered — SN{pos.netuid}",
             message = (
                 f"{display_strat} position P&L: {pnl_pct * 100:+.1f}%. "
-                f"Forced exit initiated — bypasses OpenClaw consensus."
+                f"Forced exit initiated — bypasses Fleet Consensus."
             ),
             strategy = pos.strategy,
             detail   = (
@@ -925,7 +925,7 @@ def _compute_signal(strategy: str, indicators: Dict[str, Any], price: float) -> 
     # ║ NOT re-add an SMA50-or-EMA fallback when BTC data is missing —  ║
     # ║ the pre-Day-8 code did this and silently cloned                 ║
     # ║ yield_maximizer's logic, destroying the only cross-asset voice  ║
-    # ║ in the OpenClaw 7/12 supermajority. Pre-rewrite the description ║
+    # ║ in the Fleet Consensus 7/12 supermajority. Pre-rewrite the description ║
     # ║ ("TAO/subnet correlation divergence vs BTC macro trend") was    ║
     # ║ FICTION — there was no BTC reference in the code. Verify the    ║
     # ║ description and the code agree before merging changes here.     ║
@@ -1200,7 +1200,7 @@ async def _run_one_cycle() -> None:
 
             reason = _build_signal_reason(s.name, indicators, price, side)
 
-            # ── OpenClaw BFT Gate (ALL strategy modes) ───────────────────────
+            # ── Fleet Consensus BFT Gate (ALL strategy modes) ───────────────────────
             # Consensus runs for PAPER_ONLY, APPROVED_FOR_LIVE, and LIVE.
             #
             # Rationale: paper strategies need real consensus practice before
@@ -1225,7 +1225,7 @@ async def _run_one_cycle() -> None:
                 # Consensus rejected — skip trade for ALL modes, log veto
                 push_event(
                     "alert",
-                    f"🚫 OpenClaw VETOED {side.upper()} for {DISPLAY_NAMES.get(s.name, s.name)} [{s.mode}]",
+                    f"🚫 Fleet Consensus VETOED {side.upper()} for {DISPLAY_NAMES.get(s.name, s.name)} [{s.mode}]",
                     strategy = s.name,
                     detail   = f"Result={consensus_result.result} "
                                f"({consensus_result.buy_count}B/"
@@ -1447,7 +1447,7 @@ async def _run_one_cycle() -> None:
                             type     = "SYSTEM",
                             level    = "CRITICAL",
                             title    = f"⛔ Live trade failed — {display}",
-                            message  = f"OpenClaw approved {side.upper()} on SN{target_netuid} "
+                            message  = f"Fleet Consensus approved {side.upper()} on SN{target_netuid} "
                                        f"but execution failed: {err}",
                             strategy = s.name,
                             detail   = f"side={side} | amount={live_amount}τ | "

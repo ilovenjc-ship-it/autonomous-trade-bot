@@ -1,5 +1,5 @@
 """
-OpenClaw BFT Consensus API
+Fleet Consensus BFT API
 GET  /api/consensus/latest       → most recent round (full vote breakdown)
 GET  /api/consensus/history      → last N rounds
 GET  /api/consensus/stats        → aggregate approval stats
@@ -98,7 +98,7 @@ async def forecast(
     trials:       int = Query(1000, ge=50, le=5000, description="Monte Carlo sample size"),
 ):
     """
-    Predict the outcome of a hypothetical OpenClaw round at the current
+    Predict the outcome of a hypothetical Fleet Consensus round at the current
     market state. Runs N Monte Carlo trials over the same vote engine
     used for live consensus, returning expected vote counts, per-bot
     lean probabilities, and the overall pass probability.
@@ -123,7 +123,7 @@ async def forecast_accuracy(
     recent_limit:  int = Query(20, ge=5, le=100, description="Sparkline history length"),
 ):
     """
-    Calibration metrics for the OpenClaw vote forecaster.
+    Calibration metrics for the Fleet Consensus vote forecaster.
 
     Every consensus round records (forecast_prob, actual_approved).  This
     endpoint surfaces aggregate calibration across the last `window`

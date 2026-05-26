@@ -3,7 +3,7 @@ Forecast Accuracy Service
 =========================
 Session XXXVII — Phase F (model-drift indicator).
 
-Closes the loop on the OpenClaw vote forecasting feature shipped in
+Closes the loop on the Fleet Consensus vote forecasting feature shipped in
 2c3d81a0 (Phase C).  Every consensus round now records:
 
   · forecast_prob — P(approval | current market state, this direction),

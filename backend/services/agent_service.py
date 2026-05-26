@@ -6,7 +6,7 @@ The top-level intelligence layer of the autonomous trading system.
 Responsibilities:
   1. Market Regime Detection   — BULL / BEAR / SIDEWAYS / VOLATILE
   2. Fleet Health Monitoring   — per-strategy health classification
-  3. Consensus Intelligence    — interprets OpenClaw voting trends
+  3. Consensus Intelligence    — interprets Fleet Consensus voting trends
   4. Autonomous Observations   — natural-language decision log (runs every 5 min)
   5. Recommendation Engine     — actionable strategy directives
   6. System Heartbeat          — validates all subsystems are healthy
@@ -150,11 +150,11 @@ def _consensus_observation(stats: Dict) -> str:
     hold_v   = stats.get("total_hold_votes", 0)
 
     if total == 0:
-        return "OpenClaw council has not been convened yet. Awaiting first LIVE strategy signal."
+        return "Fleet Consensus has not been convened yet. Awaiting first LIVE strategy signal."
 
     bias = "BULLISH" if buy_v > sell_v else ("BEARISH" if sell_v > buy_v else "NEUTRAL")
     return (
-        f"OpenClaw council — {total} rounds completed. Approval rate: {approval:.1f}%. "
+        f"Fleet Consensus — {total} rounds completed. Approval rate: {approval:.1f}%. "
         f"Vote distribution: {buy_v}B / {sell_v}S / {hold_v}H. "
         f"Council consensus bias: {bias}."
     )
@@ -200,7 +200,7 @@ def _generate_recommendation(hot: List[str], struggling: List[str], regime: str,
         choices.append({
             "type":     "REGIME",
             "strategy": None,
-            "action":   "Volatile conditions — raise OpenClaw supermajority to 8/12 until regime stabilises.",
+            "action":   "Volatile conditions — raise Fleet Consensus supermajority to 8/12 until regime stabilises.",
             "priority": "HIGH",
         })
 
@@ -208,14 +208,14 @@ def _generate_recommendation(hot: List[str], struggling: List[str], regime: str,
         choices.append({
             "type":     "CONSENSUS",
             "strategy": None,
-            "action":   f"OpenClaw approval rate critically low ({approval:.1f}%). Fleet is divided — review market conditions before LIVE execution.",
+            "action":   f"Fleet Consensus approval rate critically low ({approval:.1f}%). Fleet is divided — review market conditions before LIVE execution.",
             "priority": "HIGH",
         })
     elif approval > 80:
         choices.append({
             "type":     "CONSENSUS",
             "strategy": None,
-            "action":   f"OpenClaw approval rate high ({approval:.1f}%). Strong fleet consensus — conditions favourable for LIVE trading.",
+            "action":   f"Fleet Consensus approval rate high ({approval:.1f}%). Strong fleet consensus — conditions favourable for LIVE trading.",
             "priority": "LOW",
         })
 

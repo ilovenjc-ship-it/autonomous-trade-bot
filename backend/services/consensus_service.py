@@ -1,6 +1,11 @@
 """
-OpenClaw BFT Consensus Engine
-==============================
+Fleet Consensus BFT Engine
+==========================
+(Renamed from OpenClaw — Day 13 wrap-up 2026-05-26 — public-name collision
+with the OpenClaw MIT-licensed AI-agent framework, see
+RENAME_FLEET_CONSENSUS.md for the AP-9 inscription. Behaviour unchanged;
+DB columns retain `openclaw_*` for now — see Commit 2 of the rename arc.)
+
 Before any LIVE strategy executes a real trade, the full 12-bot fleet votes.
 A 7/12 supermajority (58.3%) of agreeing votes is required to APPROVE.
 
@@ -300,12 +305,12 @@ class ConsensusService:
     def set_supermajority(self, votes: int) -> None:
         """
         Dynamically update the supermajority vote threshold.
-        Called by Risk Config API when the user adjusts the OpenClaw slider.
+        Called by Risk Config API when the user adjusts the Fleet Consensus slider.
         Takes effect on the next consensus round.
         """
         clamped = max(1, min(12, int(votes)))
         self._supermajority = clamped
-        logger.info(f"OpenClaw supermajority updated: {clamped}/12")
+        logger.info(f"Fleet Consensus supermajority updated: {clamped}/12")
 
     def update_bot_modes(self, modes: Dict[str, str]) -> None:
         """Called by cycle engine to keep bot modes current."""
@@ -412,7 +417,7 @@ class ConsensusService:
         icon = "✅" if round_.approved else "🚫"
         push_event(
             "signal",
-            f"{icon} OpenClaw #{round_id} — {round_.result} "
+            f"{icon} Fleet Consensus #{round_id} — {round_.result} "
             f"({round_.buy_count}B/{round_.sell_count}S/{round_.hold_count}H)",
             strategy = triggered_by,
             detail   = f"Direction={direction} | {effective_supermajority}/12 threshold | {round_.duration_ms}ms",
@@ -524,7 +529,7 @@ class ConsensusService:
         trials:       int = 1000,
     ) -> Dict[str, Any]:
         """
-        Monte-Carlo forecast of what an OpenClaw round would yield RIGHT NOW
+        Monte-Carlo forecast of what a Fleet Consensus round would yield RIGHT NOW
         if the given strategy fired in the given direction. Runs N independent
         trials over the same vote engine the live consensus uses, with the
         same RSI/MACD/mode inputs and current personality table — so the
@@ -726,13 +731,13 @@ class ConsensusService:
                     self._stats["approved_rounds"]   = cfg.openclaw_approved_rounds or 0
                     self._stats["rejected_rounds"]   = cfg.openclaw_rejected_rounds or 0
                     logger.info(
-                        f"OpenClaw loaded from DB — "
+                        f"Fleet Consensus loaded from DB — "
                         f"total={self._round_counter} "
                         f"approved={self._stats['approved_rounds']} "
                         f"rejected={self._stats['rejected_rounds']}"
                     )
         except Exception as _e:
-            logger.warning(f"OpenClaw DB load failed (using 0): {_e}")
+            logger.warning(f"Fleet Consensus DB load failed (using 0): {_e}")
 
     async def _persist_to_db(self) -> None:
         """
@@ -756,7 +761,7 @@ class ConsensusService:
                 )
                 await db.commit()
         except Exception as _e:
-            logger.debug(f"OpenClaw DB persist skipped: {_e}")
+            logger.debug(f"Fleet Consensus DB persist skipped: {_e}")
 
 
 consensus_service = ConsensusService()

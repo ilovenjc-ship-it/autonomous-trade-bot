@@ -228,9 +228,9 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
             logger.warning(f"subnet_chat_service failed: {_e}")
             _subnet_response = None
 
-    # Phase C — OpenClaw vote forecasting. Detect "forecast" / "would this
+    # Phase C — Fleet Consensus vote forecasting. Detect "forecast" / "would this
     # pass" / "if X fires now" intents and run a Monte Carlo through the
-    # consensus engine. Falls through to the legacy openclaw branch on miss.
+    # consensus engine. Falls through to the legacy fleet-consensus branch on miss.
     _forecast_response: Optional[str] = None
     if any(w in msg for w in ["forecast", "would this pass", "would it pass", "if .* fires", "predict", "vote prediction", "would pass"]) \
        or ("if " in msg and any(w in msg for w in [" fires", " buys", " sells"])):
@@ -259,7 +259,7 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
                 else f"Market: RSI warming up, MACD-hist {(_macd_hist or 0):+.5f}"
             )
             _forecast_response = (
-                f"**OpenClaw forecast — {forecast_dir} signal · {f['trials']:,} Monte Carlo trials:**\n"
+                f"**Fleet Consensus forecast — {forecast_dir} signal · {f['trials']:,} Monte Carlo trials:**\n"
                 f"\n"
                 f"Expected vote tally: **{ex['buy']:.1f} BUY · {ex['sell']:.1f} SELL · "
                 f"{ex['hold']:.1f} HOLD · {ex['abstain']:.1f} ABSTAIN**\n"
@@ -307,7 +307,7 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
         response = _forecast_response
     elif _audit_response:
         response = _audit_response
-    elif any(w in msg for w in ["openclaw", "bft", "byzantine", "consensus", "vote", "voting", "7 of 12", "7/12", "supermajority"]):
+    elif any(w in msg for w in ["openclaw", "fleet consensus", "fleet-consensus", "bft", "byzantine", "consensus", "vote", "voting", "7 of 12", "7/12", "supermajority"]):
         latest = consensus_service.get_latest()
         last_result = "—"
         last_votes  = "—"
@@ -315,7 +315,7 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
             last_result = "✓ APPROVED" if latest.get("approved") else "✗ VETOED"
             last_votes  = f"{latest.get('buy_count', 0)} BUY · {latest.get('sell_count', 0)} SELL · {latest.get('hold_count', 0)} HOLD"
         response = (
-            f"**OpenClaw** is our Byzantine Fault Tolerant consensus engine — the mathematical firewall between every strategy signal and the blockchain. "
+            f"**Fleet Consensus** is our Byzantine Fault Tolerant consensus engine — the mathematical firewall between every strategy signal and the blockchain. "
             f"Before any LIVE trade executes, **all 12 bot personalities vote**, and **7 of 12 (58.3%) must agree** on direction. No exceptions.\n\n"
             f"The math comes from Lamport, Shostak & Pease (1982): with N=12 actors, you can tolerate up to ⌊(N−1)/3⌋ = **3 faulty/wrong bots** "
             f"and still reach a provably correct consensus — as long as the 2f+1 = **7-vote threshold** is met. "
@@ -428,7 +428,7 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
         response = (
             f"Autonomous cycle engine is **{'running' if cycle_running else 'stopped'}**. "
             f"Completed **{cycle_num}** cycles, firing every **60 seconds**. "
-            f"Each cycle: evaluates all {len(strategies)} strategies, generates signals, runs OpenClaw BFT vote (if LIVE), "
+            f"Each cycle: evaluates all {len(strategies)} strategies, generates signals, runs Fleet Consensus BFT vote (if LIVE), "
             f"executes paper/live trades, logs to DB, and fires alerts. "
             f"II Agent analysis runs every **5 minutes** on top of the cycle engine."
         )
@@ -449,7 +449,7 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
             "The wallet connection page lets you link a Bittensor Finney mainnet coldkey. "
             "All trading is **paper-only** until a wallet is connected AND a strategy earns LIVE promotion through the gate. "
             "Even with a wallet connected, only LIVE-mode strategies can execute real on-chain trades — "
-            "and every trade still requires OpenClaw BFT consensus (7/12 votes) to pass."
+            "and every trade still requires Fleet Consensus BFT vote (7/12 votes) to pass."
         )
 
     # Legacy hardcoded "subnet" branch removed — superseded by the
@@ -465,7 +465,7 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
                 f"Ask me about PnL, regime, consensus, risk, gate status, or any specific strategy."
             ),
             (
-                f"OpenClaw BFT: {c_rounds} consensus rounds, {c_rate:.1f}% approval rate. "
+                f"Fleet Consensus BFT: {c_rounds} rounds, {c_rate:.1f}% approval rate. "
                 f"{c_buy} BUY vs {c_sell} SELL votes cast total. "
                 f"Current regime: **{current_regime}**. "
                 f"Fleet: {len(paper_strats)} paper · {len(approved_strats)} approved · {len(live_strats)} live."
@@ -898,7 +898,7 @@ async def deactivate_bot(bot_name: str, db: AsyncSession = Depends(get_db)):
 #                                  statistics without 1,440-trades/day noise.
 #
 #   consensus_votes          7   — unchanged. BFT 7/12 supermajority is the core
-#                                  OpenClaw safety mechanism. Do not lower.
+#                                  Fleet Consensus safety mechanism. Do not lower.
 #
 #   min_wallet_balance_tao  0.05 — unchanged. Hard floor at ~22% of current
 #                                  wallet. Prevents running the wallet to zero
@@ -916,7 +916,7 @@ _RISK_CONFIG_DEFAULTS = {
     # Prevents the bot from running the wallet to zero through repeated small stakes.
     "min_wallet_balance_tao":         0.05,
     "min_confidence_score":           0.55,  # XXXIV: now ENFORCED by cycle_service — 0.55 cuts mixed/weak signals (~40% of fee-drag trades) while preserving strong setups
-    "consensus_votes":                  7,   # 7/12 supermajority — OpenClaw rule, do not lower
+    "consensus_votes":                  7,   # 7/12 supermajority — Fleet Consensus rule, do not lower
     "consensus_threshold":    round(7 / 12, 6),   # ≈ 0.5833
     "cycle_interval_seconds":         300,   # unchanged — 5-min cycles
     # Auto-demote a strategy when its cumulative PnL bleeds below this τ floor.

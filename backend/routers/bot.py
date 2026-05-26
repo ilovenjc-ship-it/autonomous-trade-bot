@@ -236,8 +236,9 @@ async def reset_paper_stats(db: AsyncSession = Depends(get_db)):
         Trade.__table__.delete().where(Trade.tx_hash.is_(None))
     )
     # Session XXVI: also zero the BotConfig singleton so no counter is left stale
-    # Session XXVII: ALSO zero OpenClaw round counters (prior version missed
-    # these, so "Total Rounds" survived manual resets).
+    # Session XXVII: ALSO zero Fleet Consensus round counters (prior version
+    # missed these, so "Total Rounds" survived manual resets). Note: ORM
+    # attrs still spelled `openclaw_*` until rename Commit 2 lands.
     await db.execute(update(BotConfig).values(
         total_trades             = 0,
         successful_trades        = 0,
@@ -526,7 +527,7 @@ async def get_trading_mode(db: AsyncSession = Depends(get_db)):
         blocking_reason = None
         status_message = (
             f"{live_count} strategy{'s' if live_count != 1 else ''} armed — "
-            f"real stake() fires on next OpenClaw signal"
+            f"real stake() fires on next Fleet Consensus signal"
         )
     else:
         overall_mode = "PAPER"
