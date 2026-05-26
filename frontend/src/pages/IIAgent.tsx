@@ -128,7 +128,7 @@ const QUICK_PROMPTS = [
   { label: '⚠️ Vulnerable',    text: 'Show me VULNERABLE subnets' },
   { label: '✅ 6/6 subnets',   text: 'Which subnets pass 6/6 filters?' },
   { label: '🤖 Bot trading',   text: 'What subnets is the bot trading?' },
-  // Phase C — OpenClaw vote forecasting
+  // Phase C — Fleet Consensus vote forecasting
   { label: '🔮 Forecast BUY',  text: 'Forecast: would a BUY signal pass right now?' },
   { label: '🔮 Forecast SELL', text: 'Forecast: would a SELL signal pass right now?' },
   // Session XXXVII — Audit-trail narration
@@ -593,7 +593,7 @@ function RoundRow({ round, index }: { round: ConsensusRound; index: number }) {
 }
 
 
-// VOTE_COLORS — used by CouncilPanel (matches OpenClaw's compact vote style)
+// VOTE_COLORS — used by CouncilPanel (matches Fleet Consensus's compact vote style)
 const VOTE_COLORS: Record<string, { bg: string; border: string; text: string }> = {
   BUY:     { bg: 'bg-emerald-500/10', border: 'border-emerald-500/25', text: 'text-emerald-400' },
   SELL:    { bg: 'bg-red-500/10',     border: 'border-red-500/25',     text: 'text-red-400'     },
@@ -618,7 +618,7 @@ function CouncilPanel({
         <div className="p-1 rounded bg-purple-500/15">
           <Users size={12} className="text-purple-400" />
         </div>
-        <span className="text-[13px] font-bold tracking-widest text-slate-200 uppercase">OpenClaw Council</span>
+        <span className="text-[13px] font-bold tracking-widest text-slate-200 uppercase">Fleet Consensus</span>
         <span className="ml-auto text-[11px] font-mono text-purple-400/70 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded">
           BFT · 7/12
         </span>
@@ -863,7 +863,7 @@ export default function IIAgent() {
           Mav redistributed the four KPIs across the rest of the app:
             · Market Regime    → Manual Trades (top of page)
             · Fleet PnL        → tooltip merged into Dashboard's "Total PnL"
-            · Analyses Run     → OpenClaw KPI row (right of Total Rounds)
+            · Analyses Run     → Fleet Consensus KPI row (right of Total Rounds)
             · Hot Strategies   → Dashboard slot 10 (replaces Daily Cap)
             · Recommendations  → already covered by the "Active Directives"
                                  section in the right column below; KPI removed

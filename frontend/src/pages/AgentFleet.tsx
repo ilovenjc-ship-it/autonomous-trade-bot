@@ -406,7 +406,7 @@ export default function AgentFleet() {
                         <p><span className="text-emerald-400 font-bold">BUY</span> — Bot sees bullish conditions</p>
                         <p><span className="text-red-400 font-bold">SELL</span> — Bot sees bearish conditions</p>
                         <p><span className="text-slate-400 font-bold">HOLD</span> — No strong conviction either way</p>
-                        <p className="text-slate-400 mt-1">A signal does NOT mean a trade fired — it must pass OpenClaw BFT consensus first.</p>
+                        <p className="text-slate-400 mt-1">A signal does NOT mean a trade fired — it must pass Fleet Consensus BFT first.</p>
                       </div>
                     } />
                   </span>

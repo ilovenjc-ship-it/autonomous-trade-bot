@@ -374,7 +374,7 @@ export default function AlertInbox() {
             </p>
             <p className="text-slate-400 text-xs mt-1">
               Alerts fire automatically when strategies are promoted,<br />
-              OpenClaw votes, II Agent detects regime shifts, and more.
+              Fleet Consensus votes, II Agent detects regime shifts, and more.
             </p>
           </div>
         ) : (

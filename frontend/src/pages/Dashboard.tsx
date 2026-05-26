@@ -717,12 +717,12 @@ export default function Dashboard() {
       {/* ── How It All Connects (Session XXXV: relocated FROM II Agent page) ── */}
       {/* Lives at the top of the Dashboard above the KPI grid, per Mav's spec. */}
       {/* Color swap from original placement: II Agent green, 12 Bots purple,   */}
-      {/* OpenClaw stays purple, Trades stays sky.                              */}
+      {/* Fleet Consensus stays purple, Trades stays sky.                              */}
       <HowItAllConnects />
 
-      {/* ── Cycle status bar (Session XXXV: relocated TO OpenClaw + Strategies) */}
+      {/* ── Cycle status bar (Session XXXV: relocated TO Fleet Consensus + Strategies) */}
       {/* Removed from Dashboard. The bar still appears at the very top of the  */}
-      {/* OpenClaw page (below the BFT explainer) and at the top of Strategies. */}
+      {/* Fleet Consensus page (below the BFT explainer) and at the top of Strategies. */}
 
       {/* ══════════════════════════════════════════════════════════════════════
           OPERATOR STATIC CARDS — Day 12 (Session XLII) order (Mark spec):
@@ -923,7 +923,7 @@ export default function Dashboard() {
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
               <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Approval Rate</p>
-              <InfoBubble content="OpenClaw BFT consensus approval rate — fraction of consensus rounds that hit the 7-of-12 supermajority. Healthy band is 45–65%. Too high = the council is rubber-stamping; too low = the council never agrees on a trade. Click to dig into OpenClaw." side="right" maxWidth={300} />
+              <InfoBubble content="Fleet Consensus BFT approval rate — fraction of consensus rounds that hit the 7-of-12 supermajority. Healthy band is 45–65%. Too high = the council is rubber-stamping; too low = the council never agrees on a trade. Click to dig into Fleet Consensus." side="right" maxWidth={300} />
             </div>
             <p className={clsx('text-base font-black font-mono mt-0.5',
               _approvalRate >= 45 && _approvalRate <= 65 ? 'text-emerald-400' : 'text-amber-400'
@@ -1256,7 +1256,7 @@ export default function Dashboard() {
                   ≥ +25 = greed/sell (red).
                 · MACD Hist — MACD line minus Signal line; positive =
                   bullish momentum, negative = bearish.
-                · Consensus — OpenClaw BFT approval rate %; healthy band
+                · Consensus — Fleet Consensus BFT approval rate %; healthy band
                   is 45–65%, mirrors the KPI grid card. */}
           <IndRow label="TAO F&G"
                   val={taoFearGreed}

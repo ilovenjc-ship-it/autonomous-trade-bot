@@ -14,7 +14,7 @@ interface Config {
   max_concurrent_positions: number
   daily_loss_circuit_breaker_pct: number
   min_confidence_score: number
-  consensus_votes: number        // integer 1–12 — source of truth for OpenClaw
+  consensus_votes: number        // integer 1–12 — source of truth for Fleet Consensus
   consensus_threshold: number    // kept in sync as votes/12
   cycle_interval_seconds: number
   // Session XXXI: drawdown auto-demotion (parallel to WR demotion)
@@ -47,7 +47,7 @@ const DEFAULTS: Config = {
   max_concurrent_positions:       3,   // was 4 — 3×5%=15% deployed, 85% liquid
   daily_loss_circuit_breaker_pct: 5,   // was 15 — calibrated for 5% positions
   min_confidence_score:          0.55, // XXXIV: now ENFORCED — 0.55 cuts ~40% fee-drag trades
-  consensus_votes:                 7,  // 7/12 supermajority — OpenClaw rule, do not lower
+  consensus_votes:                 7,  // 7/12 supermajority — Fleet Consensus rule, do not lower
   consensus_threshold:           7 / 12,
   cycle_interval_seconds:        300,  // unchanged — 5-min cycles
   strategy_demote_drawdown_tao:    -0.15, // Session XXXI: WR-independent cumulative PnL floor
@@ -531,7 +531,7 @@ export default function RiskConfig() {
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, min_confidence_score: v })) }}
           />
           <RiskSlider
-            label="OpenClaw Consensus"
+            label="Fleet Consensus"
             description="Minimum council votes required for a trade to be approved (out of 12 bots). 7/12 = 58.3% supermajority — the Byzantine Fault Tolerance threshold. Below 7 risks bad-actor manipulation; above 9 makes approval too rare."
             value={config.consensus_votes ?? 7}
             min={6} max={12} step={1} riskDir="down"
@@ -561,7 +561,7 @@ export default function RiskConfig() {
             onChange={v => { setIsDirty(true); setConfig(c => ({ ...c, cycle_interval_seconds: v })) }}
           />
           {/* Session XXXIV: Drawdown-Demote Min Cycles relocated to sit below
-              OpenClaw Consensus per Partner spec — col-2 row-2 of the upper
+              Fleet Consensus per Partner spec — col-2 row-2 of the upper
               grid section.  Functionally still a Conviction-Era safety knob,
               promoted up here for Operator visibility next to its companion
               consensus / cycle controls. */}
@@ -577,7 +577,7 @@ export default function RiskConfig() {
 
           {/* ── Conviction-Era safety + quality knobs (Session XXXI / XXXII) ─────
               Session XXXIV: Drawdown-Demote Min Cycles moved up next to
-              OpenClaw Consensus.  This section now hosts the drawdown floor
+              Fleet Consensus.  This section now hosts the drawdown floor
               + the subnet provenance gate side-by-side. */}
           <div className="lg:col-span-2 pt-3 border-t border-dark-600">
             <div className="text-[11px] uppercase tracking-widest font-mono text-violet-300 mb-2">

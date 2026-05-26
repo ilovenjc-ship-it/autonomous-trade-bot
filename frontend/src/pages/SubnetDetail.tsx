@@ -464,7 +464,7 @@ export default function SubnetDetail() {
               <Shield size={13} className="text-accent-green flex-shrink-0 mt-0.5" />
               <p className="text-xs text-accent-green/90 font-mono">
                 The II Agent actively coordinates stake on this subnet. Consensus-approved signals from
-                the OpenClaw engine route TAO in and out via the configured validator. Performance data
+                the Fleet Consensus engine routes TAO in and out via the configured validator. Performance data
                 feeds directly into the Strategy Leaderboard and P&L Summary.
               </p>
             </div>

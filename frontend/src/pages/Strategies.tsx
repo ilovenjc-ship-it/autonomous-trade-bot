@@ -565,7 +565,7 @@ export default function Strategies() {
 
       {/* ── Cycle Status Bar (Session XXXV: relocated FROM Dashboard) ────────
             First line on the Strategies page per Mav's spec — same shared
-            <CycleStatusBar /> component used on the OpenClaw page. */}
+            <CycleStatusBar /> component used on the Fleet Consensus page. */}
       <CycleStatusBar />
 
       {/* ── Top controls — Session XXXV: Filters and Allocation Tier Key

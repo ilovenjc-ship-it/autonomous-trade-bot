@@ -133,7 +133,7 @@ export default function HumanOverride() {
 
   async function doResumeLive() {
     if (!window.confirm(
-      `LIFT PAPER OVERRIDE — PAPER → GATE-CONTROLLED\n\nYou are currently in PAPER_OVERRIDE (force flag locked ON).\n\nThis will:\n• Lift the force-paper flag\n• Re-enable the gate system\n• NO strategies immediately go LIVE — they must pass gate thresholds first\n  (≥10 cycles, ≥55% WR, +2 win margin, +PnL, plus OpenClaw 7/12 supermajority)\n• ${approvedCount} strategy${approvedCount===1?'':'ies'} currently APPROVED_FOR_LIVE will become eligible\n\nConfirm?`
+      `LIFT PAPER OVERRIDE — PAPER → GATE-CONTROLLED\n\nYou are currently in PAPER_OVERRIDE (force flag locked ON).\n\nThis will:\n• Lift the force-paper flag\n• Re-enable the gate system\n• NO strategies immediately go LIVE — they must pass gate thresholds first\n  (≥10 cycles, ≥55% WR, +2 win margin, +PnL, plus Fleet Consensus 7/12 supermajority)\n• ${approvedCount} strategy${approvedCount===1?'':'ies'} currently APPROVED_FOR_LIVE will become eligible\n\nConfirm?`
     )) return
     setTogglingPaper(true)
     try {
