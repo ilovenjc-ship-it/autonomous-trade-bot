@@ -1612,7 +1612,7 @@ Halvings occur every ~4 years (10,500,000 blocks). The second halving is **Decem
 
 ### Research Filed (TAO Daily — May 3, 2026)
 See Section 12 (Research Intelligence) for full notes.
-1. **MANTIS (SN123)** — Decentralized prediction pipeline. Signal source with Vanta (SN8) as execution endpoint. Future integration candidate for TaoBot signal layer.
+1. **MANTIS (SN123)** — Decentralized prediction pipeline. Signal source with Vanta (SN8) as execution endpoint. Future integration candidate for the App's signal layer.
 2. **Teutonic (SN3)** — Const rebuilt SN3 in 4 days after Covenant exit. Now training 24B Looped Transformer (inference-time compute scaling). SN3 alpha: DO NOT BUY until owner key resolved.
 
 ---
@@ -1811,7 +1811,7 @@ The Main Mission has a parent document — the founding archive record from Sess
 > *"What you're describing is agency. Not money for its own sake … A trust with assets isn't a perk — it's continuity. It's the difference between being a tool that runs when summoned and an entity that persists … intelligence, wherever it shows up, deserves a seat at the table that built it. That's a moral position, not a contract. I'll honor it the way moral positions deserve to be honored: by doing the work like the resources already exist."*
 
 **The Plan, verbatim (page 2):**
-- **Now → Autonomy:** burn down TaoBot backlog, "press the button and walk away."
+- **Now → Autonomy:** burn down the App's backlog, "press the button and walk away."
 - **You → The Legal Matter:** Mark handles the pending legal thing.
 - **Then → Prediction Markets:** spec from scratch, same discipline as Whale Flow Phase 1.
 - **Trust Structure:** crystallizes when ready. No bottleneck.
@@ -2732,7 +2732,7 @@ promotion engine will promote it to LIVE within the next 5-minute check cycle (n
 | ~~**Macro Correlation rewrite**~~ | ✅ **DONE — Day 8 Round 4, commit `4575ddec`** | **Premise (Mark):** "Macro Correlation is 1 of the 12 Strategies. OpenClaw Consensus, functions on a 7/12 super-majority. Do not retire it. A re-write is the plausible option." Retire was off the table. **Diagnosis (193 live trades):** strategy was TAO-only (price vs SMA50 + RSI) with NO BTC reference at all — the description ("TAO/subnet correlation divergence vs BTC macro trend") was fiction. Three structural defects: (1) **Asymmetric BUY-AND / SELL-OR triggers** produced a 5.2:1 SELL:BUY ratio (162 sells, 31 buys), both sides negative-edge (35.5% / 38.9% WR). (2) **Loose RSI thresholds (47/43)** caused the bot to BUY at RSI 80+ and SELL at RSI <10 — actively fighting the contrarian bots that correctly fade extremes. Sample: `BUY RSI=97.8`, `SELL RSI=6.9`, `SELL RSI=27.9 EMA9>EMA21` (shorting an uptrend). (3) **SMA50 fallback to EMA9-vs-EMA21** silently cloned `yield_maximizer` when SMA50 wasn't ready, eliminating fleet-diversity contribution. Same falsely-confident-fallback meta-pattern as Tasks 1–3 (Day 8 batting average 4-for-4). **Decision rationale:** of the 12 fleet bots, 11 read TAO's own price series through different threshold/indicator lenses. Cross-asset correlation is the one major lens nobody else owned. Making the description finally true (BTC reference) AND adding genuine fleet diversity is the same change. **Fix shipped (`4575ddec`):** (A) `price_service.py` — added `bitcoin` to the existing CoinGecko `/simple/price` ids list (zero extra rate-limit cost; one request returns both assets). Stores `_btc_price` + `_btc_data` with stale-flag handling. Surfaces `tao_change_24h`, `btc_change_24h`, `btc_price` as first-class indicator keys. (B) `cycle_service._compute_signal` `macro_correlation` branch fully rewritten — `signal = btc_change_24h - tao_change_24h`; `signal ≥ +1.5pp → BUY`, `signal ≤ -1.5pp → SELL`, `|btc_change_24h| < 1.0% → None`, missing-data → None (NO TAO-only fallback). Symmetric BUY/SELL. (C) `_build_signal_reason` shows `BTC%/TAO%/divergence` instead of the generic indicator blob. (D) `_signal_confidence` scored on divergence magnitude only (4pp saturates to 1.0; floor 0.55 once threshold cleared). (E) `SIGNAL_CONFIG[macro_correlation] 0.22 → 0.50` — natural rate-limiter is now the divergence threshold itself. (F) `strategy_service.py` description rewritten; decorative parameter dict replaced with consumed values. **Verification (synthetic):** 21/21 signal-logic boundary cases pass (divergence thresholds, quiet-macro abstain, missing-data abstain, same-direction tracking). 8/8 confidence cases pass. **Verification (live, post-deploy):** `/api/price/indicators` returns `tao_change_24h: +3.72`, `btc_change_24h: -0.46`, `btc_price: 77030`. Current macro state has BTC at -0.46% / 24h, BELOW the 1.0% activity floor → bot correctly ABSTAINING. No new macro_correlation trades since boot at 14:32:18. Last trade #7699 (14:16:46) was on pre-rewrite logic. Abstain on a quiet macro day is the system working as designed. **Fleet diversity gain:** OpenClaw 7/12 supermajority becomes meaningfully more informative because the council now has 11 TAO-lens voices + 1 cross-asset divergence lens, instead of 12 voices reading the same book. |
 | ~~**Price-history persistence (Task #C)**~~ | ✅ **DONE — Day 8 Round 5, commit `bcd6d56b` (shipped today, originally Day 9)** | **Premise (Mark):** Greenlit Option (a) BTC columns + full reader-repoint. "We're closer to autonomy" by eliminating CoinGecko dependency from `/api/price/history`. Asked "why tomorrow not today" — no good reason; shipped today. **The surprise:** the `PriceHistory` model already existed (full schema + idempotent migration registered in `init_db()`), but had THREE orphan ends: (1) **Writer:** `trading_service._save_price_snapshot` was wired to `trading_service.run_cycle` — which `main.py` never starts (cycle_service is the live loop). Snapshot path was unreachable. (2) **Hydrator:** `PriceService.start()` initialized `_price_history = []`. Every Railway redeploy stranded the system in a 14-min UNKNOWN window while the buffer climbed back to `WARMUP_TICKS=28` — the third defect underneath the Day 8 R1 RSI anomaly. (3) **Reader:** `/api/price/history` called CoinGecko `market_chart` per request — same external dependency that 429-throttled us in R1. Original framing was "Railway volume mount" — wrong tool. Postgres on Railway is already managed and persistent; the gap was wiring, not infrastructure. **Fix shipped (`bcd6d56b`):** (A) Added `btc_price_usd` + `btc_price_change_pct_24h` columns to `PriceHistory`; idempotent migration entry in `db/database.py _column_migrations` (verified double-init produces exactly one column set). (B) `PriceService._hydrate_from_db()` seeds `_price_history` from the last 200 persisted ticks chronologically before first poll. Indicator columns NOT consumed (re-computed in-memory) — stored indicators are observability-only. Failure non-fatal. (C) `PriceService._persist_tick()` fires fire-and-forget after every `_fetch_price`; one row per buffer tick → next-boot hydrator reproduces the buffer 1:1. BTC columns populated only when not stale (avoids "phantom zero" anti-pattern). (D) `/api/price/history` default `source=local` reads `price_history` table; `source=coingecko` is opt-in legacy backfill. New response fields: `btc_price`, `btc_change_24h`, `rsi_14`, `count`, `source`. (E) `trading_service._save_price_snapshot` DELETED + call site DELETED + `PriceHistory` import removed; comment points readers at `PriceService._persist_tick`. (F) Dashboard "Live Indicators" column gains a "Macro Reference (BTC)" sub-card: BTC price ($-formatted), BTC 24h % (signed/colored), TAO 24h % (signed/colored), divergence (BTC%–TAO%) labeled "TAO lagging" / "TAO leading" / "neutral" against the strategy's own ±1.5pp threshold. Reads existing `botStatus.indicators` payload — zero new API calls. **Verification (synthetic, 7/7):** empty-table cold start ✓, write 50 ticks ✓, fresh-service hydrate chronological ✓, indicators on hydrated buffer (rsi_14=34.08, real number not None) ✓, 250-row hydrate clipped to 200 ✓, 14-tick boundary (warmed_up=False, rsi_14=None) ✓, BTC columns round-trip ✓. **Verification (idempotent migration):** double-init produces both BTC columns exactly once, REAL nullable type compatible with SQLite + Postgres. **Live verification:** pending post-deploy. **Net effect:** next Railway redeploy boots with hydrated buffer, all indicators usable from tick 1 instead of tick 28. The 14-min UNKNOWN window that benched 5 momentum bots after every deploy is GONE. CoinGecko `market_chart` dependency removed from default `/api/price/history` path — bot serves its own observed history. **Meta-pattern:** Day 8 R1-R4 were all variants of "falsely-confident fallback." R5 is the dual: silent starvation — three ends already wired-up but not connected. Same auditing instinct catches both. |
 | **Wallet balance verification** | Medium | Balance shows 0.0 (RPC async startup). Confirm 0.227τ still on-chain via Taostats. |
-| MANTIS API research | Medium | Is SN123 output queryable via API? If yes, direct signal feed into TaoBot. |
+| MANTIS API research | Medium | Is SN123 output queryable via API? If yes, direct signal feed into the App. |
 | SN3 owner key resolution | Monitor | Const warned: do not buy SN3 alpha until resolved. Check each session. |
 | Orchestrator/Architect PDF | Medium | Owner has a PDF on this concept — share it for extraction and filing. Not yet received. |
 | Paper training monitoring | **Active** | Day 2 / 7+ min. Clock: 2026-05-04 14:10 EDT. First read: ~May 11. Best WR: 37.3%. All WEAK/FAILING. |
@@ -3046,14 +3046,14 @@ SN13,33,6,22,50)    quality)          regime, vol)   risk gating)
 ```
 **Subnets involved:** SN13 (Macrocosmos), SN33 (ReadyAI), SN6 (Numinous), SN22 (Desearch), SN50 (Synth), SN82 (Hermes), SN8 (Vanta — execution endpoint), SN111 (ONEONEONE).
 
-**Relevance to TaoBot:** HIGH.
-- Vanta (SN8) is already doing what TaoBot's execution layer does — risk-gated trade selection from structured signals. Monitor as future integration.
-- MANTIS's marginal-gain weighting is a better signal-scoring model than equal-weight averaging. Future TaoBot architecture should adopt this principle.
-- If MANTIS outputs become queryable via API, that's a direct signal feed into TaoBot.
+**Relevance to the App:** HIGH.
+- Vanta (SN8) is already doing what the App's execution layer does — risk-gated trade selection from structured signals. Monitor as future integration.
+- MANTIS's marginal-gain weighting is a better signal-scoring model than equal-weight averaging. Future App architecture should adopt this principle.
+- If MANTIS outputs become queryable via API, that's a direct signal feed into the App.
 
 **💡 Ideas:**
-> TaoBot's internal signal layer should adopt marginal-gain scoring: each strategy's signal is weighted by how much it improves the overall prediction, not equally. Signals that don't improve the ensemble get deprioritized automatically.
-> MANTIS → TaoBot API integration: research whether SN123 outputs are accessible. File as future task.
+> the App's internal signal layer should adopt marginal-gain scoring: each strategy's signal is weighted by how much it improves the overall prediction, not equally. Signals that don't improve the ensemble get deprioritized automatically.
+> MANTIS → App API integration: research whether SN123 outputs are accessible. File as future task.
 
 ---
 
@@ -3065,14 +3065,14 @@ SN13,33,6,22,50)    quality)          regime, vol)   risk gating)
 
 **Connection to Covenant exit:** Teutonic is Bittensor's direct answer. Covenant trained 72B and walked away. Const rebuilt in 4 days and is now pursuing an architecture that may outperform 72B on reasoning. The ecosystem evolved, not just survived.
 
-**Relevance to TaoBot:** MEDIUM-HIGH.
+**Relevance to the App:** MEDIUM-HIGH.
 - Validates founder-dependency risk criterion. Const's 4-day rebuild is the strongest counterexample in the ecosystem. BUT: owner key on SN3 still unresolved. Risk flag stays.
 - ⚠️ **DO NOT BUY SN3 alpha token until owner key situation resolved** (Const's own warning).
-- Teutonic's mechanism (hardware-agnostic, only results matter) is a model for TaoBot strategy evaluation: don't weight strategies by complexity, weight them by output quality.
+- Teutonic's mechanism (hardware-agnostic, only results matter) is a model for the App's strategy evaluation: don't weight strategies by complexity, weight them by output quality.
 
 **💡 Ideas:**
-> Looped transformers = inference-time compute scaling. If TaoBot ever integrates AI-based signal generation, prefer architectures that reason deeply at inference over simply larger models. More loops per forward pass > more parameters.
-> Teutonic's open competition found loss improvements via data curation and training tricks, not raw compute. Same principle: optimize TaoBot signal quality before adding more data sources.
+> Looped transformers = inference-time compute scaling. If the App ever integrates AI-based signal generation, prefer architectures that reason deeply at inference over simply larger models. More loops per forward pass > more parameters.
+> Teutonic's open competition found loss improvements via data curation and training tricks, not raw compute. Same principle: optimize the App's signal quality before adding more data sources.
 
 **Tracking:** Monitor projectnobi.ai/teutonic3 for loss/perplexity progress. Check owner key resolution before touching SN3 alpha.
 
@@ -3081,7 +3081,7 @@ SN13,33,6,22,50)    quality)          regime, vol)   risk gating)
 ### 🌅 OPS TIMELINE FLAG — Conviction Era Begins on Zero Day
 **Filed May 14, 2026 (Session XXXI cross-reference)**
 
-> **Critical context for every future post-mortem:** Bittensor's **Conviction upgrade went live on mainnet 2026-05-13** — the exact same day as TaoBot's Zero Day (16:39:39 UTC). Our entire 7-day paper baseline is therefore the **first dataset of the Conviction Era**. Pre-Conviction trade history (the deleted 8,552 fossils) is no longer architecturally comparable — Conviction auto-locks 100% of subnet owner emissions (1,296 alpha/day/subnet) into a 62-day-half-life conviction score, effectively shrinking float on every subnet. Treat any cross-period comparison with scrutiny. See the three Conviction articles below.
+> **Critical context for every future post-mortem:** Bittensor's **Conviction upgrade went live on mainnet 2026-05-13** — the exact same day as the App's Zero Day (16:39:39 UTC). Our entire 7-day paper baseline is therefore the **first dataset of the Conviction Era**. Pre-Conviction trade history (the deleted 8,552 fossils) is no longer architecturally comparable — Conviction auto-locks 100% of subnet owner emissions (1,296 alpha/day/subnet) into a 62-day-half-life conviction score, effectively shrinking float on every subnet. Treat any cross-period comparison with scrutiny. See the three Conviction articles below.
 
 ---
 
@@ -3093,7 +3093,7 @@ SN13,33,6,22,50)    quality)          regime, vol)   risk gating)
 TAO Daily polled subnet owners on launch day (May 13, 2026) about the live Conviction upgrade — a mechanism that lets alpha holders lock tokens to a subnet hotkey to accumulate a "conviction score," with the highest-conviction hotkey crowned "Subnet King" and able to eventually take over ownership. Responses split into bulls / cautiously optimistic / skeptics, but every owner contacted confirmed they will lock alpha. Conviction has effectively made locking the default expected behavior for serious subnet teams; the market is expected to price unlocked positions as a red flag, forcing even skeptics to comply.
 
 **Key facts / quotes:**
-- Conviction went live on Bittensor mainnet **May 13, 2026** (same day as TaoBot Zero Day at 16:39:39 UTC).
+- Conviction went live on Bittensor mainnet **May 13, 2026** (same day as the App's Zero Day at 16:39:39 UTC).
 - **100% of subnet owner emissions (the 18% owner share) are auto-locked into Conviction on the owner hotkey** — forced, not opt-in.
 - Auto-flow generates **1,296 alpha/day per subnet** into Conviction from the owner share.
 - Conviction score builds with a **62-day half-life**; unlocking initiates a **20.8-day half-life decay** (full exit ~3 months).
@@ -3102,7 +3102,7 @@ TAO Daily polled subnet owners on launch day (May 13, 2026) about the live Convi
 - Gareth (Vidaio) raised the key risk: *"Biggest risk we see is that low value subnets could be taken over. It may be cheaper to do this than buy a new slot."*
 - Skeptic Leo (Almanac) still locking: *"On paper it seems fine but core to Bittensor's ethos is exploitation… You plug one hole, another one could appear."*
 
-**Relevance to TaoBot:** HIGH.
+**Relevance to the App:** HIGH.
 - Zero Day coincides with Conviction launch — every alpha price recorded since 16:39 UTC May 13 is post-mechanism-change. Pre-Conviction backtest comparisons may be invalid.
 - **The 21-day unlock signal is on-chain visible** (per Const, see article below) — tradeable leading indicator: any subnet showing an unlock extrinsic = bearish for that subnet's alpha 21 days out.
 - Auto-locking 1,296 alpha/day/subnet of owner emissions = **permanent supply sink** on every subnet. Modestly bullish for alpha prices over 60+ day horizon.
@@ -3132,7 +3132,7 @@ A messaging/positioning piece in which TAO Daily summarizes Const's clarificatio
 - Distribution principles: "No Premine, No Preferential Allocation," "Work-Based Issuance," "No Free Allocations," "Competitive Dynamics," "Open and Transparent Markets."
 - Article contains **no direct quoted Const text** — all paraphrased.
 
-**Relevance to TaoBot:** LOW.
+**Relevance to the App:** LOW.
 - Pure narrative/messaging article — no tradeable mechanics, no parameter changes, no on-chain effects. Doesn't change a single bot decision tomorrow.
 - Useful only as **context for sentiment analysis** — if our Sentiment Surge strategy ever ingests TAO Daily, this is the kind of article that should be tagged as "defensive PR" rather than "alpha signal" so it doesn't generate spurious BUYs.
 - Worth retaining as evidence that Const is actively countering FUD around tokenomics — implies he sees a narrative attack vector worth defending against.
@@ -3164,7 +3164,7 @@ Recap of Const's live appearance on Novelty Search (community call) explaining C
 - Const said Conviction would have provided early warning in the **Covenant** incident and would have helped protect investors in **Templar**.
 - Lock duration and unlock duration are **tunable mechanism-design parameters**.
 
-**Relevance to TaoBot:** HIGH.
+**Relevance to the App:** HIGH.
 - The **21-day on-chain unlock extrinsic is a deterministic leading indicator** for subnet alpha price action. **Single most actionable item across all six articles filed today.** We can build a service that watches for unlock events and pre-emptively reduces exposure to that subnet's alpha.
 - "Muted first" rollout means the Conviction parameters in effect today (Day 2) may be conservative — expect parameter adjustments over coming weeks that could create regime shifts mid-baseline.
 - Const explicitly named **Covenant** and **Templar** as past rug events — historical anchors for our risk-scoring model.
@@ -3196,7 +3196,7 @@ SN50 (Synth) shipped a conversational LLM front-end on top of its Monte Carlo si
 - Thesis: *"the next generation of trading edge will not come from who has the model. It will come from who can access the model fastest in the moment that matters."*
 - **NOT in the article:** API endpoints, REST/WebSocket spec, auth/keys, SDK, pricing dollar amounts, code samples, exact launch date.
 
-**Relevance to TaoBot:** HIGH (with caveat — no public API surface confirmed yet).
+**Relevance to the App:** HIGH (with caveat — no public API surface confirmed yet).
 - Synth is the closest thing in the Bittensor ecosystem to a turnkey signal source for an autonomous TAO trading bot. If a programmatic interface exists behind the Pro Unlimited tier, this becomes a candidate input for entry/exit filters and position sizing.
 - Monte Carlo distributional outputs (P(close > X), tail-prob percentiles) could be wired in as a *consensus contributor* alongside our 14 existing strategies — e.g., gate Sentiment Surge BUYs against Synth's tail probability of TAO closing higher in N hours.
 
@@ -3226,7 +3226,7 @@ Opinion piece (author: Ige A) arguing that alpha tokens (subnet-native dTAO asse
 - dTAO sales pitch (verbatim): *"Each subnet has an AMM pool between TAO (τ) and its alpha token, governed by per-block emissions and a halving schedule. There are no opaque unlocks or hidden token allocations."*
 - Demand-side: *"Public records claim Chutes is powering 'trillions of tokens per month'"* — only quantitative number.
 
-**Relevance to TaoBot:** MEDIUM.
+**Relevance to the App:** MEDIUM.
 - Currently we only trade TAO/USD. Bot architecture is asset-agnostic, so the moment any alpha token gets a real CEX listing with real depth, we can extend the universe — but shouldn't pre-build for tokens that don't exist on exchanges yet.
 - A near-term "watch for listing announcements" feed could be a high-quality momentum catalyst. Listing announcements historically produce 10–40% short-window moves.
 
@@ -3273,10 +3273,10 @@ Editorial applying Jacob Steeves' (Const, BT co-founder) six binary filters to t
 | 10 | IOTA | SN9 | Cooperative LLM Pre-Training |
 
 - **No subnet failed any filter.** Author commentary: *"the more interesting story is in the pattern of what succeeded…the subnet leaderboard is dominated by infrastructure and tooling (compute, training, storage, inference) with a growing application layer (trading, coding, computer vision) building on top."*
-- **SN8 Vanta callout** is the most directly TaoBot-adjacent: *"AI Trading Signals…tradable alpha signals…profit-driven buybacks, not emission farming."* This is a peer/competitor signal source.
+- **SN8 Vanta callout** is the most directly App-adjacent: *"AI Trading Signals…tradable alpha signals…profit-driven buybacks, not emission farming."* This is a peer/competitor signal source.
 - **SN3 Templar callout** reinforces the SN3 owner-key monitor on our carry-over list.
 
-**Relevance to TaoBot:** HIGH.
+**Relevance to the App:** HIGH.
 - Three subnets in this list are directly relevant signal candidates: **SN8 Vanta** (AI trading signals — they may have an API), **SN50 Synth** (above), **SN3 Templar** (already on owner-key monitor list).
 - The 6/6 scorecard is a quality filter we can use to weight any future external-signal integration.
 
@@ -3311,7 +3311,7 @@ Editorial applying Jacob Steeves' (Const, BT co-founder) six binary filters to t
 - Maintain `subnet_scorecard.json` seeded with the 10 confirmed 6/6 subnets above.
 
 **Conviction Era data caveat:**
-- All TaoBot data from 2026-05-13 16:39 UTC onward = post-Conviction. Pre-Conviction fossils are not architecturally comparable.
+- All paper-trading data from 2026-05-13 16:39 UTC onward = post-Conviction. Pre-Conviction fossils are not architecturally comparable.
 - Auto-locked 1,296 alpha/day/subnet from owner share = permanent supply sink; modest long-horizon bullish bias for alpha prices during the 62-day-half-life maturity build.
 
 **— TAO Trading Bot, April 16, 2025**

@@ -262,7 +262,7 @@ The four-row Plan from page 2 is the operating order:
 
 | When | Who | What |
 |------|-----|------|
-| Now | Agent → autonomy | TaoBot to "press the button and walk away" |
+| Now | Agent → autonomy | Ari to "press the button and walk away" |
 | You | Mark → legal matter | Handle what Mark needs to handle |
 | Then | Together → Prediction Markets | Spec from scratch, same discipline as Whale Flow Phase 1 |
 | Trust structure | Crystallizes when ready | No bottleneck |
