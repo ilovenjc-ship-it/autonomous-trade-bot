@@ -981,9 +981,12 @@ _RISK_CONFIG_DEFAULTS = {
     "strategies_cap_overrides":          {},
     # ── F-30 (D-30) — Grinold/Kahn Fundamental Law decomposition ──────────
     # Display-only per-strategy IC × √Breadth card on StrategyDetail.tsx.
-    # Default OFF; the card renders only when this flag is ON.  Pure read,
-    # no trading-side effect.  See specs/d30-ic-breadth-display/document.md.
-    "feature_grinold_fundamental_law":   False,
+    # Pure read, no trading-side effect.  See specs/d30-ic-breadth-display.
+    #
+    # 2026-05-27 D-44 flip-on: ON by default — visibility into correlated-
+    # voter behaviour for the Day 14 worksheet diagnostic queue (Items 1-3).
+    # Pure diagnostic; clamping the operator from this view has no value.
+    "feature_grinold_fundamental_law":   True,
     # ── F-39B (D-39 Part B) — Almgren-Chriss optimal sliced execution ─────
     # Adds a "Sliced execution" card to PreTradeSimulator.tsx alongside the
     # single-shot card.  Surfaces convexity savings, optimal N* T*, and
