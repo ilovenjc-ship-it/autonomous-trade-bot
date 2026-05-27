@@ -975,6 +975,11 @@ _RISK_CONFIG_DEFAULTS = {
     # Missing entries fall back to {static_cap_tao: derived from
     # max_position_size_pct × current_balance, bailey_min: default, lock: false}.
     "strategies_cap_overrides":          {},
+    # ── F-30 (D-30) — Grinold/Kahn Fundamental Law decomposition ──────────
+    # Display-only per-strategy IC × √Breadth card on StrategyDetail.tsx.
+    # Default OFF; the card renders only when this flag is ON.  Pure read,
+    # no trading-side effect.  See specs/d30-ic-breadth-display/document.md.
+    "feature_grinold_fundamental_law":   False,
 }
 
 # Persist to a JSON file so Railway redeploys don't reset user settings.

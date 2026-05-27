@@ -10,6 +10,7 @@ import {
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
+import FundamentalLawCard from '@/components/FundamentalLawCard'
 
 /** Convert a UTC timestamp string "YYYY-MM-DD HH:MM" → "HH:MM EDT/EST" */
 function toET(raw: string): string {
@@ -87,14 +88,26 @@ export default function StrategyDetail() {
   const [detail, setDetail] = useState<Detail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]   = useState('')
+  // F-30: feature flag for the Fundamental Law decomposition card.  Read
+  // from /api/fleet/risk/config alongside the detail load so the card
+  // mounts only when the operator has flipped the flag on (default OFF).
+  const [grinoldFlag, setGrinoldFlag] = useState<boolean>(false)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const { data } = await api.get<Detail>(`/analytics/strategy/${name}`)
-      setDetail(data)
-    } catch (e) {
-      setError(`Could not load strategy "${name}"`)
+      const [detailRes, riskRes] = await Promise.allSettled([
+        api.get<Detail>(`/analytics/strategy/${name}`),
+        api.get<{ feature_grinold_fundamental_law?: boolean }>('/fleet/risk/config'),
+      ])
+      if (detailRes.status === 'fulfilled') {
+        setDetail(detailRes.value.data)
+      } else {
+        setError(`Could not load strategy "${name}"`)
+      }
+      if (riskRes.status === 'fulfilled') {
+        setGrinoldFlag(riskRes.value.data?.feature_grinold_fundamental_law === true)
+      }
     } finally {
       setLoading(false)
     }
@@ -236,6 +249,14 @@ export default function StrategyDetail() {
           </div>
         </div>
       </div>
+
+      {/* ── Fundamental Law decomposition (F-30 · D-30) ───────────────────────
+          Closed-by-default; persists open/closed per strategy in localStorage.
+          Render-gated on `feature_grinold_fundamental_law` — default OFF
+          preserves the page layout for operators not opted in. */}
+      {grinoldFlag && name && (
+        <FundamentalLawCard enabled={grinoldFlag} strategyName={name} />
+      )}
 
       {/* ── Recent trades table ─────────────────────────────────────────────── */}
       <div className="bg-dark-800 border border-dark-600 rounded-xl overflow-hidden">

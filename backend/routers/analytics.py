@@ -324,6 +324,108 @@ async def strategy_detail(name: str, db: AsyncSession = Depends(get_db)):
     }
 
 
+# ── F-30 — Grinold/Kahn Fundamental Law decomposition ────────────────────
+#
+# Per-strategy IC × √Breadth + Implied IR + Drift readout for the
+# StrategyDetail page. Display-only; no trading-side effects.
+#
+# Doctrinal anchors:
+#   - D-30 (D-40 grant) — Library Night Grinold/Kahn Fundamental Law
+#   - SHARPE_SPEC.md HODL-relative return convention (sharpe = IR for
+#     β=1 vs HODL benchmark construction)
+#   - López de Prado Ch 3 probFailure check on marginal-IC × low-n combos
+#
+# v1 limitation: forecast = direction-only (buy=+1, sell=-1) because
+# the trades table does not carry signal magnitude.  Surfaced as
+# `forecast_method: "direction_only"` + a warning when IC is reported.
+
+@router.get("/strategies/{strategy_id}/grinold")
+async def strategy_grinold(
+    strategy_id: str,
+    window_days: int = 30,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    F-30: returns the IC × √Breadth Fundamental Law decomposition for a
+    single strategy over the rolling window (default 30 days).
+
+    Response (rounded):
+      {
+        strategy_id, window_days, trade_count,
+        sharpe_observed,
+        ic, ic_band ("excellent"|"good"|"marginal"|"noise"|null),
+        breadth, breadth_method, n_independent_estimate,
+        implied_ir,
+        drift, drift_band ("green"|"amber"|"red"|null),
+        forecast_method, warnings: [...]
+      }
+
+    Edge cases:
+      - Strategy not found → 404
+      - Zero trades in window → all metrics null, warning surfaced
+      - n < 30 → ic/implied_ir/drift null, sharpe still computed if n ≥ 2
+      - Direction variance zero (all buys / all sells) → ic null, warning
+    """
+    from services.grinold_service import compute_grinold_metrics, grinold_to_dict
+    from fastapi import HTTPException
+
+    # 1. Verify strategy exists.
+    strat = await db.execute(
+        select(Strategy).where(Strategy.name == strategy_id)
+    )
+    s = strat.scalar_one_or_none()
+    if s is None:
+        raise HTTPException(status_code=404, detail=f"Strategy '{strategy_id}' not found")
+
+    # 2. Pull trades in the rolling window, post-reset only.
+    reset_at = await _get_reset_cutoff(db)
+    cutoff_ts = datetime.utcnow() - timedelta(days=window_days)
+    cutoff_str = cutoff_ts.strftime("%Y-%m-%d %H:%M:%S")
+
+    where_clauses = [
+        "strategy = :n",
+        "pnl_pct IS NOT NULL",
+        "trade_type IN ('buy','sell')",
+        f"created_at >= '{cutoff_str}'",
+    ]
+    if reset_at:
+        reset_str = reset_at.strftime("%Y-%m-%d %H:%M:%S")
+        where_clauses.append(f"created_at >= '{reset_str}'")
+    where = " AND ".join(where_clauses)
+
+    rows = await db.execute(
+        text(f"""
+            SELECT trade_type, pnl_pct
+            FROM trades
+            WHERE {where}
+            ORDER BY created_at ASC
+        """),
+        {"n": strategy_id},
+    )
+
+    directions: list[float] = []
+    realized: list[float] = []
+    for ttype, pnl_pct in rows.fetchall():
+        if ttype is None or pnl_pct is None:
+            continue
+        directions.append(1.0 if str(ttype).lower() == "buy" else -1.0)
+        realized.append(float(pnl_pct))
+
+    # 3. Compute and serialize.
+    res = compute_grinold_metrics(
+        strategy_id=strategy_id,
+        window_days=window_days,
+        directions=directions,
+        realized=realized,
+    )
+
+    payload = grinold_to_dict(res)
+    payload["display_name"] = s.display_name
+    payload["mode"] = s.mode or "PAPER_ONLY"
+    payload["computed_at"] = datetime.utcnow().isoformat() + "Z"
+    return payload
+
+
 @router.get("/summary")
 async def analytics_summary(hours: int = 0, db: AsyncSession = Depends(get_db)):
     """Top-level KPIs for the analytics header bar.
