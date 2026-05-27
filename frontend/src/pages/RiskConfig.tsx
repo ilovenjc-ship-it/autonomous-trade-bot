@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import api from '@/api/client'
 import toast from 'react-hot-toast'
 import { InfoBubble } from '@/components/Tooltip'
+import CapStructureSection from '@/components/CapStructureSection'
 
 // ── types ─────────────────────────────────────────────────────────────────────
 interface Config {
@@ -24,6 +25,8 @@ interface Config {
   subnet_quality_min_filters: number    // min filters a SOURCE subnet must pass (0-6)
   // Day 14 Session XLIV: Sharpe Score target (operator-set, 0–100 on Scale §3.5)
   sharpe_target_score: number            // target Sharpe Score 0–100; default 75 = "good" (Sharpe +1)
+  // Day 14 F-37B (D-37 Part B): phased Kelly cap-structure feature flag
+  feature_phased_cap_structure?: boolean // default false; render-gates the per-strategy cap panel
 }
 
 interface RiskStatus {
@@ -56,6 +59,7 @@ const DEFAULTS: Config = {
   strategy_demote_min_cycles:        10,  // Session XXXI: noise gate before drawdown demote
   subnet_quality_min_filters:         6,  // Session XXXII: Const 6-Filter Test gate — default 6/6
   sharpe_target_score:               75,  // Day 14 Session XLIV: target Sharpe Score (75 = "good", Sharpe +1)
+  feature_phased_cap_structure:    false, // Day 14 F-37B: phased Kelly cap-structure render flag
 }
 
 // ── risk colour helpers ────────────────────────────────────────────────────────
@@ -887,6 +891,22 @@ export default function RiskConfig() {
         maxDrawdown={config.max_drawdown_pct}
         maxPosition={config.max_position_size_pct}
         minConfidence={config.min_confidence_score}
+      />
+
+      {/* ── Position Cap Structure (F-37B · D-37 Part B) ─────────────────────
+          Day 14 evening: per-strategy phased Kelly cap-structure.  Sits
+          BELOW the Sharpe Contract (the risk-adjusted-return *target*) and
+          ABOVE the Autonomous Guardrails (the global *limits*) — phased
+          caps are the per-strategy operationalization of the contract,
+          gated by Bailey-min sample size and capped at half-Kelly.
+          Renders only when the feature flag is ON; default OFF preserves
+          the page's existing visual layout for operators not opted in. */}
+      <CapStructureSection
+        enabled={config.feature_phased_cap_structure === true}
+        onToggle={(next) => {
+          setIsDirty(true)
+          setConfig(c => ({ ...c, feature_phased_cap_structure: next }))
+        }}
       />
 
       {/* ── Autonomous Guardrails ───────────────────────────────────────────── */}

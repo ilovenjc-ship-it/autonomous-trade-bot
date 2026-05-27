@@ -941,6 +941,40 @@ _RISK_CONFIG_DEFAULTS = {
     # advisory hint against the existing guardrail sliders. Pure preference;
     # does not alter trading behavior in v1.
     "sharpe_target_score":             75,
+    # ── F-37B (D-37 Part B) — Kelly phased cap-structure ──────────────────
+    # Phased position cap doctrine. Default OFF; the section is rendered on
+    # the Risk Config page only when this flag is ON. See specs/d37b-…/document.md.
+    #   paper, n < bailey_min   → static cap (Kelly NOT used)
+    #   paper, n ≥ bailey_min   → min(static, 0.25 × max(f*, 0))
+    #   live,  n < 100 trades   → linear interp 0.25→0.5 × max(f*, 0)
+    #   live,  n ≥ 100 trades   → min(static, 0.5 × max(f*, 0))
+    #   full Kelly              → NEVER (raises KellyDoctrineViolationError)
+    # f* = m/s² (continuous Kelly, D-37 Part A).
+    "feature_phased_cap_structure":      False,
+    # Doctrine flags — these MUST stay at these values; validator rejects
+    # any change. They exist so operators (and audit log) can SEE the
+    # doctrine is locked in config, not just buried in code.
+    "kelly_full_forbidden":              True,   # full Kelly NEVER (D-31, D-32)
+    "kelly_quarter_multiplier":          0.25,   # ¼-Kelly while sample-bound
+    "kelly_half_multiplier":             0.5,    # ½-Kelly mature ceiling (D-31)
+    # When live, how many live trades a strategy needs to graduate from
+    # "maturing" (¼-Kelly→½-Kelly linear interp) to "mature" (½-Kelly).
+    "live_maturing_threshold":           100,
+    # Default Bailey minimum sample size before Kelly is admitted as a
+    # sizing input (Chan p123-129). Per-strategy override lives in
+    # `strategies_cap_overrides[<name>].bailey_min_trades`.
+    "bailey_min_trades_default":         50,
+    # LTCM forward-warning panel (D-32). Required to render before any
+    # cap-loosening conversation; UI honors this flag.
+    "ltcm_warning_required_on_increase": True,
+    # Per-strategy overrides for the cap structure.  Keyed by strategy.name.
+    # Shape per entry:
+    #   { "static_cap_tao":     <float>,    # absolute τ ceiling for this strategy
+    #     "bailey_min_trades":  <int>,      # override bailey_min_trades_default
+    #     "do_not_deploy_lock": <bool> }    # operator manual lock (always 0 cap)
+    # Missing entries fall back to {static_cap_tao: derived from
+    # max_position_size_pct × current_balance, bailey_min: default, lock: false}.
+    "strategies_cap_overrides":          {},
 }
 
 # Persist to a JSON file so Railway redeploys don't reset user settings.
@@ -1048,6 +1082,16 @@ async def get_risk_status(db: AsyncSession = Depends(get_db)):
 
 @router.post("/risk/config")
 async def update_risk_config(payload: dict):
+    # ── F-37B doctrine validator ──────────────────────────────────────────
+    # Reject any payload that would weaken Kelly doctrine (multiplier > 0.5,
+    # kelly_full_forbidden flipped to false, etc.).  Runs BEFORE mutation so
+    # the rejection is total — no half-applied state.
+    from fastapi import HTTPException
+    from services.kelly_service import validate_kelly_multipliers
+    _kelly_err = validate_kelly_multipliers(payload)
+    if _kelly_err is not None:
+        raise HTTPException(status_code=400, detail=f"Kelly doctrine violation: {_kelly_err}")
+
     # Snapshot the keys we're about to mutate so the audit log can render
     # a precise before/after diff (Session XXXIV — Phase B).
     _audit_keys = [k for k in payload.keys() if k in _RISK_CONFIG] + [
@@ -1133,6 +1177,185 @@ async def reset_circuit_breaker():
         detail="Breaker will re-trip automatically if daily loss threshold is exceeded again.",
     )
     return {"success": True, "circuit_breaker": False}
+
+
+# ── F-37B — Kelly cap-structure endpoints (D-37 Part B) ───────────────────
+#
+# Returns per-strategy phased cap calculation:
+#   - phase classification (paper_under_bailey / paper_at_bailey /
+#     live_maturing / live_mature)
+#   - continuous Kelly f* = m/s² computed from trades.pnl_pct
+#   - applied cap formula and τ value
+#   - warnings (do-not-deploy reasons, noise-floor flags, LTCM cues)
+#
+# Pure-read endpoints — no side effects on the trading pipeline.  The
+# trading-side hook-up (cap-write enforcement) is gated on
+# `feature_phased_cap_structure` and is intentionally NOT in this commit
+# — see acceptance criteria FR-7 in specs/d37b-…/document.md.
+
+async def _build_cap_structure_for_strategy(
+    s,
+    db: AsyncSession,
+    overrides: dict,
+    bailey_min_default: int,
+    live_maturing_threshold: int,
+):
+    """Compute CapStructureResult for a single Strategy row (read-only)."""
+    from services.kelly_service import (
+        compute_kelly_from_returns, compute_phase, compute_effective_cap,
+    )
+
+    name = s.name
+    override = overrides.get(name, {}) if isinstance(overrides, dict) else {}
+    bailey_min = int(override.get("bailey_min_trades", bailey_min_default))
+    do_not_deploy_lock = bool(override.get("do_not_deploy_lock", False))
+
+    # Static cap default: derive from current max_position_size_pct + a
+    # nominal 1τ wallet reference, then per-strategy override wins.
+    # Since Project Ari is paper-only, this is best-effort; once live the
+    # operator sets explicit τ values via the override block.
+    default_static_cap = float(override.get(
+        "static_cap_tao",
+        (_RISK_CONFIG.get("max_position_size_pct", 5.0) / 100.0) * 1.0,  # 1τ ref wallet
+    ))
+
+    # Sample = trades with non-null pnl_pct attributable to this strategy.
+    from sqlalchemy import select as _sel
+    rows = await db.execute(
+        _sel(Trade.pnl_pct).where(
+            Trade.strategy == name,
+            Trade.pnl_pct.isnot(None),
+        )
+    )
+    returns_pct = [float(r[0]) for r in rows.all() if r[0] is not None]
+
+    kelly = compute_kelly_from_returns(returns_pct, bailey_min=bailey_min)
+
+    # Phase: PAPER_ONLY/APPROVED_FOR_LIVE counted as paper; LIVE counted live.
+    is_live = (s.mode == "LIVE")
+    paper_n = len(returns_pct) if not is_live else 0
+    live_n = len(returns_pct) if is_live else 0
+    phase, progress = compute_phase(
+        mode=s.mode or "PAPER_ONLY",
+        paper_trade_count=paper_n,
+        live_trade_count=live_n,
+        bailey_min=bailey_min,
+        live_maturing_threshold=live_maturing_threshold,
+    )
+
+    res = compute_effective_cap(
+        strategy_id=name,
+        static_cap_tao=default_static_cap,
+        kelly=kelly,
+        phase=phase,
+        phase_progress=progress,
+        bailey_min=bailey_min,
+        do_not_deploy_lock=do_not_deploy_lock,
+    )
+
+    return {
+        "strategy_id": name,
+        "display_name": s.display_name,
+        "mode": s.mode or "PAPER_ONLY",
+        "phase": res.phase,
+        "phase_progress": round(res.phase_progress, 4),
+        "sample_size": res.sample_size,
+        "bailey_min": res.bailey_min,
+        "static_cap_tao": round(res.static_cap_tao, 6),
+        "kelly": {
+            "f_star": (None if res.kelly["f_star"] is None
+                       else round(res.kelly["f_star"], 6)),
+            "m": (None if res.kelly["m"] is None
+                  else round(res.kelly["m"], 8)),
+            "s_squared": (None if res.kelly["s_squared"] is None
+                          else round(res.kelly["s_squared"], 8)),
+            "sample_size": res.kelly["sample_size"],
+            "do_not_deploy": res.kelly["do_not_deploy"],
+            "reason": res.kelly["reason"],
+            "inside_noise_floor": res.kelly["inside_noise_floor"],
+        },
+        "applied_formula": res.applied_formula,
+        "applied_cap_tao": round(res.applied_cap_tao, 6),
+        "multiplier_used": round(res.multiplier_used, 4),
+        "do_not_deploy_lock": do_not_deploy_lock,
+        "warnings": res.warnings,
+        "computed_at": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+@router.get("/risk/cap-structure")
+async def get_cap_structure_all(db: AsyncSession = Depends(get_db)):
+    """
+    F-37B: per-strategy phased cap calculation for the entire fleet.
+
+    Returns a list of per-strategy cards plus the global doctrine flags.
+    Render-gated client-side on `feature_phased_cap_structure`.
+    """
+    overrides = _RISK_CONFIG.get("strategies_cap_overrides", {}) or {}
+    bailey_default = int(_RISK_CONFIG.get("bailey_min_trades_default", 50))
+    live_threshold = int(_RISK_CONFIG.get("live_maturing_threshold", 100))
+
+    result = await db.execute(select(Strategy).order_by(Strategy.id))
+    strategies = result.scalars().all()
+
+    cards = []
+    for s in strategies:
+        try:
+            cards.append(await _build_cap_structure_for_strategy(
+                s, db, overrides, bailey_default, live_threshold,
+            ))
+        except Exception as e:
+            logger.warning(f"cap-structure compute failed for {s.name}: {e}")
+            cards.append({
+                "strategy_id": s.name,
+                "display_name": s.display_name,
+                "mode": s.mode or "PAPER_ONLY",
+                "phase": "error",
+                "applied_cap_tao": 0.0,
+                "warnings": [f"compute failed: {e}"],
+                "kelly": None,
+                "computed_at": datetime.utcnow().isoformat() + "Z",
+            })
+
+    return {
+        "cards": cards,
+        "global": {
+            "feature_enabled": bool(_RISK_CONFIG.get("feature_phased_cap_structure", False)),
+            "kelly_full_forbidden": bool(_RISK_CONFIG.get("kelly_full_forbidden", True)),
+            "kelly_quarter_multiplier": float(_RISK_CONFIG.get("kelly_quarter_multiplier", 0.25)),
+            "kelly_half_multiplier": float(_RISK_CONFIG.get("kelly_half_multiplier", 0.5)),
+            "live_maturing_threshold": int(_RISK_CONFIG.get("live_maturing_threshold", 100)),
+            "bailey_min_trades_default": int(_RISK_CONFIG.get("bailey_min_trades_default", 50)),
+            "ltcm_warning_required_on_increase": bool(
+                _RISK_CONFIG.get("ltcm_warning_required_on_increase", True)
+            ),
+        },
+        "doctrine": {
+            "anchors": ["D-31 half-Kelly default", "D-32 LTCM forward-warning",
+                        "D-36 Bailey-min sample gate", "D-37 continuous Kelly f*=m/s²",
+                        "D-37 Part B phased cap structure"],
+            "ceiling_label": "half-Kelly · full Kelly NEVER",
+        },
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    }
+
+
+@router.get("/risk/cap-structure/{strategy_id}")
+async def get_cap_structure_one(strategy_id: str, db: AsyncSession = Depends(get_db)):
+    """F-37B: phased cap calculation for a single strategy by name."""
+    overrides = _RISK_CONFIG.get("strategies_cap_overrides", {}) or {}
+    bailey_default = int(_RISK_CONFIG.get("bailey_min_trades_default", 50))
+    live_threshold = int(_RISK_CONFIG.get("live_maturing_threshold", 100))
+
+    result = await db.execute(select(Strategy).where(Strategy.name == strategy_id))
+    s = result.scalar_one_or_none()
+    if s is None:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Strategy '{strategy_id}' not found")
+
+    return await _build_cap_structure_for_strategy(
+        s, db, overrides, bailey_default, live_threshold,
+    )
 
 
 # ── Live Stake Positions ──────────────────────────────────────────────────────
