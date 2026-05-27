@@ -2199,6 +2199,39 @@ Operator urgency parameter dials the urgency-vs-savings trade-off (faster execut
 
 ---
 
+### D-41 — Publish Ari skills to II Agent skill catalog as future distribution surface (Session XLIV Day 14 morning, 2026-05-27 — from Home Page scan; OPPORTUNITY filed, build NOT authorized)
+
+**Decision (descriptive — opportunity filed at peak context; promotion to active work deferred to future Library Night brainstorm):** The II Agent Home Page exposes a `Skills` tab (sibling to `Connectors`) that supports installing custom GitHub-hosted skills via SKILL.md format. Accepted URL shapes: `https://github.com/owner/repo/tree/branch/path-to-skill` (folder) or `https://github.com/owner/repo/blob/branch/path-to-skill/SKILL.md` (direct blob). Required structure: folder containing a `SKILL.md` with `name` and `description` frontmatter that instructs the agent how to complete a specific task. The official catalog ships 12 built-in skills (agent-browser, building-mobile-game, building-ui, data-fetching, docx, ii-app, ii-commons, pdf, pptx, research-to-website, use-dom, xlsx) and a "Create custom skill" affordance for inline authoring. **Zero are trading-flavored** — confirmed by Mark on visual scan, confirmed by description-keyword sweep.
+
+**The opportunity:** Project Ari has accumulated framework-grade trading IP that could be packaged as installable skills, giving Ari a presence in the II Agent skill catalog and a distribution surface beyond our own Railway-hosted fleet. Candidate inventory:
+
+| Candidate skill | Source IP | Distribution value |
+|---|---|---|
+| `sharpe-contract` | The 6-question framework (Numéraire / Risk-free floor / Time unit / Cohorts / Display-vs-gate / Surface) + score scale + implied-target-from-guardrails heuristic + locked-question drawer UX | Forces operators to *settle the contract* before deploying — prevents the most common "I have a Sharpe of X" framing collapse where comparison breaks because the dimensions weren't agreed |
+| `regime-classifier` | TRENDING_UP / TRENDING_DOWN / SIDEWAYS / VOLATILE classification + per-strategy enable/disable matrix | Operationalizes D-34 (mean-reversion-must-not-stop-loss) + D-35 (cross-sectional-over-time-series) into a reusable pre-trade gate |
+| `kelly-cap-structure` | D-37 Part B phased cap logic — paper sample < Bailey-min → static cap, Kelly not used; paper ≥ Bailey-min → `min(static, ¼·f*)`; live maturing → quarter→half-Kelly; mature live → `½·f*`; full Kelly NEVER | Embeds D-32 LTCM forward-warning + D-31 half-Kelly default into a portable risk-config skill any quant agent can install |
+| `pre-trade-guardrails` | The 8-step diagnostic chain (D-26 cyclic-process + D-34 mean-rev-no-stop + D-35 cross-sectional-prior + D-36 Bailey-min sample + D-37 Kelly cap + D-38 asymmetric bands + Grinold/Kahn IC×Breadth + López de Prado probFailure) | Reusable pre-deployment checklist; any operator running an agent-driven trading session can install and run before going live |
+
+**What this entry inscribes:** the *opportunity* and the *candidate inventory*, captured while the Home Page Skills-tab context is fresh from this morning's Item 3 scan. Mark's explicit override of agenda order — *"on this one - Let's do B first then A"* — is the trigger: filing first preserves framing fidelity that would decay if we pursued Item 4 (`trading-skills` recon) ahead of inscription.
+
+**What this entry does NOT do:** authorize any publication, any external GitHub repo creation, any community announcement, or any commitment to maintenance. Open questions that must be settled before promoting D-41 from opportunity → active build:
+
+1. **IP boundary** — which logic publishes (framework / discipline / shape) vs. stays proprietary (calibrated thresholds, regime cutoffs, specific guardrail values)? Default stance: *publish the shape, redact the numbers.* Mirrors the same epistemic discipline as D-21 (Sharpe-Contract dimensions are public, the numéraire choice is operator-specific).
+2. **Versioning + maintenance** — once we publish v0.1 and Ari evolves internally, downstream installs diverge from current Ari. Either we commit to maintaining published skills as living artifacts, or we ship explicitly as *snapshot, fork-friendly, no support.* Latter is lower-cost; former is higher-trust.
+3. **Liability framing** — a SKILL.md installed into another operator's II Agent session executes against their fleet, with their funds, on their authority. Description frontmatter MUST carry: "framework not financial advice; backtest before live; Ari-team disclaims responsibility for downstream operator decisions." D-32's LTCM forward-warning is the template phrasing.
+4. **Brand and timing** — is "Project Ari skills available in II Agent catalog" a distribution win that compounds, or a premature commitment that fragments our focus during the paper-training maturity climb? Defer answer to Library Night; do not decide while the fleet is still in `−0.885τ` drag and Items 1-3 of `DAY14_WORKSHEET.md` are unresolved.
+5. **Custom-skill format research** — before any build, need to inspect `SKILL.md` examples in the official catalog (pdf, xlsx, docx, ii-commons) to learn the expected frontmatter shape, capability declaration syntax, and any per-session permission affordances.
+
+**Cross-reference (D-23 boundary check):** this entry is descriptive only — it catalogues an opportunity, a candidate list, and the open questions. Promotion to PRESCRIPTIVE (i.e. "publish skill X with content Y") requires a separate D-entry with explicit operator green-light, modeled on D-40's grant pattern. D-30 (IC + Breadth display) and D-37 Part B (Kelly cap-structure) are direct candidates IF/WHEN we eventually publish — both are framework decisions that travel well across operators. D-32 (LTCM forward-warning) supplies the disclaimer template. D-21 (Sharpe Contract dimensions) is the IP-boundary precedent.
+
+**Process lesson captured:** Mark's override of my (A→B) recommendation in favor of (B→A) was the correct call. I had proposed pursuing Item 4 (`trading-skills` recon) first and filing D-41 after. Mark's instinct: *file the decision while context is fresh, then chase the next thing.* This is the correct discipline — **inscribe decisions at peak context, not peak convenience.** Adopting forward: when an opportunity surfaces during exploratory work, file the inscription on the same turn before continuing the exploration. Future-Ari will thank present-Ari for the framing fidelity.
+
+**Status:** Filed for next Library Night. Not on `DAY14_WORKSHEET.md`. Not blocking Item 4. To be revisited at Library Night cadence; promoted to active build only after Mark green-lights publication scope per the open-questions list above.
+
+**Source:** Day 14 morning II Agent Home Page scan (Session XLIV continuation). Skills tab inspected: 12 total / 12 enabled / 12 built-in / 0 custom; Install-from-GitHub panel + Create-custom-skill affordance both visible. Mark's verbatim override: *"I usually agree with you, Ari but on this one - Let's do B first then A."* No anchor in `MemoryBank/Library/` yet — D-41 lives in STATE.md only until promoted.
+
+---
+
 ## 5. CURRENT STATE
 *(Update this section at the end of every session)*
 
