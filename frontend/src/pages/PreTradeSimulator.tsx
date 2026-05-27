@@ -38,6 +38,7 @@ import api from '@/api/client'
 import StatCard from '@/components/StatCard'
 import { InfoBubble } from '@/components/Tooltip'
 import { fmtETTime } from '@/lib/time'
+import SlicedExecutionCard from '@/components/SlicedExecutionCard'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -165,6 +166,17 @@ export default function PreTradeSimulator() {
 
   // Day 12 R6: dynamic full subnet list (Root + SN1-SN128)
   const [subnets, setSubnets] = useState<SubnetEntry[]>(FALLBACK_SUBNETS)
+
+  // F-39B: feature flag for the Almgren-Chriss sliced-execution card.
+  // Read from /api/fleet/risk/config; default OFF preserves the page layout.
+  const [slicingFlag, setSlicingFlag] = useState<boolean>(false)
+  useEffect(() => {
+    let cancelled = false
+    api.get<{ feature_almgren_chriss_slicing?: boolean }>('/fleet/risk/config')
+      .then(r => { if (!cancelled) setSlicingFlag(r.data?.feature_almgren_chriss_slicing === true) })
+      .catch(() => { /* silent — card just stays hidden */ })
+    return () => { cancelled = true }
+  }, [])
 
   // Fetch full subnet list once on mount
   useEffect(() => {
@@ -682,6 +694,20 @@ export default function PreTradeSimulator() {
           )}
         </div>
       </div>
+
+      {/* ── Sliced Execution (F-39B · D-39 Part B) ───────────────────────────
+          Almgren-Chriss optimal slicing companion to single-shot above.
+          Render-gated on `feature_almgren_chriss_slicing` (default OFF
+          preserves the page layout for operators not opted in).  When ON,
+          the card POSTs to /api/market/sliced-execution on parameter
+          change (debounced) and surfaces convexity savings + optimal N* T*. */}
+      {slicingFlag && side === 'stake' && isTradable && (
+        <SlicedExecutionCard
+          enabled={slicingFlag}
+          netuid={netuid}
+          taoIn={amount}
+        />
+      )}
 
       {/* ── HODL Opportunity Cost ──────────────────────────────────────────── */}
       <div className="card p-5">

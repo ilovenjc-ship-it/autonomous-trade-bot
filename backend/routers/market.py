@@ -15,6 +15,7 @@ import random
 import time
 import logging
 from datetime import datetime
+from typing import Optional
 from fastapi import APIRouter, Query, HTTPException
 from services.price_service import price_service
 from services.subnet_cache_service import subnet_cache_service, TRADING_NETUIDS
@@ -1121,3 +1122,87 @@ async def _hodl_block(
     block["alpha_now_tao"] = round(alpha_price_now_tao, 8)
     block["alpha_30d_tao"] = round(alpha_30d_tao, 8)
     return block
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# F-39B — Almgren-Chriss optimal sliced execution endpoint (D-39 Part B)
+#
+#   POST /api/market/sliced-execution
+#
+# Companion to /simulate.  Where /simulate answers "what's the single-shot
+# impact?", this endpoint answers "if we split the trade into N slices over
+# T cycles, what does the total cost become — and what's the Almgren-Chriss
+# optimum (N*, T*)?"
+#
+# Math lives in services.almgren_chriss_service so the cost function and the
+# pool-band policy are testable in isolation (zero-dep test_almgren_chriss.py).
+#
+# Doctrinal anchors:
+#   - D-39 Part B (D-40 grant) — Library Night Cartea Ch 6 §6.1 rederivation
+#   - D-32 LTCM forward-warning — surfaced inline on mandatory-split band
+#   - F-39B specs/d39b-almgren-chriss-slicing/document.md
+# ─────────────────────────────────────────────────────────────────────────────
+
+class SlicedExecutionRequest(BaseModel):
+    netuid:     int   = Field(..., description="Tradable subnet UID")
+    tao_in:     float = Field(..., gt=0, le=100_000.0, description="Total trade size in TAO")
+    n_slices:   int   = Field(5,  ge=1, le=50, description="Number of equal slices")
+    t_cycles:   int   = Field(5,  ge=1, le=50, description="Slicing window in cycles")
+    urgency:    float = Field(0.5, ge=0.0, le=1.0, description="0=patient, 1=urgent")
+    strategy_id: Optional[str] = Field(
+        None, description="Strategy name for adverse-selection half-life lookup"
+    )
+
+
+@router.post("/sliced-execution")
+async def sliced_execution(req: SlicedExecutionRequest):
+    """
+    F-39B: Almgren-Chriss optimal sliced execution simulation.
+
+    Returns single-shot cost, sliced cost at operator-chosen (N, T), the
+    Almgren-Chriss optimum (N*, T*), pool-fraction band policy, and an
+    adverse-selection check against the strategy's signal half-life if
+    available.  No live execution — simulator only.
+
+    Edge cases:
+      - SN reserves not cached       → 503
+      - tao_in > pool                → single_shot cost = ∞, band=mandatory
+      - half-life data unavailable   → adverse-selection check skipped (warning surfaced)
+    """
+    # 1. Fetch live pool reserves (same path as /simulate).
+    snap = _pool_svc.latest(req.netuid)
+    if snap is None:
+        raise HTTPException(
+            503,
+            detail=(
+                f"SN{req.netuid} pool reserves not yet cached — "
+                "the metagraph loop refreshes every 5 minutes; try again in a moment."
+            ),
+        )
+    pool_tao = snap.tao_in
+    if pool_tao <= 0:
+        raise HTTPException(422, detail=f"SN{req.netuid} pool reserves stale or zero")
+
+    # 2. Half-life lookup — v1: not yet computed per strategy.  Skip
+    #    gracefully (FR-3 in spec).  When the half-life pipeline lands,
+    #    this will become a lookup against a per-strategy cache.
+    signal_half_life: Optional[int] = None
+
+    # 3. Compose result.
+    from services.almgren_chriss_service import compute_sliced_execution as _ac
+
+    result = _ac(
+        tao_in=req.tao_in,
+        pool_tao=pool_tao,
+        n_slices=req.n_slices,
+        t_cycles=req.t_cycles,
+        urgency=req.urgency,
+        signal_half_life_cycles=signal_half_life,
+    )
+
+    # Stamp with metadata the frontend expects.
+    result["netuid"]        = req.netuid
+    result["strategy_id"]   = req.strategy_id
+    result["fetched_at"]    = snap.fetched_at.isoformat(timespec="seconds")
+    result["computed_at"]   = datetime.utcnow().isoformat() + "Z"
+    return result

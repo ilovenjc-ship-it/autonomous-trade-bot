@@ -980,6 +980,13 @@ _RISK_CONFIG_DEFAULTS = {
     # Default OFF; the card renders only when this flag is ON.  Pure read,
     # no trading-side effect.  See specs/d30-ic-breadth-display/document.md.
     "feature_grinold_fundamental_law":   False,
+    # ── F-39B (D-39 Part B) — Almgren-Chriss optimal sliced execution ─────
+    # Adds a "Sliced execution" card to PreTradeSimulator.tsx alongside the
+    # single-shot card.  Surfaces convexity savings, optimal N* T*, and
+    # adverse-selection check vs OU half-life.  Default OFF; the card
+    # renders only when this flag is ON.  Pure simulator — no live execution.
+    # See specs/d39b-almgren-chriss-slicing/document.md.
+    "feature_almgren_chriss_slicing":    False,
 }
 
 # Persist to a JSON file so Railway redeploys don't reset user settings.
