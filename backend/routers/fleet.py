@@ -990,10 +990,13 @@ _RISK_CONFIG_DEFAULTS = {
     # ── F-39B (D-39 Part B) — Almgren-Chriss optimal sliced execution ─────
     # Adds a "Sliced execution" card to PreTradeSimulator.tsx alongside the
     # single-shot card.  Surfaces convexity savings, optimal N* T*, and
-    # adverse-selection check vs OU half-life.  Default OFF; the card
-    # renders only when this flag is ON.  Pure simulator — no live execution.
-    # See specs/d39b-almgren-chriss-slicing/document.md.
-    "feature_almgren_chriss_slicing":    False,
+    # adverse-selection check vs OU half-life.  Pure simulator — no live
+    # execution.  See specs/d39b-almgren-chriss-slicing/document.md.
+    #
+    # 2026-05-27 D-44 flip-on: ON by default — pre-trade simulator output
+    # is operator-advisory only (no auto-execution).  Visibility into
+    # convexity savings + mandatory-split bands has no clamp risk.
+    "feature_almgren_chriss_slicing":    True,
 }
 
 # Persist to a JSON file so Railway redeploys don't reset user settings.
