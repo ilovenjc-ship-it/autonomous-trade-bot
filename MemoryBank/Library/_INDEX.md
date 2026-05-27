@@ -35,5 +35,5 @@ what a source said and when it would apply, without changing current behavior.
 | `advances-in-financial-machine-learning.md` | Advances in Financial Machine Learning | Marcos López de Prado (Wiley) | 2018 | 393 | 2026-05-27 | filed (verdict: yes — strongly worth) |
 | `active-portfolio-management.md` | Active Portfolio Management | Grinold & Kahn (McGraw-Hill, 2nd ed) | 1999 | 621 | 2026-05-27 | filed (verdict: yes — strongly worth) |
 | `fortunes-formula.md` | Fortune's Formula | William Poundstone (Hill and Wang) | 2005 | 389 | 2026-05-27 | filed (verdict: yes — strongly worth) |
-| _(in flight)_ | Quantitative Trading (2nd ed) | Ernest P. Chan (Wiley) | 2021 | 256 | — | re-source landed (`v2`) — clean text — read pending |
-| _(in flight)_ | Algorithmic and High-Frequency Trading | Cartea / Jaimungal / Penalva (Cambridge UP) | 2015 | 360 | — | re-source landed (`v2`) — full 360pp clean text — read pending |
+| `quantitative-trading-chan.md` | Quantitative Trading: How to Build Your Own Algorithmic Trading Business (2nd ed) | Ernest P. Chan (Wiley Trading) | 2021 | 256 | 2026-05-27 | filed (verdict: yes — strongly worth) |
+| `algorithmic-and-high-frequency-trading.md` | Algorithmic and High-Frequency Trading | Cartea / Jaimungal / Penalva (Cambridge UP) | 2015 | 360 | 2026-05-27 | filed (verdict: partial — Ch 6 + Ch 11 earn slot; rest LOB-specific to off-scope) |
