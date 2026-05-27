@@ -1,5 +1,13 @@
 # Library — Project Ari
 
+> **How to find a book (locator answer for Mark, future-Ari, or anyone returning cold):**
+> Every book filed against Project Ari lives at `MemoryBank/Library/<book-slug>.md`.
+> **This file (`MemoryBank/Library/_INDEX.md`) is the shelf** — the table at the
+> bottom lists every book with title, author, year, page count, read date, verdict,
+> and exact filename. Start here, then click into the per-book file. Mark keeps the
+> source PDFs in his personal archives; Project Ari keeps the *reads* on this shelf.
+> (Inscribed Day 14 evening 2026-05-27 in response to Mark's locator question.)
+
 Reference shelf. Books, papers, and long-form artifacts that have been read against
 Project Ari's current shape, with **lifts** (concrete things to apply) and
 **counterfactuals** (places the source argues against something we do).
