@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, useLocation } from 'react-router-dom'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine,
@@ -85,6 +85,22 @@ function GateBar({ label, g }: { label: string; g: GateCheck }) {
 export default function StrategyDetail() {
   const { name }     = useParams<{ name: string }>()
   const navigate     = useNavigate()
+  const location     = useLocation()
+
+  // Day 14 evening (D-44 follow-on) — Mark's nav-context fix:
+  //   Strategy Detail is reachable from two pages:
+  //     • /fleet            (Agent Fleet — strategy panel rows)
+  //     • /strategies       (Strategies — strategy cards with Open button)
+  //   The back button used to hard-code /fleet, which sent Strategies
+  //   visitors to the wrong page.  Each entry point now passes
+  //   `state: { from, label }` on navigate(); we read it here and fall
+  //   back to /fleet for direct URL hits and AgentFleet callers (which
+  //   don't pass state — /fleet is their natural destination).
+  //   Pattern mirrors SubnetDetail.tsx (D-12 era).
+  const navState     = (location.state ?? {}) as { from?: string; label?: string }
+  const backTo       = navState.from  ?? '/fleet'
+  const backLabel    = navState.label ?? 'Fleet'
+
   const [detail, setDetail] = useState<Detail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError]   = useState('')
@@ -124,8 +140,8 @@ export default function StrategyDetail() {
   if (error || !detail) return (
     <div className="p-8 text-center">
       <p className="text-red-400 font-mono">{error || 'Not found'}</p>
-      <button onClick={() => navigate('/fleet')} className="mt-4 text-accent-blue text-sm hover:underline">
-        ← Back to Fleet
+      <button onClick={() => navigate(backTo)} className="mt-4 text-accent-blue text-sm hover:underline">
+        ← Back to {backLabel}
       </button>
     </div>
   )
@@ -141,7 +157,9 @@ export default function StrategyDetail() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="flex items-start gap-4">
         <button
-          onClick={() => navigate('/fleet')}
+          onClick={() => navigate(backTo)}
+          title={`Back to ${backLabel}`}
+          aria-label={`Back to ${backLabel}`}
           className="mt-1 p-2 rounded-lg bg-dark-700 border border-dark-600 text-slate-300 hover:text-white transition-colors"
         >
           <ArrowLeft size={14} />

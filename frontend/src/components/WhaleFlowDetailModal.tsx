@@ -195,6 +195,7 @@ export default function WhaleFlowDetailModal({ event, onClose }: Props) {
                 </div>
                 <Link
                   to={subnetLink}
+                  state={{ from: '/', label: 'Dashboard' }}
                   className="inline-flex items-center gap-1 text-xl font-bold text-accent-blue hover:underline"
                   onClick={onClose}
                 >

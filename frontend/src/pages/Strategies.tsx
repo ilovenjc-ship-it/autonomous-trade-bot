@@ -271,7 +271,12 @@ function StrategyCard({ s, onRefresh }: { s: Strategy; onRefresh: () => void }) 
               obvious that this option/page is available, similar to the Blue
               Open pill on the II Agent page". */}
           <button
-            onClick={() => navigate(`/strategy/${s.name}`)}
+            // Day 14 evening (D-44 follow-on): pass nav-context so the
+            // back button on Strategy Detail returns here, not to /fleet.
+            // Pattern mirrors SubnetDetail entry-point hand-off.
+            onClick={() => navigate(`/strategy/${s.name}`, {
+              state: { from: '/strategies', label: 'Strategies' },
+            })}
             className="flex items-center gap-1 px-2.5 py-1 rounded-full border border-blue-500/40 bg-blue-500/10 text-blue-300 hover:bg-blue-500/20 hover:border-blue-400/60 hover:text-blue-200 transition-all text-[11px] font-mono font-semibold"
             title="Open strategy detail"
           >
