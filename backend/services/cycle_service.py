@@ -1195,6 +1195,55 @@ async def _run_one_cycle() -> None:
             amount = float(s.stake_amount or (config.trade_amount if config else 0.01))
             amount = max(round(amount, 6), 0.001)
 
+            # ── FR-7 cap-write enforcement (paper side) ─────────────────────
+            # Even paper trades route through the phased cap when the flag
+            # is ON.  Spec acceptance: `compute_effective_cap` is the ONLY
+            # path to applied cap (see specs/d37b-kelly-cap-structure).
+            # Paper-side fidelity matters: if paper trades exceed the cap,
+            # the sample distribution we feed back into Kelly drifts away
+            # from what live would produce, defeating the point of paper.
+            #
+            # Behaviour:
+            #   feature_phased_cap_structure OFF → no-op, status quo
+            #   flag ON, applied_cap == 0      → skip the trade entirely
+            #   flag ON, amount > applied_cap   → clamp + audit event
+            #   flag ON, amount ≤ applied_cap   → no-op
+            try:
+                from services.cap_enforcement import enforce_cap_on_amount
+                from routers.fleet import _RISK_CONFIG as _rc_paper
+                _capped_amount, _cap_audit = await enforce_cap_on_amount(
+                    s, db, _rc_paper, amount,
+                )
+                if _cap_audit is not None:
+                    if _capped_amount <= 0.0:
+                        push_event(
+                            "alert",
+                            f"🧮 Phased cap → SKIP {side.upper()} for {DISPLAY_NAMES.get(s.name, s.name)} [paper]",
+                            strategy=s.name,
+                            detail=(
+                                f"do-not-deploy: {_cap_audit['reason']} "
+                                f"(phase={_cap_audit['phase']}, n={_cap_audit['sample_size']})"
+                            ),
+                        )
+                        s.cycles_completed = (s.cycles_completed or 0) + 1
+                        await db.flush()
+                        continue
+                    push_event(
+                        "info",
+                        f"🧮 Phased cap → CLAMP {side.upper()} for {DISPLAY_NAMES.get(s.name, s.name)} [paper]: "
+                        f"{_cap_audit['requested_tao']:.4f}τ → {_cap_audit['applied_cap_tao']:.4f}τ",
+                        strategy=s.name,
+                        detail=(
+                            f"phase={_cap_audit['phase']} "
+                            f"f*={_cap_audit.get('kelly_f_star')} "
+                            f"reason={_cap_audit['reason']}"
+                        ),
+                    )
+                    amount = max(round(float(_capped_amount), 6), 0.001)
+            except Exception as _cap_err:
+                # Cap enforcement MUST NOT crash the cycle.  Log + fall through.
+                logger.warning(f"FR-7 paper-side cap enforce failed for {s.name}: {_cap_err}")
+
             pnl    = round(net_return * amount, 6)
             is_win = pnl > 0
 
@@ -1274,6 +1323,57 @@ async def _run_one_cycle() -> None:
                 # Per-strategy stake takes priority; falls back to global bot config
                 # Tier: ELITE 0.020τ / STRONG 0.015τ / SOLID 0.010τ / CAUTIOUS 0.008/0.006τ
                 live_amount = s.stake_amount if s.stake_amount else (config.trade_amount if config else 0.1)
+
+                # ── FR-7 cap-write enforcement (LIVE side) ─────────────────
+                # The load-bearing one.  When `feature_phased_cap_structure`
+                # is ON, every live order routes through the phased cap
+                # before any of the existing gates (daily cap / wallet floor
+                # / pre-flight check / on-chain execution).  This is the
+                # behaviour change F-37B was built for — the architectural
+                # backstop against active bleed at correlated-voter Kelly
+                # sizes (D-31, D-32 LTCM forward-warning).
+                #
+                # Order matters: cap clamp runs BEFORE daily cap so the
+                # daily cap accounting reflects the actually-staked amount.
+                try:
+                    from services.cap_enforcement import enforce_cap_on_amount
+                    from routers.fleet import _RISK_CONFIG as _rc_live
+                    _capped_live, _cap_audit_live = await enforce_cap_on_amount(
+                        s, db, _rc_live, live_amount,
+                    )
+                    if _cap_audit_live is not None:
+                        if _capped_live <= 0.0:
+                            push_event(
+                                "alert",
+                                f"🧮 Phased cap → SKIP LIVE {side.upper()} for {DISPLAY_NAMES.get(s.name, s.name)}",
+                                strategy=s.name,
+                                detail=(
+                                    f"do-not-deploy: {_cap_audit_live['reason']} "
+                                    f"(phase={_cap_audit_live['phase']}, "
+                                    f"n={_cap_audit_live['sample_size']}, "
+                                    f"f*={_cap_audit_live.get('kelly_f_star')})"
+                                ),
+                            )
+                            s.cycles_completed = (s.cycles_completed or 0) + 1
+                            await db.flush()
+                            continue
+                        push_event(
+                            "alert",
+                            f"🧮 Phased cap → CLAMP LIVE {side.upper()} for {DISPLAY_NAMES.get(s.name, s.name)}: "
+                            f"{_cap_audit_live['requested_tao']:.4f}τ → {_cap_audit_live['applied_cap_tao']:.4f}τ",
+                            strategy=s.name,
+                            detail=(
+                                f"phase={_cap_audit_live['phase']} "
+                                f"multiplier={_cap_audit_live.get('multiplier_used')} "
+                                f"f*={_cap_audit_live.get('kelly_f_star')} "
+                                f"reason={_cap_audit_live['reason']}"
+                            ),
+                        )
+                        live_amount = max(round(float(_capped_live), 6), 0.001)
+                except Exception as _cap_err:
+                    # Cap enforcement MUST NOT crash the cycle. Log + fall
+                    # through to the unclamped amount (= status quo ante).
+                    logger.warning(f"FR-7 live-side cap enforce failed for {s.name}: {_cap_err}")
 
                 # ── Daily deployment cap (BUY side only) ─────────────────
                 # Prevents the bot from consuming all liquid TAO in a

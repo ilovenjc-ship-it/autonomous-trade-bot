@@ -1200,10 +1200,10 @@ async def reset_circuit_breaker():
 #   - applied cap formula and τ value
 #   - warnings (do-not-deploy reasons, noise-floor flags, LTCM cues)
 #
-# Pure-read endpoints — no side effects on the trading pipeline.  The
-# trading-side hook-up (cap-write enforcement) is gated on
-# `feature_phased_cap_structure` and is intentionally NOT in this commit
-# — see acceptance criteria FR-7 in specs/d37b-…/document.md.
+# Pure-read endpoints — no side effects on the trading pipeline.
+# FR-7 trading-side cap-write enforcement was wired separately in
+# services/cap_enforcement.py + the cycle_service buy path; both still
+# gate on `feature_phased_cap_structure` (default OFF).  See D-44.
 
 async def _build_cap_structure_for_strategy(
     s,
@@ -1212,61 +1212,34 @@ async def _build_cap_structure_for_strategy(
     bailey_min_default: int,
     live_maturing_threshold: int,
 ):
-    """Compute CapStructureResult for a single Strategy row (read-only)."""
-    from services.kelly_service import (
-        compute_kelly_from_returns, compute_phase, compute_effective_cap,
-    )
+    """
+    Serialize a CapStructureResult for the read-display endpoint.
 
-    name = s.name
-    override = overrides.get(name, {}) if isinstance(overrides, dict) else {}
-    bailey_min = int(override.get("bailey_min_trades", bailey_min_default))
+    The pure-compute + DB wrapper has been moved to
+    ``services.cap_enforcement.compute_strategy_cap_structure`` so the
+    FR-7 trading-side gate (cycle_service) can share it.  This helper
+    keeps the pre-existing API by feeding the dataclass through the
+    JSON-shaped projection the frontend expects.
+    """
+    from services.cap_enforcement import compute_strategy_cap_structure
+
+    # Reconstruct the risk_config dict the shared helper expects.
+    # We pass it explicitly rather than have cap_enforcement reach into
+    # _RISK_CONFIG directly — keeps the helper testable.
+    rc = {
+        "strategies_cap_overrides": overrides or {},
+        "bailey_min_trades_default": bailey_min_default,
+        "live_maturing_threshold": live_maturing_threshold,
+        "max_position_size_pct": _RISK_CONFIG.get("max_position_size_pct", 5.0),
+    }
+    res = await compute_strategy_cap_structure(s, db, rc)
+
+    # Pull per-strategy override flag for the JSON output.
+    override = overrides.get(s.name, {}) if isinstance(overrides, dict) else {}
     do_not_deploy_lock = bool(override.get("do_not_deploy_lock", False))
 
-    # Static cap default: derive from current max_position_size_pct + a
-    # nominal 1τ wallet reference, then per-strategy override wins.
-    # Since Project Ari is paper-only, this is best-effort; once live the
-    # operator sets explicit τ values via the override block.
-    default_static_cap = float(override.get(
-        "static_cap_tao",
-        (_RISK_CONFIG.get("max_position_size_pct", 5.0) / 100.0) * 1.0,  # 1τ ref wallet
-    ))
-
-    # Sample = trades with non-null pnl_pct attributable to this strategy.
-    from sqlalchemy import select as _sel
-    rows = await db.execute(
-        _sel(Trade.pnl_pct).where(
-            Trade.strategy == name,
-            Trade.pnl_pct.isnot(None),
-        )
-    )
-    returns_pct = [float(r[0]) for r in rows.all() if r[0] is not None]
-
-    kelly = compute_kelly_from_returns(returns_pct, bailey_min=bailey_min)
-
-    # Phase: PAPER_ONLY/APPROVED_FOR_LIVE counted as paper; LIVE counted live.
-    is_live = (s.mode == "LIVE")
-    paper_n = len(returns_pct) if not is_live else 0
-    live_n = len(returns_pct) if is_live else 0
-    phase, progress = compute_phase(
-        mode=s.mode or "PAPER_ONLY",
-        paper_trade_count=paper_n,
-        live_trade_count=live_n,
-        bailey_min=bailey_min,
-        live_maturing_threshold=live_maturing_threshold,
-    )
-
-    res = compute_effective_cap(
-        strategy_id=name,
-        static_cap_tao=default_static_cap,
-        kelly=kelly,
-        phase=phase,
-        phase_progress=progress,
-        bailey_min=bailey_min,
-        do_not_deploy_lock=do_not_deploy_lock,
-    )
-
     return {
-        "strategy_id": name,
+        "strategy_id": s.name,
         "display_name": s.display_name,
         "mode": s.mode or "PAPER_ONLY",
         "phase": res.phase,
