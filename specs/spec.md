@@ -53,9 +53,9 @@ Friday 2026-05-29.
 
 | # | Feature | Spec | Status | Decision anchor | Notes |
 |---|---------|------|--------|-----------------|-------|
-| F-30 | IC + Breadth display on per-strategy panel | [specs/d30-ic-breadth-display/document.md](d30-ic-breadth-display/document.md) | green-lit, design-ready | D-30 (D-40 grant) | Lands on `StrategyDetail.tsx` |
-| F-37B | Kelly cap-structure phasing in `risk_config.json` | [specs/d37b-kelly-cap-structure/document.md](d37b-kelly-cap-structure/document.md) | green-lit, design-ready | D-37 Part B (D-40 grant) | Phased: paper-static → ¼-Kelly → ½-Kelly; full Kelly NEVER |
-| F-39B | Almgren-Chriss slicing card on Subnet Pool Simulator | [specs/d39b-almgren-chriss-slicing/document.md](d39b-almgren-chriss-slicing/document.md) | green-lit, design-ready | D-39 Part B (D-40 grant) | Lands on `PreTradeSimulator.tsx`; pool_reserves_service backend |
+| F-30 | IC + Breadth display on per-strategy panel | [specs/d30-ic-breadth-display/document.md](d30-ic-breadth-display/document.md) | **shipped (default OFF)** — commit `d671cb66`, D-43 | D-30 (D-40 grant) | `StrategyDetail.tsx` + `services/grinold_service.py` + 76/76 invariants. v1 limitation: direction-only IC (no signal magnitude in trades table) |
+| F-37B | Kelly cap-structure phasing in `risk_config.json` | [specs/d37b-kelly-cap-structure/document.md](d37b-kelly-cap-structure/document.md) | **shipped (default OFF)** — commit `36781009`, D-43 | D-37 Part B (D-40 grant) | Phased: paper-static → ¼-Kelly → ½-Kelly; full Kelly NEVER. `KellyDoctrineViolationError` architectural tripwire armed. FR-7 cap-write enforcement deferred (separate operator migration) |
+| F-39B | Almgren-Chriss slicing card on Subnet Pool Simulator | [specs/d39b-almgren-chriss-slicing/document.md](d39b-almgren-chriss-slicing/document.md) | **shipped (default OFF)** — commit `2b47bff0`, D-43 | D-39 Part B (D-40 grant) | `PreTradeSimulator.tsx` + `services/almgren_chriss_service.py` + 76/76 invariants. v1 limitations: half-life skipped gracefully when unknown; LTCM_AWARE override audit-trail wires when execution connected |
 | F-30..F-39B all | (build prerequisite) 8-step pre-flight diagnostic chain | (folded into each spec's "Acceptance criteria" section) | doctrinal | D-26, D-34..D-38, D-30 IC×B, D-24 probFailure | Runs ahead of EACH redesign before merge |
 | W-1 | Day 14 Item 1 — Fleet WR diagnosis | (worksheet drives, no build spec) | data-pull pending | DAY14_WORKSHEET.md Item 1 | Diagnostic first, surgical second |
 | W-2 | Day 14 Item 2 — Mean Reversion redesign | (deferred until W-1 read complete) | gated on data | DAY14_WORKSHEET.md Item 2 + D-34/D-35/D-38 | Adds **cross-sectional vs time-series fork** above existing Branches A/B/C per Day 14 morning Library carry-forward |
@@ -77,5 +77,6 @@ Friday 2026-05-29.
 - **OPPORTUNITY** — filed, no build authority
 - **green-lit, design-ready** — operator approved, spec written, build pending
 - **green-lit, in-build** — operator approved, work in progress, behind feature flag
+- **shipped (default OFF)** — merged + tests pass + feature flag wired, default OFF until operator first-read on live data
 - **shipped** — merged + deployed + verified, feature flag default ON
 - **deprecated** — removed from active code, retained for retrospection
