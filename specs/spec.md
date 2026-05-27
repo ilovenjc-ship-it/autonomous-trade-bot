@@ -1,0 +1,81 @@
+# Project Ari — Master Spec
+
+> Authored Day 14, 2026-05-27, Session XLIV continuation. Captures the
+> feature catalogue for the three operator-green-lit prescriptive
+> Library Night items (D-30 / D-37 Part B / D-39 Part B) plus
+> placeholder rows for the existing Day 14 worksheet items pending
+> data-pull and diagnostic confirmation.
+
+## Project overview
+
+Project Ari is an autonomous trading fleet for Bittensor τ + subnet-α
+markets. The fleet runs 12 strategies in OpenClaw / Fleet-Consensus
+voting, all paper-only as of Day 14. The strategic-fork checkpoint is
+Friday 2026-05-29.
+
+## Architecture rules (non-negotiable)
+
+1. **Sharpe Contract dimensions** (D-21) settle Numéraire / Risk-free
+   floor / Time unit / Cohorts / Display-vs-gate / Surface BEFORE any
+   Sharpe-style metric is surfaced or gated on. Locked drawer in UI
+   (`frontend/src/pages/RiskConfig/components/SharpeContractPanel.tsx`).
+2. **D-23 inscription-autonomy doctrine.** Source-accurate over
+   operator-framing on technical claims. Descriptive entries inscribed
+   autonomously; prescriptive entries flagged for operator green-light.
+3. **D-32 LTCM forward-warning** runs ahead of any leverage /
+   cap-loosening conversation.
+4. **D-31 half-Kelly default**, full Kelly NEVER. Kelly is the ceiling,
+   not the target.
+5. **D-34 mean-reversion strategies must NOT use stop-loss exits.**
+6. **D-36 Bailey minimum backtest length** gates Kelly-sizing
+   activation: paper sample < Bailey-min → static cap, Kelly not used.
+7. **8-step pre-flight diagnostic chain** runs BEFORE any redesign
+   ships: D-26 cyclic + D-34 + D-35 + D-36 + D-37 + D-38 + Grinold/Kahn
+   IC×Breadth + López de Prado probFailure.
+8. **Every redesign ships behind a feature flag** in `_RISK_CONFIG`.
+9. **No promotion to LIVE without explicit operator green-light.**
+10. **Bundled Day-8 invariants 30/30 must remain intact** (no
+    backsliding on rate-limiting, RSI Wilder, regime architecture,
+    persistence, BTC-divergence rewrite, etc.).
+
+## Technical stack
+
+- **Backend:** FastAPI + SQLAlchemy on Railway (Hobby Plan $5/mo)
+- **Frontend:** React + Vite + TS + Tailwind, deployed Railway
+- **DB:** Postgres on Railway
+- **Risk config:** JSON file (`recovery-data/risk_config.json` is
+  the recovery snapshot; operational source under verification)
+- **State of record:** `STATE.md` (decisions D-1..D-41 inscribed)
+- **Library:** `MemoryBank/Library/_INDEX.md` is the shelf for
+  retrieving any of the 7 books filed during Library Night
+
+## Feature catalogue
+
+| # | Feature | Spec | Status | Decision anchor | Notes |
+|---|---------|------|--------|-----------------|-------|
+| F-30 | IC + Breadth display on per-strategy panel | [specs/d30-ic-breadth-display/document.md](d30-ic-breadth-display/document.md) | green-lit, design-ready | D-30 (D-40 grant) | Lands on `StrategyDetail.tsx` |
+| F-37B | Kelly cap-structure phasing in `risk_config.json` | [specs/d37b-kelly-cap-structure/document.md](d37b-kelly-cap-structure/document.md) | green-lit, design-ready | D-37 Part B (D-40 grant) | Phased: paper-static → ¼-Kelly → ½-Kelly; full Kelly NEVER |
+| F-39B | Almgren-Chriss slicing card on Subnet Pool Simulator | [specs/d39b-almgren-chriss-slicing/document.md](d39b-almgren-chriss-slicing/document.md) | green-lit, design-ready | D-39 Part B (D-40 grant) | Lands on `PreTradeSimulator.tsx`; pool_reserves_service backend |
+| F-30..F-39B all | (build prerequisite) 8-step pre-flight diagnostic chain | (folded into each spec's "Acceptance criteria" section) | doctrinal | D-26, D-34..D-38, D-30 IC×B, D-24 probFailure | Runs ahead of EACH redesign before merge |
+| W-1 | Day 14 Item 1 — Fleet WR diagnosis | (worksheet drives, no build spec) | data-pull pending | DAY14_WORKSHEET.md Item 1 | Diagnostic first, surgical second |
+| W-2 | Day 14 Item 2 — Mean Reversion redesign | (deferred until W-1 read complete) | gated on data | DAY14_WORKSHEET.md Item 2 + D-34/D-35/D-38 | Adds **cross-sectional vs time-series fork** above existing Branches A/B/C per Day 14 morning Library carry-forward |
+| W-3 | Day 14 Item 3 — Momentum Cascade Kelly verdict | (Kelly read first) | gated on data | DAY14_WORKSHEET.md Item 3 + D-37 | Continuous Kelly `f* = m/s²` replaces discrete Kelly form in worksheet; if `m < 0`, do-not-deploy at any size |
+| F-41 | Publish Ari skills to II Agent skill catalog | (not yet authored — opportunity only) | OPPORTUNITY filed | D-41 (Day 14 morning) | Promote to PRESCRIPTIVE only after operator green-light on publication scope |
+
+## Cross-references
+
+- Decision log: `STATE.md` §4 (D-1..D-41)
+- Vocabulary: `STATE.md` §3
+- System status: `STATE.md` §5
+- Library shelf: `MemoryBank/Library/_INDEX.md`
+- Worksheet: `DAY14_WORKSHEET.md`
+- Sharpe spec: `SHARPE_SPEC.md`
+- Anti-patterns: `ANTI_PATTERNS.md`
+
+## Status legend
+
+- **OPPORTUNITY** — filed, no build authority
+- **green-lit, design-ready** — operator approved, spec written, build pending
+- **green-lit, in-build** — operator approved, work in progress, behind feature flag
+- **shipped** — merged + deployed + verified, feature flag default ON
+- **deprecated** — removed from active code, retained for retrospection

@@ -2232,6 +2232,67 @@ Operator urgency parameter dials the urgency-vs-savings trade-off (faster execut
 
 ---
 
+### D-42 — Day 14 morning continuation: skill ecosystem recon + Tier-A audit + 3 build specs + Day 14 worksheet framing layer (Session XLIV Day 14 morning, 2026-05-27)
+
+**Decision (descriptive — captures the morning's compound output as a single coherent landing):** Day 14 morning continuation produced four work-products that interlock and are filed together as D-42 to preserve the relationship. The morning's directive arc was Mark's: *"You're on a roll today... Let's turn to: A, B, C"* — meaning (A) SKILL.md audit on Tier-A candidates, (B) build specs for the three D-40-grant-authorized prescriptive items, (C) Day 14 worksheet Items 1-3 framing with Library doctrine applied.
+
+**Sub-decision A — Skill ecosystem recon, six sources scanned:** `marian2js/trading-skills` (canonical match, MIT, SKILL.md format ✓, 18 skills, **Trust Model identical to D-23 inscription-autonomy doctrine** — independent convergence is external validation that we got something right), `oopslink/trading-skills` (rejected — Tushare CLI wrapper, Chinese A-share data only, 0 relevance to TAO/Bittensor), `tradermonty/claude-trading-skills` (1.6k stars, sophisticated infrastructure including **Skill Self-Improvement Loop + Auto-Generation Pipeline that solves D-41 open question #2 — versioning + maintenance**, mostly equity/dividend with paid-API dependencies, only `local_calculation` skills useful), `analyticsvidhya` curated list (5 generic Claude Code skill repos, none trading-specific; `sickn33/antigravity-awesome-skills` at 24k stars is the biggest aggregator — signal that Skills ecosystem is real but trading is still frontier), `skillsmp.com` (1.5M+ skills aggregator, REST API `GET /api/v1/skills`, possible future publish target for D-41), Reddit visit failed (low priority retry).
+
+**Sub-decision B — Six gaps confirmed unfilled across the entire SKILL.md ecosystem:** (1) Sharpe Contract 6Q framework, (2) Continuous-Kelly cap-structure phasing, (3) HODL-baseline / β=1 numéraire framing, (4) AMM-aware Almgren-Chriss execution, (5) Bittensor / TAO / subnet-specific anything, (6) Fleet-cohort multi-strategy enable-disable matrix. **Strengthens D-41's value proposition** — the candidate list (sharpe-contract, regime-classifier, kelly-cap-structure, pre-trade-guardrails) genuinely fills gaps no one else has filled.
+
+**Sub-decision C — Tier-A audit on 4 candidates from `marian2js/trading-skills` at pinned commit SHA `f1ae7d481154b49192681187cb08d39d7e2d4524` (Mar 16, 2026):**
+
+| Skill | YAML frontmatter | Tool calls | Network | Lines | Verdict |
+|---|---|---|---|---|---|
+| `thesis-validation` | name + description | None | None | 122 | INSTALL |
+| `evidence-gap-check` | name + description | None | None | 118 | INSTALL |
+| `risk-reward-sanity-check` | name + description | None | None | 81 | INSTALL |
+| `journal-pattern-analyzer` | name + description | None | None | 118 | INSTALL |
+
+All 4 are **pure prompt-instruction skills** — zero declared tool capabilities, zero network access, zero external API calls, lowest possible blast radius. **All 4 carry epistemic discipline near-identical to Project Ari's existing doctrine** ("This skill will not:" boundary blocks ≈ D-23; "Evidence That Would Invalidate This Analysis" ≈ D-24 probFailure; "Use the user's materials first" ≈ D-23; falsifiability framework on each ≈ D-26 cyclic process). Equity examples are cosmetic only — frameworks are asset-class-agnostic. Day 15 shadow-test plan: `evidence-gap-check` first as lowest blast radius, then the other three if shadow passes.
+
+**Sub-decision D — Three build specs filed in `specs/` folder, fully designed, build-pending:**
+
+| Spec | Decision anchor | Surface | Key invariant |
+|---|---|---|---|
+| `specs/d30-ic-breadth-display/document.md` | D-30 (D-40 grant) | `frontend/src/pages/StrategyDetail.tsx` + new `/api/analytics/strategies/{id}/grinold` | IC calibration band per Grinold/Kahn p147; Drift = Sharpe − Implied IR as forward-warning of edge decay or implementation drag |
+| `specs/d37b-kelly-cap-structure/document.md` | D-37 Part B (D-40 grant) | `risk_config.json` schema + `RiskConfig.tsx` | Phased cap (paper-static → ¼-Kelly → linear interp → ½-Kelly), `KellyDoctrineViolationError` tripwire makes full Kelly architecturally unreachable, LTCM warning panel (D-32) renders default-open per session, do-not-deploy-lock for `f* ≤ 0` |
+| `specs/d39b-almgren-chriss-slicing/document.md` | D-39 Part B (D-40 grant) | `frontend/src/pages/PreTradeSimulator.tsx` + `pool_reserves_service.py` | AMM convex cost rederived from Cartea Ch 6 §6.1, pool-fraction band policy (<1% safe / 1-5% recommend / >5% mandatory split), Almgren-Chriss optimal-N + adverse-selection check vs OU half-life, mandatory-split override audit-logged |
+
+All 3 specs include the **8-step pre-flight diagnostic chain** (D-26 + D-34 + D-35 + D-36 + D-37 + D-38 + Grinold/Kahn IC×B + López de Prado probFailure) as acceptance criteria, **feature-flag gating** (default OFF), unit + integration test matrices, edge cases, and **open questions** flagged for build-time resolution rather than design-time blocking. Master `specs/spec.md` with feature catalogue + 10 architecture rules + status legend completes the scaffolding.
+
+**Sub-decision E — `DAY14_FRAMING.md` filed as Library-doctrine carry-forward layer ABOVE `DAY14_WORKSHEET.md`:**
+
+(1) **Item 1 hypothesis ranking updated.** Worksheet's #4 (correlated voters on shared inputs) **promoted to #1** based on this morning's diagnostic state: all 12 strategies STRUGGLING simultaneously, regime classifier flipped 180° (TRENDING_DOWN → TRENDING_UP) in ~3-4 hours without arresting PnL bleed (`−0.895τ`, ~0.010τ deeper than this morning earlier). Bench-coverage hypothesis (#1 in worksheet) DOWNGRADED to #3 — the gate adapted, the fleet still bled, so the gate is not the dominant problem. **D-30 Breadth correction + D-22 López de Prado meta-labeling = Fleet Consensus** are the doctrinal anchors for Item 1's redesign.
+
+(2) **Item 2 D-35 fork added ABOVE existing Branches A/B/C.** The new top-level fork: time-series MR (wrong category, rare and unstable) vs cross-sectional MR (right category, cointegration-tested). **Caught a D-34 doctrine violation lurking in worksheet hypothesis 1** — the proposed "ATR × 2 stop" would be a stop-loss on a MR strategy, which D-34 prohibits. Reframed the fix as narrower entry thresholds (RSI 22/78 instead of 25/75), not stop-style exit. D-38 asymmetric-bands consideration also added.
+
+(3) **Item 3 continuous Kelly replaces discrete Kelly.** Worksheet line 216 used `f* = WR − ((1−WR) / (avg_W / avg_L))` (discrete form, Thorp 1962). D-37 mandates continuous form `f* = m/s²` as Project Ari operational standard. With `m` materially negative on momentum_cascade's −0.136τ / 642-trade record, continuous Kelly gives `do_not_deploy_lock = True` directly via F-37B path — sizing question collapses, redesign becomes ENTRY/REGIME (not exit-fix), `risk_config.json` lock is the surgical action, code change to the strategy itself is deferred.
+
+**Cross-reference (D-23 boundary check):** D-42 is descriptive only — catalogues morning's work-products and their relationships. NO new prescriptive build authority. F-30 / F-37B / F-39B builds remain authorized via D-40 grant. Day 14 worksheet items 1-3 redesigns remain gated on data-pull + operator decision, per worksheet's "diagnostic first, surgical second" rule. Tier-A skill installs remain gated on Day 15 shadow test before going live in Ari session.
+
+**Process discipline preserved:**
+- D-23 inscription-autonomy: this morning's compound output is descriptive across all four work-products; build action remains operator-gated.
+- D-32 LTCM forward-warning encoded into F-37B spec as default-open UI panel + JSON validator rejection of `kelly_multiplier > 0.5`.
+- D-34 prohibition on MR stop-loss exits caught and corrected in Item 2 framing before code touched.
+- D-36 Bailey-min sample gating built into F-37B and F-30 specs as schema constraints.
+- D-37 continuous-Kelly is the operational form across all three specs and the Item 3 framing.
+- 8-step pre-flight diagnostic chain runs ahead of every spec's build; encoded as acceptance criteria.
+
+**Process lesson captured:** Mark's directive ordering — A then B then C — produced compound output where each phase's findings sharpened the next. Phase A's finding ("marian2js's Trust Model = D-23") informed the Phase B specs' epistemic stance. Phase B's spec discipline (8-step chain in acceptance criteria) tightened Phase C's worksheet framing (which surfaced the D-34 violation in Item 2 hypothesis 1). **Sequencing the work matters; A→B→C was the right order.** Adopting forward: when Mark dictates a sequence, follow it literally; the order encodes information.
+
+**Source:** Mark's directive verbatim: *"You're on a roll today. I see you already checked out the GitHub page - that's good. I like the precautionary checklist before implementation of a skill - that's smart. Before we move to task 4, check out these other pages for skills..."* and after recon: *"It seems like you were able to extract a lot of useful information from this morning's roundup. I like your plan of attack. Let's turn to: A, B, C"*. Six URLs scanned, four SKILL.md files audited at pinned SHA, three build specs drafted, one framing document filed. All landings preserved on `origin/main` via this commit.
+
+**Files filed during D-42 morning continuation:**
+- `specs/spec.md` (master feature catalogue + 10 architecture rules)
+- `specs/d30-ic-breadth-display/document.md`
+- `specs/d37b-kelly-cap-structure/document.md`
+- `specs/d39b-almgren-chriss-slicing/document.md`
+- `DAY14_FRAMING.md` (Library doctrine carry-forward to DAY14_WORKSHEET.md)
+- `STATE.md` (this entry, D-42)
+
+---
+
 ## 5. CURRENT STATE
 *(Update this section at the end of every session)*
 
