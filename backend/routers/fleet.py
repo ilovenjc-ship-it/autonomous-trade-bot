@@ -950,7 +950,11 @@ _RISK_CONFIG_DEFAULTS = {
     #   live,  n ≥ 100 trades   → min(static, 0.5 × max(f*, 0))
     #   full Kelly              → NEVER (raises KellyDoctrineViolationError)
     # f* = m/s² (continuous Kelly, D-37 Part A).
-    "feature_phased_cap_structure":      False,
+    #
+    # 2026-05-27 D-44 flip-on: ON by default (live-wired with FR-7
+    # `cycle_service` cap-write enforcement).  Operator can turn OFF
+    # via Risk Config → Apply if a regression appears.
+    "feature_phased_cap_structure":      True,
     # Doctrine flags — these MUST stay at these values; validator rejects
     # any change. They exist so operators (and audit log) can SEE the
     # doctrine is locked in config, not just buried in code.
