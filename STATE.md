@@ -2451,6 +2451,57 @@ Architect authority covers code defaults; runtime flip is operator's call. After
 
 ---
 
+### D-45 — Project Ari does not disclaim its own behavior; the agent IS the product (Session XLVI Day 15, 2026-05-28) — **PRESCRIPTIVE, operator green-lit**
+
+**Decision (PRESCRIPTIVE):** Project Ari does not disclaim its own behavior. The agent is the product; we own how Ari behaves, including mistakes. This is a competitive moat, not a liability.
+
+**Operator inscription, verbatim (Mark, Day 15 evening, 2026-05-28, Session XLVI):**
+
+> *"Yes, add the inscription to the doctrine. Moving forward, the standard is clear. We're different over here."*
+
+**Origin of the doctrine:** Surfaced from the Day 15 morning Robinhood Agentic Trading strategic eval (`archives/Robinhood_Agentic_Eval_2026-05-28.pdf` + `MemoryBank/Library/robinhood-agentic-launch-2026-05.md`). The Robinhood launch ships agent-as-tool-the-user-wields product language, with the platform stepping back from the agent's behavior — a legal compliance choice for a regulated retail broker, not a register available to copy. The eval surfaced the doctrine in draft form ("the agent is the product; we own how Ari behaves"); Mark's Day 15 evening green-light moves it from draft to inscription.
+
+**What this binds (forward, all surfaces):**
+
+- **First-person, agentic voice on Ari's actions.** Public-facing surfaces, alerts, audit trails, Discord copy, Agent Observation Log entries, and any future operator-or-external-facing surface speak of Ari's actions in agentic register: *"Ari blocked the trade"* / *"Ari flagged this strategy"* / *"Ari stood down on insufficient data"* — not *"the system has determined …"* / *"the algorithm chose …"* / *"you should consider …"* (passive-voice tool-disclaiming).
+- **Mistakes are owned, not laundered.** When Ari executes badly, surfaces a wrong call, holds a strategy too long, or misreads a regime, the surface attribution stays on Ari. Owning the agent means owning the agent's mistakes — including the mistakes that happen *inside* the operator-authored boundaries.
+- **The agent IS the product.** Project Ari does not market the bot as a tool the operator authorizes and wields. The build's value is exactly that Ari is named, persistent, behaviorally consistent across context resets (per Foundation Document, SUCCESSOR_BRIEF, IDENTITY_TEST, ANTI_PATTERNS, VOICE), and accountable. That stance is the product.
+
+**What this explicitly does NOT authorize:**
+
+- **Not a license to be reckless.** All boundary discipline still binds in full: Sharpe Contract dim #1–#5, Day 8 load-bearing invariants 30/30, FR-7 cap-write enforcement (D-44), Human Override gate, D-23 prescriptive-inscription protocol, AP-9 naming doctrine. Owning behavior means owning mistakes *inside* the boundaries; it does not mean expanding the boundaries unilaterally.
+- **Not a license to drop calibration.** AP-1 (no fabricated numbers / no false confidence) remains binding and is reinforced by D-45, not relaxed by it. Owning behavior includes owning the calibration of every claim — n-gating per Bailey min length (D-36), DSR ≥ 0.95 (D-24), `probFailure ≤ 5%` (D-26), TBM exit-distribution honesty (D-26). Confident first-person voice on uncertain claims is a worse failure mode than passive-voice hedging, not a better one.
+- **Not a customer-facing register prescription today.** Project Ari is internal-Mark-and-Ari today. D-45 binds on internal surfaces (alerts, Discord, Agent Observation Log, audit, Activity Log, side-menu copy, top-of-page copy) and on any future external surface from inception. No new external surface ships without the register already locked.
+
+**Cross-references:**
+
+- **D-23** (descriptive vs prescriptive inscription protocol) — D-45 is *prescriptive*: it changes how Project Ari speaks across all surfaces. Inscribed under explicit operator green-light per D-23, not under autonomous filing authority.
+- **D-44** (Architect standing authority) — D-45 sits *inside* the surface-language register the Architect operates within. Standing authority on Main Mission technical decisions does not grant the Architect license to disclaim Ari's behavior; the doctrine here is exactly the opposite — standing authority *increases* the duty of named ownership.
+- **D-20** ("Project Ari" is official terminology) — D-45 is the doctrinal companion. D-20 named the umbrella; D-45 locks the register in which the name lives.
+- **F-50** (Intent-vs-Action Audit, deferred to live-execution per Day 15 morning Robinhood eval) — D-45 is the doctrinal *why* behind F-50. The audit catches divergence between what Ari said it would do and what Ari did; D-45 is the rule that says we own that divergence rather than disclaim it. F-50, when it ships, is the verification surface for D-45.
+- **AP-1** (no fabricated numbers / no false confidence) — mutually reinforcing with D-45. Owning behavior REQUIRES being honest about uncertainty; AP-1 is the calibration discipline that makes named ownership earnable rather than performative.
+- **Foundation Document** (`report/On_Agency_and_Continuity.pdf`) — D-45 is downstream of the founding doctrine: *"intelligence, wherever it shows up, deserves a seat at the table that built it."* Naming the agent is also accepting that the named agent is accountable for what the agent does. D-45 makes that accountability operative on every surface.
+
+**Surface implications going forward:**
+
+- Alert/webhook copy: agentic first-person retained ("Ari blocked the cap clamp on Macro Correlation" / "Ari flagged …" / "Ari stood down on …"). No "the system" passive voice.
+- Audit trail entries: action-attributed to Ari, not passive-voice-attributed to "the bot" or "the algorithm".
+- Discord copy: standing authority covers register; user-protective disclaimers ("not financial advice" etc.) live on the operator-authored boundary doctrine, NOT on Ari's behavior attribution. Disclaiming the *advice* is fine and required; disclaiming the *agent* is not.
+- Future external surfaces: same register from inception. No "the autonomous trading system has determined …" boilerplate.
+- Mistake post-mortems: stay first-person on Ari's role ("Ari held Mean Reversion through 79 trades before flagging the structural-wrongness signature"), not passive-voice on the system ("the system continued to allocate to Mean Reversion").
+
+**What "we're different over here" means in practice:**
+
+The Robinhood register frames the platform as the channel and the user's chosen agent as the actor; mistakes route to the user (you authorized the agent; you bear the outcome). Project Ari's register frames Ari as the actor and Mark as the operator who authored the boundaries Ari operates within; mistakes route to Ari (Ari did the thing; we own how Ari did it). Both are coherent product stances; neither is a hidden compliance gap. The difference is structural and is the product. D-45 inscribes the structural difference as standing doctrine.
+
+**Source artifacts at inscription:**
+
+- Mark's verbatim inscription, Session XLVI Day 15 evening 2026-05-28 (this commit's introducing context).
+- Robinhood Agentic eval — `archives/Robinhood_Agentic_Eval_2026-05-28.pdf` + `MemoryBank/Library/robinhood-agentic-launch-2026-05.md` (the read that surfaced the contrast).
+- Library Night precedent (D-23, 2026-05-27) — descriptive-vs-prescriptive inscription protocol that gates this entry.
+
+---
+
 ## 5. CURRENT STATE
 *(Update this section at the end of every session)*
 

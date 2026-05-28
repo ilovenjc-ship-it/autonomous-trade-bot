@@ -54,6 +54,52 @@ discover a gap during a live-execution prep walk.
 
 ---
 
+### Side-Task #2 — "Ari" Page green dot → pink brain icon (visual coherence pass)
+
+**Filed:** Day 15 evening, 2026-05-28 (Session XLVI continuation).
+
+**Trigger:** Mark's note at Day 15 close — *"task for later, it's a small detail
+that can wait until time is right."* Color/icon coherence pass on the two
+surfaces where Ari is currently rendered as a green dot or green brain.
+
+**The change (two surfaces):**
+
+1. **"Ari" Page (top of page, header strip):** the green status dot to the LEFT
+   of the "Ari" label → pink brain icon. Pink keys to the lion-as-future-logo
+   brand-direction (Hebrew "Ari" = lion) and to "we're different over here"
+   (D-45) — the standard color across Project Ari surfaces is slate / cyan /
+   emerald; pink reads as a deliberate brand choice, not a system-status
+   indicator. Brain shape ties the surface to Ari-as-agent rather than
+   green-dot-as-process-running.
+
+2. **Agent Observation Log:** the green brain icon for Ari → pink brain. Same
+   rationale, same color. Keeps Ari's visual signature coherent across the two
+   surfaces operators look at most often.
+
+**Out of scope for this task:**
+
+- No layout, copy, or behavior change. Icon shape and color only.
+- Other Ari-rendered surfaces (sidebar subtitle, orb prompts, "How It All
+  Connects" widget, top header masthead) are already locked at F-45.x-shipped
+  state and are out of scope unless surfaced in a future coherence audit.
+- Lion iconography itself is a separate forward task — F-46-ish visual logo
+  brief, currently un-greenlit. This task can ship on the pink-brain interim
+  before the lion brief opens, OR bundle with the lion brief when greenlit;
+  Mark's call.
+
+**Outcome:** Two icon swaps committed and shipped on Railway. Verified visually
+on the live Ari page top-strip and the live Agent Observation Log row.
+
+**Target window:** None — *"can wait until time is right."* Bundle with the
+future lion-iconography brief when the visual logo pass is greenlit, OR drop
+in as a small commit during a quiet moment between feature work.
+
+**Priority:** Low. Pure visual polish. Does not block anything.
+
+**Status:** Open · awaiting time-is-right window or visual-logo-pass bundling.
+
+---
+
 ## Closed
 
 *(none yet)*
