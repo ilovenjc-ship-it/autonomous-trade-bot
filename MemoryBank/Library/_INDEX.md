@@ -45,3 +45,15 @@ what a source said and when it would apply, without changing current behavior.
 | `fortunes-formula.md` | Fortune's Formula | William Poundstone (Hill and Wang) | 2005 | 389 | 2026-05-27 | filed (verdict: yes — strongly worth) |
 | `quantitative-trading-chan.md` | Quantitative Trading: How to Build Your Own Algorithmic Trading Business (2nd ed) | Ernest P. Chan (Wiley Trading) | 2021 | 256 | 2026-05-27 | filed (verdict: yes — strongly worth) |
 | `algorithmic-and-high-frequency-trading.md` | Algorithmic and High-Frequency Trading | Cartea / Jaimungal / Penalva (Cambridge UP) | 2015 | 360 | 2026-05-27 | filed (verdict: partial — Ch 6 + Ch 11 earn slot; rest LOB-specific to off-scope) |
+| `robinhood-agentic-launch-2026-05.md` | Robinhood Agentic Trading Launch — Strategic Read | Robinhood Markets Inc. (NASDAQ: HOOD) — product launch + TheStreet/MSN coverage | 2026 | n/a (web sources) | 2026-05-28 | filed (verdict: read — category-defining tailwind; F-50 spec + 1 side-task surfaced) |
+
+---
+
+## Shelf — non-book reads
+
+For artifacts that aren't books or papers (e.g., competitor product launches,
+regulatory filings, on-chain governance events) that nonetheless deserve the
+Lifts / Counterfactuals / Validations protocol because they materially affect
+Project Ari's strategic shape. The first such entry is the Robinhood Agentic
+Trading launch above. Filed with the same protocol; companion verbatim PDF in
+`archives/`.
