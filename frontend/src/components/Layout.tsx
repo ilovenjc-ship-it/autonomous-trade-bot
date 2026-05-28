@@ -78,10 +78,12 @@ const navGroups: NavGroup[] = [
     heading: 'INTELLIGENCE',
     items: [
       // F-45 (Day 15 Ari rebrand): label flipped from "II Agent" → "Ari".
-      // Subtitle "Architect & Orchestrator" rendered separately in the
-      // NavLink body (see render code below) — pulled from D-44 standing
-      // authority binding (the Architect+Orchestrator title is the
-      // doctrinal description of this agent's role on the project).
+      // F-45.1 (Day 15 evening, Mark's call): subtitle reframed from the
+      // operator-register "Architect & Orchestrator" to the user-register
+      // "Bittensor Guide and Navigator". Public surfaces use Guide/Navigator
+      // (describes the user's journey, not the system); insider/operator
+      // surfaces preserve the Architect+Orchestrator register. The lion
+      // (Ari = Hebrew "lion") is the future logo direction.
       { to: '/ii-agent',  icon: Brain, label: 'Ari' },
     ],
   },
@@ -513,12 +515,15 @@ export default function Layout() {
                       >
                         <Icon size={17} />
                         {/* F-45: Ari nav entry gets a 2-line label (name +
-                            doctrinal subtitle from D-44). All other entries
-                            keep the single-line label render unchanged. */}
+                            subtitle). F-45.1: subtitle reframed to public
+                            user-register ("Bittensor Guide and Navigator")
+                            per Mark's humility instinct — describes the
+                            user's journey, not the system's role. All other
+                            entries keep the single-line label render. */}
                         {to === '/ii-agent' ? (
                           <span className="flex-1 flex flex-col leading-tight">
                             <span>{label}</span>
-                            <span className="text-[10px] font-mono text-slate-500 tracking-wide">Architect &amp; Orchestrator</span>
+                            <span className="text-[10px] font-mono text-slate-500 tracking-wide">Bittensor Guide and Navigator</span>
                           </span>
                         ) : (
                           <span className="flex-1">{label}</span>
@@ -604,8 +609,11 @@ export default function Layout() {
                       </span>
                     </span>
                   </span>
+                  {/* F-45.1: orb pop-out shows the name in singularity —
+                      no subtitle. Mark's "use it in its singularity — Ari"
+                      framing; the small intimate panel doesn't need a job
+                      title to anchor the user. */}
                   <span className="text-[13px] font-bold tracking-widest text-red-400 uppercase">Ari</span>
-                  <span className="text-[10px] font-mono text-slate-500 ml-1">architect & orchestrator</span>
                 </div>
                 <div className="flex items-center gap-1">
                   {/* Reset chat button */}
@@ -1006,14 +1014,18 @@ export default function Layout() {
                   <span className="text-xs font-mono text-slate-400 leading-none">Full command authority · manual trades · emergency stop</span>
                 </>
               )}
-              {/* II Agent inline subtitle — Session XXXV: indigo → emerald with
-                  small red HAL-eye dot, matching the section colour swap. */}
+              {/* Ari page inline subtitle — Session XXXV: indigo → emerald with
+                  small red HAL-eye dot, matching the section colour swap.
+                  F-45.1: "Master Orchestrator" pulled per Mark's humility
+                  instinct (reads as self-coronation in the masthead — the
+                  work earns the honorific). Replaced with the public
+                  user-register "Guide and Navigator". */}
               {pathname === '/ii-agent' && (
                 <>
                   <span className="text-slate-600 select-none">·</span>
                   <span className="flex items-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" title="HAL-eye indicator — homage to the original orb concept and Hal Finney" />
-                    <span className="text-xs font-mono text-emerald-400/80 leading-none">Master Orchestrator · Regime · Fleet · Consensus</span>
+                    <span className="text-xs font-mono text-emerald-400/80 leading-none">Guide and Navigator · Regime · Fleet · Consensus</span>
                   </span>
                 </>
               )}
