@@ -1,5 +1,14 @@
 """
-II Agent — Master Orchestrator
+Ari — Bittensor Guide and Navigator (module: agent_service)
+================================
+F-45 / F-45.2: user-facing identity is "Ari" (public register: Bittensor
+Guide and Navigator). Module filename `agent_service.py` and internal
+identifiers retained per F-45 scope discipline (URL/import-path/log
+continuity). The two registers, by surface:
+  • Public/user surfaces       → Ari, Bittensor Guide and Navigator
+  • Operator/insider surfaces  → Architect, Master Architect (between
+                                 operator and AI; preserved in convo,
+                                 reserved for any future operator-only UI)
 ================================
 The top-level intelligence layer of the autonomous trading system.
 
@@ -496,11 +505,17 @@ class IIAgentService:
         self._running = True
         self._interval = interval
         self._task = asyncio.create_task(self._loop())
+        # F-45.2: boot observation + system event reframed to public
+        # register. Operator/Architect framing stripped; the boot message
+        # announces presence + role (monitoring), not title. logger.info
+        # left at "II Agent started" — internal dev/trace surface, F-45
+        # scope discipline preserves internal identifiers for
+        # debugging/log-archaeology continuity.
         self._push_observation(
             level="SYSTEM",
-            message="🧠 Ari online — Architect & Orchestrator initialised. Monitoring fleet, market regime, and consensus engine.",
+            message="🧠 Ari online. Monitoring fleet, market regime, and consensus engine.",
         )
-        push_event("system", "🧠 Ari orchestrator online", detail=f"Analysis interval: {interval}s")
+        push_event("system", "🧠 Ari online", detail=f"Analysis interval: {interval}s")
         logger.info(f"II Agent started (interval={interval}s)")
 
     async def stop(self) -> None:

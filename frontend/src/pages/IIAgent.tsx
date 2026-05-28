@@ -1,11 +1,15 @@
 /**
- * Ari — Master Orchestrator Dashboard (filename `IIAgent.tsx` retained
- * for URL/bookmark/import-path stability — see F-45 spec, internal
- * identifier rename explicitly out of scope).
+ * Ari — Bittensor Guide and Navigator (filename `IIAgent.tsx` and
+ * component name `IIAgent` retained for URL/bookmark/import-path
+ * stability — see F-45 spec, internal identifier rename explicitly
+ * out of scope).
  *
  * The top-level intelligence view: regime, fleet health, observations,
  * recommendations, and the chat-with-Ari surface with a rotating
  * placeholder cycling through page-anchored prompts (F-45).
+ *
+ * F-45.2: docstring title migrated from "Master Orchestrator Dashboard"
+ * to the public-register naming for code/surface coherence.
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {

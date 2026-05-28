@@ -206,7 +206,7 @@ class WebhookService:
                 "description": message,
                 "color":       color,
                 "fields":      fields,
-                "footer":      {"text": "Ari · Architect & Orchestrator"},
+                "footer":      {"text": "Ari · Bittensor Guide and Navigator"},
                 "timestamp":   timestamp,
             }],
         }

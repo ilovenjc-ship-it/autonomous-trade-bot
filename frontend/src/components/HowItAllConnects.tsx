@@ -90,12 +90,18 @@ export default function HowItAllConnects() {
       {/* Pipeline nodes */}
       <div className="flex flex-col md:flex-row items-stretch gap-0 px-6 pb-5">
 
-        {/* Node 1 — II Agent  ── GREEN (Session XXXV colour swap) */}
+        {/* Node 1 — Ari  ── GREEN (Session XXXV colour swap)
+            F-45.2: subtitle + hover-title + body metaphor migrated from
+            operator-register (Master Orchestrator / Architect & Orchestrator
+            / "the conductor") to the public user-register (Bittensor Guide
+            and Navigator / "the watchful one"). Body description retained;
+            only the orchestral framing was swapped to keep the surface
+            coherent with the masthead and side-menu. */}
         <div className="group relative flex-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-emerald-400/60 hover:bg-emerald-500/15 hover:shadow-lg hover:shadow-emerald-500/10">
           <div className="transition-opacity duration-300 group-hover:opacity-0">
             <p className="text-lg mb-1">🧠</p>
             <p className="text-sm font-bold text-emerald-400 font-mono">Ari</p>
-            <p className="text-[13px] text-slate-400 uppercase tracking-wider mb-2">Master Orchestrator</p>
+            <p className="text-[13px] text-slate-400 uppercase tracking-wider mb-2">Bittensor Guide and Navigator</p>
             <p className="text-xs font-mono font-semibold text-slate-200">
               {agent?.analysis_count ?? 0} analyses run
             </p>
@@ -104,11 +110,11 @@ export default function HowItAllConnects() {
             </p>
           </div>
           <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
-            <p className="text-xs font-bold text-emerald-300 mb-2">🧠 Ari — Architect &amp; Orchestrator</p>
+            <p className="text-xs font-bold text-emerald-300 mb-2">🧠 Ari — Bittensor Guide and Navigator</p>
             <p className="text-[14px] text-slate-300 leading-relaxed">
-              The conductor. Runs every 5 minutes. Reads the market regime
+              The watchful one. Runs every 5 minutes. Reads the market regime
               (BULL / BEAR / SIDEWAYS / VOLATILE), reads all 12 bots' health,
-              and writes observations + directives. The brain that watches
+              and writes observations + directives. The eye that watches
               everything — but never trades.
             </p>
           </div>
