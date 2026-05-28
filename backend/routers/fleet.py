@@ -154,7 +154,7 @@ _CHAT_HISTORY: List[dict] = []
 
 @router.post("/chat")
 async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
-    """Chat with II Agent — responses backed by live DB + indicator data."""
+    """Chat with Ari — responses backed by live DB + indicator data."""
     from services.cycle_service import cycle_service
     from services.agent_service import agent_service
     from services.consensus_service import consensus_service
@@ -301,12 +301,32 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
             logger.warning(f"audit_chat_service failed: {_e}")
             _audit_response = None
 
+    # F-45 — Ari page-anchored prompts. Six new keyword routes that
+    # bridge the orb / chat-page rotating-placeholder prompts to real
+    # data sources OR to a graceful "I don't have that yet, here's
+    # where it lives" fallback that deep-links to the source page.
+    #
+    # Anti-pattern AP-1 discipline: every fallback names the page that
+    # WOULD answer the question rather than fabricating a number.
+    # Order: AFTER subnet/forecast/audit (specific intents win), BEFORE
+    # the broad "consensus/regime/price" elif chain (generic words like
+    # "activity" or "trades" would otherwise be swallowed).
+    _ari_prompt_response: Optional[str] = None
+    if not (_subnet_response or _forecast_response or _audit_response):
+        try:
+            _ari_prompt_response = await _ari_page_prompt_handler(payload.message, db)
+        except Exception as _e:
+            logger.warning(f"ari page prompt handler failed: {_e}")
+            _ari_prompt_response = None
+
     if _subnet_response:
         response = _subnet_response
     elif _forecast_response:
         response = _forecast_response
     elif _audit_response:
         response = _audit_response
+    elif _ari_prompt_response:
+        response = _ari_prompt_response
     elif any(w in msg for w in ["openclaw", "fleet consensus", "fleet-consensus", "bft", "byzantine", "consensus", "vote", "voting", "7 of 12", "7/12", "supermajority"]):
         latest = consensus_service.get_latest()
         last_result = "—"
@@ -338,7 +358,7 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
             f"Current market regime: **{current_regime}** — {regime_desc}. "
             f"{rsi_note}. "
             f"MACD histogram: {'**+' + f'{macd_h:.5f}**' + ' (bullish momentum)' if macd_h and macd_h > 0 else '**' + f'{macd_h:.5f}**' + ' (bearish momentum)' if macd_h else 'not available'}. "
-            f"Regime is re-evaluated every 5 minutes by II Agent."
+            f"Regime is re-evaluated every 5 minutes by Ari."
         )
 
     elif any(w in msg for w in ["price", "tao", "cost", "worth", "usd", "$"]):
@@ -430,7 +450,7 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
             f"Completed **{cycle_num}** cycles, firing every **60 seconds**. "
             f"Each cycle: evaluates all {len(strategies)} strategies, generates signals, runs Fleet Consensus BFT vote (if LIVE), "
             f"executes paper/live trades, logs to DB, and fires alerts. "
-            f"II Agent analysis runs every **5 minutes** on top of the cycle engine."
+            f"Ari analysis runs every **5 minutes** on top of the cycle engine."
         )
 
     elif any(w in msg for w in ["risk", "stop", "drawdown", "safety", "halt", "limit", "protection"]):
@@ -484,6 +504,252 @@ async def chat(payload: ChatMessage, db: AsyncSession = Depends(get_db)):
     _push_event("system", f"Chat: {payload.message[:60]}", detail=response[:120])
 
     return {"response": response, "history": _CHAT_HISTORY[-20:]}
+
+
+# ── F-45 Ari page-anchored prompt handler ────────────────────────────────────
+# Six new keyword routes for the orb pills + chat-page rotating placeholder
+# prompts. Each route either fetches real data from an existing service or
+# returns a graceful, deep-linked "I don't have that yet" fallback.
+# Per AP-1 discipline: NEVER fabricate sentiment / activity / volume numbers.
+
+import re as _f45_re
+
+# Subnet-id extraction: "subnet 18", "sn18", "sn 18", "SN-18", or a bare 1-3 digit
+_SUBNET_RE = _f45_re.compile(r"\b(?:subnet|sn)\s*[-#]?\s*(\d{1,3})\b", _f45_re.IGNORECASE)
+# Window extraction: "past week / month / year / 24h" or "7d / 30d / 1y"
+_WINDOW_RE = _f45_re.compile(
+    r"\b(?:past|last|over the last|over the past|in the last|in the past)?\s*"
+    r"(7d|30d|1y|24h|week|month|year|day)\b",
+    _f45_re.IGNORECASE,
+)
+
+
+def _f45_extract_subnet(msg: str) -> Optional[int]:
+    """Extract a single netuid from a message, or None."""
+    m = _SUBNET_RE.search(msg)
+    if not m:
+        return None
+    try:
+        n = int(m.group(1))
+        if 0 <= n <= 256:
+            return n
+    except (ValueError, TypeError):
+        pass
+    return None
+
+
+def _f45_extract_window(msg: str) -> str:
+    """Extract a window descriptor; default '7d'."""
+    m = _WINDOW_RE.search(msg)
+    if not m:
+        return "7d"
+    raw = m.group(1).lower()
+    return {
+        "week": "7d", "7d": "7d", "day": "24h", "24h": "24h",
+        "month": "30d", "30d": "30d",
+        "year": "1y", "1y": "1y",
+    }.get(raw, "7d")
+
+
+async def _ari_page_prompt_handler(raw_msg: str, db: AsyncSession) -> Optional[str]:
+    """
+    Detect F-45 page-anchored prompts and return a markdown response, or None.
+
+    Six routes:
+      1. community sentiment / sentiment            → Signal Feed deep-link + fallback
+      2. github activity / github                   → graceful fallback (no service)
+      3. whale activity / whale flow                → whale_flow_service.summary_for_subnet
+      4. X posts / twitter / community X            → graceful fallback (no free X API)
+      5. stake/unstake ratio / staking ratio        → whale_flow_service breakdown
+      6. recent trades / show trades / display trades → trades table query
+    """
+    msg = raw_msg.lower().strip()
+    subnet = _f45_extract_subnet(raw_msg)
+    window = _f45_extract_window(raw_msg)
+    win_label = {"7d": "past week", "30d": "past month", "1y": "past year", "24h": "past 24h"}.get(window, "past week")
+
+    # ── Route 1: community sentiment ──
+    if "community sentiment" in msg or "social activity" in msg or ("sentiment" in msg and ("community" in msg or "subnet" in msg)):
+        sn = subnet if subnet is not None else "?"
+        return (
+            f"**Community sentiment for Subnet {sn}** — {win_label}.\n\n"
+            f"I aggregate sentiment from the Signal Feed pipeline (Reddit RSS via `r/bittensor_`, "
+            f"TaoDaily RSS, and Discord OTF guild monitoring). Per-subnet sentiment slicing is not yet "
+            f"persisted with subnet labels — the Reddit / TaoDaily streams are global at the moment.\n\n"
+            f"**To track this:** open the **Signal Feed** drawer on the Dashboard. Filter by keywords "
+            f"matching SN{sn}'s name or ticker to see what the community is saying right now. "
+            f"Mention frequency + tone in the latest signals = best proxy for sentiment until "
+            f"per-subnet aggregation lands."
+        )
+
+    # ── Route 2: GitHub activity ──
+    if ("github activity" in msg or "github" in msg) and ("subnet" in msg or "sn" in msg):
+        sn = subnet if subnet is not None else "?"
+        return (
+            f"**GitHub activity for Subnet {sn}** — I don't yet ingest a GitHub commits / PRs / "
+            f"contributors feed per subnet.\n\n"
+            f"**Where this lives in spirit:** the **Subnet Scorecard** page (`/research`) tracks "
+            f"ecosystem health under the **Const 6-Filter Test**, including the *productive miners* "
+            f"and *intelligent* filters — both of which surface repository-level signals when "
+            f"available. Click into SN{sn} on the scorecard to see the qualitative reads we have.\n\n"
+            f"_Build hint: GitHub activity feed per netuid is a candidate for a future signal-ingestor "
+            f"plug-in (alongside Reddit RSS and Discord)._"
+        )
+
+    # ── Route 3: whale activity ──
+    if "whale activity" in msg or "whale flow" in msg or ("whale" in msg and "subnet" in msg):
+        sn = subnet
+        if sn is None:
+            return (
+                "**Whale activity** — name a subnet so I can scope the read. Example: *\"Summarize "
+                "recent whale activity for Subnet 18\"*. I can also point you at the **Whale Flow** "
+                "panel on the Dashboard (or the Subnet Detail page for any specific netuid) which "
+                "shows the live Finney RPC trail with stake/unstake events ranked by τ size."
+            )
+        try:
+            from services.whale_flow_service import whale_flow_service
+            summary = whale_flow_service.summary_for_subnet(netuid=sn, window=window, min_tao=0.0)
+            stake_count   = summary.get("stake_count", 0)
+            unstake_count = summary.get("unstake_count", 0)
+            stake_total   = summary.get("stake_total_tao", 0.0)
+            unstake_total = summary.get("unstake_total_tao", 0.0)
+            net_flow      = summary.get("net_flow_tao", stake_total - unstake_total)
+            top_addr      = summary.get("top_address")
+            if stake_count == 0 and unstake_count == 0:
+                return (
+                    f"**Whale activity — Subnet {sn} ({win_label}):** no qualifying whale events "
+                    f"on the live Finney RPC trail in this window. Either the subnet is quiet or the "
+                    f"min-τ threshold filtered everything out. Open **Whale Flow** on the Dashboard "
+                    f"to see the unfiltered stream."
+                )
+            net_label = "net IN" if net_flow > 0 else "net OUT" if net_flow < 0 else "balanced"
+            top_line = f" Top address: `{top_addr}`." if top_addr else ""
+            return (
+                f"**Whale activity — Subnet {sn} ({win_label}):**\n"
+                f"• **{stake_count}** stake events totalling **{stake_total:+.2f} τ**\n"
+                f"• **{unstake_count}** unstake events totalling **{unstake_total:.2f} τ**\n"
+                f"• **Net flow: {net_flow:+.2f} τ ({net_label})**\n"
+                f"{top_line}\n"
+                f"Source: live Finney RPC via `whale_flow_service`. "
+                f"Open Whale Flow for the full event list."
+            )
+        except Exception as _e:
+            logger.warning(f"whale flow read failed for sn{sn}: {_e}")
+            return (
+                f"**Whale activity — Subnet {sn}:** the whale-flow service isn't responding right now. "
+                f"Try the **Whale Flow** panel directly on the Dashboard, or the Subnet Detail page "
+                f"for SN{sn}."
+            )
+
+    # ── Route 4: X / Twitter posts ──
+    if ("x posts" in msg or "x post" in msg or "twitter" in msg or
+        ("recent" in msg and " x " in f" {msg} ")):
+        sn = subnet if subnet is not None else "?"
+        return (
+            f"**Recent X posts for Subnet {sn}** — X (Twitter) has no free API tier, so direct X "
+            f"ingestion is intentionally off the roadmap (documented decision: cost-prohibitive at "
+            f"$100+/mo for the basic tier).\n\n"
+            f"**Workaround that's already wired:** the **Signal Feed** drawer surfaces "
+            f"`r/bittensor_` Reddit posts (free RSS) and TaoDaily RSS as community-sentiment proxies. "
+            f"Discord OTF guild monitoring also runs when configured. Together these cover most of "
+            f"the conversation that would otherwise be on X. Open the Signal Feed drawer on the "
+            f"Dashboard to see them filtered for SN{sn}-relevant mentions."
+        )
+
+    # ── Route 5: stake / unstake ratio ──
+    if ("stake" in msg and "unstake" in msg) or "staking ratio" in msg or "% ratio" in msg:
+        sn = subnet
+        if sn is None:
+            return (
+                "**Stake / Unstake ratio** — name a subnet. Example: *\"What's the % ratio of "
+                "Stake/Unstake in Subnet 8?\"*"
+            )
+        try:
+            from services.whale_flow_service import whale_flow_service
+            summary = whale_flow_service.summary_for_subnet(netuid=sn, window=window, min_tao=0.0)
+            stake_count   = summary.get("stake_count", 0)
+            unstake_count = summary.get("unstake_count", 0)
+            stake_total   = summary.get("stake_total_tao", 0.0)
+            unstake_total = summary.get("unstake_total_tao", 0.0)
+            total_count   = stake_count + unstake_count
+            total_tao     = stake_total + unstake_total
+            if total_count == 0:
+                return (
+                    f"**Stake / Unstake — Subnet {sn} ({win_label}):** no events on record. "
+                    f"Try a longer window (e.g. *\"…in the last month\"*) or check **Whale Flow**."
+                )
+            stake_pct_count   = (stake_count / total_count) * 100
+            unstake_pct_count = (unstake_count / total_count) * 100
+            stake_pct_tao     = (stake_total / total_tao * 100) if total_tao > 0 else 0.0
+            unstake_pct_tao   = (unstake_total / total_tao * 100) if total_tao > 0 else 0.0
+            net = stake_total - unstake_total
+            return (
+                f"**Stake / Unstake — Subnet {sn} ({win_label}):**\n"
+                f"• **By event count:** {stake_count} stakes ({stake_pct_count:.1f}%) vs "
+                f"{unstake_count} unstakes ({unstake_pct_count:.1f}%)\n"
+                f"• **By τ volume:** {stake_total:.2f} τ in ({stake_pct_tao:.1f}%) vs "
+                f"{unstake_total:.2f} τ out ({unstake_pct_tao:.1f}%)\n"
+                f"• **Net: {net:+.2f} τ** ({'inflow' if net > 0 else 'outflow' if net < 0 else 'flat'})\n"
+                f"Source: `whale_flow_service.summary_for_subnet`. Live Finney RPC."
+            )
+        except Exception as _e:
+            logger.warning(f"stake/unstake read failed for sn{sn}: {_e}")
+            return (
+                f"**Stake / Unstake — Subnet {sn}:** the whale-flow service isn't responding. "
+                f"Open the Whale Flow panel for the live trail."
+            )
+
+    # ── Route 6: recent trades for a subnet ──
+    if ("recent trades" in msg or "show trades" in msg or "display trades" in msg or
+        "show recent trades" in msg or ("trades" in msg and "subnet" in msg and "in" in msg)):
+        sn = subnet
+        if sn is None:
+            return (
+                "**Recent trades** — name a subnet. Example: *\"Display recent trades in Subnet 8\"*."
+            )
+        try:
+            stmt = (
+                select(Trade)
+                .where(Trade.netuid == sn)
+                .order_by(desc(Trade.created_at))
+                .limit(5)
+            )
+            trade_result = await db.execute(stmt)
+            trades = trade_result.scalars().all()
+            if not trades:
+                return (
+                    f"**Recent trades — Subnet {sn}:** no trades on record yet. The fleet may not "
+                    f"be trading SN{sn} right now (trade-eligible subnets are gated by the active "
+                    f"strategy set + regime filter). Open **Strategy Detail** on any active strategy "
+                    f"to see its full trade history."
+                )
+            lines = []
+            for t in trades:
+                side = (t.trade_type or "?").upper()
+                amount = float(t.amount or 0)
+                pnl = t.pnl
+                price_at = t.price_at_trade
+                ts_str = t.created_at.strftime("%m/%d %H:%M") if t.created_at else "—"
+                strat = t.strategy or "?"
+                pnl_str = f" · PnL ${pnl:+.2f}" if pnl is not None else ""
+                price_str = f" @ ${price_at:.2f}" if price_at else ""
+                lines.append(
+                    f"  · `{ts_str}` **{side}** {amount:.4f}τ{price_str} · {strat}{pnl_str}"
+                )
+            return (
+                f"**Recent trades — Subnet {sn}** (latest 5):\n"
+                + "\n".join(lines)
+                + "\n\nFull history: open **Strategy Detail** for any of the active strategies above."
+            )
+        except Exception as _e:
+            logger.warning(f"recent-trades read failed for sn{sn}: {_e}")
+            return (
+                f"**Recent trades — Subnet {sn}:** the trade-log query failed. Open **Trade Log** "
+                f"on the sidebar and filter by netuid {sn}."
+            )
+
+    return None
+
 
 @router.get("/chat/history")
 async def chat_history():

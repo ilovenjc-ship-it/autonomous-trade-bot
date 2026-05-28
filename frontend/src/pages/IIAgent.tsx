@@ -1,6 +1,11 @@
 /**
- * II Agent — Master Orchestrator Dashboard
- * The top-level intelligence view: regime, fleet health, observations, recommendations.
+ * Ari — Master Orchestrator Dashboard (filename `IIAgent.tsx` retained
+ * for URL/bookmark/import-path stability — see F-45 spec, internal
+ * identifier rename explicitly out of scope).
+ *
+ * The top-level intelligence view: regime, fleet health, observations,
+ * recommendations, and the chat-with-Ari surface with a rotating
+ * placeholder cycling through page-anchored prompts (F-45).
  */
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
@@ -22,6 +27,8 @@ import { InfoBubble } from '@/components/Tooltip'
 // REGIME_CONFIG kept available here for regime label lookups in chat /
 // observations rendering.
 import { REGIME_CONFIG } from '@/components/RegimeCard'
+// F-45 (Day 15 Ari rebrand): rotating placeholder + page-anchored prompts.
+import { ROTATING_PROMPTS, ROTATING_PROMPT_STATIC } from '@/lib/ariPrompts'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -723,6 +730,25 @@ export default function IIAgent() {
   const [chatHistory, setChatHistory] = useState<ChatMsg[]>([])
   const [chatInput,   setChatInput]   = useState('')
   const [chatLoading, setChatLoading] = useState(false)
+  // F-45 — Rotating placeholder. Cycles every 4s through page-anchored
+  // "Ask Ari: …" prompts. Pauses when input is focused or non-empty,
+  // and respects prefers-reduced-motion (renders the static fallback).
+  const [chatInputFocused, setChatInputFocused] = useState(false)
+  const [placeholderIdx, setPlaceholderIdx] = useState(0)
+  const reduceMotion = typeof window !== 'undefined'
+    && typeof window.matchMedia === 'function'
+    && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  useEffect(() => {
+    if (reduceMotion) return
+    if (chatInputFocused || chatInput.length > 0) return
+    const id = window.setInterval(() => {
+      setPlaceholderIdx(i => (i + 1) % ROTATING_PROMPTS.length)
+    }, 4000)
+    return () => window.clearInterval(id)
+  }, [chatInputFocused, chatInput, reduceMotion])
+  const rotatingPlaceholder = reduceMotion
+    ? ROTATING_PROMPT_STATIC
+    : ROTATING_PROMPTS[placeholderIdx]
   // Session XXXVII — thought-bubble UX
   const [thoughtBeats, setThoughtBeats] = useState<string[]>([])
   const [thoughtIdx,   setThoughtIdx]   = useState(0)
@@ -929,7 +955,7 @@ export default function IIAgent() {
 
           {/* Labels */}
           <div className="flex flex-col gap-0.5">
-            <span className="text-base font-bold text-white tracking-wide font-mono">Chat with II Agent</span>
+            <span className="text-base font-bold text-white tracking-wide font-mono">Chat with Ari</span>
             <div className="flex items-center gap-2">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               <span className="text-[12px] font-mono text-emerald-400">ONLINE</span>
@@ -1049,7 +1075,12 @@ export default function IIAgent() {
               type="text"
               value={chatInput}
               onChange={e => setChatInput(e.target.value)}
-              placeholder="Ask about PnL, regime, strategies, risk controls…"
+              onFocus={() => setChatInputFocused(true)}
+              onBlur={() => setChatInputFocused(false)}
+              // F-45: rotating placeholder cycles through page-anchored
+              // "Ask Ari: …" prompts every 4s when input is empty + unfocused.
+              // Static fallback for prefers-reduced-motion.
+              placeholder={rotatingPlaceholder}
               disabled={chatLoading}
               className={clsx(
                 'flex-1 bg-dark-700 border border-dark-600 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-200',

@@ -221,7 +221,7 @@ class AlertService:
             type    = TYPE_REGIME_SHIFT,
             level   = LEVEL_WARNING,
             title   = f"⚡ Regime Shift: {from_regime} → {to_regime}",
-            message = f"II Agent detected a market regime change. TAO @ ${price:.2f}. Strategy weights are being rebalanced.",
+            message = f"Ari detected a market regime change. TAO @ ${price:.2f}. Strategy weights are being rebalanced.",
             detail  = f"RSI={rsi:.1f}" if rsi else "RSI insufficient data",
         )
 
@@ -240,7 +240,7 @@ class AlertService:
             type     = TYPE_STRATEGY_STRUGGLING,
             level    = LEVEL_WARNING,
             title    = f"⚠️ {display_name} underperforming",
-            message  = f"{display_name} is below threshold with {win_rate:.1f}% win rate. II Agent has flagged it for review.",
+            message  = f"{display_name} is below threshold with {win_rate:.1f}% win rate. Ari has flagged it for review.",
             strategy = strategy_name,
             detail   = f"WR={win_rate:.1f}% PnL={pnl:+.4f}τ",
         )

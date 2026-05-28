@@ -168,11 +168,11 @@ export default function SubnetHeatMap() {
                 <div className="border-t border-slate-700/50 pt-2 space-y-1">
                   <p className="flex items-center gap-2">
                     <span className="inline-block w-3 h-3 rounded-sm border-2 border-[#00e5a0] flex-shrink-0" />
-                    <span><span className="text-emerald-400 font-bold">Green outline</span> = subnet actively monitored by the II Agent (SN1, 8, 9, 18, 64). Visible only in <span className="text-emerald-300">LIVE</span> mode — paper-training mode hides the highlight to avoid implying real activity.</span>
+                    <span><span className="text-emerald-400 font-bold">Green outline</span> = subnet actively monitored by Ari (SN1, 8, 9, 18, 64). Visible only in <span className="text-emerald-300">LIVE</span> mode — paper-training mode hides the highlight to avoid implying real activity.</span>
                   </p>
                   <p className="flex items-center gap-2">
                     <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#00e5a0] flex-shrink-0" />
-                    <span><span className="text-emerald-400 font-bold">Green dot</span> (top-right corner) = same II Agent active indicator (LIVE only).</span>
+                    <span><span className="text-emerald-400 font-bold">Green dot</span> (top-right corner) = same Ari active indicator (LIVE only).</span>
                   </p>
                   <p className="flex items-center gap-2">
                     <span className="text-emerald-400 font-bold flex-shrink-0">▲</span>
@@ -355,7 +355,7 @@ export default function SubnetHeatMap() {
                     <span className="text-[12px] font-bold text-white">SN{hovered.uid} — {hovered.name}</span>
                     {isLive && TAOBOT_SUBNETS.has(hovered.uid) && (
                       <span className="text-[10px] font-mono text-emerald-400 border border-emerald-500/30 rounded px-1 py-0.5">
-                        II Agent ✓
+                        Ari ✓
                       </span>
                     )}
                   </div>
@@ -431,14 +431,14 @@ export default function SubnetHeatMap() {
         {isLive ? (
           <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-emerald-950/40 border border-emerald-800/30">
             <span className="w-3 h-3 rounded-sm border-2 border-emerald-400 flex-shrink-0 shadow-[0_0_6px_rgba(52,211,153,0.4)]" />
-            <span className="text-[11px] font-mono text-emerald-400 font-bold">II Agent Active Subnets</span>
+            <span className="text-[11px] font-mono text-emerald-400 font-bold">Ari Active Subnets</span>
             <span className="text-[10px] font-mono text-emerald-600">SN1 · SN8 · SN9 · SN18 · SN64</span>
-            <span className="ml-auto text-[10px] font-mono text-slate-600">Green outline = II Agent</span>
+            <span className="ml-auto text-[10px] font-mono text-slate-600">Green outline = Ari</span>
           </div>
         ) : (
           <div className="flex items-center gap-2 px-2 py-1 rounded-lg bg-slate-900/40 border border-slate-700/40">
             <span className="w-2 h-2 rounded-full bg-amber-400/70 flex-shrink-0" />
-            <span className="text-[11px] font-mono text-slate-400">Paper mode — II Agent active-subnet highlights are off until LIVE</span>
+            <span className="text-[11px] font-mono text-slate-400">Paper mode — Ari active-subnet highlights are off until LIVE</span>
             <span className="ml-auto text-[10px] font-mono text-slate-600">Hover any cell for full stats</span>
           </div>
         )}

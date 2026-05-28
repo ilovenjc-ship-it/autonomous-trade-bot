@@ -20,12 +20,14 @@ import clsx from 'clsx'
 import toast from 'react-hot-toast'
 import NotificationBell from '@/components/NotificationBell'
 import TickerTape from '@/components/TickerTape'
+// F-45: Ari quick-prompt pills mounted in the orb panel.
+import OrbQuickPrompts from '@/components/OrbQuickPrompts'
 
 // ── Page title map ─────────────────────────────────────────────────────────────
 // Session XXVI: Trades → Manual Trades, Analytics → Network Analytics, Settings removed.
 const PAGE_TITLES: Record<string, string> = {
   '/':                     'Dashboard',
-  '/ii-agent':             'II Agent',
+  '/ii-agent':             'Ari',
   '/fleet-consensus':      'Fleet Consensus BFT',
   '/openclaw':             'Fleet Consensus BFT',  // legacy alias — redirected via App.tsx
   '/fleet':                'Agent Fleet',
@@ -75,7 +77,12 @@ const navGroups: NavGroup[] = [
   {
     heading: 'INTELLIGENCE',
     items: [
-      { to: '/ii-agent',  icon: Brain, label: 'II Agent' },
+      // F-45 (Day 15 Ari rebrand): label flipped from "II Agent" → "Ari".
+      // Subtitle "Architect & Orchestrator" rendered separately in the
+      // NavLink body (see render code below) — pulled from D-44 standing
+      // authority binding (the Architect+Orchestrator title is the
+      // doctrinal description of this agent's role on the project).
+      { to: '/ii-agent',  icon: Brain, label: 'Ari' },
     ],
   },
   {
@@ -362,7 +369,7 @@ export default function Layout() {
   // immediately. Confirm prompt prevents an accidental nuke.
   const clearChatHistory = useCallback(async () => {
     if (chatHistory.length === 0) return
-    if (!window.confirm('Reset chat with II Agent?\n\nClears all past conversation. This cannot be undone.')) return
+    if (!window.confirm('Reset chat with Ari?\n\nClears all past conversation. This cannot be undone.')) return
     try {
       await api.delete('/fleet/chat/history')
       setChatHistory([])
@@ -505,7 +512,17 @@ export default function Layout() {
                         }
                       >
                         <Icon size={17} />
-                        <span className="flex-1">{label}</span>
+                        {/* F-45: Ari nav entry gets a 2-line label (name +
+                            doctrinal subtitle from D-44). All other entries
+                            keep the single-line label render unchanged. */}
+                        {to === '/ii-agent' ? (
+                          <span className="flex-1 flex flex-col leading-tight">
+                            <span>{label}</span>
+                            <span className="text-[10px] font-mono text-slate-500 tracking-wide">Architect &amp; Orchestrator</span>
+                          </span>
+                        ) : (
+                          <span className="flex-1">{label}</span>
+                        )}
                         {badge && criticalUnreadCount > 0 && (
                           <span className="min-w-[18px] h-[18px] bg-red-500 text-white text-[13px] font-bold rounded-full flex items-center justify-center px-1 animate-pulse">
                             {criticalUnreadCount > 99 ? '99+' : criticalUnreadCount}
@@ -587,8 +604,8 @@ export default function Layout() {
                       </span>
                     </span>
                   </span>
-                  <span className="text-[13px] font-bold tracking-widest text-red-400 uppercase">II Agent</span>
-                  <span className="text-[10px] font-mono text-slate-500 ml-1">orchestrator</span>
+                  <span className="text-[13px] font-bold tracking-widest text-red-400 uppercase">Ari</span>
+                  <span className="text-[10px] font-mono text-slate-500 ml-1">architect & orchestrator</span>
                 </div>
                 <div className="flex items-center gap-1">
                   {/* Reset chat button */}
@@ -613,11 +630,18 @@ export default function Layout() {
                 </div>
               </div>
 
+              {/* F-45 Ari quick-prompt pills — Describe Subnet, Social
+                  Activity, Recent Stakers. Sit between the panel header
+                  and the message stream so they're always visible while
+                  the operator is composing. Submitting a pill query goes
+                  through the same sendMessage path as the input bar. */}
+              <OrbQuickPrompts onSubmit={sendMessage} disabled={chatLoading} />
+
               {/* Messages */}
               <div ref={chatPanelRef} className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
                 {chatHistory.length === 0 && !chatLoading && (
                   <p className="text-[13px] text-slate-500 italic text-center mt-4">
-                    Ask II Agent anything about the fleet…
+                    Ask Ari anything about the fleet…
                   </p>
                 )}
                 {chatHistory.map((m, i) => (
@@ -629,7 +653,7 @@ export default function Layout() {
                         : 'bg-slate-800/80 text-slate-200 rounded-bl-sm border border-slate-700/40'
                     )}>
                       {m.role === 'agent' && (
-                        <div className="text-[8px] text-red-400 mb-0.5 font-bold tracking-wider">II AGENT</div>
+                        <div className="text-[8px] text-red-400 mb-0.5 font-bold tracking-wider">ARI</div>
                       )}
                       {m.content}
                     </div>
@@ -657,7 +681,7 @@ export default function Layout() {
                   value={chatInput}
                   onChange={e => setChatInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && sendMessage(chatInput)}
-                  placeholder="Ask II Agent…"
+                  placeholder="Ask Ari…"
                   className="flex-1 bg-slate-800/60 border border-slate-700/40 rounded-lg px-2.5 py-1.5 text-[14px] text-slate-100 placeholder-slate-500 outline-none focus:border-red-500/40 transition-colors"
                 />
                 {/* Mic button — voice option */}
@@ -696,8 +720,8 @@ export default function Layout() {
           */}
           <button
             onClick={() => setOrbOpen(o => !o)}
-            title={orbOpen ? 'Close II Agent' : 'Talk to II Agent'}
-            aria-label={orbOpen ? 'Close II Agent chat' : 'Open II Agent chat'}
+            title={orbOpen ? 'Close chat with Ari' : 'Chat with Ari'}
+            aria-label={orbOpen ? 'Close chat with Ari' : 'Chat with Ari'}
             className="relative w-20 h-20 group focus:outline-none cursor-pointer transition-transform duration-300 hover:scale-[1.04] active:scale-[0.97]"
           >
             {/* Outer rotating ring — slow, dashed; speeds up subtly when active */}
@@ -814,7 +838,7 @@ export default function Layout() {
           {/* Label — HAL-red identity, more confident */}
           <div className="text-center group/label cursor-pointer" onClick={() => setOrbOpen(o => !o)}>
             <div className="text-[12px] font-extrabold tracking-[0.18em] text-red-400 uppercase leading-none drop-shadow-[0_0_8px_rgba(248,113,113,0.55)]">
-              II Agent
+              Ari
             </div>
             <div className={clsx(
               'text-[10px] mt-1 font-mono transition-all duration-200 leading-none',

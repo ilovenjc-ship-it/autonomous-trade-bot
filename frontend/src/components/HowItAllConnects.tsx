@@ -94,7 +94,7 @@ export default function HowItAllConnects() {
         <div className="group relative flex-1 rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4 cursor-default overflow-hidden transition-all duration-300 hover:border-emerald-400/60 hover:bg-emerald-500/15 hover:shadow-lg hover:shadow-emerald-500/10">
           <div className="transition-opacity duration-300 group-hover:opacity-0">
             <p className="text-lg mb-1">🧠</p>
-            <p className="text-sm font-bold text-emerald-400 font-mono">II Agent</p>
+            <p className="text-sm font-bold text-emerald-400 font-mono">Ari</p>
             <p className="text-[13px] text-slate-400 uppercase tracking-wider mb-2">Master Orchestrator</p>
             <p className="text-xs font-mono font-semibold text-slate-200">
               {agent?.analysis_count ?? 0} analyses run
@@ -104,7 +104,7 @@ export default function HowItAllConnects() {
             </p>
           </div>
           <div className="absolute inset-0 p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-center">
-            <p className="text-xs font-bold text-emerald-300 mb-2">🧠 II Agent — Master Orchestrator</p>
+            <p className="text-xs font-bold text-emerald-300 mb-2">🧠 Ari — Architect &amp; Orchestrator</p>
             <p className="text-[14px] text-slate-300 leading-relaxed">
               The conductor. Runs every 5 minutes. Reads the market regime
               (BULL / BEAR / SIDEWAYS / VOLATILE), reads all 12 bots' health,

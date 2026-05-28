@@ -332,7 +332,7 @@ export default function SubnetDetail() {
               {detail.is_monitored && (
                 <span className="flex items-center gap-1 px-2 py-0.5 bg-accent-green/15 border border-accent-green/30 rounded-full text-[10px] font-mono text-accent-green">
                   <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" />
-                  II Agent Active
+                  Ari Active
                 </span>
               )}
             </div>
@@ -463,7 +463,7 @@ export default function SubnetDetail() {
             <div className="mt-3 flex items-start gap-2 bg-accent-green/8 border border-accent-green/25 rounded-lg px-3 py-2.5">
               <Shield size={13} className="text-accent-green flex-shrink-0 mt-0.5" />
               <p className="text-xs text-accent-green/90 font-mono">
-                The II Agent actively coordinates stake on this subnet. Consensus-approved signals from
+                Ari actively coordinates stake on this subnet. Consensus-approved signals from
                 the Fleet Consensus engine routes TAO in and out via the configured validator. Performance data
                 feeds directly into the Strategy Leaderboard and P&L Summary.
               </p>
@@ -573,7 +573,7 @@ export default function SubnetDetail() {
                         <p className="text-slate-200 font-bold mb-2">How staking works</p>
                         <p>• Your τ TAO converts to α alpha tokens at the current bonding-curve rate</p>
                         <p>• Alpha earns yield from subnet emission — current APY: <span className="text-accent-green font-bold">{detail.apy.toFixed(1)}%</span></p>
-                        <p>• Routes through the II Agent's configured validator for SN{netuid}</p>
+                        <p>• Routes through Ari's configured validator for SN{netuid}</p>
                         <p>• Minimum stake: 0.001 τ · Block time: ~12 s</p>
                         <p>• Keep ≥ 0.01 τ liquid to cover future extrinsic fees</p>
                       </>

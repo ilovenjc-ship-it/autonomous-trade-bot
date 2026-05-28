@@ -61,6 +61,7 @@ Friday 2026-05-29.
 | W-2 | Day 14 Item 2 — Mean Reversion redesign | (deferred until W-1 read complete) | gated on data | DAY14_WORKSHEET.md Item 2 + D-34/D-35/D-38 | Adds **cross-sectional vs time-series fork** above existing Branches A/B/C per Day 14 morning Library carry-forward |
 | W-3 | Day 14 Item 3 — Momentum Cascade Kelly verdict | (Kelly read first) | gated on data | DAY14_WORKSHEET.md Item 3 + D-37 | Continuous Kelly `f* = m/s²` replaces discrete Kelly form in worksheet; if `m < 0`, do-not-deploy at any size |
 | F-41 | Publish Ari skills to II Agent skill catalog | (not yet authored — opportunity only) | OPPORTUNITY filed | D-41 (Day 14 morning) | Promote to PRESCRIPTIVE only after operator green-light on publication scope |
+| F-45 | Ari rebrand + page-anchored chat surfaces | [specs/ari-rebrand/document.md](ari-rebrand/document.md) | **in-progress** — Day 15 morning, 2026-05-28 | D-44 (standing Architect authority) | Rename "II Agent" → "Ari" across user-facing strings (32 files, ~164 occurrences). HAL orb hover "Chat with Ari" + 3 quick-prompt pills. Chat page rotating placeholder cycling page-anchored prompts. New `lib/ariPrompts.ts` registry. 6 new backend keyword routes with graceful fallbacks. Internal identifiers explicitly out of scope. |
 
 ## Cross-references
 

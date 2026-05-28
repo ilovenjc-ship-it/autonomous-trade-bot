@@ -55,7 +55,7 @@ export default function RegimeCard({ regime, color, price, rsi, compact = false 
   const tip = (
     <div className="space-y-2">
       <p className="text-white font-bold">Market Regime</p>
-      <p>How II Agent currently classifies the TAO market. Updated every 5-minute analysis cycle from price + indicator state.</p>
+      <p>How Ari currently classifies the TAO market. Updated every 5-minute analysis cycle from price + indicator state.</p>
       <p className="text-[11px] font-mono text-slate-300">
         BULL · BEAR · SIDEWAYS · VOLATILE · SCANNING
       </p>

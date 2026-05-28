@@ -349,7 +349,7 @@ function StakeModal({ subnet, onClose }: StakeModalProps) {
           {/* Info banner */}
           {tab === 'stake' && (
             <div className="bg-dark-700 border border-dark-600 rounded-lg px-3 py-2.5 text-xs text-slate-400 font-mono space-y-0.5">
-              <p>• Stake routes through the II Agent's configured validator for SN{subnet.uid}</p>
+              <p>• Stake routes through Ari's configured validator for SN{subnet.uid}</p>
               <p>• On-chain execution takes ~12 s (one block)</p>
               <p>• Keep at least 0.01τ liquid for fees</p>
             </div>
@@ -588,7 +588,7 @@ export default function MarketData() {
               the Search box, sitting right of the APY percentages. */}
           <span className="flex items-center gap-1.5 ml-auto px-2.5 py-1 rounded-md bg-accent-green/8 border border-accent-green/20 text-[11px] font-mono text-accent-green">
             <span className="w-2 h-2 rounded-full bg-accent-green animate-pulse flex-shrink-0" />
-            Actively monitored by II Agent
+            Actively monitored by Ari
           </span>
         </div>
       </div>
@@ -655,7 +655,7 @@ export default function MarketData() {
                   <div className="flex items-center gap-2">
                     <span className="flex items-center justify-center w-3 flex-shrink-0">
                       {MONITORED_UIDS.has(s.uid) && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" title="II Agent actively monitors this subnet" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent-green animate-pulse" title="Ari actively monitors this subnet" />
                       )}
                     </span>
                     <div>
@@ -746,7 +746,7 @@ export default function MarketData() {
         </p>
         <p className="text-xs text-slate-500 font-mono flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-accent-green inline-block" />
-          Green glow = II Agent actively monitoring
+          Green glow = Ari actively monitoring
         </p>
       </div>
 

@@ -167,8 +167,8 @@ SUBNET_DESCRIPTIONS: dict[int, str] = {
     5:  "Open Kaito — decentralised web search and semantic information retrieval. Powers next-generation search without central control.",
     6:  "Nous Research — advanced LLM fine-tuning and evaluation. Focuses on producing aligned, capable open-source models.",
     7:  "SubVortex — decentralised bandwidth and storage marketplace. Routes traffic to the fastest globally-distributed nodes.",
-    8:  "Taoshi PTN (Proprietary Trading Network) — real-time predictive trading signals for financial markets. The II Agent actively coordinates stake and receives signals from this subnet.",
-    9:  "Pretraining — foundational model pretraining on large text corpora. Miners prove they trained models by submitting weight commitments on-chain. The II Agent actively coordinates stake here.",
+    8:  "Taoshi PTN (Proprietary Trading Network) — real-time predictive trading signals for financial markets. Ari actively coordinates stake and receives signals from this subnet.",
+    9:  "Pretraining — foundational model pretraining on large text corpora. Miners prove they trained models by submitting weight commitments on-chain. Ari actively coordinates stake here.",
     10: "Map Reduce — distributed compute for large-scale data aggregation and transformation pipelines.",
     11: "Dippy Roleplay — conversational roleplay and character AI. Miners fine-tune LLMs for entertainment and companion applications.",
     12: "Horde — collaborative AI horde network linking diverse inference endpoints for high-availability generation.",
@@ -177,7 +177,7 @@ SUBNET_DESCRIPTIONS: dict[int, str] = {
     15: "Human Intelligence (HiveTrain) — human-in-the-loop task validation to augment pure AI judgement.",
     16: "BitAds — decentralised advertising attribution and analytics without invasive tracking.",
     17: "3D Gen — AI-powered 3D model generation from text and image prompts.",
-    18: "Cortex — general-purpose AI API gateway aggregating multiple LLM providers with reliability guarantees. The II Agent monitors this subnet.",
+    18: "Cortex — general-purpose AI API gateway aggregating multiple LLM providers with reliability guarantees. Ari monitors this subnet.",
     19: "Nineteen — high-throughput inference optimised for speed and low latency on diverse model types.",
     20: "BitAgent — autonomous AI agents that plan and execute multi-step tasks using tool use.",
     21: "FileTAO — decentralised file storage with cryptographic proofs of retrieval.",
@@ -223,7 +223,7 @@ SUBNET_DESCRIPTIONS: dict[int, str] = {
     61: "Red Team — adversarial AI red-teaming and safety vulnerability discovery.",
     62: "Storb — distributed object storage with proof-of-retrieval guarantees.",
     63: "Melting Pot — multi-agent cooperation tasks and emergent collective behaviour research.",
-    64: "Chutes — AI model serving infrastructure and decentralised inference orchestration. The II Agent actively coordinates stake here.",
+    64: "Chutes — AI model serving infrastructure and decentralised inference orchestration. Ari actively coordinates stake here.",
     96: "Subnet 96 — extended trading target in the Bittensor ecosystem.",
 }
 
@@ -657,8 +657,9 @@ async def get_subnet_detail(uid: int):
         "price_history": [round(p, 6) for p in raw_history],
         "taostats_url":  f"https://taostats.io/subnets/{uid}",
         "tao_app_url":   f"https://tao.app/subnet/{uid}",
-        # NOTE: JSON field name preserved for API/UI compatibility — value updated to "II Agent Active"
-        "signal_candidate_label":  "II Agent Active" if is_monitored else "Monitor Only",
+        # NOTE: JSON field name preserved for API/UI compatibility — value
+        # updated to "Ari Active" per F-45 rebrand (Day 15, 2026-05-28).
+        "signal_candidate_label":  "Ari Active" if is_monitored else "Monitor Only",
     }
 
 

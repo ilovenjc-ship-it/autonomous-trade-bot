@@ -750,8 +750,8 @@ export default function Dashboard() {
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">II Agent</p>
-              <InfoBubble content="Current market regime detected by II Agent — BULL, BEAR, SIDEWAYS, or VOLATILE. Updated every 5-minute analysis cycle. The sub-line shows total analyses run since boot. Click the card to open the full II Agent page." side="right" maxWidth={300} />
+              <p className="text-[11px] text-slate-500 uppercase tracking-widest font-mono">Ari</p>
+              <InfoBubble content="Current market regime detected by Ari — BULL, BEAR, SIDEWAYS, or VOLATILE. Updated every 5-minute analysis cycle. The sub-line shows total analyses run since boot. Click the card to open the full Ari page." side="right" maxWidth={300} />
             </div>
             <p className="text-base font-black font-mono mt-0.5 truncate" style={{ color: agentStatus?.regime_color ?? '#818cf8' }}>
               {REGIME_LABEL[agentStatus?.current_regime ?? 'UNKNOWN'] ?? '⟳ SCANNING'}

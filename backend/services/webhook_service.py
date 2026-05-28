@@ -200,13 +200,13 @@ class WebhookService:
         if detail:
             fields.append({"name": "Detail", "value": f"`{detail}`", "inline": False})
         return {
-            "username": "II Agent",
+            "username": "Ari",
             "embeds": [{
                 "title":       title,
                 "description": message,
                 "color":       color,
                 "fields":      fields,
-                "footer":      {"text": "II Agent · Autonomous Trading Orchestrator"},
+                "footer":      {"text": "Ari · Architect & Orchestrator"},
                 "timestamp":   timestamp,
             }],
         }
@@ -236,7 +236,7 @@ class WebhookService:
                     {"type": "context", "elements": context_elements},
                     {"type": "divider"},
                 ],
-                "footer": "II Agent",
+                "footer": "Ari",
                 "ts":     str(int(time.time())),
             }],
         }
@@ -331,7 +331,7 @@ class WebhookService:
         """
         if not self._endpoints:
             return
-        title      = alert.get("title", "II Agent Alert")
+        title      = alert.get("title", "Ari Alert")
         message    = alert.get("message", "")
         level      = alert.get("level", "INFO")
         alert_type = alert.get("type", "SYSTEM")
@@ -359,7 +359,7 @@ class WebhookService:
         level_map  = {"trade": "INFO", "gate": "WARNING", "alert": "CRITICAL"}
         level      = level_map.get(kind, "INFO")
         alert_type = kind.upper()   # TRADE | GATE | ALERT
-        title      = f"II Agent {kind.capitalize()}: {message[:60]}"
+        title      = f"Ari {kind.capitalize()}: {message[:60]}"
 
         for ep in self._endpoints.values():
             if not self._should_dispatch(ep, level, alert_type, kind):
@@ -391,8 +391,8 @@ class WebhookService:
 
         payload = self._build_payload(
             ep,
-            title      = "✅ II Agent Webhook Test",
-            message    = "This is a test notification from the II Agent. Your webhook endpoint is configured correctly!",
+            title      = "✅ Ari Webhook Test",
+            message    = "This is a test notification from Ari. Your webhook endpoint is configured correctly!",
             level      = "INFO",
             alert_type = "TEST",
             strategy   = None,

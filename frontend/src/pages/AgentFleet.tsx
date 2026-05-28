@@ -347,7 +347,7 @@ export default function AgentFleet() {
             )}
           </div>
           <div className="flex items-center gap-3">
-            <span className="text-[13px] text-slate-300">Updated every 60s by II Agent health-check loop</span>
+            <span className="text-[13px] text-slate-300">Updated every 60s by Ari health-check loop</span>
             {lastUpdated && <span className="text-[13px] text-slate-400">Last: {lastUpdated}</span>}
             <button onClick={fetchBots} disabled={loading}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800/60 border border-slate-700/50 rounded text-[14px] text-slate-300 hover:text-white hover:border-slate-600 transition-colors">

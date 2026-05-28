@@ -972,7 +972,7 @@ export default function FleetConsensus() {
           icon={Activity}
           label="Analyses Run"
           value={analysisCount ?? 0}
-          sub="II Agent cycles"
+          sub="Ari cycles"
           accent="bg-emerald-500/15 text-emerald-400"
           tip="Total number of autonomous analysis cycles completed. Runs every 5 minutes. Each cycle evaluates all 12 bots, detects market regime, and issues recommendations."
         />

@@ -409,7 +409,7 @@ class IIAgentService:
             )
             push_event(
                 "alert",
-                f"⚡ II Agent: Regime shifted to {regime}",
+                f"⚡ Ari: Regime shifted to {regime}",
                 detail = f"TAO=${price:.2f} RSI={f'{rsi:.1f}' if rsi else 'n/a'}",
             )
             alert_service.regime_shift(
@@ -422,7 +422,7 @@ class IIAgentService:
         # 5. Push activity event
         push_event(
             "signal",
-            f"🧠 II Agent #{analysis_id} — Regime: {regime} | Fleet PnL: {total_pnl:+.4f}τ | Velocity: {velocity} trades/hr",
+            f"🧠 Ari #{analysis_id} — Regime: {regime} | Fleet PnL: {total_pnl:+.4f}τ | Velocity: {velocity} trades/hr",
             detail = f"Hot: {len(hot_bots)} | Struggling: {len(struggling_bots)} | Consensus approval: {c_approval:.1f}%",
         )
 
@@ -498,9 +498,9 @@ class IIAgentService:
         self._task = asyncio.create_task(self._loop())
         self._push_observation(
             level="SYSTEM",
-            message="🧠 II Agent online — Master orchestrator initialised. Monitoring fleet, market regime, and consensus engine.",
+            message="🧠 Ari online — Architect & Orchestrator initialised. Monitoring fleet, market regime, and consensus engine.",
         )
-        push_event("system", "🧠 II Agent orchestrator online", detail=f"Analysis interval: {interval}s")
+        push_event("system", "🧠 Ari orchestrator online", detail=f"Analysis interval: {interval}s")
         logger.info(f"II Agent started (interval={interval}s)")
 
     async def stop(self) -> None:
