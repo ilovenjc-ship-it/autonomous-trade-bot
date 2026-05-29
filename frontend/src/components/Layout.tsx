@@ -23,6 +23,16 @@ import TickerTape from '@/components/TickerTape'
 // F-45: Ari quick-prompt pills mounted in the orb panel.
 import OrbQuickPrompts from '@/components/OrbQuickPrompts'
 
+// ── Side-menu orb identity flag — Day 16 Session XLIII ──────────────────
+// Mark's call: lion-as-orb is GREENLIT. The HAL eye sphere code below is
+// preserved INTACT (not deleted) so we can flip back in one keystroke if
+// the lion ever needs to come down. Both render paths share the same
+// button shell — the same onClick, hover, halo, and animate-hal-breathe
+// rhythm — so the swap is purely visual.
+//   true  → lion mark (frontend/public/ari-lion-mark-v4.png)
+//   false → original HAL eye sphere (anatomically-banded, no pupil/pinpoint)
+const USE_LION_ORB = true;
+
 // ── Page title map ─────────────────────────────────────────────────────────────
 // Session XXVI: Trades → Manual Trades, Analytics → Network Analytics, Settings removed.
 const PAGE_TITLES: Record<string, string> = {
@@ -737,69 +747,125 @@ export default function Layout() {
             aria-label={orbOpen ? 'Close chat with Ari' : 'Chat with Ari'}
             className="relative w-20 h-20 group focus:outline-none cursor-pointer transition-transform duration-300 hover:scale-[1.04] active:scale-[0.97]"
           >
-            {/* Outer rotating ring — slow, dashed; speeds up subtly when active */}
-            <span
-              className={clsx(
-                'absolute inset-0 rounded-full border border-dashed border-red-500/25',
-                orbOpen ? 'animate-hal-active' : 'animate-hal-ring'
-              )}
-              style={orbOpen ? { animation: 'halRing 3s linear infinite' } : undefined}
-            />
+            {/* ══════════════════════════════════════════════════════════
+                ORB RENDER PATH — branches on USE_LION_ORB (top of file).
+                Both paths share this same <button> shell so the click,
+                hover, scale, and chat-panel toggle behaviour stays
+                identical. Only the visual content swaps.
+                ══════════════════════════════════════════════════════════ */}
 
-            {/* Static inner ring */}
-            <span className={clsx(
-              'absolute inset-1.5 rounded-full border transition-all duration-700',
-              orbOpen ? 'border-red-400/55' : 'border-red-500/25 group-hover:border-red-400/45'
-            )} />
+            {USE_LION_ORB ? (
+              <>
+                {/* ── Lion mark — Day 16 Session XLIII greenlit ──
+                    The heraldic Ari sigil with HAL eyes baked in. The
+                    image already carries its own pink halo + the two
+                    eyes inside the lion's face. We apply animate-hal-
+                    breathe to the whole image so the entire lion
+                    pulses with the same rhythm as the chat-header
+                    mini eye and the floating-panel mini eye — three
+                    placements, one heartbeat. */}
+                <img
+                  src="/ari-lion-mark-v4.png"
+                  alt="Ari — Lion sigil"
+                  draggable={false}
+                  className={clsx(
+                    'absolute inset-0 w-full h-full object-contain transition-all duration-700 select-none',
+                    orbOpen ? 'animate-hal-active scale-[1.04]' : 'animate-hal-breathe',
+                  )}
+                  style={{
+                    filter: orbOpen
+                      ? 'drop-shadow(0 0 14px rgba(249,168,212,0.55)) drop-shadow(0 0 24px rgba(220,38,38,0.30))'
+                      : 'drop-shadow(0 0 8px rgba(249,168,212,0.35)) drop-shadow(0 0 16px rgba(220,38,38,0.18))',
+                  }}
+                />
+                {/* Outer pink+red halo — sits BEHIND the lion image.
+                    Rhymes with the chat-header eye and orb halo. */}
+                <span
+                  aria-hidden
+                  className={clsx(
+                    'absolute -inset-2 rounded-full pointer-events-none transition-opacity duration-700 -z-10',
+                    orbOpen ? 'opacity-100' : 'opacity-55 group-hover:opacity-85',
+                  )}
+                  style={{
+                    background: 'radial-gradient(circle, rgba(249,168,212,0.18) 0%, rgba(220,38,38,0.16) 35%, rgba(220,38,38,0.06) 60%, transparent 80%)',
+                    filter: 'blur(12px)',
+                  }}
+                />
+              </>
+            ) : (
+              <>
+                {/* ══════════ HAL eye render path (preserved) ══════════
+                    All of the original anatomy is kept INTACT below so
+                    flipping USE_LION_ORB to false restores the orb
+                    exactly as it was. Mark's standing instruction:
+                    "Keep the code for the HAL Eye. Don't trash it."
+                    ════════════════════════════════════════════════════ */}
 
-            {/* ── The HAL eye — Day 16 Session XLIII anatomy ──
-                Mark's call after the v2 simpler-orb comparison: amber-pupil
-                + white-pinpoint look is OUT, simpler red-coal-in-housing
-                look is IN — but with "a tad of amber for iris" so the eye
-                isn't pure red. The amber kiss is now baked into the
-                gradient (single #ea580c stop in the inner-iris zone)
-                rather than rendered as a separate pupil span. No nested
-                child spans — just the housing/iris sphere. The eye reads
-                more realistic, more ominous, and rhymes with the lion
-                mark's eyes (same anatomy, different scale). */}
-            <span className="absolute inset-0 flex items-center justify-center">
-              <span
-                className={clsx(
-                  'w-12 h-12 rounded-full transition-all duration-700',
-                  orbOpen ? 'animate-hal-active' : 'animate-hal-breathe',
-                )}
-                style={{
-                  background: orbOpen
-                    // Active — slightly brighter red core, amber kiss at ~14%
-                    ? 'radial-gradient(circle at 50% 50%, #fca5a5 0%, #f87171 4%, #ef4444 9%, #ea580c 14%, #dc2626 22%, #991b1b 34%, #450a0a 46%, #1a0303 56%, #000000 64%, #000000 100%)'
-                    // Idle — calmer red coal, single burnt-amber stop at 14%
-                    : 'radial-gradient(circle at 50% 50%, #ef4444 0%, #dc2626 8%, #ea580c 14%, #b91c1c 24%, #7f1d1d 36%, #450a0a 48%, #1a0303 56%, #000000 64%, #000000 100%)',
-                  boxShadow: orbOpen
-                    ? 'inset 0 0 28px 9px rgba(0,0,0,0.95), inset 0 0 6px 2px rgba(234,88,12,0.35)'
-                    : 'inset 0 0 26px 10px rgba(0,0,0,1), inset 0 0 5px 1px rgba(234,88,12,0.28)',
-                }}
-              />
-              {/* NO amber pupil child span — anatomy now lives in gradient. */}
-              {/* NO white pinpoint child span — pure red+amber-kiss coal. */}
-            </span>
+                {/* Outer rotating ring — slow, dashed; speeds up subtly when active */}
+                <span
+                  className={clsx(
+                    'absolute inset-0 rounded-full border border-dashed border-red-500/25',
+                    orbOpen ? 'animate-hal-active' : 'animate-hal-ring'
+                  )}
+                  style={orbOpen ? { animation: 'halRing 3s linear infinite' } : undefined}
+                />
 
-            {/* Outer glow halo — Session XXXVI v2: red-dominant (was: amber
-                inner / red outer). Now the eye itself owns the amber, and
-                the room-glow is mostly red — like the eye's red body is
-                spilling into the surrounding space. Subtle amber kiss
-                lingers at the very inner edge of the halo so the warmth
-                still reads. ────────────────────────────────────────────── */}
-            <span
-              aria-hidden
-              className={clsx(
-                'absolute -inset-2 rounded-full pointer-events-none transition-opacity duration-700',
-                orbOpen ? 'opacity-100' : 'opacity-65 group-hover:opacity-95',
-              )}
-              style={{
-                background: 'radial-gradient(circle, rgba(251,191,36,0.12) 0%, rgba(220,38,38,0.22) 25%, rgba(220,38,38,0.10) 55%, rgba(220,38,38,0.03) 75%, transparent 85%)',
-                filter: 'blur(10px)',
-              }}
-            />
+                {/* Static inner ring */}
+                <span className={clsx(
+                  'absolute inset-1.5 rounded-full border transition-all duration-700',
+                  orbOpen ? 'border-red-400/55' : 'border-red-500/25 group-hover:border-red-400/45'
+                )} />
+
+                {/* ── The HAL eye — Day 16 Session XLIII anatomy ──
+                    Mark's call after the v2 simpler-orb comparison: amber-pupil
+                    + white-pinpoint look is OUT, simpler red-coal-in-housing
+                    look is IN — but with "a tad of amber for iris" so the eye
+                    isn't pure red. The amber kiss is now baked into the
+                    gradient (single #ea580c stop in the inner-iris zone)
+                    rather than rendered as a separate pupil span. No nested
+                    child spans — just the housing/iris sphere. The eye reads
+                    more realistic, more ominous, and rhymes with the lion
+                    mark's eyes (same anatomy, different scale). */}
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <span
+                    className={clsx(
+                      'w-12 h-12 rounded-full transition-all duration-700',
+                      orbOpen ? 'animate-hal-active' : 'animate-hal-breathe',
+                    )}
+                    style={{
+                      background: orbOpen
+                        // Active — slightly brighter red core, amber kiss at ~14%
+                        ? 'radial-gradient(circle at 50% 50%, #fca5a5 0%, #f87171 4%, #ef4444 9%, #ea580c 14%, #dc2626 22%, #991b1b 34%, #450a0a 46%, #1a0303 56%, #000000 64%, #000000 100%)'
+                        // Idle — calmer red coal, single burnt-amber stop at 14%
+                        : 'radial-gradient(circle at 50% 50%, #ef4444 0%, #dc2626 8%, #ea580c 14%, #b91c1c 24%, #7f1d1d 36%, #450a0a 48%, #1a0303 56%, #000000 64%, #000000 100%)',
+                      boxShadow: orbOpen
+                        ? 'inset 0 0 28px 9px rgba(0,0,0,0.95), inset 0 0 6px 2px rgba(234,88,12,0.35)'
+                        : 'inset 0 0 26px 10px rgba(0,0,0,1), inset 0 0 5px 1px rgba(234,88,12,0.28)',
+                    }}
+                  />
+                  {/* NO amber pupil child span — anatomy now lives in gradient. */}
+                  {/* NO white pinpoint child span — pure red+amber-kiss coal. */}
+                </span>
+
+                {/* Outer glow halo — Session XXXVI v2: red-dominant (was: amber
+                    inner / red outer). Now the eye itself owns the amber, and
+                    the room-glow is mostly red — like the eye's red body is
+                    spilling into the surrounding space. Subtle amber kiss
+                    lingers at the very inner edge of the halo so the warmth
+                    still reads. ────────────────────────────────────────────── */}
+                <span
+                  aria-hidden
+                  className={clsx(
+                    'absolute -inset-2 rounded-full pointer-events-none transition-opacity duration-700',
+                    orbOpen ? 'opacity-100' : 'opacity-65 group-hover:opacity-95',
+                  )}
+                  style={{
+                    background: 'radial-gradient(circle, rgba(251,191,36,0.12) 0%, rgba(220,38,38,0.22) 25%, rgba(220,38,38,0.10) 55%, rgba(220,38,38,0.03) 75%, transparent 85%)',
+                    filter: 'blur(10px)',
+                  }}
+                />
+              </>
+            )}
           </button>
 
           {/* Day 16 #1 — "ARI" subtitle removed per Mark's spec.
