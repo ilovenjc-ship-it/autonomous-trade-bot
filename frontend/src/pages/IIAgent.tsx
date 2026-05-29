@@ -14,13 +14,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
   Brain, TrendingUp, TrendingDown, Minus, Zap,
-  Activity, RefreshCw, ChevronRight, AlertTriangle, Users,
+  Activity, RefreshCw, ChevronRight, ChevronDown, ChevronUp, AlertTriangle, Users,
   HelpCircle, ShieldCheck, ShieldX,
   Eye, BarChart3, Lightbulb,
   Cpu, Radio, ShieldAlert, ArrowUpRight, MessageSquare,
   Send, Sparkles, User, Bot,
   // Session XXXVIII: removed CheckCircle2, Flame — only used by the
   // retired top-row KPI strip (Fleet PnL + Hot Strategies cards).
+  // Day 16 #9: ChevronDown/ChevronUp added — dropdown toggle for the
+  // Run Analysis section that replaces the masthead Run Analysis button.
 } from 'lucide-react'
 import clsx from 'clsx'
 import api from '@/api/client'
@@ -733,6 +735,11 @@ export default function IIAgent() {
   const [analyzing,   setAnalyzing]   = useState(false)
   const [flash,       setFlash]       = useState(false)
   const [cStats,      setCStats]      = useState<ConsensusStats | null>(null)
+  // Day 16 #9 — Run Analysis dropdown state. Closed by default so the
+  // page lands quiet; opens automatically when the operator clicks
+  // Run Analysis (so the fleet bots are visible while analysis runs)
+  // or manually via the chevron.
+  const [healthOpen,  setHealthOpen]  = useState(false)
 
   // Chat state
   const [chatHistory, setChatHistory] = useState<ChatMsg[]>([])
@@ -1110,23 +1117,82 @@ export default function IIAgent() {
           </p>
         </div>
       </div>
-      {/* ── Fleet Health Grid ── */}
-      {fleetBots.length > 0 && (
-        <div className="bg-dark-800 border border-dark-600 rounded-2xl p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Eye size={14} className="text-slate-300" />
-            <span className="text-xs text-slate-300 uppercase tracking-wider font-mono">Fleet Health Monitor</span>
-            <span className="ml-auto text-[13px] text-slate-300 font-mono">
-              {fleetBots.filter(b => b.health === 'HOT').length} hot · {fleetBots.filter(b => b.health === 'STRUGGLING').length} struggling
+      {/* ── Day 16 #9 — Run Analysis dropdown ──
+          Mark relocated the Run Analysis CTA off the masthead and into
+          its own section between the Chat Window and the Agent
+          Observation Log. The dropdown's body is the Fleet Health
+          Monitor grid; clicking Run Analysis BOTH triggers the
+          observation cycle AND auto-opens the panel so the operator
+          sees fleet bots reacting in real time. The chevron on the
+          right toggles open/closed without firing a new analysis (e.g.
+          if the operator just wants to peek at the most recent fleet
+          health snapshot). The section is always present even if the
+          fleet hasn't been hydrated yet — it's the action surface, not
+          a data card. */}
+      <div className="bg-dark-800 border border-dark-600 rounded-2xl overflow-hidden">
+        <div className="flex items-center justify-between gap-3 px-4 py-3 border-b border-dark-700/50">
+          {/* Left: Run Analysis button — emerald, matches the colour the
+              masthead button used to carry. Clicking auto-opens the panel. */}
+          <button
+            onClick={async () => { setHealthOpen(true); await handleAnalyze() }}
+            disabled={analyzing}
+            className={clsx(
+              'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all flex-shrink-0',
+              analyzing
+                ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 cursor-wait'
+                : 'bg-emerald-600/80 text-white hover:bg-emerald-500 border border-emerald-500/50',
+            )}
+            title="Trigger an observation cycle and reveal Fleet Health Monitor"
+          >
+            {analyzing
+              ? <><RefreshCw size={11} className="animate-spin" /> Analysing…</>
+              : <><Brain size={11} /> Run Analysis</>
+            }
+          </button>
+
+          {/* Centre: section label + live health summary */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <Eye size={14} className="text-slate-300 flex-shrink-0" />
+            <span className="text-xs text-slate-300 uppercase tracking-wider font-mono truncate">
+              Fleet Health Monitor
             </span>
+            {fleetBots.length > 0 && (
+              <span className="text-[13px] text-slate-300 font-mono whitespace-nowrap">
+                · {fleetBots.filter(b => b.health === 'HOT').length} hot · {fleetBots.filter(b => b.health === 'STRUGGLING').length} struggling
+              </span>
+            )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
-            {fleetBots.map(bot => (
-              <FleetHealthCard key={bot.name} bot={bot} />
-            ))}
-          </div>
+
+          {/* Right: chevron toggle (open/close without triggering analysis) */}
+          <button
+            onClick={() => setHealthOpen(o => !o)}
+            className="flex items-center gap-1 text-slate-400 hover:text-slate-100 transition-colors flex-shrink-0 px-1"
+            aria-label={healthOpen ? 'Collapse Fleet Health Monitor' : 'Expand Fleet Health Monitor'}
+            aria-expanded={healthOpen}
+          >
+            <span className="text-[11px] font-mono uppercase tracking-wider">
+              {healthOpen ? 'Hide' : 'Show'}
+            </span>
+            {healthOpen ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+          </button>
         </div>
-      )}
+
+        {healthOpen && (
+          <div className="p-4">
+            {fleetBots.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-6 gap-2">
+                {fleetBots.map(bot => (
+                  <FleetHealthCard key={bot.name} bot={bot} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6 text-sm text-slate-500 font-mono">
+                Fleet not hydrated yet. Click <span className="text-emerald-400">Run Analysis</span> to initialise the observation cycle.
+              </div>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* ── Observations + Active Directives ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

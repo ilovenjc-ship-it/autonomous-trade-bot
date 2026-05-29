@@ -1108,24 +1108,16 @@ export default function Layout() {
           {/* Push everything else to the right */}
           <div className="flex-1" />
 
-          {/* II Agent — Run Analysis button (Session XXXV: emerald section colour) */}
-          {pathname === '/ii-agent' && iiAgentStats && (
-            <button
-              onClick={iiAgentStats.handleAnalyze}
-              disabled={iiAgentStats.analyzing}
-              className={clsx(
-                'flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[13px] font-semibold transition-all flex-shrink-0 mr-1',
-                iiAgentStats.analyzing
-                  ? 'bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 cursor-wait'
-                  : 'bg-emerald-600/80 text-white hover:bg-emerald-500 border border-emerald-500/50'
-              )}
-            >
-              {iiAgentStats.analyzing
-                ? <><RefreshCw size={11} className="animate-spin" /> Analysing…</>
-                : <><Brain size={11} /> Run Analysis</>
-              }
-            </button>
-          )}
+          {/* Day 16 #9 — II Agent Run Analysis button RELOCATED off the masthead.
+              Mark's spec: the button now lives in its own dropdown section
+              between the Chat Window and the Agent Observation Log on the
+              Ari page. The dropdown body is the Fleet Health Monitor — so
+              clicking Run Analysis both triggers the observation cycle AND
+              opens the panel showing the bots reacting in real time.
+              The masthead is now reserved for non-page-specific controls
+              (Run Bot / Stop Bot / clock / notifications). The
+              iiAgentStats store wiring stays in place for backwards
+              compatibility but is no longer consumed here. */}
 
           {/* Wallet — Query Chain button */}
           {pathname === '/wallet' && walletPageStats && (
