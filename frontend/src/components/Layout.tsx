@@ -22,6 +22,7 @@ import NotificationBell from '@/components/NotificationBell'
 import TickerTape from '@/components/TickerTape'
 // F-45: Ari quick-prompt pills mounted in the orb panel.
 import OrbQuickPrompts from '@/components/OrbQuickPrompts'
+import LionMark from '@/components/LionMark'
 
 // ── Side-menu orb identity flag — Day 16 Session XLIII ──────────────────
 // Mark's call: lion-as-orb is GREENLIT. The HAL eye sphere code below is
@@ -756,47 +757,33 @@ export default function Layout() {
 
             {USE_LION_ORB ? (
               <>
-                {/* ── Lion mark — Day 16 Session XLIII greenlit ──
-                    The heraldic Ari sigil with HAL eyes baked in. The
-                    image already carries its own pink halo + the two
-                    eyes inside the lion's face. We apply animate-hal-
-                    breathe to the whole image so the entire lion
-                    pulses with the same rhythm as the chat-header
-                    mini eye and the floating-panel mini eye — three
-                    placements, one heartbeat. */}
-                {/* Day 16 — v5: same v4 lion sigil, but the slate
-                    background was chroma-keyed out in post (alpha
-                    channel restored, halo glow preserved with a soft
-                    alpha ramp). No mix-blend hacks needed — image is
-                    a true transparent PNG so it composites cleanly
-                    against any backdrop. v4 kept on disk for diff. */}
-                <img
-                  src="/ari-lion-mark-v5.png"
-                  alt="Ari — Lion sigil"
-                  draggable={false}
-                  className={clsx(
-                    'absolute inset-0 w-full h-full object-contain transition-all duration-700 select-none',
-                    orbOpen ? 'animate-hal-active scale-[1.04]' : 'animate-hal-breathe',
-                  )}
-                  style={{
-                    filter: orbOpen
-                      ? 'drop-shadow(0 0 14px rgba(249,168,212,0.55)) drop-shadow(0 0 24px rgba(220,38,38,0.30))'
-                      : 'drop-shadow(0 0 8px rgba(249,168,212,0.35)) drop-shadow(0 0 16px rgba(220,38,38,0.18))',
-                  }}
-                />
-                {/* Outer pink+red halo — sits BEHIND the lion image.
-                    Rhymes with the chat-header eye and orb halo. */}
-                <span
-                  aria-hidden
-                  className={clsx(
-                    'absolute -inset-2 rounded-full pointer-events-none transition-opacity duration-700 -z-10',
-                    orbOpen ? 'opacity-100' : 'opacity-55 group-hover:opacity-85',
-                  )}
-                  style={{
-                    background: 'radial-gradient(circle, rgba(249,168,212,0.18) 0%, rgba(220,38,38,0.16) 35%, rgba(220,38,38,0.06) 60%, transparent 80%)',
-                    filter: 'blur(12px)',
-                  }}
-                />
+                {/* ── Lion mark v6 — Day 16 Session XLIV ──
+                    Drawn from scratch as inline SVG (see LionMark.tsx).
+                    Why we ditched the PNG: v4/v5 kept fighting the
+                    chrome — slate bg bled through the halo, screen-
+                    blend leaked the sidebar, chroma-key left soft
+                    edges. Inline SVG owns every pixel and composites
+                    natively against any backdrop with zero artifacts.
+
+                    Mark's spec (verbatim):
+                      • Color: gold (was pink). Pink overlapped with
+                        the eye-glow vocabulary; gold gives the lion
+                        its own register and rhymes with existing
+                        amber accents (Top Stake, Paper-Trading badge).
+                      • The EYES glow. The lion itself does NOT.
+                      • No outer pink/red halo on the orb — the eyes
+                        carry the presence.
+
+                    The lion has ZERO animation classes here. The eye
+                    pulse is driven from inside the SVG via <animate>
+                    elements on the eye halo + core (3s idle / 1.8s
+                    when chat is open). */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <LionMark
+                    active={orbOpen}
+                    className="w-full h-full transition-transform duration-700 group-hover:scale-[1.03]"
+                  />
+                </div>
               </>
             ) : (
               <>
