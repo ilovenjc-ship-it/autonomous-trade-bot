@@ -1,22 +1,18 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// LionMark — Day 16 Session XLIV
+// LionMark — Day 16 Session XLIV (rev 2)
 //
-// Mark's call: pink lion PNG kept fighting the surrounding chrome (background
-// bled through in the halo, screen-blend leaked the sidebar tint, chroma-key
-// left soft edges). Solution: draw the lion from scratch as inline SVG so we
-// own every pixel.
+// Mark's tuning notes after the v1 SVG ship:
+//   1. Lion head 1/3 larger — face was too small, facial features and the
+//      HAL-eye anatomy weren't readable at the orb's render size.
+//   2. Eye pulse wasn't visible enough — bump amplitude + speed.
+//   3. Add a reddish/amber glow emanating from the face into the area.
 //
-// Design rules (Mark's spec, verbatim):
-//   1. Color: gold (was pink). Pink overlapped with the eye-glow vocabulary;
-//      gold gives the lion its own register and matches the existing amber
-//      accents in the UI (Top Stake, Paper-Trading badge).
-//   2. The EYES glow. The lion itself does NOT. Static gold linework, animated
-//      red+amber eye coals.
-//   3. No outer pink/red halo on the orb — the eyes carry the presence now.
+// Also from the prior spec (still in effect):
+//   • Color: gold (was pink). Pink overlapped with the eye-glow vocabulary.
+//   • Eyes glow. Lion silhouette stays static.
+//   • No outer pink halo on the orb — face glow + eye glow carry presence.
 //
-// The eye anatomy uses the same red-coal-with-amber-kiss gradient as the
-// HAL-eye render path (preserved behind USE_LION_ORB in Layout.tsx) so the
-// two render paths still rhyme visually if Mark ever flips the flag back.
+// HAL-eye render path is still preserved behind USE_LION_ORB in Layout.tsx.
 // ─────────────────────────────────────────────────────────────────────────────
 import React from 'react';
 
@@ -30,23 +26,23 @@ const GOLD = '#fbbf24'; // Tailwind amber-400 — warm regal gold
 const GOLD_DIM = '#d97706'; // amber-600 — for inner shading lines
 
 export const LionMark: React.FC<LionMarkProps> = ({ active = false, className }) => {
-  // Procedurally generate the 14 outer mane petals so the geometry stays
-  // perfectly symmetrical. Petals are leaf-shaped (two arcs meeting at the
-  // tip), radiating from an inner ring around the face.
+  // ── Mane geometry ────────────────────────────────────────────────────────
+  // 14 leaf-shaped petals radiating from an inner ring around the face.
+  // Center shifted slightly down (cy=55) and inner radius pulled out (27)
+  // to make room for the larger head.
   const PETALS = 14;
-  const cx = 50, cy = 52;
-  const rInner = 26;
-  const rOuter = 46;
+  const cx = 50, cy = 55;
+  const rInner = 27;
+  const rOuter = 47;
   const manePath = Array.from({ length: PETALS }, (_, i) => {
     const a = (i * (360 / PETALS) - 90) * (Math.PI / 180);
-    const half = (Math.PI / PETALS) * 0.85; // petal half-width in radians
+    const half = (Math.PI / PETALS) * 0.85;
     const x1 = cx + rInner * Math.cos(a - half);
     const y1 = cy + rInner * Math.sin(a - half);
     const tipX = cx + rOuter * Math.cos(a);
     const tipY = cy + rOuter * Math.sin(a);
     const x2 = cx + rInner * Math.cos(a + half);
     const y2 = cy + rInner * Math.sin(a + half);
-    // Control points for the petal sides — bowed outward slightly
     const ctrlR = (rInner + rOuter) * 0.55;
     const cax = cx + ctrlR * Math.cos(a - half * 0.4);
     const cay = cy + ctrlR * Math.sin(a - half * 0.4);
@@ -55,13 +51,28 @@ export const LionMark: React.FC<LionMarkProps> = ({ active = false, className })
     return `M ${x1.toFixed(2)} ${y1.toFixed(2)} Q ${cax.toFixed(2)} ${cay.toFixed(2)} ${tipX.toFixed(2)} ${tipY.toFixed(2)} Q ${cbx.toFixed(2)} ${cby.toFixed(2)} ${x2.toFixed(2)} ${y2.toFixed(2)}`;
   }).join(' ');
 
-  // Eye coordinates (symmetric about x=50)
-  const eyeY = 53;
-  const eyeLX = 43;
-  const eyeRX = 57;
+  // ── Eye geometry ─────────────────────────────────────────────────────────
+  // Spread further apart and scaled up so the HAL-eye anatomy reads.
+  // Was: (43,53)/(57,53), core r=2.2, halo r=4.2
+  // Now: (40,52)/(60,52), core r=3.0, halo r=6.5 — and pulsing harder.
+  const eyeY = 52;
+  const eyeLX = 40;
+  const eyeRX = 60;
 
-  // Pulse timing — gentler when idle, brisker when active
-  const pulseDur = active ? '1.8s' : '3s';
+  // ── Pulse timing ─────────────────────────────────────────────────────────
+  // Faster + larger amplitude than v1. The eye should be visibly throbbing
+  // even at thumb-size in the side menu.
+  const pulseDur = active ? '1.4s' : '2.2s';
+
+  // Halo opacity: idle 0.30→0.95, active 0.55→1.00
+  const haloOpacity = active ? '0.55;1.0;0.55' : '0.30;0.95;0.30';
+  // Halo radius pulse: bigger amplitude so the throb reads
+  const haloR = active ? '6.5;9.0;6.5' : '6.0;8.0;6.0';
+  // Core radius pulse — small but synced
+  const coreR = active ? '3.0;3.6;3.0' : '2.9;3.3;2.9';
+
+  // Face-glow opacity pulse — emanates from behind the lion's face
+  const faceGlowOp = active ? '0.75;1.0;0.75' : '0.55;0.95;0.55';
 
   return (
     <svg
@@ -70,24 +81,65 @@ export const LionMark: React.FC<LionMarkProps> = ({ active = false, className })
       className={className}
       role="img"
       aria-label="Ari — Lion sigil"
+      // Allow the face glow to spill outside the 100×100 box
+      style={{ overflow: 'visible' }}
     >
       <defs>
-        {/* Eye gradient — red coal with the amber kiss baked in at ~14%, same
-            anatomy as the HAL eye render path so the two visuals rhyme. */}
+        {/* Face-glow gradient — amber core fading through red to nothing.
+            Sits BEHIND everything else and pulses in sync with the eyes
+            so the whole orb feels alive. This is what carries the
+            "reddish/amber glow emanating from the face into the area"
+            per Mark's spec. */}
+        <radialGradient id="lionFaceGlow" cx="50%" cy="50%" r="50%">
+          <stop offset="0%"   stopColor="#fbbf24" stopOpacity="0.55" />
+          <stop offset="20%"  stopColor="#ea580c" stopOpacity="0.55" />
+          <stop offset="50%"  stopColor="#dc2626" stopOpacity="0.32" />
+          <stop offset="80%"  stopColor="#7f1d1d" stopOpacity="0.10" />
+          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
+        </radialGradient>
+        <filter id="lionFaceGlowBlur" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="3.5" />
+        </filter>
+
+        {/* Eye gradient — red coal with the amber kiss baked in at ~22%,
+            same anatomy as the HAL eye render path. */}
         <radialGradient id="lionEyeGrad" cx="50%" cy="50%" r="50%">
-          <stop offset="0%"  stopColor="#fca5a5" />
-          <stop offset="8%"  stopColor="#ef4444" />
+          <stop offset="0%"  stopColor="#fed7aa" />
+          <stop offset="10%" stopColor="#ef4444" />
           <stop offset="22%" stopColor="#ea580c" />
-          <stop offset="40%" stopColor="#b91c1c" />
-          <stop offset="65%" stopColor="#450a0a" />
+          <stop offset="42%" stopColor="#b91c1c" />
+          <stop offset="68%" stopColor="#450a0a" />
           <stop offset="100%" stopColor="#000000" />
         </radialGradient>
 
-        {/* Soft Gaussian blur for the eye halo glow. */}
-        <filter id="lionEyeGlow" x="-150%" y="-150%" width="400%" height="400%">
-          <feGaussianBlur stdDeviation="1.6" />
+        {/* Strong eye-halo blur — bigger spread than v1 so the pulse
+            visibly bleeds out past the eye edges. */}
+        <filter id="lionEyeGlow" x="-200%" y="-200%" width="500%" height="500%">
+          <feGaussianBlur stdDeviation="2.4" />
         </filter>
       </defs>
+
+      {/* ════════════════════════════════════════════════════════════════════
+          FACE GLOW — sits behind the entire lion. A large blurred ellipse
+          using the amber-to-red radial gradient, pulsing in sync with the
+          eyes. This is the "reddish/amber glow emanating from the face
+          into the area" Mark asked for.
+          ════════════════════════════════════════════════════════════════════ */}
+      <ellipse
+        cx={cx}
+        cy={cy}
+        rx={42}
+        ry={42}
+        fill="url(#lionFaceGlow)"
+        filter="url(#lionFaceGlowBlur)"
+      >
+        <animate
+          attributeName="opacity"
+          values={faceGlowOp}
+          dur={pulseDur}
+          repeatCount="indefinite"
+        />
+      </ellipse>
 
       {/* ── MANE — 14 petal tufts radiating around the head ──────────────── */}
       <path
@@ -99,7 +151,7 @@ export const LionMark: React.FC<LionMarkProps> = ({ active = false, className })
         strokeLinejoin="round"
       />
 
-      {/* Inner mane ring — the boundary between mane and face. */}
+      {/* Inner mane ring — boundary between mane and face. */}
       <circle
         cx={cx}
         cy={cy}
@@ -110,149 +162,155 @@ export const LionMark: React.FC<LionMarkProps> = ({ active = false, className })
         opacity={0.55}
       />
 
-      {/* ── EARS — two pointed triangles peeking up through the mane ───── */}
+      {/* ── EARS — pointed triangles peeking up through the mane ─────────── */}
       <path
-        d="M 34 41 L 31 32 L 41 38 Z"
+        d="M 32 41 L 28 30 L 40 38 Z"
         stroke={GOLD}
         strokeWidth={1.2}
         fill="none"
         strokeLinejoin="round"
       />
       <path
-        d="M 66 41 L 69 32 L 59 38 Z"
+        d="M 68 41 L 72 30 L 60 38 Z"
         stroke={GOLD}
         strokeWidth={1.2}
         fill="none"
         strokeLinejoin="round"
       />
       {/* Inner ear shading lines */}
-      <path d="M 34.5 39 L 36 35" stroke={GOLD_DIM} strokeWidth={0.7} opacity={0.7} />
-      <path d="M 65.5 39 L 64 35" stroke={GOLD_DIM} strokeWidth={0.7} opacity={0.7} />
+      <path d="M 32.5 39 L 34 34" stroke={GOLD_DIM} strokeWidth={0.7} opacity={0.7} />
+      <path d="M 67.5 39 L 66 34" stroke={GOLD_DIM} strokeWidth={0.7} opacity={0.7} />
 
-      {/* ── FACE — soft rounded muzzle silhouette ───────────────────────── */}
+      {/* ════════════════════════════════════════════════════════════════════
+          FACE — scaled ~1.33× from v1 so facial features are readable.
+          Was: rx=17 ry=19 cy=56  →  Now: rx=22 ry=25 cy=55
+          The chin pokes a couple px below the mane inner ring, which reads
+          natural rather than buggy.
+          ════════════════════════════════════════════════════════════════════ */}
       <ellipse
         cx={50}
-        cy={56}
-        rx={17}
-        ry={19}
+        cy={55}
+        rx={22}
+        ry={25}
         stroke={GOLD}
-        strokeWidth={1.4}
+        strokeWidth={1.5}
         fill="none"
       />
 
-      {/* Brow ridges — give the lion a focused expression. */}
+      {/* Brow ridges — give Ari a focused expression. Wider apart now. */}
       <path
-        d="M 38 49 Q 43 47 47 49"
+        d="M 33 47 Q 39 44 45 47"
         stroke={GOLD}
-        strokeWidth={1}
+        strokeWidth={1.1}
         fill="none"
         strokeLinecap="round"
       />
       <path
-        d="M 53 49 Q 57 47 62 49"
+        d="M 55 47 Q 61 44 67 47"
         stroke={GOLD}
-        strokeWidth={1}
+        strokeWidth={1.1}
         fill="none"
         strokeLinecap="round"
       />
 
-      {/* ── NOSE — heraldic inverted-shield/heart shape ─────────────────── */}
+      {/* ── NOSE — heraldic inverted-shield/heart shape, larger ─────────── */}
       <path
-        d="M 50 65 Q 46.5 64.5 46.5 61.5 Q 46.5 59.5 50 60.5 Q 53.5 59.5 53.5 61.5 Q 53.5 64.5 50 65 Z"
+        d="M 50 67 Q 45 66.5 45 62.5 Q 45 60 50 61.5 Q 55 60 55 62.5 Q 55 66.5 50 67 Z"
         stroke={GOLD}
-        strokeWidth={0.9}
+        strokeWidth={1}
         fill={GOLD}
       />
 
-      {/* Bridge of nose */}
-      <line x1={50} y1={56} x2={50} y2={60} stroke={GOLD_DIM} strokeWidth={0.7} opacity={0.7} />
+      {/* Bridge of nose — connects brow to nose for that lion silhouette. */}
+      <line x1={50} y1={55} x2={50} y2={61.5} stroke={GOLD_DIM} strokeWidth={0.8} opacity={0.75} />
 
-      {/* ── MOUTH — philtrum + two lip curves ───────────────────────────── */}
+      {/* ── MOUTH — philtrum + two lip curves, scaled to the bigger face ── */}
       <path
-        d="M 50 65 L 50 70"
-        stroke={GOLD}
-        strokeWidth={1}
-        fill="none"
-        strokeLinecap="round"
-      />
-      <path
-        d="M 50 70 Q 45 72.5 41 71"
+        d="M 50 67 L 50 73"
         stroke={GOLD}
         strokeWidth={1.1}
         fill="none"
         strokeLinecap="round"
       />
       <path
-        d="M 50 70 Q 55 72.5 59 71"
+        d="M 50 73 Q 44 76 38 74"
         stroke={GOLD}
-        strokeWidth={1.1}
+        strokeWidth={1.2}
+        fill="none"
+        strokeLinecap="round"
+      />
+      <path
+        d="M 50 73 Q 56 76 62 74"
+        stroke={GOLD}
+        strokeWidth={1.2}
         fill="none"
         strokeLinecap="round"
       />
 
-      {/* ── WHISKERS — three each side, subtle ──────────────────────────── */}
-      <g stroke={GOLD_DIM} strokeWidth={0.6} fill="none" opacity={0.55} strokeLinecap="round">
-        <line x1={42} y1={67} x2={34} y2={66} />
-        <line x1={42} y1={68.5} x2={34} y2={69} />
-        <line x1={42} y1={70} x2={35} y2={72} />
-        <line x1={58} y1={67} x2={66} y2={66} />
-        <line x1={58} y1={68.5} x2={66} y2={69} />
-        <line x1={58} y1={70} x2={65} y2={72} />
+      {/* ── WHISKERS — three each side, longer + bolder ───────────────── */}
+      <g stroke={GOLD_DIM} strokeWidth={0.7} fill="none" opacity={0.6} strokeLinecap="round">
+        <line x1={40} y1={69} x2={30} y2={68} />
+        <line x1={40} y1={71} x2={30} y2={72} />
+        <line x1={40} y1={73} x2={31} y2={75} />
+        <line x1={60} y1={69} x2={70} y2={68} />
+        <line x1={60} y1={71} x2={70} y2={72} />
+        <line x1={60} y1={73} x2={69} y2={75} />
       </g>
 
-      {/* ════════════════════════════════════════════════════════════════
-          THE EYES — the ONLY animated element. Per Mark's spec:
+      {/* ════════════════════════════════════════════════════════════════════
+          THE EYES — the only animated element. Per Mark's spec:
             "The eyes glow not the lion itself."
-          Each eye = soft red halo blob (filtered Gaussian) under a sharp
-          red-coal-with-amber-kiss radial-gradient sphere. Halo opacity
-          breathes between ~0.25 and ~0.65 on a 3s cycle (1.8s when active).
-          ════════════════════════════════════════════════════════════════ */}
 
-      {/* Left eye halo */}
-      <circle cx={eyeLX} cy={eyeY} r={4.2} fill="#dc2626" filter="url(#lionEyeGlow)" opacity={0.35}>
+          v2 tuning:
+            • Bigger eyes (core 3.0, halo up to 9.0 in pulse — was 4.2 max)
+            • Bigger amplitude (halo opacity 0.30→0.95, was 0.25→0.6)
+            • Faster cycle (2.2s idle, 1.4s active — was 3s/1.8s)
+            • Wider blur on the halo filter (stdDev 2.4, was 1.6)
+          ════════════════════════════════════════════════════════════════════ */}
+
+      {/* ── Left eye — outer halo, then core ────────────────────────────── */}
+      <circle cx={eyeLX} cy={eyeY} r={6} fill="#dc2626" filter="url(#lionEyeGlow)" opacity={0.4}>
         <animate
           attributeName="opacity"
-          values={active ? '0.45;0.85;0.45' : '0.25;0.6;0.25'}
+          values={haloOpacity}
           dur={pulseDur}
           repeatCount="indefinite"
         />
         <animate
           attributeName="r"
-          values={active ? '4.2;5.0;4.2' : '4.0;4.5;4.0'}
+          values={haloR}
           dur={pulseDur}
           repeatCount="indefinite"
         />
       </circle>
-      {/* Left eye core */}
-      <circle cx={eyeLX} cy={eyeY} r={2.2} fill="url(#lionEyeGrad)">
+      <circle cx={eyeLX} cy={eyeY} r={3} fill="url(#lionEyeGrad)">
         <animate
           attributeName="r"
-          values={active ? '2.2;2.5;2.2' : '2.1;2.3;2.1'}
+          values={coreR}
           dur={pulseDur}
           repeatCount="indefinite"
         />
       </circle>
 
-      {/* Right eye halo */}
-      <circle cx={eyeRX} cy={eyeY} r={4.2} fill="#dc2626" filter="url(#lionEyeGlow)" opacity={0.35}>
+      {/* ── Right eye — outer halo, then core ───────────────────────────── */}
+      <circle cx={eyeRX} cy={eyeY} r={6} fill="#dc2626" filter="url(#lionEyeGlow)" opacity={0.4}>
         <animate
           attributeName="opacity"
-          values={active ? '0.45;0.85;0.45' : '0.25;0.6;0.25'}
+          values={haloOpacity}
           dur={pulseDur}
           repeatCount="indefinite"
         />
         <animate
           attributeName="r"
-          values={active ? '4.2;5.0;4.2' : '4.0;4.5;4.0'}
+          values={haloR}
           dur={pulseDur}
           repeatCount="indefinite"
         />
       </circle>
-      {/* Right eye core */}
-      <circle cx={eyeRX} cy={eyeY} r={2.2} fill="url(#lionEyeGrad)">
+      <circle cx={eyeRX} cy={eyeY} r={3} fill="url(#lionEyeGrad)">
         <animate
           attributeName="r"
-          values={active ? '2.2;2.5;2.2' : '2.1;2.3;2.1'}
+          values={coreR}
           dur={pulseDur}
           repeatCount="indefinite"
         />
