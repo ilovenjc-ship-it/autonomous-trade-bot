@@ -185,8 +185,12 @@ export default function SubnetDetail() {
   const [posLoading, setPosLoading]   = useState(false)
 
   // ── Data loading ────────────────────────────────────────────────────────
+  // Day 16 (Bug #3): falsy-zero guard. Previously `if (!netuid) return`
+  // short-circuited on Subnet 0 (Root) because Number("0") === 0 is falsy
+  // in JS, so the detail page never fetched. Use Number.isFinite to accept 0
+  // and reject NaN/undefined.
   const load = useCallback(async () => {
-    if (!netuid) return
+    if (!Number.isFinite(netuid)) return
     try {
       const res = await api.get(`/market/subnet/${netuid}`)
       setDetail(res.data)
@@ -207,8 +211,9 @@ export default function SubnetDetail() {
   }, [load])
 
   // Load stake position
+  // Day 16 (Bug #3): same falsy-zero guard as `load` above — Subnet 0 has netuid=0.
   const loadPosition = useCallback(async () => {
-    if (!netuid) return
+    if (!Number.isFinite(netuid)) return
     setPosLoading(true)
     try {
       const res = await api.get('/wallet/stakes')

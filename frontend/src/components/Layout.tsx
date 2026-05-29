@@ -292,8 +292,21 @@ export default function Layout() {
   // gets a real warning (it pauses signal generation). Starting a stopped
   // bot is innocuous in paper mode and gets a lighter prompt. The same
   // principle Partner asked for on the Force Paper Mode button.
+  //
+  // Day 16 (Bug #14): single source of truth for "effective paper mode" —
+  // ground truth is paper if ANY of: (a) force_paper_mode flag, (b)
+  // simulation_mode flag, or (c) zero live strategies in the fleet.
+  // Previously this only checked (a), so the Stop Bot confirm dialog
+  // misreported "Live Mode" when force_paper_mode was OFF but liveCount===0
+  // (i.e. the masthead correctly showed "⚠ Paper Trading" while the dialog
+  // contradicted it). Mirrors the masthead computation at the trading-mode
+  // pill below — both surfaces now read the same flag.
   const [botBusy, setBotBusy] = useState(false)
-  const isPaperMode = (status as any)?.force_paper_mode ?? true   // default-safe
+  const liveCount = fleetStats?.live ?? strategiesStats?.live ?? 0
+  const isPaperMode =
+       !!(status as any)?.force_paper_mode
+    || !!status?.simulation_mode
+    || liveCount === 0
   const handleToggle = useCallback(async () => {
     if (isRunning) {
       const ctx = isPaperMode
@@ -1066,22 +1079,18 @@ export default function Layout() {
               <span className="text-slate-600 select-none">·</span>
               {/* Trading mode — ground-truth: paper if any of
                   (a) force_paper_mode flag, (b) simulation_mode flag,
-                  (c) zero live strategies in the fleet. */}
-              {(() => {
-                const liveCount = fleetStats?.live ?? strategiesStats?.live ?? 0
-                const isPaper = !!status?.simulation_mode
-                  || !!(status as any)?.force_paper_mode
-                  || liveCount === 0
-                return isPaper ? (
-                  <span className="px-2.5 py-1 rounded-md bg-yellow-500/15 border border-yellow-500/40 text-sm font-bold font-mono text-yellow-400 leading-none tracking-wide">
-                    ⚠ Paper Trading
-                  </span>
-                ) : (
-                  <span className="px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-sm font-bold font-mono text-emerald-400 leading-none tracking-wide">
-                    ● Live Trading
-                  </span>
-                )
-              })()}
+                  (c) zero live strategies in the fleet.
+                  Day 16: single source of truth via `isPaperMode` hoisted above
+                  (Bug #14 fix — masthead and Stop Bot dialog now read the same flag). */}
+              {isPaperMode ? (
+                <span className="px-2.5 py-1 rounded-md bg-yellow-500/15 border border-yellow-500/40 text-sm font-bold font-mono text-yellow-400 leading-none tracking-wide">
+                  ⚠ Paper Trading
+                </span>
+              ) : (
+                <span className="px-2.5 py-1 rounded-md bg-emerald-500/15 border border-emerald-500/40 text-sm font-bold font-mono text-emerald-400 leading-none tracking-wide">
+                  ● Live Trading
+                </span>
+              )}
             </div>
           )}
 
