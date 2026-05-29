@@ -33,6 +33,10 @@ import { InfoBubble } from '@/components/Tooltip'
 import { REGIME_CONFIG } from '@/components/RegimeCard'
 // F-45 (Day 15 Ari rebrand): rotating placeholder + page-anchored prompts.
 import { ROTATING_PROMPTS, ROTATING_PROMPT_STATIC } from '@/lib/ariPrompts'
+// Day 16 (#11): Ari's Billboard — curated rotating messages from Ari, lives
+// inside the Chat Window between quick prompts and message history. 9-second
+// cadence, dots, pause-on-slide. See AriBillboard.tsx for doctrinal notes.
+import { AriBillboard } from '@/components/AriBillboard'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -987,6 +991,14 @@ export default function IIAgent() {
             </button>
           ))}
         </div>
+
+        {/* Day 16 (#11) — Ari's Billboard.
+            Lives inside the Chat Window per Mark's spec: "This can be a Bigger
+            way for Ari to Connect with user/operator." Sits between the quick
+            prompts (operator's questions) and message history (live thread).
+            14 messages across 4 movements (Identity / Category / Doctrine /
+            Safety). 9-second cadence (Mark's number). Embodies D-45. */}
+        <AriBillboard />
 
         {/* Message history */}
         <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ minHeight: '320px', maxHeight: '420px' }}>
