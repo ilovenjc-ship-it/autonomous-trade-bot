@@ -603,24 +603,16 @@ export default function Layout() {
                         filter: 'blur(2.5px)',
                       }}
                     />
-                    {/* The eye sphere — same gradient + inset vignette
-                        as the main orb, ratio-preserved at 16px scale. */}
+                    {/* The eye sphere — Day 16 Session XLIII: simpler
+                        anatomy (no pupil, no pinpoint), gradient-baked
+                        amber kiss. Ratio-preserved at 16px scale. */}
                     <span
-                      className="absolute inset-0 rounded-full flex items-center justify-center animate-hal-breathe"
+                      className="absolute inset-0 rounded-full animate-hal-breathe"
                       style={{
-                        background: 'radial-gradient(circle at 50% 50%, #fde68a 0%, #fbbf24 2%, #f59e0b 6%, #ea580c 11%, #b91c1c 20%, #7f1d1d 33%, #450a0a 45%, #1a0303 55%, #000000 63%, #000000 100%)',
-                        boxShadow: 'inset 0 0 6px 2px rgba(0,0,0,1), inset 0 0 1.5px 0.4px rgba(251,191,36,0.25)',
+                        background: 'radial-gradient(circle at 50% 50%, #ef4444 0%, #dc2626 8%, #ea580c 14%, #b91c1c 24%, #7f1d1d 36%, #450a0a 48%, #1a0303 56%, #000000 64%, #000000 100%)',
+                        boxShadow: 'inset 0 0 6px 2px rgba(0,0,0,1), inset 0 0 1.5px 0.4px rgba(234,88,12,0.28)',
                       }}
-                    >
-                      {/* Amber pupil — w-1 (4px) at this size, matches
-                          the ~16% pupil ratio of the main orb's idle
-                          state. Burnt amber-500 + soft halo. */}
-                      <span className="rounded-full bg-amber-500 w-1 h-1 flex items-center justify-center shadow-[0_0_3px_0.7px_rgba(245,158,11,0.6),0_0_5px_1.5px_rgba(180,83,9,0.32)]">
-                        {/* White pinpoint — barely-noticeable filament
-                            at the very heart. w-px (1px) at this scale. */}
-                        <span className="rounded-full bg-white w-px h-px shadow-[0_0_2px_0.4px_rgba(255,251,235,0.88),0_0_3.5px_0.8px_rgba(254,243,199,0.55)]" />
-                      </span>
-                    </span>
+                    />
                   </span>
                   {/* F-45.1: orb pop-out shows the name in singularity —
                       no subtitle. Mark's "use it in its singularity — Ari"
@@ -729,64 +721,6 @@ export default function Layout() {
             </div>
           )}
 
-          {/* ── COMPARISON ORB (Day 16 follow-up — Mark's "let's compare") ──
-              Mark's read on the lion v2's HAL eyes: the version WITHOUT the
-              amber pupil and white pinpoint feels more realistic / more
-              ominous — "the look I wanted in the beginning." This second
-              orb sits ABOVE the canonical orb and renders the same anatomy
-              minus the amber pupil + white pinpoint child spans, and with
-              the centre-of-gradient amber/cream stops swapped for red so
-              the sphere reads as a red coal in a black housing rather than
-              a warm filament.
-
-              Non-interactive — no onClick, no chat panel — purely visual
-              comparison. Decoration ring + static ring + halo all kept so
-              the surrounding "presence" reads identically; only the eye's
-              core anatomy changes. If Mark green-lights this look, the
-              canonical orb below gets the same simplification and this
-              comparison block is removed. */}
-          <div
-            aria-hidden
-            className="relative w-20 h-20 mb-1"
-            title="Comparison: HAL eye without amber pupil + white pinpoint"
-          >
-            {/* Outer rotating ring — same as canonical */}
-            <span
-              className="absolute inset-0 rounded-full border border-dashed border-red-500/25 animate-hal-ring"
-            />
-            {/* Static inner ring */}
-            <span className="absolute inset-1.5 rounded-full border border-red-500/25" />
-            {/* Sphere — RED-CORE gradient (no amber/cream at centre).
-                Reads centre→edge as red coal → burgundy → near-black housing. */}
-            <span className="absolute inset-0 flex items-center justify-center">
-              <span
-                className="w-12 h-12 rounded-full animate-hal-breathe"
-                style={{
-                  background:
-                    'radial-gradient(circle at 50% 50%, #f87171 0%, #ef4444 6%, #dc2626 14%, #b91c1c 24%, #7f1d1d 36%, #450a0a 48%, #1a0303 56%, #000000 64%, #000000 100%)',
-                  boxShadow:
-                    'inset 0 0 26px 10px rgba(0,0,0,1), inset 0 0 5px 1px rgba(220,38,38,0.30)',
-                }}
-              />
-              {/* NO amber pupil span — intentionally omitted. */}
-              {/* NO white pinpoint span — intentionally omitted. */}
-            </span>
-            {/* Halo — same red-dominant room-glow as canonical orb */}
-            <span
-              aria-hidden
-              className="absolute -inset-2 rounded-full pointer-events-none opacity-65"
-              style={{
-                background:
-                  'radial-gradient(circle, rgba(251,191,36,0.06) 0%, rgba(220,38,38,0.22) 25%, rgba(220,38,38,0.10) 55%, rgba(220,38,38,0.03) 75%, transparent 85%)',
-                filter: 'blur(10px)',
-              }}
-            />
-          </div>
-          {/* tiny label so it's clear which is which during comparison */}
-          <div className="text-center text-[9px] font-mono leading-none text-slate-600 -mt-0.5 mb-1 select-none">
-            v2 · simpler
-          </div>
-
           {/* ── The HAL Orb — bigger, brighter, slower mystic breath ──
               Container is w-20/h-20 (80×80) — substantially up from the
               previous 56×56. The inner red eye is 48×48. Animations:
@@ -818,81 +752,35 @@ export default function Layout() {
               orbOpen ? 'border-red-400/55' : 'border-red-500/25 group-hover:border-red-400/45'
             )} />
 
-            {/* The HAL eye itself — Session XXXVI v2: anatomically-banded.
-                Mav's refined spec: read centre→edge as
-                  • white pinpoint (tiny incandescent core)
-                  • amber pupil (the warm focal ring)
-                  • red iris (the main body)
-                  • near-black housing (the lens shell)
-                Previous v1 had amber dominating the outside, which inverted
-                the anatomy. v2 compresses the amber to a tight pupil-band
-                (4-18% of the radius), expands the red iris to do most of
-                the visible work (22-58%), and pushes the dark housing all
-                the way out to the rim (60-100% blends red-950 → pure black).
-                The white pinpoint is rendered as a separate inner span so
-                it stays sharp and crystalline rather than blurring into
-                the amber band. ──────────────────────────────────────────── */}
+            {/* ── The HAL eye — Day 16 Session XLIII anatomy ──
+                Mark's call after the v2 simpler-orb comparison: amber-pupil
+                + white-pinpoint look is OUT, simpler red-coal-in-housing
+                look is IN — but with "a tad of amber for iris" so the eye
+                isn't pure red. The amber kiss is now baked into the
+                gradient (single #ea580c stop in the inner-iris zone)
+                rather than rendered as a separate pupil span. No nested
+                child spans — just the housing/iris sphere. The eye reads
+                more realistic, more ominous, and rhymes with the lion
+                mark's eyes (same anatomy, different scale). */}
             <span className="absolute inset-0 flex items-center justify-center">
               <span
                 className={clsx(
-                  'w-12 h-12 rounded-full flex items-center justify-center transition-all duration-700',
+                  'w-12 h-12 rounded-full transition-all duration-700',
                   orbOpen ? 'animate-hal-active' : 'animate-hal-breathe',
                 )}
                 style={{
                   background: orbOpen
-                    // Active — gradient origin centred (50% 50%) to match the
-                    // white pinpoint span; amber pupil zone tightened so the
-                    // bright area is a small, contained focal point not a sprawl
-                    ? 'radial-gradient(circle at 50% 50%, #fef3c7 0%, #fcd34d 2%, #f59e0b 6%, #ea580c 10%, #dc2626 18%, #991b1b 32%, #450a0a 44%, #1a0303 54%, #000000 62%, #000000 100%)'
-                    // Idle — same centred origin, even tighter amber band
-                    : 'radial-gradient(circle at 50% 50%, #fde68a 0%, #fbbf24 2%, #f59e0b 6%, #ea580c 11%, #b91c1c 20%, #7f1d1d 33%, #450a0a 45%, #1a0303 55%, #000000 63%, #000000 100%)',
+                    // Active — slightly brighter red core, amber kiss at ~14%
+                    ? 'radial-gradient(circle at 50% 50%, #fca5a5 0%, #f87171 4%, #ef4444 9%, #ea580c 14%, #dc2626 22%, #991b1b 34%, #450a0a 46%, #1a0303 56%, #000000 64%, #000000 100%)'
+                    // Idle — calmer red coal, single burnt-amber stop at 14%
+                    : 'radial-gradient(circle at 50% 50%, #ef4444 0%, #dc2626 8%, #ea580c 14%, #b91c1c 24%, #7f1d1d 36%, #450a0a 48%, #1a0303 56%, #000000 64%, #000000 100%)',
                   boxShadow: orbOpen
-                    // Heavy inset vignette — about a third of the sphere is solid black housing
-                    ? 'inset 0 0 28px 9px rgba(0,0,0,0.95), inset 0 0 6px 2px rgba(252,211,77,0.4)'
-                    : 'inset 0 0 26px 10px rgba(0,0,0,1), inset 0 0 5px 1px rgba(251,191,36,0.25)',
+                    ? 'inset 0 0 28px 9px rgba(0,0,0,0.95), inset 0 0 6px 2px rgba(234,88,12,0.35)'
+                    : 'inset 0 0 26px 10px rgba(0,0,0,1), inset 0 0 5px 1px rgba(234,88,12,0.28)',
                 }}
-              >
-                {/* Pupil — Session XXXVI v6: the inner span flips from
-                    white to AMBER per Mav. The previous build read as a
-                    white pupil with an amber halo around it; Mav's spec
-                    inverts that — the visible focal dot should BE the
-                    amber pupil, with only a barely-noticeable white
-                    pinpoint nested in its centre as the incandescent
-                    filament. So now we render two stacked spans:
-                      outer:  amber-400/300 disc — the pupil itself
-                      inner:  tiny white pinpoint — the hot filament
-                                                    that you can JUST
-                                                    catch at the centre */}
-                {/* Pupil — Session XXXVI v8: amber faded a touch per Mav.
-                    Was amber-400/300 (#fbbf24/#fcd34d — bright yellow-amber);
-                    now amber-500/400 (#f59e0b/#fbbf24 — burnt orange-amber).
-                    Halo intensities pulled in too. The pupil now sits as a
-                    warm focal point rather than a glowing yellow disc, so
-                    the surrounding red iris breathes more. */}
-                <span className={clsx(
-                  'rounded-full transition-all duration-700 flex items-center justify-center',
-                  orbOpen
-                    // Active — amber-400 pupil, softer amber halo
-                    ? 'w-2.5 h-2.5 bg-amber-400 shadow-[0_0_10px_2.5px_rgba(251,191,36,0.7),0_0_18px_5px_rgba(217,119,6,0.4)]'
-                    // Idle — burnt amber-500 pupil, faded halo
-                    : 'w-2 h-2 bg-amber-500 shadow-[0_0_8px_2px_rgba(245,158,11,0.6),0_0_14px_4px_rgba(180,83,9,0.32)]'
-                )}>
-                  {/* Touch of white — Session XXXVI v8: bumped one more
-                      notch (was w-0.5 / w-1, now w-1 / w-1.5). With the
-                      amber faded slightly, the white needs a touch more
-                      presence to keep its role as the focal incandescence.
-                      Still half the diameter of the amber pupil so it
-                      reads as nested-inside, not competing-with. */}
-                  <span className={clsx(
-                    'rounded-full bg-white transition-all duration-700',
-                    orbOpen
-                      // Active: 6px white speck — clear filament glow
-                      ? 'w-1.5 h-1.5 shadow-[0_0_7px_1.5px_rgba(255,255,255,0.95),0_0_12px_3px_rgba(254,243,199,0.65)]'
-                      // Idle: 4px speck — visible incandescence at rest
-                      : 'w-1 h-1 shadow-[0_0_6px_1.25px_rgba(255,251,235,0.88),0_0_10px_2.5px_rgba(254,243,199,0.55)]'
-                  )} />
-                </span>
-              </span>
+              />
+              {/* NO amber pupil child span — anatomy now lives in gradient. */}
+              {/* NO white pinpoint child span — pure red+amber-kiss coal. */}
             </span>
 
             {/* Outer glow halo — Session XXXVI v2: red-dominant (was: amber
