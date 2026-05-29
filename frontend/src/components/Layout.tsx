@@ -1031,8 +1031,7 @@ export default function Layout() {
                   <span className="text-xs font-mono text-slate-400 leading-none">Full command authority · manual trades · emergency stop</span>
                 </>
               )}
-              {/* Ari page inline subtitle — Session XXXV: indigo → emerald with
-                  small red HAL-eye dot, matching the section colour swap.
+              {/* Ari page inline subtitle — Session XXXV: indigo → emerald.
                   F-45.1: "Master Orchestrator" pulled per Mark's humility
                   instinct (reads as self-coronation in the masthead — the
                   work earns the honorific). Replaced with the public
@@ -1040,12 +1039,20 @@ export default function Layout() {
                   F-45.2: feature-name tail trimmed in two passes —
                   "Fleet · Consensus" off first, then "Regime". Masthead
                   now reads "Ari · Guide and Navigator" only. The work
-                  is the work; the masthead doesn't enumerate it. */}
+                  is the work; the masthead doesn't enumerate it.
+                  Day 16 #6/#7 (Mark's correction): the small red HAL-eye
+                  dot that lived here was redundant — the lifelike HAL eye
+                  is already in the side-menu orb, the Dashboard sidebar
+                  orb, and the billboard. The dot was replaced by a small
+                  pink Brain icon — the brain motif now signals Ari's
+                  intelligence/agency on the masthead, paired with the
+                  larger pink Brain in the empty-state of the chat
+                  window below. */}
               {pathname === '/ii-agent' && (
                 <>
                   <span className="text-slate-600 select-none">·</span>
                   <span className="flex items-center gap-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse" title="HAL-eye indicator — homage to the original orb concept and Hal Finney" />
+                    <Brain size={12} className="text-pink-400 flex-shrink-0" aria-hidden />
                     <span className="text-xs font-mono text-emerald-400/80 leading-none">Guide and Navigator</span>
                   </span>
                 </>
