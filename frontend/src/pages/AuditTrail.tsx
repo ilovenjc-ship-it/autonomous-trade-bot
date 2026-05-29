@@ -16,7 +16,7 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import {
   ScrollText, RefreshCw, Filter, ChevronDown, ChevronRight,
   Settings, Power, Bot as BotIcon, Bell, AlertTriangle,
-  CheckCircle2, XCircle,
+  CheckCircle2, XCircle, Eraser,
 } from 'lucide-react'
 import clsx from 'clsx'
 import toast from 'react-hot-toast'
@@ -228,6 +228,13 @@ export default function AuditTrail() {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState<string | null>(null)
   const [filterCategory, setFilterCategory] = useState<string>('')
+  // Day 16 #13 — soft-reset (Read A) state.
+  // The dialog asks for an optional reason that will be stamped onto the
+  // tombstone audit event, so forensic readers can answer "why was this
+  // buffer cleared at 02:13 EDT?" without guessing.
+  const [resetDialogOpen, setResetDialogOpen] = useState(false)
+  const [resetReason,     setResetReason]     = useState('')
+  const [resetting,       setResetting]       = useState(false)
 
   const load = useCallback(async (silent = false) => {
     if (!silent) setBusy(true)
@@ -250,6 +257,36 @@ export default function AuditTrail() {
     return () => clearInterval(id)
   }, [load])
 
+  // Day 16 #13 — soft-reset handler.
+  // POSTs to /api/audit/clear-buffer with an optional reason, then
+  // refreshes the page so the new tombstone-only state shows up
+  // immediately (the buffer now contains exactly one entry: the
+  // 'audit_buffer_clear' event we just wrote).
+  const handleClearBuffer = useCallback(async () => {
+    setResetting(true)
+    try {
+      const { data: payload } = await api.post<{ ok: boolean; cleared_buffered: number; tombstone_id: number | null; lifetime_total: number; log_preserved: boolean }>(
+        '/audit/clear-buffer',
+        { reason: resetReason.trim() },
+      )
+      if (payload?.ok) {
+        toast.success(
+          `Buffer cleared (${payload.cleared_buffered} entries) · disk log preserved`,
+          { duration: 4500 },
+        )
+        setResetDialogOpen(false)
+        setResetReason('')
+        await load(true)
+      } else {
+        toast.error('Reset call returned ok=false; see backend logs')
+      }
+    } catch (e: any) {
+      toast.error(`Reset failed: ${e?.message || String(e)}`)
+    } finally {
+      setResetting(false)
+    }
+  }, [resetReason, load])
+
   const categories = useMemo(() => {
     const cats = data?.summary.by_category ?? {}
     return Object.keys(CATEGORY_META).filter(k => (cats[k] ?? 0) > 0 || k === filterCategory)
@@ -267,16 +304,35 @@ export default function AuditTrail() {
             Append-only record of every operator + system mutation. Persisted to disk on the Railway volume.
           </p>
         </div>
-        <button
-          onClick={() => load().then(() => toast.success('Refreshed'))}
-          disabled={busy}
-          className={clsx(
-            'flex items-center gap-1.5 rounded-md border border-slate-600 bg-slate-800/60 px-3 py-1.5 text-xs font-mono text-slate-200 transition-colors',
-            busy ? 'opacity-50' : 'hover:bg-slate-700/60',
-          )}
-        >
-          <RefreshCw size={11} className={busy ? 'animate-spin' : ''} /> Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Day 16 #13 — Soft-reset CTA. Read A: clears the active queue
+              while preserving the JSONL on disk. Amber styling so it
+              reads as a destructive-but-recoverable action; the actual
+              click opens a confirmation dialog with an optional reason
+              field (the reason is stamped onto the tombstone audit
+              event for forensic clarity). */}
+          <button
+            onClick={() => setResetDialogOpen(true)}
+            disabled={busy || resetting}
+            className={clsx(
+              'flex items-center gap-1.5 rounded-md border border-amber-600/40 bg-amber-500/10 px-3 py-1.5 text-xs font-mono text-amber-300 transition-colors',
+              (busy || resetting) ? 'opacity-50' : 'hover:bg-amber-500/20 hover:border-amber-500/60',
+            )}
+            title="Soft-reset the in-memory buffer · disk JSONL preserved"
+          >
+            <Eraser size={11} /> Soft-reset
+          </button>
+          <button
+            onClick={() => load().then(() => toast.success('Refreshed'))}
+            disabled={busy}
+            className={clsx(
+              'flex items-center gap-1.5 rounded-md border border-slate-600 bg-slate-800/60 px-3 py-1.5 text-xs font-mono text-slate-200 transition-colors',
+              busy ? 'opacity-50' : 'hover:bg-slate-700/60',
+            )}
+          >
+            <RefreshCw size={11} className={busy ? 'animate-spin' : ''} /> Refresh
+          </button>
+        </div>
       </div>
 
       {/* Summary */}
@@ -346,6 +402,84 @@ export default function AuditTrail() {
       ) : (
         <div className="rounded-xl border border-slate-700/40 bg-slate-900/30 p-6 text-center text-sm text-slate-500">
           Loading…
+        </div>
+      )}
+
+      {/* Day 16 #13 — Soft-reset confirmation dialog. Modal-ish overlay,
+          explicit copy explaining what is and is not preserved, optional
+          reason field, two-button footer. The reason is sent to the
+          backend and stamped onto the tombstone event's metadata. */}
+      {resetDialogOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => !resetting && setResetDialogOpen(false)}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="audit-reset-dialog-title"
+        >
+          <div
+            className="w-full max-w-md rounded-2xl border border-amber-600/40 bg-[#0d1525] p-5 shadow-2xl shadow-amber-500/10"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2 mb-2">
+              <Eraser size={18} className="text-amber-400" />
+              <h2 id="audit-reset-dialog-title" className="text-base font-bold text-white">
+                Soft-reset the audit buffer?
+              </h2>
+            </div>
+            <div className="space-y-3 text-sm text-slate-300">
+              <p>
+                This clears the in-memory <span className="text-amber-300">active queue</span>
+                {' '}you see on this page. The disk log
+                {' '}<code className="text-slate-400">{data?.summary.log_path ?? 'audit_log.jsonl'}</code>
+                {' '}is <span className="text-emerald-400 font-semibold">preserved</span> — every
+                entry the system has ever recorded stays on disk for forensic readers.
+              </p>
+              <p className="text-xs text-slate-400">
+                A tombstone event (<code>audit_buffer_clear</code>) is automatically appended to
+                the disk log and seeded into the cleared buffer, so the timeline of resets is
+                itself auditable.
+              </p>
+              <div>
+                <label htmlFor="audit-reset-reason" className="block text-[11px] font-mono uppercase tracking-wider text-slate-400 mb-1">
+                  Reason (optional)
+                </label>
+                <input
+                  id="audit-reset-reason"
+                  type="text"
+                  value={resetReason}
+                  onChange={e => setResetReason(e.target.value)}
+                  disabled={resetting}
+                  placeholder="e.g. EOD reset · weekly housekeeping"
+                  maxLength={300}
+                  className="w-full rounded-md border border-slate-600/60 bg-slate-900/60 px-2.5 py-1.5 text-sm text-slate-100 placeholder:text-slate-600 focus:outline-none focus:border-amber-500/60"
+                />
+              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                onClick={() => setResetDialogOpen(false)}
+                disabled={resetting}
+                className="rounded-md border border-slate-600 bg-slate-800/60 px-3 py-1.5 text-xs font-mono text-slate-200 hover:bg-slate-700/60 transition-colors disabled:opacity-50"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleClearBuffer}
+                disabled={resetting}
+                className={clsx(
+                  'flex items-center gap-1.5 rounded-md border border-amber-600/50 bg-amber-500/15 px-3 py-1.5 text-xs font-mono text-amber-200 transition-colors',
+                  resetting ? 'opacity-60 cursor-wait' : 'hover:bg-amber-500/25 hover:border-amber-500/70',
+                )}
+              >
+                {resetting ? (
+                  <><RefreshCw size={11} className="animate-spin" /> Clearing…</>
+                ) : (
+                  <><Eraser size={11} /> Clear buffer · keep disk</>
+                )}
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

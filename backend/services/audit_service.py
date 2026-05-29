@@ -186,6 +186,63 @@ class AuditService:
             "log_exists":     LOG_PATH.exists(),
         }
 
+    # ── Day 16 #13 — Soft-reset ("Read A": preserve history) ─────────────────
+    def clear_buffer(self, actor: str = "operator", reason: str = "") -> Dict[str, Any]:
+        """Clear the in-memory ring buffer while PRESERVING the disk log.
+
+        Mark's "Read A" semantics for the Audit Trail reset feature:
+        the operator-visible active queue clears, but the JSONL on disk
+        keeps every entry the system has ever recorded. Forensic auditors
+        can still reconstruct the full timeline from disk after a reset.
+
+        Mechanics:
+          1. Record an audit event marking the reset itself (so the cleared
+             entries leave a tombstone in the log — disk now contains:
+             [original entries...] + [reset event] + [future entries]).
+          2. Empty the in-memory ring buffer.
+          3. Rebuild the buffer with just the reset-event tombstone so the
+             UI shows a single line proving the buffer was cleared rather
+             than a confusing empty state.
+          4. Reset _counter back to that tombstone's id (subsequent records
+             continue monotonically from there).
+
+        Returns a small payload describing what changed.
+        """
+        # Snapshot current state BEFORE clearing so the audit event payload
+        # carries an accurate before/after.
+        with self._lock:
+            cleared_count = len(self._ring)
+            disk_lifetime_before = self._lifetime_total
+
+        # Record the reset BEFORE we clear, so the tombstone naturally lands
+        # on disk as the next line in the JSONL. We do this OUTSIDE the lock
+        # because record() takes the lock itself.
+        tombstone = self.record(
+            action   = "audit_buffer_clear",
+            actor    = actor,
+            before   = {"buffered": cleared_count, "lifetime_total": disk_lifetime_before},
+            after    = {"buffered": 1, "lifetime_total": disk_lifetime_before + 1, "note": "buffer-only reset; disk log preserved"},
+            category = "system",
+            metadata = {"reason": (reason or "").strip()[:300]} if reason else None,
+        )
+
+        with self._lock:
+            # Now drain the ring buffer and re-seed with just the tombstone
+            # so the UI doesn't render an empty list (which would look like
+            # a service failure rather than an intentional reset).
+            self._ring.clear()
+            if tombstone is not None:
+                self._ring.append(tombstone)
+
+        return {
+            "ok":               True,
+            "cleared_buffered": cleared_count,
+            "tombstone_id":     (tombstone or {}).get("id"),
+            "lifetime_total":   self._lifetime_total,
+            "log_path":         str(LOG_PATH),
+            "log_preserved":    LOG_PATH.exists(),
+        }
+
     # ── Internal ──────────────────────────────────────────────────────────────
 
     def _append_to_disk(self, entry: Dict[str, Any]) -> None:
