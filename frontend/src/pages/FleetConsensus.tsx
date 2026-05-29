@@ -926,6 +926,15 @@ export default function FleetConsensus() {
 
       <div className="flex-1 overflow-y-auto p-6 space-y-6">
 
+      {/* ── Day 16 #12 — Cycle Status Bar relocated to TOP of page ──
+          Mark's spec: the live "RUNNING — Cycle #N · Next cycle in Xs · Y
+          strategies active" line is the single most operationally useful
+          piece of information on this page. It belongs above everything
+          else — explainer, stat cards, BFT card. Operator now lands and
+          immediately knows: am I running, when does the next cycle fire,
+          and how many strategies are eligible. */}
+      <CycleStatusBar />
+
       {/* ── How Fleet Consensus Works (Session XXIX: relocated to TOP of page, top-line)
             Was below Stat Cards / BFT Explainer; now leads the page so a fresh
             visitor sees the four-step process before any data. */}
@@ -1013,13 +1022,9 @@ export default function FleetConsensus() {
       {/* ── BFT Explainer (relocated from II Agent page) ── */}
       <FleetConsensusBFTSection />
 
-      {/* ── Cycle Status Bar (Session XXXV: relocated FROM Dashboard) ──────────
-          Mav requested this anchor sit on the Fleet Consensus page directly below
-          the BFT explainer so the operator can see "RUNNING — Cycle #N ·
-          Next cycle in Xs · Y strategies active" right where consensus
-          activity is being watched. Self-contained component subscribes to
-          the bot store + analytics summary. */}
-      <CycleStatusBar />
+      {/* (Day 16 #12: <CycleStatusBar /> previously rendered here, between
+          the BFT explainer and the latest-round container. Relocated to
+          the very top of the page per Mark's spec — see top-of-file mount.) */}
 
       {/* Session XXIX: 'How Fleet Consensus Works' was here — now relocated to TOP of
           the page (above Stat Cards). Promotion Gate already sits above

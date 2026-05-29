@@ -856,19 +856,23 @@ export default function Layout() {
             />
           </button>
 
-          {/* Label — HAL-red identity, more confident */}
-          <div className="text-center group/label cursor-pointer" onClick={() => setOrbOpen(o => !o)}>
-            <div className="text-[12px] font-extrabold tracking-[0.18em] text-red-400 uppercase leading-none drop-shadow-[0_0_8px_rgba(248,113,113,0.55)]">
-              Ari
-            </div>
-            <div className={clsx(
-              'text-[10px] mt-1 font-mono transition-all duration-200 leading-none',
+          {/* Day 16 #1 — "ARI" subtitle removed per Mark's spec.
+              The orb itself is the identity now (Ari = the lion, the eye, the
+              presence). The subtitle was redundant once the side-menu nav
+              entry, the masthead "Ari · Guide and Navigator", and the orb
+              hover-state already carried the name. State hint preserved in a
+              minimal inline form so first-time operators still discover the
+              orb is interactive. */}
+          <div
+            className={clsx(
+              'text-center text-[10px] font-mono leading-none transition-all duration-200 cursor-pointer',
               orbOpen
                 ? 'text-red-400 opacity-100'
-                : 'text-slate-500 opacity-0 group-hover/label:opacity-100 group-hover/label:text-red-400/70'
-            )}>
-              {listening ? '● listening…' : orbOpen ? '● online' : '▸ tap to chat'}
-            </div>
+                : 'text-slate-500 opacity-0 hover:opacity-100 hover:text-red-400/70'
+            )}
+            onClick={() => setOrbOpen(o => !o)}
+          >
+            {listening ? '● listening…' : orbOpen ? '● online' : '▸ tap to chat'}
           </div>
         </div>
 
@@ -1283,12 +1287,16 @@ export default function Layout() {
 
           <div className="w-px h-5 bg-dark-600 flex-shrink-0" />
 
-          {/* Local date + time — Session XXX: Partner spec, date next to time */}
-          <div className="flex items-center gap-1.5 text-sm font-mono text-slate-400 flex-shrink-0">
-            <Clock size={14} className="text-slate-500" />
+          {/* Local date + time — Session XXX: Partner spec, date next to time.
+              Day 16 #4: date and time unified to the same colour (slate-300)
+              per Mark's spec — previously date was slate-300 and time
+              inherited slate-400, so they read as two different things
+              instead of one timestamp. */}
+          <div className="flex items-center gap-1.5 text-sm font-mono flex-shrink-0">
+            <Clock size={14} className="text-slate-400" />
             <span className="text-slate-300">{localDate}</span>
             <span className="text-slate-600">·</span>
-            <span>{localTime}</span>
+            <span className="text-slate-300">{localTime}</span>
           </div>
 
           {/* Notification Bell — badge shows critical-only count */}
