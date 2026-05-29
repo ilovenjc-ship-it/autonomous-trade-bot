@@ -60,9 +60,9 @@ export const LionMark: React.FC<LionMarkProps> = ({ active = false, className })
   const eyeRX = 60;
 
   // ── Pulse timing ─────────────────────────────────────────────────────────
-  // Faster + larger amplitude than v1. The eye should be visibly throbbing
-  // even at thumb-size in the side menu.
-  const pulseDur = active ? '1.4s' : '2.2s';
+  // Mark's call after rev2: amplitude is good, but the cycle was too fast.
+  // Slowed to 4.5s idle / 3s active — calmer breathing, still visible.
+  const pulseDur = active ? '3s' : '4.5s';
 
   // Halo opacity: idle 0.30→0.95, active 0.55→1.00
   const haloOpacity = active ? '0.55;1.0;0.55' : '0.30;0.95;0.30';
