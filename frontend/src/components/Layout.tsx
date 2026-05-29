@@ -764,13 +764,14 @@ export default function Layout() {
                     pulses with the same rhythm as the chat-header
                     mini eye and the floating-panel mini eye — three
                     placements, one heartbeat. */}
-                {/* Day 16 — black background of the PNG dropped via
-                    mix-blend-mode: screen. Black pixels in the source
-                    become transparent against the dark sidebar, leaving
-                    just the pink lion silhouette and its baked-in halo
-                    floating cleanly. No regen needed. */}
+                {/* Day 16 — v5: same v4 lion sigil, but the slate
+                    background was chroma-keyed out in post (alpha
+                    channel restored, halo glow preserved with a soft
+                    alpha ramp). No mix-blend hacks needed — image is
+                    a true transparent PNG so it composites cleanly
+                    against any backdrop. v4 kept on disk for diff. */}
                 <img
-                  src="/ari-lion-mark-v4.png"
+                  src="/ari-lion-mark-v5.png"
                   alt="Ari — Lion sigil"
                   draggable={false}
                   className={clsx(
@@ -778,7 +779,6 @@ export default function Layout() {
                     orbOpen ? 'animate-hal-active scale-[1.04]' : 'animate-hal-breathe',
                   )}
                   style={{
-                    mixBlendMode: 'screen',
                     filter: orbOpen
                       ? 'drop-shadow(0 0 14px rgba(249,168,212,0.55)) drop-shadow(0 0 24px rgba(220,38,38,0.30))'
                       : 'drop-shadow(0 0 8px rgba(249,168,212,0.35)) drop-shadow(0 0 16px rgba(220,38,38,0.18))',
