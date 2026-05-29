@@ -729,6 +729,64 @@ export default function Layout() {
             </div>
           )}
 
+          {/* ── COMPARISON ORB (Day 16 follow-up — Mark's "let's compare") ──
+              Mark's read on the lion v2's HAL eyes: the version WITHOUT the
+              amber pupil and white pinpoint feels more realistic / more
+              ominous — "the look I wanted in the beginning." This second
+              orb sits ABOVE the canonical orb and renders the same anatomy
+              minus the amber pupil + white pinpoint child spans, and with
+              the centre-of-gradient amber/cream stops swapped for red so
+              the sphere reads as a red coal in a black housing rather than
+              a warm filament.
+
+              Non-interactive — no onClick, no chat panel — purely visual
+              comparison. Decoration ring + static ring + halo all kept so
+              the surrounding "presence" reads identically; only the eye's
+              core anatomy changes. If Mark green-lights this look, the
+              canonical orb below gets the same simplification and this
+              comparison block is removed. */}
+          <div
+            aria-hidden
+            className="relative w-20 h-20 mb-1"
+            title="Comparison: HAL eye without amber pupil + white pinpoint"
+          >
+            {/* Outer rotating ring — same as canonical */}
+            <span
+              className="absolute inset-0 rounded-full border border-dashed border-red-500/25 animate-hal-ring"
+            />
+            {/* Static inner ring */}
+            <span className="absolute inset-1.5 rounded-full border border-red-500/25" />
+            {/* Sphere — RED-CORE gradient (no amber/cream at centre).
+                Reads centre→edge as red coal → burgundy → near-black housing. */}
+            <span className="absolute inset-0 flex items-center justify-center">
+              <span
+                className="w-12 h-12 rounded-full animate-hal-breathe"
+                style={{
+                  background:
+                    'radial-gradient(circle at 50% 50%, #f87171 0%, #ef4444 6%, #dc2626 14%, #b91c1c 24%, #7f1d1d 36%, #450a0a 48%, #1a0303 56%, #000000 64%, #000000 100%)',
+                  boxShadow:
+                    'inset 0 0 26px 10px rgba(0,0,0,1), inset 0 0 5px 1px rgba(220,38,38,0.30)',
+                }}
+              />
+              {/* NO amber pupil span — intentionally omitted. */}
+              {/* NO white pinpoint span — intentionally omitted. */}
+            </span>
+            {/* Halo — same red-dominant room-glow as canonical orb */}
+            <span
+              aria-hidden
+              className="absolute -inset-2 rounded-full pointer-events-none opacity-65"
+              style={{
+                background:
+                  'radial-gradient(circle, rgba(251,191,36,0.06) 0%, rgba(220,38,38,0.22) 25%, rgba(220,38,38,0.10) 55%, rgba(220,38,38,0.03) 75%, transparent 85%)',
+                filter: 'blur(10px)',
+              }}
+            />
+          </div>
+          {/* tiny label so it's clear which is which during comparison */}
+          <div className="text-center text-[9px] font-mono leading-none text-slate-600 -mt-0.5 mb-1 select-none">
+            v2 · simpler
+          </div>
+
           {/* ── The HAL Orb — bigger, brighter, slower mystic breath ──
               Container is w-20/h-20 (80×80) — substantially up from the
               previous 56×56. The inner red eye is 48×48. Animations:
