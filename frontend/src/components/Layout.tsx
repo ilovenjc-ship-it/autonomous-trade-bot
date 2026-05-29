@@ -1052,7 +1052,7 @@ export default function Layout() {
                 <>
                   <span className="text-slate-600 select-none">·</span>
                   <span className="flex items-center gap-1.5">
-                    <Brain size={12} className="text-pink-400 flex-shrink-0" aria-hidden />
+                    <Brain size={12} className="text-pink-300 flex-shrink-0" aria-hidden />
                     <span className="text-xs font-mono text-emerald-400/80 leading-none">Guide and Navigator</span>
                   </span>
                 </>

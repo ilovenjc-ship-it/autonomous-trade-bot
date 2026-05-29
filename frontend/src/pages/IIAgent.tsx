@@ -947,16 +947,50 @@ export default function IIAgent() {
             </div>
           </div>
 
-          {/* Labels — Day 16 #8: title changed from "Chat with Ari" → "Ari · On-line".
-              The chat surface no longer tells the operator what THEY do
-              ("chat"); it tells them Ari's status ("on-line"). The action
-              is implicit (it's a chat panel, with a Send button). The
-              ONLINE pill on the second line is collapsed into the title;
-              the second line keeps just the data-source provenance. */}
+          {/* Labels — Day 16 #8 + Day 16 follow-up correction (Mark):
+              Title is "Ari · Online" — the chat surface tells the operator
+              Ari's *status* (the action — chat — is implicit, it's a chat
+              panel with a Send button). The previous pulsating green dot
+              that anchored "Online" was redundant identity noise — Mark's
+              correction was to swap it for the SAME living HAL Observation
+              Eye that sits in the side-menu orb (just scaled down to ~16px
+              header size). One presence, three placements: side-menu orb,
+              floating-chat-panel header, here. The word "Online" stays
+              green — green carries the liveness signal; the HAL eye
+              carries the identity. */}
           <div className="flex flex-col gap-0.5">
             <div className="flex items-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="text-base font-bold text-white tracking-wide font-mono">Ari · On-line</span>
+              {/* ── Mini HAL eye — Ari status indicator ──
+                  Anatomy is a 1:1 clone of the floating-chat-panel's mini
+                  HAL eye (Layout.tsx ~595-624): outer halo, breathing
+                  red→black gradient sphere, amber pupil, white pinpoint.
+                  Same `animate-hal-breathe` rhythm so it visually rhymes
+                  with the orb in the bottom-left of the sidebar. */}
+              <span className="relative w-4 h-4 flex-shrink-0" aria-hidden>
+                <span
+                  className="absolute -inset-0.5 rounded-full pointer-events-none"
+                  style={{
+                    background: 'radial-gradient(circle, rgba(251,191,36,0.10) 0%, rgba(220,38,38,0.18) 30%, rgba(220,38,38,0.06) 60%, transparent 80%)',
+                    filter: 'blur(2.5px)',
+                  }}
+                />
+                <span
+                  className="absolute inset-0 rounded-full flex items-center justify-center animate-hal-breathe"
+                  style={{
+                    background: 'radial-gradient(circle at 50% 50%, #fde68a 0%, #fbbf24 2%, #f59e0b 6%, #ea580c 11%, #b91c1c 20%, #7f1d1d 33%, #450a0a 45%, #1a0303 55%, #000000 63%, #000000 100%)',
+                    boxShadow: 'inset 0 0 6px 2px rgba(0,0,0,1), inset 0 0 1.5px 0.4px rgba(251,191,36,0.25)',
+                  }}
+                >
+                  <span className="rounded-full bg-amber-500 w-1 h-1 flex items-center justify-center shadow-[0_0_3px_0.7px_rgba(245,158,11,0.6),0_0_5px_1.5px_rgba(180,83,9,0.32)]">
+                    <span className="rounded-full bg-white w-px h-px shadow-[0_0_2px_0.4px_rgba(255,251,235,0.88),0_0_3.5px_0.8px_rgba(254,243,199,0.55)]" />
+                  </span>
+                </span>
+              </span>
+              <span className="text-base font-bold tracking-wide font-mono">
+                <span className="text-white">Ari</span>
+                <span className="text-slate-500"> · </span>
+                <span className="text-emerald-400">Online</span>
+              </span>
             </div>
             <span className="text-[12px] font-mono text-slate-400">backed by live fleet &amp; market data</span>
           </div>
@@ -993,12 +1027,14 @@ export default function IIAgent() {
                   of a presence. Per Mark's spec the container is dropped
                   and the brain is re-enlarged to ~52px so it stands on
                   its own as a free-floating sigil — Ari's signature in
-                  the chat surface. The green-online-pill on the chat
-                  header stays as-is per Mark's earlier spec — that pill
-                  signals connection liveness, not Ari's identity. */}
+                  the chat surface. Day 16 follow-up (Mark): the previous
+                  pink-400 read as hot/saturated pink — softened to pink-300
+                  for a calmer "soft pink" sigil, and the halo rgba is
+                  retuned to match (#f9a8d4 = 249,168,212). The visual
+                  weight is the same; only the saturation drops. */}
               <Brain
                 size={52}
-                className="text-pink-400 mb-3 drop-shadow-[0_0_12px_rgba(244,114,182,0.35)]"
+                className="text-pink-300 mb-3 drop-shadow-[0_0_12px_rgba(249,168,212,0.32)]"
                 aria-hidden
               />
               <p className="text-sm font-semibold text-slate-200 mb-1">Ask me anything about the fleet</p>
