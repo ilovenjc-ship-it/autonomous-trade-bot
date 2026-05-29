@@ -1,15 +1,32 @@
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, desc, text
+from sqlalchemy import select, func, desc, text, case
 from pydantic import BaseModel
 from typing import Optional
-from datetime import datetime
+from datetime import datetime, timezone
 
 from db.database import get_db
 from models.trade import Trade
 from services.trading_service import trading_service
 
 router = APIRouter(prefix="/api/trades", tags=["trades"])
+
+
+# ── Day 16 #15 — D-44 cohort anchor ───────────────────────────────────────────
+# Mark's spec: add a "post-D-44 cohort" line on the Fleet and Strategies
+# pages so the operator can see how the bot is performing since the
+# Architect-standing-authority + same-day live-wire batch landed.
+#
+# Cohort start = git commit fd6f5922 ("D-44 inscription: Architect standing
+# authority + same-day live-wire batch") committed 2026-05-27 16:55:18 UTC.
+# That commit ships F-37B FR-7 cap-write enforcement to LIVE — the cleanest
+# architectural before/after line we have for "the system the live-wire
+# committee actually approved on Day 44".
+#
+# Anyone after D-44 wanting to extend the cohort start (e.g. "since most
+# recent inscription") can pass ?since=<iso-timestamp>. Default is D-44.
+D44_INSCRIPTION_TIMESTAMP_UTC = datetime(2026, 5, 27, 16, 55, 18, tzinfo=timezone.utc)
+D44_COMMIT_SHA = "fd6f5922"
 
 
 class ManualTradeRequest(BaseModel):
@@ -223,6 +240,155 @@ async def trade_stats(db: AsyncSession = Depends(get_db)):
         "win_rate":          round(wins / executed * 100, 1) if executed else 0.0,
         "exec_success_rate": round(executed / total * 100, 1) if total else 0.0,
         "tao_price_usd":     round(tao_price, 4),
+    }
+
+
+# ── Day 16 #15 — Post-D-44 cohort stats ──────────────────────────────────────
+@router.get("/cohort-stats")
+async def cohort_stats(
+    since: Optional[str] = Query(
+        None,
+        description=(
+            "ISO-8601 timestamp (UTC). Trades with executed_at >= this value "
+            "are included in the cohort. Defaults to the D-44 inscription "
+            "(git commit fd6f5922, 2026-05-27 16:55:18 UTC) — the architectural "
+            "before/after line the live-wire committee approved on Day 44."
+        ),
+    ),
+    db: AsyncSession = Depends(get_db),
+):
+    """Aggregate trade stats for a cohort defined by an executed_at lower bound.
+
+    Default cohort: post-D-44 (everything that executed on or after the
+    Architect-standing-authority + same-day live-wire batch commit).
+
+    Returns:
+      cohort_label       Human label for the cohort window.
+      since              ISO-8601 timestamp the cohort started at.
+      commit_sha         The anchor commit (informational, may be empty for
+                         ?since=<custom>).
+      now                Server time at query.
+      days_since         Whole days from cohort start to now.
+      total_trades       Trades with executed_at >= since.
+      executed           total_trades with status="executed".
+      wins / losses      executed trades split by pnl > 0 vs <= 0.
+      win_rate           Percent (0-100), wins / executed.
+      total_pnl_tau      Sum of pnl over executed trades.
+      per_strategy       List of {strategy, total, executed, wins, losses,
+                                  win_rate, total_pnl_tau}, sorted by
+                                  total_pnl_tau desc.
+    """
+    # Resolve cohort start.
+    if since:
+        try:
+            # Accept both '...Z' and '+00:00' suffixes.
+            since_iso = since.replace("Z", "+00:00") if since.endswith("Z") else since
+            cohort_start = datetime.fromisoformat(since_iso)
+            if cohort_start.tzinfo is None:
+                cohort_start = cohort_start.replace(tzinfo=timezone.utc)
+            cohort_start = cohort_start.astimezone(timezone.utc)
+            commit_sha = ""  # custom cohort, not tied to a known anchor
+            cohort_label = f"Custom (since {cohort_start.isoformat()})"
+        except ValueError:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid 'since' timestamp: {since!r}. Expected ISO-8601 (e.g. 2026-05-27T16:55:18Z).",
+            )
+    else:
+        cohort_start = D44_INSCRIPTION_TIMESTAMP_UTC
+        commit_sha = D44_COMMIT_SHA
+        cohort_label = "Post-D-44"
+
+    # Strip tz for SQL comparison — Trade.executed_at is a naive UTC column.
+    cohort_start_naive = cohort_start.astimezone(timezone.utc).replace(tzinfo=None)
+
+    # Aggregate counts.
+    base = select(Trade).where(Trade.executed_at >= cohort_start_naive)
+
+    total = (await db.execute(
+        select(func.count()).select_from(base.subquery())
+    )).scalar() or 0
+
+    executed_q = base.where(Trade.status == "executed")
+    executed = (await db.execute(
+        select(func.count()).select_from(executed_q.subquery())
+    )).scalar() or 0
+
+    wins = (await db.execute(
+        select(func.count()).select_from(
+            executed_q.where(Trade.pnl > 0).subquery()
+        )
+    )).scalar() or 0
+
+    losses = (await db.execute(
+        select(func.count()).select_from(
+            executed_q.where(Trade.pnl <= 0).subquery()
+        )
+    )).scalar() or 0
+
+    total_pnl_tau = float((await db.execute(
+        select(func.sum(Trade.pnl)).where(
+            Trade.executed_at >= cohort_start_naive,
+            Trade.status == "executed",
+        )
+    )).scalar() or 0.0)
+
+    win_rate = round((wins / executed * 100), 2) if executed else 0.0
+
+    # Per-strategy breakdown — uses CASE expressions instead of CAST so the
+    # query is portable across SQLite (test) and Postgres (production).
+    is_exec = case((Trade.status == "executed", 1), else_=0)
+    is_win  = case(((Trade.status == "executed") & (Trade.pnl > 0), 1),  else_=0)
+    is_loss = case(((Trade.status == "executed") & (Trade.pnl <= 0), 1), else_=0)
+    pnl_if_exec = case(
+        (Trade.status == "executed", func.coalesce(Trade.pnl, 0.0)),
+        else_=0.0,
+    )
+
+    strat_rows = (await db.execute(
+        select(
+            Trade.strategy,
+            func.count().label("total"),
+            func.sum(is_exec).label("executed"),
+            func.sum(is_win).label("wins"),
+            func.sum(is_loss).label("losses"),
+            func.sum(pnl_if_exec).label("pnl"),
+        ).where(
+            Trade.executed_at >= cohort_start_naive,
+        ).group_by(Trade.strategy)
+    )).all()
+
+    per_strategy = []
+    for r in strat_rows:
+        ex = int(r.executed or 0)
+        wn = int(r.wins or 0)
+        per_strategy.append({
+            "strategy":      r.strategy or "(unknown)",
+            "total":         int(r.total or 0),
+            "executed":      ex,
+            "wins":          wn,
+            "losses":        int(r.losses or 0),
+            "win_rate":      round((wn / ex * 100), 2) if ex else 0.0,
+            "total_pnl_tau": round(float(r.pnl or 0.0), 6),
+        })
+    per_strategy.sort(key=lambda x: x["total_pnl_tau"], reverse=True)
+
+    now_utc = datetime.now(timezone.utc)
+    days_since = max(0, (now_utc - cohort_start).days)
+
+    return {
+        "cohort_label":  cohort_label,
+        "since":         cohort_start.isoformat().replace("+00:00", "Z"),
+        "commit_sha":    commit_sha,
+        "now":           now_utc.isoformat().replace("+00:00", "Z"),
+        "days_since":    days_since,
+        "total_trades":  int(total),
+        "executed":      int(executed),
+        "wins":          int(wins),
+        "losses":        int(losses),
+        "win_rate":      win_rate,
+        "total_pnl_tau": round(total_pnl_tau, 6),
+        "per_strategy":  per_strategy,
     }
 
 

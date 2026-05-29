@@ -11,6 +11,7 @@ import toast from 'react-hot-toast'
 import api from '@/api/client'
 import type { Strategy } from '@/types'
 import CycleStatusBar from '@/components/CycleStatusBar'
+import CohortStripe from '@/components/CohortStripe'
 import {
   BarChart, Bar, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip,
@@ -572,6 +573,14 @@ export default function Strategies() {
             First line on the Strategies page per Mav's spec — same shared
             <CycleStatusBar /> component used on the Fleet Consensus page. */}
       <CycleStatusBar />
+
+      {/* ── Day 16 #15 — Post-D-44 cohort stripe ──
+          Mark wanted a recurring "since the architectural before/after line"
+          stat row on Strategies + Fleet pages so the operator can read fleet
+          performance against the live-wire-committee-approved cohort start
+          (D-44 inscription, commit fd6f5922, 2026-05-27 16:55:18 UTC). The
+          stripe queries /api/trades/cohort-stats with the default cohort. */}
+      <CohortStripe />
 
       {/* ── Top controls — Session XXXV: Filters and Allocation Tier Key
             swapped — Filters on the LEFT, Tier Key on the RIGHT (Mav's spec

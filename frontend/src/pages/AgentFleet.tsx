@@ -7,6 +7,7 @@ import api from '@/api/client'
 import { useBotStore } from '@/store/botStore'
 import Tooltip, { InfoBubble } from '@/components/Tooltip'
 import { fmtETTime } from '@/lib/time'
+import CohortStripe from '@/components/CohortStripe'
 
 // ── (Top Subnets relocated to Analytics page) ────────────────────────────────
 // ─────────────────────────────────────────────────────────────────────────────
@@ -324,6 +325,18 @@ export default function AgentFleet() {
             <span className="text-slate-500 text-[12px]">Auto-resumes when regime changes</span>
           </div>
         )}
+
+        {/* Day 16 #15 — Post-D-44 cohort stripe.
+            Mark wanted a recurring "since the architectural before/after
+            line" stat row on Fleet + Strategies pages so the operator can
+            read fleet performance against the live-wire-committee-approved
+            cohort start (D-44 inscription, commit fd6f5922,
+            2026-05-27 16:55:18 UTC). Sits between the regime banner and
+            the Fleet Health header so the operator's eye reads:
+              regime context → cohort context → today's health. */}
+        <div className="px-6 pt-3">
+          <CohortStripe />
+        </div>
 
         {/* Header bar */}
         <div className="px-6 py-3 border-b border-slate-800/60 flex items-center justify-between">
