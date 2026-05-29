@@ -1,5 +1,5 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// LionMark — Day 16 Session XLIV (rev 2)
+// LionMark — Day 16 Session XLVII (rev 2)
 //
 // Mark's tuning notes after the v1 SVG ship:
 //   1. Lion head 1/3 larger — face was too small, facial features and the

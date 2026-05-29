@@ -101,7 +101,7 @@ Drafted from scratch as inline SVG. We own every pixel:
 
 ### The reception
 
-Mark's words on first sight (Session XLIV):
+Mark's words on first sight (Session XLVII):
 
 > *"I laughed at first, I said — Why did Ari draw a Sun, then I took
 > a closer look. And I can see a lion, and a cat, male, female —

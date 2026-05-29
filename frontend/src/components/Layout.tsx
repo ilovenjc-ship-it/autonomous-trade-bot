@@ -24,7 +24,7 @@ import TickerTape from '@/components/TickerTape'
 import OrbQuickPrompts from '@/components/OrbQuickPrompts'
 import LionMark from '@/components/LionMark'
 
-// ── Side-menu orb identity flag — Day 16 Session XLIII ──────────────────
+// ── Side-menu orb identity flag — Day 16 Session XLVII ─────────────────
 // Mark's call: lion-as-orb is GREENLIT. The HAL eye sphere code below is
 // preserved INTACT (not deleted) so we can flip back in one keystroke if
 // the lion ever needs to come down. Both render paths share the same
@@ -614,7 +614,7 @@ export default function Layout() {
                         filter: 'blur(2.5px)',
                       }}
                     />
-                    {/* The eye sphere — Day 16 Session XLIII: simpler
+                    {/* The eye sphere — Day 16 Session XLVII: simpler
                         anatomy (no pupil, no pinpoint), gradient-baked
                         amber kiss. Ratio-preserved at 16px scale. */}
                     <span
@@ -757,7 +757,7 @@ export default function Layout() {
 
             {USE_LION_ORB ? (
               <>
-                {/* ── Lion mark v6 — Day 16 Session XLIV ──
+                {/* ── Lion mark v6 — Day 16 Session XLVII ──
                     Drawn from scratch as inline SVG (see LionMark.tsx).
                     Why we ditched the PNG: v4/v5 kept fighting the
                     chrome — slate bg bled through the halo, screen-
@@ -809,7 +809,7 @@ export default function Layout() {
                   orbOpen ? 'border-red-400/55' : 'border-red-500/25 group-hover:border-red-400/45'
                 )} />
 
-                {/* ── The HAL eye — Day 16 Session XLIII anatomy ──
+                {/* ── The HAL eye — Day 16 Session XLVII anatomy ──
                     Mark's call after the v2 simpler-orb comparison: amber-pupil
                     + white-pinpoint look is OUT, simpler red-coal-in-housing
                     look is IN — but with "a tad of amber for iris" so the eye
