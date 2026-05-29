@@ -978,16 +978,22 @@ export default function IIAgent() {
         <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ minHeight: '320px', maxHeight: '420px' }}>
           {chatHistory.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full py-10 text-center">
-              {/* Day 16 #7/#10 (Mark's correction): empty-state Brain icon
-                  recoloured emerald → pink. Pink-brain motif now reads as
-                  Ari's signature on this page (paired with the masthead
-                  pink Brain that replaced the red HAL-eye dot). The
-                  green-online-pill on the chat header stays as-is per
-                  Mark's spec — that pill signals connection liveness,
-                  not Ari's identity. */}
-              <div className="w-14 h-14 rounded-2xl bg-pink-500/10 border border-pink-500/25 flex items-center justify-center mb-3">
-                <Brain size={26} className="text-pink-400" />
-              </div>
+              {/* Day 16 #7/#10 (Mark's correction, then follow-up):
+                  empty-state Brain icon recoloured emerald → pink, then
+                  un-boxed. The previous emerald version sat inside a
+                  56×56 rounded tile; once the brain went pink, the tile
+                  shrank the icon and made it look like a button instead
+                  of a presence. Per Mark's spec the container is dropped
+                  and the brain is re-enlarged to ~52px so it stands on
+                  its own as a free-floating sigil — Ari's signature in
+                  the chat surface. The green-online-pill on the chat
+                  header stays as-is per Mark's earlier spec — that pill
+                  signals connection liveness, not Ari's identity. */}
+              <Brain
+                size={52}
+                className="text-pink-400 mb-3 drop-shadow-[0_0_12px_rgba(244,114,182,0.35)]"
+                aria-hidden
+              />
               <p className="text-sm font-semibold text-slate-200 mb-1">Ask me anything about the fleet</p>
               <p className="text-xs text-slate-400 font-mono max-w-xs leading-relaxed">
                 I'm backed by live market data, strategy metrics, and the autonomous cycle engine.
