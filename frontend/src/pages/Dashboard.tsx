@@ -186,8 +186,11 @@ function SentimentGauge({
     : null
 
   // Composite sentiment score: -100 (fear) → +100 (greed)
-  // Weights: RSI 30% · MACD 25% · Consensus 20% · TAO F&G 25%
-  // If TAO F&G unavailable, redistribute its weight to the others.
+  // Weights: RSI 30% · MACD 25% · Consensus 20% · Ari F&G 25%
+  // If Ari F&G unavailable, redistribute its weight to the others.
+  // Day 16 (Path B): "Ari F&G" replaces the former "TAO F&G" — the index is
+  // now Ari-native (5-input composite synthesized by the backend), not the
+  // upstream TAO.app number. Same ±100 scale, same gauge interpretation.
   const hasFg = taoFearGreed != null
   const wRsi  = hasFg ? 0.30 : 0.40
   const wMacd = hasFg ? 0.25 : 0.30
@@ -297,7 +300,7 @@ function SentimentGauge({
               { src: 'RSI-14',       w: hasFg ? '30%' : '40%', desc: 'Momentum oscillator' },
               { src: 'MACD Hist',    w: hasFg ? '25%' : '30%', desc: 'Trend / momentum' },
               { src: 'BFT Consensus',w: hasFg ? '20%' : '30%', desc: 'Bot vote approval rate' },
-              { src: 'TAO F&G',      w: hasFg ? '25%' : '—',   desc: 'Live TAO.app index' },
+              { src: 'Ari F&G',      w: hasFg ? '25%' : '—',   desc: '5-input Ari synthesis' },
             ].map(r => (
               <div key={r.src} className="flex items-center justify-between gap-2">
                 <span className="text-slate-400">{r.src}</span>
@@ -576,7 +579,9 @@ export default function Dashboard() {
   const [unreadAlerts,   setUnreadAlerts]   = useState(0)
   // Session XXXVIII: dailyCap state retired here (moved to Transactions page).
   const [openPositions,  setOpenPositions]  = useState<OpenPositionsSummary | null>(null)
-  // TAO.app Fear & Greed (refreshed every 5 min — matches backend cache)
+  // Ari Fear & Greed (refreshed every 5 min — matches backend cache).
+  // Day 16: variable name retained as `taoFearGreed` for git-blame stability;
+  // the underlying source is now /api/market/ari-fear-greed.
   const [taoFearGreed,   setTaoFearGreed]   = useState<number | null>(null)
 
   // Recent trades (for bottom panel)
@@ -622,10 +627,16 @@ export default function Dashboard() {
     }
   }, [])
 
-  // Fear & Greed — fetch once on mount, then refresh every 5 minutes
+  // Ari Fear & Greed — fetch once on mount, then refresh every 5 minutes.
+  // Day 16 (Path B): swapped from /api/market/fear-greed (TAO.app upstream)
+  // to /api/market/ari-fear-greed (Ari-native synthesis from 5 inputs we
+  // already compute). TAO.app moved their endpoint behind API auth despite
+  // Swagger labeling it Free; Mark green-lit Path B (Ari's number) over
+  // Path A (paid key) on Day 16 morning. D-45 binding: this is *Ari's
+  // number*, the agent owns the synthesis.
   const loadFearGreed = useCallback(async () => {
     try {
-      const res = await fetch('/api/market/fear-greed')
+      const res = await fetch('/api/market/ari-fear-greed')
       if (res.ok) {
         const data = await res.json()
         if (data.value != null) setTaoFearGreed(data.value)
@@ -1251,14 +1262,15 @@ export default function Dashboard() {
               RSI-14 not duplicated — already shown above as a Live
               Indicator row, would be redundant. The remaining three are
               the unique sentiment-tier inputs:
-                · TAO F&G  — TAO.app Fear & Greed Index (5-min cache),
-                  contrarian frame: ≤ −25 = fear/buy (green),
-                  ≥ +25 = greed/sell (red).
+                · Ari F&G — Ari's Fear & Greed Index (5-input synthesis,
+                  5-min cache); contrarian frame: ≤ −25 = fear/buy (green),
+                  ≥ +25 = greed/sell (red). Day 16 Path B: replaces the
+                  former TAO.app upstream which moved behind API auth.
                 · MACD Hist — MACD line minus Signal line; positive =
                   bullish momentum, negative = bearish.
                 · Consensus — Fleet Consensus BFT approval rate %; healthy band
                   is 45–65%, mirrors the KPI grid card. */}
-          <IndRow label="TAO F&G"
+          <IndRow label="Ari F&G"
                   val={taoFearGreed}
                   good={-25} bad={25}
                   format={(v) => `${v > 0 ? '+' : ''}${v.toFixed(0)}`} />

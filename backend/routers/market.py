@@ -632,6 +632,70 @@ async def fear_greed():
         return {"value": None, "label": None, "cached": False, "error": str(exc)}
 
 
+# ── Ari's Fear & Greed Index (Path B, Day 16) ────────────────────────────────
+# Internal substitute for the now-gated TAO.app endpoint — a 5-input composite
+# synthesized from data we already compute (momentum, RSI, MACD, subnet
+# breadth, consensus tilt). See services/ari_fear_greed_service.py for the
+# synthesis recipe and doctrinal frame (D-45: Ari's number, owned by Ari).
+
+@router.get("/ari-fear-greed")
+async def ari_fear_greed():
+    """
+    Ari's Fear & Greed Index — 5-input composite, ±100 scale.
+
+    Returns:
+        {
+          "value":              float | null,            # ±100 or None
+          "label":              str | null,              # "Greed", "Extreme Fear", ...
+          "components":         {momentum, rsi, macd, breadth, consensus},
+          "components_present": int,                     # 0..5
+          "computed_at":        ISO timestamp,
+          "cached":             bool,
+        }
+    """
+    from services.ari_fear_greed_service import ari_fear_greed_service
+    return await ari_fear_greed_service.compute()
+
+
+@router.get("/ari-fear-greed/history")
+async def ari_fear_greed_history(days: int = Query(30, ge=1, le=365)):
+    """
+    Daily snapshots of Ari's F&G — oldest → newest.
+
+    One row per UTC date; the first request of each day persists that day's
+    value. See models/ari_fear_greed.py for the row shape.
+    """
+    from services.ari_fear_greed_service import ari_fear_greed_service
+    rows = await ari_fear_greed_service.get_history(days=days)
+    return {"days": days, "count": len(rows), "history": rows}
+
+
+# ── Deprecated alias — /fear-greed → forwards to /ari-fear-greed ─────────────
+# Day 16 (Path B): the old TAO.app-backed endpoint above is left intact for
+# diagnostic purposes (it'll keep returning the 401 from upstream until they
+# change posture again). The alias below mirrors the OLD endpoint's response
+# shape (value/label only, no components) so any client still hitting
+# /fear-greed gets the new Ari-native number without code changes.
+#
+# Frontend SHOULD migrate to /ari-fear-greed for full component visibility.
+# We keep this alias for one release, then remove it.
+
+@router.get("/fear-greed-v2")
+async def fear_greed_v2():
+    """
+    Backwards-compatible alias — same shape as the old /fear-greed endpoint
+    but powered by Ari's synthesis. Deprecated; prefer /ari-fear-greed.
+    """
+    from services.ari_fear_greed_service import ari_fear_greed_service
+    payload = await ari_fear_greed_service.compute()
+    return {
+        "value":  payload["value"],
+        "label":  payload["label"],
+        "cached": payload["cached"],
+        "source": "ari",   # explicit marker so callers can tell this isn't TAO.app
+    }
+
+
 @router.get("/subnet/{uid}")
 async def get_subnet_detail(uid: int):
     """
