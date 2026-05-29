@@ -22,29 +22,40 @@
 
 | # | Surface | Item | File(s) | Status | Notes |
 |---|---------|------|---------|--------|-------|
-| 1 | Side Menu | Remove subtitle "ARI" under "ARI Observation Lens" | `frontend/src/components/Layout.tsx` ~L524-527 | 🔴 | Side menu only |
-| 2 | Dashboard | Make Ari more prominent — Lion logo placement | `frontend/src/pages/Dashboard.tsx` | 🔴 | Lion locked; iconography pass |
-| 3 | Whale Flow | Subnet 0 detail page does not load when selected | `frontend/src/components/WhaleFlowDetailModal.tsx`, `frontend/src/pages/SubnetDetail.tsx` | 🟡 | **Root-cause: falsy-zero bug** — `if (!netuid)` short-circuits on uid="0" because `Number("0")===0` is falsy. Two functions affected (`load`, `loadPosition`) |
-| 4 | (Header) | Date color (Top Right) doesn't match Time color | `frontend/src/components/Layout.tsx` (header) | 🔴 | Cosmetic |
-| 5 | Live Indicators | TAO F&G field is blank | `frontend/src/components/?` (Bottom Right of page) | 🟡 | **In triage** — find the live-indicator panel and trace data binding |
-| 6 | Ari page | Remove Red Dot from Top Line | `frontend/src/components/Layout.tsx` ~L1031 (HAL-eye dot) | 🔴 | Cosmetic |
-| 7 | Ari page | Replace Green Dot with Pink Brain | `frontend/src/pages/IIAgent.tsx` | 🔴 | Pink-brain swap (a) |
-| 8 | Ari page | Change "Chat with Ari" → "Ari is On-line"; keep green ONLINE pill | `frontend/src/pages/IIAgent.tsx` | 🔴 | Copy + keep green pill |
-| 9 | Ari page | Relocate "Run Analysis" button — top-of-page → its own dropdown section between Chat Window and Agent Observation Log; pressing it opens Fleet Health Monitor section | `frontend/src/pages/IIAgent.tsx` | 🔴 | Structural — biggest single change on this page |
-| 10 | Ari page | Inside Chat Window: change Green Brain → Pink Brain | `frontend/src/pages/IIAgent.tsx` | 🔴 | Pink-brain swap (b) |
-| 11 | Ari page | Inside Chat Window: build Ari's Billboard (rotating message slideshow) | `frontend/src/pages/IIAgent.tsx` (new component) | 🔴 | 9s cadence, dots, pause-on-slide; 14 curated messages |
-| 12 | Fleet Consensus | Relocate "Running - Cycle" section to very top, above "How Fleet Consensus Works" | `frontend/src/pages/FleetConsensus.tsx` | 🔴 | Section reordering |
-| 13 | Audit Trail | Add reset/clear option that preserves history (Read A) | `frontend/src/pages/AuditTrail.tsx` + backend route | 🔴 | New backend endpoint required for soft-reset |
-| 14 | Human Override | Stop Bot wrong-mode message: shows "Live Mode" when actually in Paper Mode | `frontend/src/components/Layout.tsx:296` (`force_paper_mode ?? true` ignoring `liveCount===0` guard) | 🟡 | **Root-caused** |
-| **+15** | Fleet / Strategies | Add post-D-44 cohort line (cohort = trades after D-44 inscription `fd6f5922`) | `frontend/src/pages/AgentFleet.tsx`, `frontend/src/pages/Strategies.tsx` | 🔴 | Carry-over from yesterday's checkpoint thinking |
+| 1 | Side Menu | Remove subtitle "ARI" under "ARI Observation Lens" | `frontend/src/components/Layout.tsx` ~L524-527 | 🟢 | Shipped — orb is the identity |
+| 2 | Dashboard | Make Ari more prominent — Lion logo placement | `frontend/src/components/Layout.tsx`, `frontend/src/components/LionMark.tsx` | 🟢 | **Shipped as side-menu orb** — v6 inline SVG (see `lion-sigil-provenance.md`). Dashboard hero-band placement parked |
+| 3 | Whale Flow | Subnet 0 detail page does not load when selected | `frontend/src/components/WhaleFlowDetailModal.tsx`, `frontend/src/pages/SubnetDetail.tsx` | 🟢 | Falsy-zero bug fixed |
+| 4 | (Header) | Date color (Top Right) doesn't match Time color | `frontend/src/components/Layout.tsx` (header) | 🟢 | Shipped (cosmetic) |
+| 5 | Live Indicators | TAO F&G field is blank | `frontend/src/components/?` (Bottom Right of page) | 🟢 | Shipped — Ari's Fear & Greed Index replaces gated TAO.app upstream |
+| 6 | Ari page | Remove Red Dot from Top Line | `frontend/src/components/Layout.tsx` ~L1031 (HAL-eye dot) | 🟢 | Shipped — masthead red dot removed; mini HAL eye next to "Online" pill |
+| 7 | Ari page | Replace Green Dot with Pink Brain | `frontend/src/pages/IIAgent.tsx` | 🟢 | Pink-brain swap (a) shipped, later softened pink-400 → pink-300 |
+| 8 | Ari page | Change "Chat with Ari" → "Ari is On-line"; keep green ONLINE pill | `frontend/src/pages/IIAgent.tsx` | 🟢 | Shipped — "Ari · Online" with green liveness |
+| 9 | Ari page | Relocate "Run Analysis" button — top-of-page → its own dropdown section between Chat Window and Agent Observation Log; pressing it opens Fleet Health Monitor section | `frontend/src/pages/IIAgent.tsx` | 🟢 | Shipped — biggest structural change on the page |
+| 10 | Ari page | Inside Chat Window: change Green Brain → Pink Brain | `frontend/src/pages/IIAgent.tsx` | 🟢 | Pink-brain swap (b) shipped, later softened pink-400 → pink-300 |
+| 11 | Ari page | Inside Chat Window: build Ari's Billboard (rotating message slideshow) | `frontend/src/pages/IIAgent.tsx` (new component) | 🟢 | Shipped — 14 curated messages, 9s cadence, dots, pause-on-slide |
+| 12 | Fleet Consensus | Relocate "Running - Cycle" section to very top, above "How Fleet Consensus Works" | `frontend/src/pages/FleetConsensus.tsx` | 🟢 | Shipped — section reordered |
+| 13 | Audit Trail | Add reset/clear option that preserves history (Read A) | `frontend/src/pages/AuditTrail.tsx` + backend route | 🟢 | Shipped — soft-reset preserves history |
+| 14 | Human Override | Stop Bot wrong-mode message: shows "Live Mode" when actually in Paper Mode | `frontend/src/components/Layout.tsx:296` (`force_paper_mode ?? true` ignoring `liveCount===0` guard) | 🟢 | Shipped — guard now respected |
+| **+15** | Fleet / Strategies | Add post-D-44 cohort line (cohort = trades after D-44 inscription `fd6f5922`) | `frontend/src/pages/AgentFleet.tsx`, `frontend/src/pages/Strategies.tsx` | 🟢 | Shipped — cohort line live on both pages |
 
 ---
 
 ## Side-tasks (parked, not in the 14)
 
-- **Side-Task #1:** Human Override pre-trade gate audit (pre-Day-29). 🔴
-- **Side-Task #2:** Fleet-as-miners PDF for Archives (from `MemoryBank/Contemplations/const-6-filter-fleet-as-miners-2026-05-28.md`). 🔴
+- **Side-Task #1:** Human Override pre-trade gate audit (pre-Day-29). 🟢 Write-up shipped (`override-pretrade-gate-audit.md`). Three open committee questions still pending: F-1 three-state spec, F-5 typed-confirm token (`ARM_LIVE`), Day-29 dress rehearsal. See `day16-close-out.md`.
+- **Side-Task #2:** Fleet-as-miners PDF for Archives (from `MemoryBank/Contemplations/const-6-filter-fleet-as-miners-2026-05-28.md`). 🟢 Shipped via ReportLab.
 - **Strategic-fork checkpoint report:** ✅ DONE this morning — recommended HOLD/extend OBSERVE through Wed Jun 3.
+
+---
+
+## Day 16 close-out
+
+All 15 numbered items shipped. Lion sigil arc resulted in an
+original hand-drawn SVG mark (v6) — provenance preserved in
+`lion-sigil-provenance.md` for eventual trademark filing.
+
+See `day16-close-out.md` for the full ship summary and what
+rolls forward.
 
 ---
 
