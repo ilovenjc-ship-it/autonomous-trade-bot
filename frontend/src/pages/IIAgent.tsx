@@ -904,6 +904,15 @@ export default function IIAgent() {
           The page now leads straight into the Chat Panel — the actual
           interaction surface — without the redundant KPI deck. ──────────── */}
 
+      {/* ── Day 16 (#11) — Ari's Billboard ──
+          Relocated to the TOP of the page per Mark's spec: this is the first
+          thing the operator sees when they land on the Ari page. Lifted out
+          of the Chat Window because the chat surface is too crowded once a
+          prompt + response start to fill it. 14 messages across 4 movements
+          (Identity / Category / Doctrine / Safety). 9-second cadence.
+          Embodies D-45 — Ari speaks first, in her own voice. */}
+      <AriBillboard />
+
       {/* ── Chat Panel ──
           Session XXXV: dominant section colour flipped from indigo → emerald
           per Mav's spec ("Green w/ Red Indicator"). The red indicator is the
@@ -991,14 +1000,6 @@ export default function IIAgent() {
             </button>
           ))}
         </div>
-
-        {/* Day 16 (#11) — Ari's Billboard.
-            Lives inside the Chat Window per Mark's spec: "This can be a Bigger
-            way for Ari to Connect with user/operator." Sits between the quick
-            prompts (operator's questions) and message history (live thread).
-            14 messages across 4 movements (Identity / Category / Doctrine /
-            Safety). 9-second cadence (Mark's number). Embodies D-45. */}
-        <AriBillboard />
 
         {/* Message history */}
         <div ref={chatScrollRef} className="flex-1 overflow-y-auto px-5 py-4 space-y-4" style={{ minHeight: '320px', maxHeight: '420px' }}>

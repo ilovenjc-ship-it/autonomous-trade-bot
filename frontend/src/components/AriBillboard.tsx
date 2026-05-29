@@ -147,28 +147,32 @@ export function AriBillboard({
       tabIndex={0}
       onKeyDown={onKeyDown}
       className={clsx(
-        'relative px-5 py-4 border-b border-emerald-500/15',
+        // Day 16 — relocated ABOVE the Chat window per Mark's spec ("first
+        // thing the user/operator sees"). Now a self-contained card with its
+        // own emerald border + rounded corners, instead of a section inside
+        // the chat panel. Text bumped up for billboard-scale presence.
+        'relative px-6 py-5 rounded-2xl border border-emerald-500/25 mb-4',
         'focus:outline-none focus-visible:ring-1 focus-visible:ring-emerald-500/40',
         className,
       )}
       style={{
-        // Subtle vignette that matches the Chat panel's emerald scheme but
-        // distinguishes the billboard as its own surface.
-        background: 'linear-gradient(180deg, rgba(8,15,28,0.55) 0%, rgba(13,21,37,0.0) 100%)',
+        // Match the Chat panel's gradient so the two cards feel like a pair
+        // (billboard speaks → operator chats).
+        background: 'linear-gradient(180deg, #0d1525 0%, #0a1020 100%)',
       }}
     >
       {/* Top row: movement label + pause/play toggle */}
-      <div className="flex items-center justify-between mb-2">
+      <div className="flex items-center justify-between mb-3">
         <span
           className={clsx(
-            'text-[10px] font-mono tracking-[0.18em] uppercase',
+            'text-[11px] font-mono tracking-[0.18em] uppercase',
             meta.accent,
           )}
         >
           {meta.label}
         </span>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] font-mono text-slate-500 tabular-nums">
+          <span className="text-[11px] font-mono text-slate-500 tabular-nums">
             {String(activeIdx + 1).padStart(2, '0')} / {String(messages.length).padStart(2, '0')}
           </span>
           <button
@@ -189,13 +193,15 @@ export function AriBillboard({
         </div>
       </div>
 
-      {/* The slide itself — fixed min-height keeps the chat window from jumping
-          as message lengths vary across the 14-card rotation. */}
-      <div className="relative" style={{ minHeight: '64px' }}>
+      {/* The slide itself — fixed min-height keeps the layout from jumping
+          as message lengths vary across the 14-card rotation. Billboard-
+          scale type (Day 16: bumped from 15px → 20px when relocated above
+          the chat window). */}
+      <div className="relative" style={{ minHeight: '88px' }}>
         <p
           key={activeIdx}
           className={clsx(
-            'text-[15px] leading-relaxed text-slate-100 font-medium',
+            'text-[20px] leading-relaxed text-slate-50 font-semibold tracking-tight',
             // Crossfade in (skipped for prefers-reduced-motion users).
             reduceMotion ? '' : 'animate-billboard-fade',
           )}
